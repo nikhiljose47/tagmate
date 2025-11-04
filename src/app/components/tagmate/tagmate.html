@@ -1,0 +1,30 @@
+<div class="container-fluid">
+  <div class="row">
+    <!-- Left: Map (80%) -->
+    <div class="col-md-9 col-12 p-3">
+      <p class="fw-bold">Show Weather, Play Booking, My Stories of Day</p>
+
+      <div class="map-shell border rounded p-3 h-100">
+        <div class="search-bar mb-3 d-flex gap-2">
+          <input
+            id="geo-search-input"
+            type="text"
+            class="form-control"
+            [(ngModel)]="query"
+            placeholder="Search location (world) — e.g. Tokyo, Eiffel Tower..."
+          />
+          <button class="btn btn-primary" (click)="search()" [disabled]="loading">
+            {{ loading ? 'Searching...' : 'Search' }}
+          </button>
+        </div>
+
+        <div id="map" class="map-container rounded"></div>
+      </div>
+    </div>
+
+    <!-- Right: Sidebar (20%) -->
+    <div class="col-md-3 col-12 bg-light border-start p-3 sidebar-container">
+      <tag-explorer></tag-explorer>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,10 @@
+.custom-card {
+  width: 100%;
+  aspect-ratio: 2.6 / 1; /* 1:2 (width : height) ratio */
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body {
+  height: 100%;
+}
