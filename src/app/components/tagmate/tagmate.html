@@ -1,28 +1,31 @@
-<div class="container-fluid">
-  <div class="row">
+<div class="container-fluid g-0">
+  <div class="row g-0">
     <!-- Left: Map (80%) -->
-    <div class="col-md-9 col-12 p-3">
-      <p class="fw-bold">Show Weather, Play Booking, My Stories of Day</p>
+    <div class="col-md-9 col-12 position-relative p-0">
+      <!-- Fullscreen map -->
+      <div id="map" class="map-container"></div>
 
-      <div class="map-shell border rounded p-3 h-100">
-        <div class="search-bar mb-3 d-flex gap-2">
-          <input
-            id="geo-search-input"
-            type="text"
-            class="form-control"
-            [(ngModel)]="query"
-            placeholder="Search location (world) — e.g. Tokyo, Eiffel Tower..."
-          />
-          <button class="btn btn-primary" (click)="search()" [disabled]="loading">
-            {{ loading ? 'Searching...' : 'Search' }}
-          </button>
-        </div>
+      <!-- Overlay header -->
+      <div class="overlay-top text-bg-dark bg-opacity-50 p-2 px-3">
+        <p class="fw-bold mb-0">Show Weather, Play Booking, My Stories of Day</p>
+      </div>
 
-        <div id="map" class="map-container rounded"></div>
+      <!-- Overlay search bar -->
+      <div class="overlay-search bg-white rounded shadow-sm p-2 d-flex gap-2">
+        <input
+          id="geo-search-input"
+          type="text"
+          class="form-control form-control-sm"
+          [(ngModel)]="query"
+          placeholder="Search location (world)… e.g. Tokyo, Eiffel Tower"
+        />
+        <button class="btn btn-primary btn-sm" (click)="search()" [disabled]="loading">
+          {{ loading ? 'Searching...' : 'Search' }}
+        </button>
       </div>
     </div>
 
-    <!-- Right: Sidebar (20%) -->
+    <!-- Right: Sidebar -->
     <div class="col-md-3 col-12 bg-light border-start p-3 sidebar-container">
       <tag-explorer></tag-explorer>
     </div>

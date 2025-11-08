@@ -1,0 +1,57 @@
+<div *ngIf="!isSignedIn">
+
+
+<div id="test" class="container-fluid d-flex vh-100 align-items-center justify-content-center">
+  <!-- Left section for Login -->
+  <div class="row w-100">
+    <div class="col-md-6 p-4 d-flex flex-column justify-content-center align-items-start">
+      <img src="assets/tagmate-logo.svg" alt="Tag mate Logo" class="img-fluid mb-3">
+      <h1 class="mb-3">Login to Your Account</h1>
+      <p>Login using social networks</p>
+
+      <!-- Social Buttons -->
+      <div class="d-flex mb-3">
+        <button class="btn btn-primary mr-2"><i class="fa fa-facebook"></i></button>
+        <button class="btn btn-danger mr-2"><i class="fa fa-google"></i></button>
+        <button class="btn btn-info"><i class="fa fa-linkedin"></i></button>
+      </div>
+
+      <p>OR</p>
+
+      <!-- Login Form -->
+      <form>
+        <div class="form-group">
+          <input type="email" class="form-control" placeholder="Email" required>
+        </div>
+        <div class="form-group input-group">
+          <input type="password" class="form-control" placeholder="Password" required>
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sign In Button -->
+        <button class="btn btn-primary btn-block" (click)="login()">Sign In</button>
+        <div *ngIf="errorMsg" class="text-danger mt-2">{{ errorMsg }}</div>
+      </form>
+    </div>
+
+    <!-- Right section for Sign Up -->
+    <div class="col-md-6 p-4 d-flex flex-column justify-content-center align-items-center bg-light">
+      <h2 class="mb-3">New Here?</h2>
+      <p>Sign up and discover a great amount of new opportunities!</p>
+      <button class="btn btn-success" (click)="onLogin()">Sign Up</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div *ngIf="isSignedIn">
+  <div *ngIf="isToastOn"  #successMessage id="s-msg" class="success-message alert alert-success w-100 text-center" style="top: 0; display: block;">
+    <i class="fa fa-check-circle fa-3x text-success mb-3 animated-check"></i>
+    <p class="mb-0">Success!  Account Login successfull.</p>
+  </div>
+</div>

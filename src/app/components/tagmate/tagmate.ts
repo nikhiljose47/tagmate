@@ -93,7 +93,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     width:100px;
   ">
     <div style="font-weight:600;font-size:12px;">${m.username}</div>
-    <div style="font-size:11px;color:#bbb;margin-top:2px;">${m.headline}</div>
+    <div style="font-size:11px;color:#bbb;margin-top:2px;">${m.highlight}</div>
     <div id="timer-${m.username}" style="margin-top:4px;font-size:11px;color:#ffb84d;">
       ⏳ ${m.expiresIn}s
     </div>

@@ -57,16 +57,42 @@
 html, body {
   height: 100%;
   margin: 0;
+  overflow: hidden; /* No page scroll */
 }
 
-.sidebar-container {
-  height: 100vh;             /* Sidebar height = full viewport */
-  overflow-y: auto;          /* Enable vertical scroll if needed */
-  display: flex;
-  flex-direction: column;
+.container-fluid, .row {
+  height: 100vh; /* Use full viewport */
 }
 
 .map-container {
-  height: calc(100vh - 150px); /* Adjust map height as needed */
   width: 100%;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Overlay items ABOVE the map */
+.overlay-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.overlay-search {
+  position: absolute;
+  top: 60px; /* push below header text */
+  right: 20px;
+  width: 300px;
+  z-index: 1001;
+}
+
+.sidebar-container {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+p {
+  color: white;
 }

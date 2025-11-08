@@ -1,1 +1,10 @@
-<router-outlet></router-outlet>
+
+<div class="container-fluid position-relative">
+  <!-- Sign In Button (top-right, always visible) -->
+  <button class="btn btn-primary position-absolute top-0 end-0 m-3" (click)="signIn()">
+    Sign In
+  </button>
+
+  <!-- Routed Views -->
+  <router-outlet></router-outlet>
+</div>
