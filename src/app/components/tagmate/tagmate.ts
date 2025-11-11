@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, contentChild, OnDestroy } from '@angular/core';
 import markersData from '../../data/tags.json';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,11 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   public query = '';
   public loading = false;
 
+  countryMode = false;
+showInfo = false;
+
+
+
   constructor(private http: HttpClient, private utils: Utils) { }
 
   async ngAfterViewInit(): Promise<void> {
@@ -32,16 +37,16 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     const iconRetinaUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png';
     const iconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
     const shadowUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png';
-    const DefaultIcon = L.icon({
-      iconRetinaUrl,
-      iconUrl,
-      shadowUrl,
-      iconSize: [9, 13],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
-    });
-    L.Marker.prototype.options.icon = DefaultIcon;
+    // const DefaultIcon = L.icon({
+    //   iconRetinaUrl,
+    //   iconUrl,
+    //   shadowUrl,
+    //   iconSize: [3, 4],
+    //   iconAnchor: [12, 41],
+    //   popupAnchor: [1, -34],
+    //   shadowSize: [41, 41],
+    // });
+    // L.Marker.prototype.options.icon = this.utils.getIcon('alert', L) ;
     L.Marker.prototype.options.autoPan = false;
 
     // Initialize map
@@ -51,9 +56,10 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       zoomControl: true,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; CartoDB'
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href=https://www.openstreetmap.org/copyright>OpenStreetMap</a> contributors'
     }).addTo(this.map);
+
 
     this.markerLayer = L.layerGroup().addTo(this.map);
 
@@ -78,45 +84,56 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     });
 
     markersData.forEach((m: any) => {
-      const marker = this.L.marker([m.lat, m.lng]).addTo(this.map);
+      m.iconName = 'alert';
+      const icon = this.utils.getIcon(m.iconName || 'default', this.L);
 
-      // Custom popup HTML
+      const marker = this.L.marker([m.lat, m.lng], { icon }).addTo(this.map);
+
+      // Create popup HTML
       const popupDiv = document.createElement('div');
       popupDiv.innerHTML = `
+ <div style="
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  width:120px;
+  height:55px;
+  padding:6px 8px;
+  border-radius:6px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  font-family:'Inter',sans-serif;
+  background:#1e1e1e;
+  color:#f1f1f1;
+">
   <div style="
-    background:#1e1e1e;
-    color:#f1f1f1;
-    padding:6px 8px;
-    border-radius:8px;
-    box-shadow:0 1px 4px rgba(0,0,0,0.3);
-    font-family:'Inter',sans-serif;
-    width:100px;
+    flex:2.2;
+    font-size:12px;
+    font-weight:600;
+    color:#ffcc66;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   ">
-    <div style="font-weight:600;font-size:12px;">${m.username}</div>
-    <div style="font-size:11px;color:#bbb;margin-top:2px;">${m.highlight}</div>
-    <div id="timer-${m.username}" style="margin-top:4px;font-size:11px;color:#ffb84d;">
-      ⏳ ${m.expiresIn}s
-    </div>
-    <input id="input-${m.username}"
-      placeholder="Add text..."
-      style="
-        width:100%;
-        border:1px solid #444;
-        border-radius:4px;
-        background:#2a2a2a;
-        color:#f1f1f1;
-        font-size:11px;
-      "
-    />
+    ${m.highlight}
   </div>
-`;
 
+  <div style="
+    flex:0.8;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:10px;
+  ">
+    <div style="color:#bbb;">${m.username}</div>
+    <div id="timer-${m.username}" style="color:#ffb84d;">⏳ ${m.expiresIn}s</div>
+  </div>
+</div>
+  `;
 
-      // ✅ Create popup with option to not auto-close
-      const popup = this.L.popup({ autoClose: false, closeOnClick: false }).setContent(popupDiv);
+      const popup = this.L.popup({ className: 'transparent-popup', autoClose: false, closeOnClick: false }).setContent(popupDiv);
       marker.bindPopup(popup).openPopup();
 
-      // Timer
+      // Timer logic
       let remaining = m.expiresIn;
       const timerElement = popupDiv.querySelector(`#timer-${m.username}`)!;
       const interval = setInterval(() => {
@@ -129,6 +146,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
         }
       }, 1000);
     });
+
   }
 
   search(): void {

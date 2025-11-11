@@ -4,13 +4,18 @@
     //    filter: grayscale(80%) brightness(90%);
 }
 
-.leaflet-popup-content-wrapper {
-    background: #222;
-    color: #fff;
+/* Remove white popup background + pointer */
+.leaflet-popup.transparent-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border: none !important;
 }
 
-.leaflet-popup-tip {
-    background: #222;
+.leaflet-popup.transparent-popup .leaflet-popup-tip,
+.leaflet-popup.transparent-popup .leaflet-popup-tip-container {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .map-shell {

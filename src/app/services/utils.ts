@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import L, { Layer, Marker } from 'leaflet';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
@@ -25,5 +26,15 @@ export class Utils {
         ]);
       }
     }, intervalMs);
+  }
+
+  getIcon(iconName: string, L: any): L.Icon {
+    return L.icon({
+      iconUrl: `assets/icons/${iconName}.png`, // local path
+      iconSize: [10, 10],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      className: 'custom-marker'
+    });
   }
 }
