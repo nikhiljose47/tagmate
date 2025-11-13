@@ -1,0 +1,29 @@
+.topbar {
+  width: 100%;
+  height: 3.5rem;
+  background: transparent;
+  box-shadow: 0 0.5rem 0.5rem -0.4rem rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08); /* subtle divider */
+  position: relative;
+  z-index: 10;
+}
+
+/* Elegant blue buttons */
+.btn-blue {
+  background-color: #007bff;
+  border: 1px solid #007bff;
+  color: white;
+  font-weight: 500;
+  border-radius: 0.4rem;
+  transition: background-color 0.2s ease-in-out, transform 0.1s;
+}
+
+.btn-blue:hover {
+  background-color: #0069d9;
+  transform: translateY(-1px);
+}
+
+.btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+}

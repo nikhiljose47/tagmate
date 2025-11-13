@@ -2,24 +2,63 @@ import { CommonModule } from '@angular/common';
 import { Component, signal } from '@angular/core';
 import { Utils } from '../../services/utils';
 import { TagForm } from '../tag-form/tag-form';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'tag-explorer',
-  imports: [CommonModule, TagForm],
+  imports: [CommonModule, TagForm, FormsModule],
   templateUrl: './tag-explorer.html',
   styleUrl: './tag-explorer.scss',
 })
 export class TagExplorer {
   cards: any[] = [];
   showTagForm = signal(false);
+  allTags = ['News', 'Event', 'Alert', 'Info', 'Update'];
+  selectedTags: string[] = [];
+  selectedRange = '';
+  selectedMonth = new Date().toISOString().slice(0, 7); // default current month
 
-  constructor(private utils: Utils) {}
+  toggleTag(tag: string) {
+    if (this.selectedTags.includes(tag)) {
+      this.selectedTags = this.selectedTags.filter(t => t !== tag);
+    } else if (this.selectedTags.length < 2) {
+      this.selectedTags.push(tag);
+    }
+  }
+
+  onRangeChange() {
+    if (this.selectedRange) {
+      // clear month if range selected
+      this.selectedMonth = '';
+    } else {
+      // reset to current month if range cleared
+      this.selectedMonth = new Date().toISOString().slice(0, 7);
+    }
+  }
+
+  onMonthChange() {
+    if (this.selectedMonth) {
+      // clear range if month selected
+      this.selectedRange = '';
+    }
+  }
+
+  constructor(private utils: Utils) { }
 
   ngOnInit() {
     this.utils.cards$.subscribe(data => this.cards = data);
   }
 
-  onClick(){
+  onClick() {
     this.showTagForm.update(v => !v);
+  }
+
+  handleDiscard() {
+    this.showTagForm.update(v => !v);
+  }
+
+  handleFormSubmit(data: any) {
+    console.log('📍 Received Tag Data:', data);
+    this.cards.push(data);
   }
 }

@@ -1,9 +1,20 @@
-.form-bg {
-  background: linear-gradient(135deg, #6dd5ed, #2193b0);
-}
+form {
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08); // subtle 0.1 elevation feel
+  transition: box-shadow 0.2s ease;
 
-.form-card {
-  max-width: 500px;
-  border-radius: 1rem;
-  background-color: #fff;
+  &:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  input::placeholder,
+  select,
+  button {
+    font-size: 0.95rem;
+  }
+
+  input:focus,
+  select:focus {
+    box-shadow: none !important;
+    border-color: #007bff !important;
+  }
 }

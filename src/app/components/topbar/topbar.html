@@ -1,0 +1,27 @@
+<nav class="topbar d-flex align-items-center justify-content-end px-3">
+  
+  <button class="btn btn-blue d-flex align-items-center me-2" (click)="onNotifyClick()">
+    <i class="bi bi-bell me-1"></i> 🔔
+  </button>
+
+  <button class="btn btn-blue d-flex align-items-center me-3" (click)="onAddPost()">
+    <i class="bi bi-plus-lg me-1"></i> Post a Tag ➕
+  </button>
+
+  <div *ngIf="(auth.user$ | async) as user">
+    <button 
+      *ngIf="user.uid === 'guest'" 
+      class="btn btn-primary shadow-sm me-2" 
+      (click)="signIn()">
+      Sign In
+    </button>
+
+    <button 
+      *ngIf="user.uid !== 'guest'" 
+      class="btn btn-outline-danger shadow-sm me-2" 
+      (click)="auth.logout()">
+      Logout
+    </button>
+  </div>
+
+</nav>

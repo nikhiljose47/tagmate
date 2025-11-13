@@ -94,8 +94,18 @@ html, body {
 }
 
 .sidebar-container {
-  height: 100vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar-wrapper {
+  width: 100%;
+  background: inherit; /* matches sidebar */
+}
+
+topbar, tag-explorer {
+  display: block;
+  width: 100%;
 }
 
 p {

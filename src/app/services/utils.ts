@@ -31,7 +31,7 @@ export class Utils {
   getIcon(iconName: string, L: any): L.Icon {
     return L.icon({
       iconUrl: `assets/icons/${iconName}.png`, // local path
-      iconSize: [10, 10],
+      iconSize: [15, 15],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
       className: 'custom-marker'

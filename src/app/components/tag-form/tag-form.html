@@ -1,45 +1,124 @@
-<div class="form-bg d-flex justify-content-center align-items-center min-vh-100">
-  <div class="card shadow-lg p-4 form-card">
-    <h4 class="text-center mb-3 fw-bold text-primary">Add Tag Data</h4>
+<div class="container py-4 d-flex justify-content-center">
+  <form
+    #f="ngForm"
+    (ngSubmit)="onSubmit(f)"
+    class="card border-0 p-4 rounded-4 shadow-sm w-100"
+    style="max-width: 720px;"
+    novalidate
+  >
+    <!-- Header -->
+    <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+      <img
+        [src]="user.avatarUrl || 'assets/avatar/panda.png'"
+        alt="Avatar"
+        class="rounded-circle me-3 shadow-sm"
+        width="52"
+        height="52"
+      />
+      <div>
+        <h6 class="mb-0 fw-semibold">{{ user.name }}</h6>
+        <small class="text-muted">Create a tag post</small>
+      </div>
+    </div>
 
-    <form #f="ngForm" (ngSubmit)="onSubmit(f)" novalidate>
-      <div class="mb-3">
-        <label class="form-label">Username</label>
-        <input type="text" class="form-control" [(ngModel)]="formData.username" name="username" required>
+    <!-- Headline -->
+    <div class="mb-4">
+      <input
+        type="text"
+        class="form-control form-control-lg border-0 border-bottom rounded-0 shadow-none"
+        placeholder="Write something about your tag..."
+        [(ngModel)]="formData.headline"
+        name="headline"
+        required
+      />
+    </div>
+
+    <!-- Image Upload -->
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Images</label>
+      <div class="d-flex flex-wrap gap-3">
+        <div
+          *ngFor="let img of formData.images; let i = index"
+          class="position-relative"
+        >
+          <img
+            [src]="img"
+            alt="Selected"
+            class="rounded-3 border"
+            width="90"
+            height="90"
+          />
+          <button
+            type="button"
+            class="btn btn-sm btn-light border position-absolute top-0 end-0 p-0 px-1 rounded-circle"
+            (click)="removeImage(i)"
+          >
+            ×
+          </button>
+        </div>
+
+        <label
+          *ngIf="formData.images.length < 3"
+          class="d-flex flex-column justify-content-center align-items-center border rounded-3 bg-light bg-opacity-25"
+          style="width:90px; height:90px; cursor:pointer;"
+        >
+          <i class="bi bi-plus-circle fs-3 text-primary"></i>
+          <small class="text-muted">Add</small>
+          <input type="file" (change)="onImageSelect($event)" accept="image/*" hidden />
+        </label>
+      </div>
+    </div>
+
+    <!-- Expiry + Tag -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Expires In (sec)</label>
+        <input
+          type="number"
+          class="form-control"
+          [(ngModel)]="formData.expiresIn"
+          name="expiresIn"
+          placeholder="e.g. 3600"
+          required
+        />
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Headline</label>
-        <input type="text" class="form-control" [(ngModel)]="formData.headline" name="headline" required>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Tag</label>
+        <select
+          class="form-select"
+          [(ngModel)]="formData.tag"
+          name="tag"
+          required
+        >
+          <option value="" disabled selected>Select Tag</option>
+          <option *ngFor="let t of tags" [value]="t">{{ t | titlecase }}</option>
+        </select>
       </div>
+    </div>
 
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Latitude</label>
-          <input type="number" step="any" class="form-control" [(ngModel)]="formData.lat" name="lat" required>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Longitude</label>
-          <input type="number" step="any" class="form-control" [(ngModel)]="formData.lng" name="lng" required>
-        </div>
+    <!-- Location -->
+    <div class="mb-4">
+      <label class="form-label fw-semibold">Location</label>
+      <div class="position-relative">
+        <input
+          type="text"
+          class="form-control ps-2"
+          [(ngModel)]="formData.location"
+          name="location"
+          placeholder="Search a place on the map"
+          readonly
+        />
       </div>
+      <small class="text-muted d-block mt-1">Use 📌 to locate in the map</small>
+    </div>
 
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Expires In (sec)</label>
-          <input type="number" class="form-control" [(ngModel)]="formData.expiresIn" name="expiresIn" required>
-        </div>
-
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Tag</label>
-          <select class="form-select" [(ngModel)]="formData.tag" name="tag" required>
-            <option value="" disabled selected>Select Tag</option>
-            <option *ngFor="let t of tags" [value]="t">{{ t | titlecase }}</option>
-          </select>
-        </div>
-      </div>
-
-      <button class="btn btn-primary w-100 mt-2" [disabled]="!f.valid">Submit</button>
-    </form>
-  </div>
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+      <button type="button" class="btn btn-light border" (click)="onDiscard()">Discard</button>
+      <button type="submit" class="btn btn-primary px-4" [disabled]="!f.valid">
+        Post
+      </button>
+    </div>
+  </form>
 </div>

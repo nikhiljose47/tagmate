@@ -1,26 +1,29 @@
-import { AfterViewInit, Component, contentChild, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, contentChild, OnDestroy, signal } from '@angular/core';
 import markersData from '../../data/tags.json';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { TagExplorer } from '../tag-explorer/tag-explorer';
 import { Utils } from '../../services/utils';
+import { CommonModule } from '@angular/common';
+import { Topbar } from '../topbar/topbar';
 
 @Component({
   selector: 'app-tagmate',
   templateUrl: './tagmate.html',
   styleUrls: ['./tagmate.scss'],
   standalone: true,
-  imports: [TagExplorer, FormsModule]
+  imports: [TagExplorer, FormsModule, CommonModule, Topbar]
 })
 export class Tagmate implements AfterViewInit, OnDestroy {
   private map: any;
   private L: any;
   private markerLayer!: L.LayerGroup;
-  public query = '';
-  public loading = false;
+  query = '';
+  isSearching = signal(false);
+  postMode = signal(false);
 
   countryMode = false;
-showInfo = false;
+  showInfo = false;
 
 
 
@@ -152,14 +155,14 @@ showInfo = false;
   search(): void {
     const q = this.query?.trim();
     if (!q) return;
-    this.loading = true;
+    this.isSearching.set(true);
     // Nominatim API (OpenStreetMap) — polite usage: include `format=jsonv2` and optionally `email` param.
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`;
 
 
     this.http.get<any[]>(url).subscribe({
       next: (res) => {
-        this.loading = false;
+        this.isSearching.set(false);
         if (!res || res.length === 0) {
           alert('Location not found');
           return;
@@ -172,10 +175,13 @@ showInfo = false;
         // clear previous markers
         this.markerLayer.clearLayers();
 
+         
+        const icon = this.utils.getIcon('loc-pin', this.L);
 
         // add marker and popup
-        const m = this.L.marker([lat, lon]);
+        const m = this.L.marker([lat, lon], {icon});
         m.bindPopup(`${first.display_name}`).openPopup();
+  
         m.addTo(this.markerLayer);
 
 
@@ -183,11 +189,15 @@ showInfo = false;
         this.map.setView([lat, lon], 13);
       },
       error: (err) => {
-        this.loading = false;
+        this.isSearching.set(false);
         console.error('Geocoding error', err);
         alert('Geocoding failed');
       }
     });
+  }
+
+  handleAddPost(){
+   this.postMode.set(true);
   }
 
   ngOnDestroy() {

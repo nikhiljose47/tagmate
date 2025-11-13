@@ -1,19 +1,19 @@
 import { Component, signal } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
-import { Login } from './components/login/login';
+import { RouterOutlet } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Login],
+  imports: [RouterOutlet, CommonModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App {
   protected readonly title = signal('tagmate');
 
-  constructor(private router: Router){}
+  constructor() {
 
-  signIn(){
-    this.router.navigate(['/login']);
   }
+
+
 }
