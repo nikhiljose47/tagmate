@@ -10,6 +10,7 @@ import { getStorage, provideStorage } from '@angular/fire/storage';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { environment } from './environments/environment.prod';
 import { provideStore } from '@ngrx/store';
+import { toggleReducer } from './store/toggle/toggle.state';
 
 export const appConfig: ApplicationConfig = {
   providers: [provideHttpClient(withFetch()),
@@ -20,6 +21,8 @@ export const appConfig: ApplicationConfig = {
   provideFirestore(() => getFirestore()),
   provideAuth(() => getAuth()),
   provideStorage(() => getStorage()),
-  // provideStore({ app: authReducer })
+  provideStore({
+    toggle: toggleReducer
+  }),
   ]
 };

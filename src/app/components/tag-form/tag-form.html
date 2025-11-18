@@ -1,20 +1,10 @@
-<div class="container py-4 d-flex justify-content-center">
-  <form
-    #f="ngForm"
-    (ngSubmit)="onSubmit(f)"
-    class="card border-0 p-4 rounded-4 shadow-sm w-100"
-    style="max-width: 720px;"
-    novalidate
-  >
+<div class="container d-flex justify-content-center">
+  <form #f="ngForm" (ngSubmit)="onSubmit(f)" class="card border-0 p-4 rounded-4 shadow-sm w-100"
+    style="max-width: 720px;" novalidate>
     <!-- Header -->
     <div class="d-flex align-items-center mb-4 border-bottom pb-3">
-      <img
-        [src]="user.avatarUrl || 'assets/avatar/panda.png'"
-        alt="Avatar"
-        class="rounded-circle me-3 shadow-sm"
-        width="52"
-        height="52"
-      />
+      <img [src]="user.avatarUrl || 'assets/avatar/panda.png'" alt="Avatar" class="rounded-circle me-3 shadow-sm"
+        width="50" height="50" />
       <div>
         <h6 class="mb-0 fw-semibold">{{ user.name }}</h6>
         <small class="text-muted">Create a tag post</small>
@@ -23,45 +13,26 @@
 
     <!-- Headline -->
     <div class="mb-4">
-      <input
-        type="text"
-        class="form-control form-control-lg border-0 border-bottom rounded-0 shadow-none"
-        placeholder="Write something about your tag..."
-        [(ngModel)]="formData.headline"
-        name="headline"
-        required
-      />
+      <input type="text" class="form-control form-control-lg border-0 border-bottom rounded-0 shadow-none"
+        placeholder="Write something about your tag..." [(ngModel)]="formData.headline" name="headline" required />
     </div>
 
     <!-- Image Upload -->
     <div class="mb-4">
       <label class="form-label fw-semibold">Images</label>
       <div class="d-flex flex-wrap gap-3">
-        <div
-          *ngFor="let img of formData.images; let i = index"
-          class="position-relative"
-        >
-          <img
-            [src]="img"
-            alt="Selected"
-            class="rounded-3 border"
-            width="90"
-            height="90"
-          />
-          <button
-            type="button"
+        <div *ngFor="let img of formData.images; let i = index" class="position-relative">
+          <img [src]="img" alt="Selected" class="rounded-3 border" width="90" height="90" />
+          <button type="button"
             class="btn btn-sm btn-light border position-absolute top-0 end-0 p-0 px-1 rounded-circle"
-            (click)="removeImage(i)"
-          >
+            (click)="removeImage(i)">
             ×
           </button>
         </div>
 
-        <label
-          *ngIf="formData.images.length < 3"
+        <label *ngIf="formData.images.length < 3"
           class="d-flex flex-column justify-content-center align-items-center border rounded-3 bg-light bg-opacity-25"
-          style="width:90px; height:90px; cursor:pointer;"
-        >
+          style="width:90px; height:90px; cursor:pointer;">
           <i class="bi bi-plus-circle fs-3 text-primary"></i>
           <small class="text-muted">Add</small>
           <input type="file" (change)="onImageSelect($event)" accept="image/*" hidden />
@@ -73,24 +44,13 @@
     <div class="row g-3 mb-3">
       <div class="col-md-6">
         <label class="form-label fw-semibold">Expires In (sec)</label>
-        <input
-          type="number"
-          class="form-control"
-          [(ngModel)]="formData.expiresIn"
-          name="expiresIn"
-          placeholder="e.g. 3600"
-          required
-        />
+        <input type="number" class="form-control" [(ngModel)]="formData.expiresIn" name="expiresIn"
+          placeholder="e.g. 3600" required />
       </div>
 
       <div class="col-md-6">
         <label class="form-label fw-semibold">Tag</label>
-        <select
-          class="form-select"
-          [(ngModel)]="formData.tag"
-          name="tag"
-          required
-        >
+        <select class="form-select" [(ngModel)]="formData.tag" name="tag" required>
           <option value="" disabled selected>Select Tag</option>
           <option *ngFor="let t of tags" [value]="t">{{ t | titlecase }}</option>
         </select>
@@ -100,18 +60,16 @@
     <!-- Location -->
     <div class="mb-4">
       <label class="form-label fw-semibold">Location</label>
-      <div class="position-relative">
-        <input
-          type="text"
-          class="form-control ps-2"
-          [(ngModel)]="formData.location"
-          name="location"
-          placeholder="Search a place on the map"
-          readonly
-        />
+
+      <div class="form-control ps-2 bg-light text-muted" style="cursor: default;">
+        {{ shared.text() || '📍 No location selected' }}
       </div>
-      <small class="text-muted d-block mt-1">Use 📌 to locate in the map</small>
+
+      <small class="text-muted d-block mt-1">
+        Use 📌 to locate on the map
+      </small>
     </div>
+
 
     <!-- Action Buttons -->
     <div class="d-flex justify-content-end gap-3 pt-3 border-top">

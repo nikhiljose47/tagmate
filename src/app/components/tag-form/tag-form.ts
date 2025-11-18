@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { SharedStateService } from '../../services/shared-state.service';
+import { Tag } from '../../models/tag.model';
 
 @Component({
   selector: 'tag-form',
@@ -12,7 +14,8 @@ import { FormsModule, NgForm } from '@angular/forms';
 export class TagForm {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<any>();
-  @Input() 
+
+  constructor(public shared: SharedStateService) { }
 
   tags = [
     'news', 'weather', 'food', 'event', 'sale', 'traffic', 'alert',
@@ -30,7 +33,6 @@ export class TagForm {
     images: [] as string[],
     expiresIn: 60,
     tag: '',
-    location: ''
   };
 
   showMapHint = false;
@@ -53,21 +55,28 @@ export class TagForm {
     // Example: this.mapService.enablePickMode();
   }
 
-  receiveLocationFromMap(locName: string) {
-    this.formData.location = locName;
-    this.showMapHint = false;
-  }
+  onSubmit(f: NgForm) {
+    if (!f.valid) return;
 
-  onSubmit(f: any) {
-    if (f.valid) {
-      console.log('Submitted:', this.formData);
-      this.submitted.emit(this.formData);
-      // Firestore or backend call here
-    }
+    const coords = this.shared.coordinates();
+
+    const tagObject: Tag = {
+      username: this.user.name,
+      userId: 'GuestPanda',
+      highlight: this.formData.headline,
+      lat: coords[0],
+      lng: coords[1],
+      expiresIn: this.formData.expiresIn,
+      tag: this.formData.tag,
+      createdAt: new Date().toISOString(),
+      images: [...this.formData.images]
+    };
+
+    this.submitted.emit(tagObject);
   }
 
   onDiscard() {
-    this.formData = { headline: '', images: [], expiresIn: 60, tag: '', location: '' };
+    this.formData = { headline: '', images: [], expiresIn: 60, tag: '' };
     this.showMapHint = false;
     this.discarded.emit();
   }

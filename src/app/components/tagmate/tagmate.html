@@ -1,67 +1,47 @@
-<div class="container-fluid g-0">
-  <div class="row g-0">
-    <!-- Left: Map -->
-    <div class="col-md-9 col-12 position-relative p-0" style="height: 100vh;">
-      <!-- Fullscreen map -->
-      <div id="map" class="map-container" style="height: 100%; width: 100%;"></div>
+<div class="map-wrapper">
 
-      <!-- Top overlay: toggle + news bar -->
-      <div class="position-absolute top-0 start-0 w-100 d-flex justify-content-between align-items-center px-2 py-1"
-        style="z-index: 1000; background: rgba(0,0,0,0.3);">
-        <!-- Left: Toggle -->
-        <div class="d-flex align-items-center gap-2">
-          <div class="form-check form-switch m-0">
-            <input class="form-check-input" type="checkbox" id="countryModeSwitch" [(ngModel)]="countryMode" />
-            <label class="form-check-label small text-white" for="countryModeSwitch">
-              Country Mode
-            </label>
-          </div>
-        </div>
-
-        <!-- Right: News ticker -->
-        <div class="d-flex align-items-center bg-dark text-white rounded-start ps-2"
-          style="height: 20px; min-width: 220px; overflow: hidden;">
-          <marquee behavior="scroll" direction="left" scrollamount="3" style="font-size: 10px;">
-            🔥 New: Street music vibes tonight 🎸 | ☔ Rain near Indiranagar | 🧘 Yoga at sunrise | 🛍️ Orion Mall sale!
-          </marquee>
-          <button class="btn btn-sm btn-light p-0 ms-1" (click)="showInfo = !showInfo"
-            style="font-size: 10px; line-height: 10px; height: 14px; width: 14px;">
-            i
-          </button>
-        </div>
-      </div>
-
-      <!-- Info popup -->
-      <div *ngIf="showInfo" class="position-absolute top-3 end-0 bg-white border p-2 shadow-sm"
-        style="font-size: 10px; width: 150px; margin-top: 25px; margin-right: 5px; border-radius: 4px; z-index: 2000;">
-        Country mode filters tags by nation borders. Toggle off for global view.
-      </div>
-
-      <!-- Overlay search bar -->
-      <div class="overlay-search bg-white rounded shadow-sm p-2 d-flex gap-2 position-absolute"
-        style="top: 45px; left: 10px; right: 10px; z-index: 999;">
-        <input id="geo-search-input" type="text" class="form-control form-control-sm" [(ngModel)]="query"
-          placeholder="Search location (world)… e.g. Tokyo, Eiffel Tower" />
-        <button class="btn btn-primary btn-sm" (click)="search()" [disabled]="isSearching()">
-          {{ isSearching() ? 'Searching...' : 'Search' }}
-        </button>
+  <!-- Top overlay: toggle + news -->
+  <div class="topbar d-flex justify-content-between align-items-center">
+    <!-- Toggle -->
+    <div class="d-flex align-items-center gap-2">
+      <div class="form-check form-switch m-0">
+        <input class="form-check-input" type="checkbox" id="countryModeSwitch" [(ngModel)]="countryMode" />
+        <label class="form-check-label small text-white" for="countryModeSwitch">Country Mode</label>
       </div>
     </div>
 
-    <!-- Right: Sidebar -->
-<div class="col-md-3 col-12 bg-light border-start p-0 sidebar-container" 
-     style="height: 100vh; overflow-y: auto; position: relative;">
-
-  <!-- Sticky topbar -->
-  <div class="topbar-wrapper position-sticky top-0 z-3">
-    <topbar (addPost)="handleAddPost()"></topbar>
+    <!-- News -->
+    <div class="news-bar d-flex align-items-center">
+      <marquee behavior="scroll" direction="left" scrollamount="3">
+        🔥 New: Street music vibes tonight 🎸 | ☔ Rain near Indiranagar | 🧘 Yoga at sunrise | 🛍️ Orion Mall sale!
+      </marquee>
+      <button class="btn btn-sm btn-light p-0 ms-1 info-btn" (click)="showInfo = !showInfo">i</button>
+    </div>
   </div>
 
-  <!-- Scrollable content -->
-  <div class="tag-explorer-wrapper w-100">
-    <tag-explorer></tag-explorer>
+    <!-- Multiplier buttons -->
+  <div class="multi-box shadow-sm p-2" role="radiogroup">
+    <button type="button" class="switch-btn" (click)="select(7)" [class.active]="selected === 7">7x</button>
+    <button type="button" class="switch-btn" (click)="select(10)" [class.active]="selected === 10">10x</button>
+    <button type="button" class="switch-btn" (click)="select(12)" [class.active]="selected === 12">12x</button>
+    <button type="button" class="switch-btn" (click)="select(16)" [class.active]="selected === 16">16x</button>
   </div>
-</div>
 
+  <!-- Info popup -->
+  <div *ngIf="showInfo" class="info-popup">
+    Country mode filters tags by nation borders. Toggle off for global view.
   </div>
+
+  <!-- Search -->
+  <div class="search-box d-flex gap-2">
+    <input type="text" class="form-control form-control-sm" [(ngModel)]="query"
+      placeholder="Current hood - Marathahalli" />
+    <button class="btn btn-primary btn-sm" (click)="search()" [disabled]="isSearching()">
+      {{ isSearching() ? 'Searching...' : 'Search' }}
+    </button>
+  </div>
+
+
+  <!-- Map -->
+  <div id="map" class="map-container"></div>
 </div>

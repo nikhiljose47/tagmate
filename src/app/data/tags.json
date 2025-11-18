@@ -8,7 +8,10 @@
     "expiresIn": 300,
     "tag": "news",
     "createdAt": "2024-08-05T20:21:39Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "ThoppyZssss",
@@ -19,7 +22,10 @@
     "expiresIn": 120,
     "tag": "weather",
     "createdAt": "2024-09-16T13:11:06Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "AK",
@@ -30,7 +36,10 @@
     "expiresIn": 120,
     "tag": "business",
     "createdAt": "2025-02-18T00:39:00Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "AK",
@@ -41,7 +50,10 @@
     "expiresIn": 120,
     "tag": "business",
     "createdAt": "2024-06-17T11:58:07Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "Niki",
@@ -52,7 +64,10 @@
     "expiresIn": 180,
     "tag": "food",
     "createdAt": "2025-03-28T05:43:15Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "Maya",
@@ -63,7 +78,10 @@
     "expiresIn": 240,
     "tag": "weather",
     "createdAt": "2025-08-13T05:15:30Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "Raj",
@@ -74,7 +92,10 @@
     "expiresIn": 300,
     "tag": "alert",
     "createdAt": "2024-07-26T13:40:20Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "Leo",
@@ -85,7 +106,10 @@
     "expiresIn": 200,
     "tag": "event",
     "createdAt": "2024-12-26T12:18:23Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "Sara",
@@ -96,7 +120,10 @@
     "expiresIn": 220,
     "tag": "fitness",
     "createdAt": "2024-09-04T23:36:13Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   },
   {
     "username": "Manu",
@@ -107,6 +134,9 @@
     "expiresIn": 240,
     "tag": "shopping",
     "createdAt": "2025-01-08T09:47:55Z",
-    "images": []
+    "images": [],
+    "loves": 0,
+    "dislikes": 0,
+    "comments": []
   }
 ]

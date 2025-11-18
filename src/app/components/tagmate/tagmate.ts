@@ -1,18 +1,17 @@
-import { AfterViewInit, Component, contentChild, OnDestroy, signal } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, signal } from '@angular/core';
 import markersData from '../../data/tags.json';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { TagExplorer } from '../tag-explorer/tag-explorer';
 import { Utils } from '../../services/utils';
 import { CommonModule } from '@angular/common';
-import { Topbar } from '../topbar/topbar';
+import { SharedStateService } from '../../services/shared-state.service';
 
 @Component({
   selector: 'app-tagmate',
   templateUrl: './tagmate.html',
   styleUrls: ['./tagmate.scss'],
   standalone: true,
-  imports: [TagExplorer, FormsModule, CommonModule, Topbar]
+  imports: [FormsModule, CommonModule]
 })
 export class Tagmate implements AfterViewInit, OnDestroy {
   private map: any;
@@ -21,13 +20,12 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   query = '';
   isSearching = signal(false);
   postMode = signal(false);
-
   countryMode = false;
   showInfo = false;
+  selected: number = 7;
 
+  constructor(private http: HttpClient, private utils: Utils, private state: SharedStateService) { }
 
-
-  constructor(private http: HttpClient, private utils: Utils) { }
 
   async ngAfterViewInit(): Promise<void> {
     if (typeof window === 'undefined') return; // Skip SSR
@@ -54,10 +52,11 @@ export class Tagmate implements AfterViewInit, OnDestroy {
 
     // Initialize map
     this.map = L.map('map', {
-      center: [20.5937, 78.9629],
-      zoom: 5,
-      zoomControl: true,
+      center: [12.952179272658608, 77.70078033997684],
+      zoom: 16,
+      scrollWheelZoom: false
     });
+
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href=https://www.openstreetmap.org/copyright>OpenStreetMap</a> contributors'
@@ -86,71 +85,88 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       }
     });
 
+    const circle = this.utils.drawCircle(12.952179272658608, 77.70078033997684, 2500, this.L);
+    console.log('circle', circle);
+    circle.addTo(this.map);
+
+
     markersData.forEach((m: any) => {
       m.iconName = 'alert';
       const icon = this.utils.getIcon(m.iconName || 'default', this.L);
-
       const marker = this.L.marker([m.lat, m.lng], { icon }).addTo(this.map);
 
-      // Create popup HTML
-      const popupDiv = document.createElement('div');
-      popupDiv.innerHTML = `
- <div style="
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  width:120px;
-  height:55px;
-  padding:6px 8px;
-  border-radius:6px;
-  box-shadow:0 1px 3px rgba(0,0,0,0.3);
-  font-family:'Inter',sans-serif;
-  background:#1e1e1e;
-  color:#f1f1f1;
-">
-  <div style="
-    flex:2.2;
-    font-size:12px;
-    font-weight:600;
-    color:#ffcc66;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  ">
-    ${m.highlight}
-  </div>
 
-  <div style="
-    flex:0.8;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    font-size:10px;
-  ">
-    <div style="color:#bbb;">${m.username}</div>
-    <div id="timer-${m.username}" style="color:#ffb84d;">⏳ ${m.expiresIn}s</div>
-  </div>
-</div>
-  `;
+      //  const popup = this.L.popup({ className: 'transparent-popup', autoClose: false, closeOnClick: false, closeButton: false }).setContent('<p>HI</p>');
+      // marker.bindPopup(popup).openPopup();
 
-      const popup = this.L.popup({ className: 'transparent-popup', autoClose: false, closeOnClick: false }).setContent(popupDiv);
-      marker.bindPopup(popup).openPopup();
+      //       new CustomPopup(this.L,
+      //         [m.lat, m.lng],
+      //         `<div style="
+      //   display:flex;
+      //   flex-direction:column;
+      //   justify-content:space-between;
+      //   width:120px;
+      //   height:55px;
+      //   padding:6px 8px;
+      //   border-radius:6px;
+      //   box-shadow:0 1px 3px rgba(0,0,0,0.3);
+      //   font-family:'Inter',sans-serif;
+      //   background:#1e1e1e;
+      //   color:#f1f1f1;
+      // ">
+      //   <div style="
+      //     flex:2.2;
+      //     font-size:12px;
+      //     font-weight:600;
+      //     color:#ffcc66;
+      //     overflow:hidden;
+      //     text-overflow:ellipsis;
+      //     white-space:nowrap;
+      //   ">
+      //     ${m.highlight}
+      //   </div>
+
+      //   <div style="
+      //     flex:0.8;
+      //     display:flex;
+      //     justify-content:space-between;
+      //     align-items:center;
+      //     font-size:10px;
+      //   ">
+      //     <div style="color:#bbb;">${m.username}</div>
+      //     <div id="timer-${m.username}" style="color:#ffb84d;">⏳ ${m.expiresIn}s</div>
+      //   </div>
+      // </div>
+      //   `
+      //       ).addTo(this.map);
+
+
 
       // Timer logic
       let remaining = m.expiresIn;
-      const timerElement = popupDiv.querySelector(`#timer-${m.username}`)!;
-      const interval = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-          timerElement.textContent = '⏱ Expired';
-          clearInterval(interval);
-        } else {
-          timerElement.textContent = `⏳ ${remaining}s`;
-        }
-      }, 1000);
+      // const timerElement = popupDiv.querySelector(`#timer-${m.username}`)!;
+      // const interval = setInterval(() => {
+      //   remaining--;
+      //   if (remaining <= 0) {
+      //     timerElement.textContent = '⏱ Expired';
+      //     clearInterval(interval);
+      //   } else {
+      //     timerElement.textContent = `⏳ ${remaining}s`;
+      //   }
+      // }, 1000);
     });
 
+    // this.utils.startTimer(60, (s) => {
+    //   var popup = this.L.popup([this.utils.getRandom(7, 15), this.utils.getRandom(65, 90)], { content: '<p>Hello world!<br />This is a nice popup.</p>' })
+    //     .openOn(this.map);
+    // }, () => { });
+
   }
+
+  select(value: number) {
+    this.map.setZoom(value)
+  }
+
 
   search(): void {
     const q = this.query?.trim();
@@ -175,18 +191,29 @@ export class Tagmate implements AfterViewInit, OnDestroy {
         // clear previous markers
         this.markerLayer.clearLayers();
 
-         
+        // custom icon
         const icon = this.utils.getIcon('loc-pin', this.L);
 
-        // add marker and popup
-        const m = this.L.marker([lat, lon], {icon});
-        m.bindPopup(`${first.display_name}`).openPopup();
-  
-        m.addTo(this.markerLayer);
+        // add draggable marker
+        const m = this.L.marker([lat, lon], { icon, draggable: true }).addTo(this.markerLayer);
 
+        // bind popup
+        //  m.bindPopup(`${first.display_name}`).openPopup();
 
-        // pan + zoom to location (zoom dependent on result importance)
+        // pan + zoom
         this.map.setView([lat, lon], 13);
+
+        // 🧭 Listen to dragend event
+        m.on('dragend', (event: any) => {
+          const position = event.target.getLatLng();
+          const { lat, lng } = position;
+          console.log(`📍 Marker moved to: ${lat}, ${lng}`);
+          this.state.updateCoordinates(lat, lng);
+
+          // Reverse geocode to get address
+          this.getAddressFromCoords(lat, lng);
+        });
+
       },
       error: (err) => {
         this.isSearching.set(false);
@@ -196,9 +223,20 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     });
   }
 
-  handleAddPost(){
-   this.postMode.set(true);
+  getAddressFromCoords(lat: number, lon: number) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+
+    this.http.get<any>(url).subscribe({
+      next: (res) => {
+        const address = res.display_name || 'Unknown location';
+        this.state.updateText(address);
+        console.log(`📫 Address: ${address}`);
+
+      },
+      error: (err) => console.error('Reverse geocoding failed', err)
+    });
   }
+
 
   ngOnDestroy() {
     if (this.map) this.map.remove();

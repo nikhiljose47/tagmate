@@ -1,0 +1,21 @@
+.custom-popup {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  z-index: 999999;
+  pointer-events: auto;
+}
+
+.custom-popup::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+}

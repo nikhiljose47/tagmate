@@ -1,113 +1,100 @@
-#map {
-    height: 90vh;
-    width: 100%;
-    //    filter: grayscale(80%) brightness(90%);
+/* Fullscreen map wrapper */
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 91vh;
+  overflow: hidden;
 }
 
-/* Remove white popup background + pointer */
-.leaflet-popup.transparent-popup .leaflet-popup-content-wrapper {
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-.leaflet-popup.transparent-popup .leaflet-popup-tip,
-.leaflet-popup.transparent-popup .leaflet-popup-tip-container {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.map-shell {
-    position: relative;
-    height: 100%;
-    min-height: 400px;
-}
-
-
-.search-bar {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    display: flex;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 6px 8px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    align-items: center;
-}
-
-
-.search-bar input {
-    width: 320px;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    outline: none;
-}
-
-
-.search-bar button {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-}
-
-
-
-html, body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden; /* No page scroll */
-}
-
-.container-fluid, .row {
-  height: 100vh; /* Use full viewport */
-}
-
+/* Map fills entire screen */
 .map-container {
   width: 100%;
-  height: 100vh;
-  position: relative;
-  z-index: 1;
+  height: 100%;
 }
 
-/* Overlay items ABOVE the map */
-.overlay-top {
+/* --- TOPBAR (toggle + news) --- */
+.topbar {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 1000;
-}
-
-.overlay-search {
-  position: absolute;
-  top: 60px; /* push below header text */
-  right: 20px;
-  width: 300px;
-  z-index: 1001;
-}
-
-.sidebar-container {
+  height: 32px;   /* FIXED height */
+  padding: 0 6px;
+  z-index: 2000;
+  background: rgba(0,0,0,0.35);
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.topbar-wrapper {
-  width: 100%;
-  background: inherit; /* matches sidebar */
+.news-bar marquee {
+  font-size: 11px;
+  white-space: nowrap;
 }
 
-topbar, tag-explorer {
-  display: block;
-  width: 100%;
+.info-btn {
+  font-size: 10px;
+  height: 14px;
+  width: 14px;
+  line-height: 10px;
 }
 
-p {
+.info-popup {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 2001;
+  background: white;
+  padding: 6px;
+  width: 150px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  font-size: 10px;
+}
+
+/* --- MULTIPLIER BUTTON BOX --- */
+.multi-box {
+  position: absolute;
+  top: 36px;     /* below topbar */
+  left: 10px;
+  z-index: 2000;
+  background: white;
+  padding: 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+
+.switch-btn {
+  background: #f2f2f2;
+  border: 1px solid #ccc;
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.switch-btn.active {
+  background: #007bff;
   color: white;
+  border-color: #007bff;
+}
+
+.search-box {
+  position: absolute;
+  top: 82px;    /* below multi-box */
+  left: 10px;
+  right: 10px;
+  z-index: 2000;
+  padding: 6px;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+
+.search-box input {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px;
 }

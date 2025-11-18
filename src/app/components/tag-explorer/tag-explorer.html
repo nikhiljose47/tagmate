@@ -1,28 +1,49 @@
 <div class="container mt-3">
   <div class="row justify-content-center">
-
-    <button *ngIf="!showTagForm()" (click)="onClick()" class="btn btn-primary mb-3">Post a Tag</button>
-
     <!-- Filter Card -->
-    <div class="card shadow-sm mb-3 p-3 w-75" *ngIf="!showTagForm();">
-      <h6 class="fw-bold mb-2">🔍 Filter Posts</h6>
-      <div class="d-flex flex-wrap justify-content-between align-items-end">
+    <h6 class="fw-bold mb-3">🔍 Filter Posts</h6>
 
-        <!-- Tags Filter -->
-        <div class="flex-grow-1 me-3">
-          <label class="form-label mb-1 small fw-semibold">Tags (max 2)</label>
-          <div class="d-flex flex-wrap gap-2">
-            <button *ngFor="let tag of allTags" class="btn btn-sm"
-              [ngClass]="selectedTags.includes(tag) ? 'btn-success' : 'btn-outline-secondary'" (click)="toggleTag(tag)"
-              [disabled]="!selectedTags.includes(tag) && selectedTags.length >= 2">
-              {{ tag }}
-            </button>
-          </div>
+    <!-- TAG SEARCH + SELECTED TAGS -->
+    <div class="mb-3">
+      <div class="d-flex align-items-center mb-1">
+
+        <!-- Label -->
+        <label class="form-label small fw-semibold mb-0 me-2">
+          Tags (max 2)
+        </label>
+
+        <!-- Selected Tags (chips) -->
+        <div class="d-flex flex-wrap gap-2">
+          <span *ngFor="let t of selectedTags" class="badge rounded-pill bg-success px-3 py-2">
+            {{ t }}
+            <span class="ms-2" role="button" (click)="removeTag(t)">×</span>
+          </span>
         </div>
 
-        <!-- Creation Time Range -->
-        <div class="flex-grow-1 me-3">
-          <label class="form-label mb-1 small fw-semibold">Created Within</label>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+
+        <!-- Search Box -->
+        <input type="text" class="form-control form-control-sm w-auto" style="min-width: 200px;"
+          placeholder="Search tag..." [(ngModel)]="tagSearch" />
+
+        <!-- Dropdown: only when typed >= 1 char -->
+        <div *ngIf="tagSearch.length >= 1" class="tag-dropdown px-2 py-2 rounded border mt-2">
+          <button *ngFor="let tag of filteredTags()" class="btn btn-sm w-100 text-start mb-1" [ngClass]="selectedTags.includes(tag)
+                          ? 'btn-success'
+                          : 'btn-outline-secondary'" (click)="toggleTag(tag)"
+            [disabled]="!selectedTags.includes(tag) && selectedTags.length >= 2">
+            {{ tag }}
+          </button>
+        </div>
+      </div>
+
+      <!-- NEXT LINE: RANGE + MONTH -->
+      <div class="row g-3 mt-1">
+
+        <div class="col-12 col-md-6">
+          <label class="form-label small fw-semibold">Created Within</label>
           <select class="form-select form-select-sm" [(ngModel)]="selectedRange" (change)="onRangeChange()">
             <option value="">-- Select Range --</option>
             <option value="1h">Last 1 hour</option>
@@ -32,38 +53,30 @@
           </select>
         </div>
 
-        <!-- Month Picker -->
-        <div class="flex-grow-1">
-          <label class="form-label mb-1 small fw-semibold">Month</label>
+        <div class="col-12 col-md-6">
+          <label class="form-label small fw-semibold">Month</label>
           <input type="month" class="form-control form-control-sm" [(ngModel)]="selectedMonth"
             (change)="onMonthChange()" />
         </div>
+
       </div>
     </div>
 
     <!-- Main Content -->
-    <div *ngIf="showTagForm(); else explorer">
-      <tag-form (discarded)="handleDiscard()" (submitted)="handleFormSubmit($event)">
-      </tag-form>
 
-    </div>
-
-    <ng-template #explorer>
-      <div class="col-12 mb-1" *ngFor="let card of cards">
-        <div class="card shadow-sm custom-card">
-          <div class="card-body d-flex flex-column justify-content-between h-100">
-            <div>
-              <h5 class="card-title">{{ card.username }}</h5>
-              <p class="card-text">{{ card.highlight }}</p>
-            </div>
-            <div class="small text-muted mt-1">
-              📍 Lat: {{ card.lat | number:'1.4-4' }},
-              Lng: {{ card.lng | number:'1.4-4' }}<br />
-              ⏳ Expires in: {{ card.expiresIn }}s
-            </div>
+    <div class="col-12 mb-1" *ngFor="let card of cards">
+      <div class="card shadow-sm custom-card">
+        <div class="card-body d-flex flex-column justify-content-between h-100">
+          <div>
+            <h5 class="card-title">{{ card.username }}</h5>
+            <p class="card-text">{{ card.highlight }}</p>
+          </div>
+          <div class="small text-muted mt-1">
+            📍 Lat: {{ card.lat | number:'1.4-4' }},
+            Lng: {{ card.lng | number:'1.4-4' }}<br />
+            ⏳ Expires in: {{ card.expiresIn }}s
           </div>
         </div>
       </div>
-    </ng-template>
+    </div>
   </div>
-</div>

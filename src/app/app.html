@@ -1,3 +1,23 @@
-<div>
+<div class="nav-wrap">
+  <nav class="app-nav shadow-sm">
+    <a class="nav-item" routerLink="/post" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <i class="bi bi-house"></i>
+      <span>Post</span>
+    </a>
+
+    <a class="nav-item" routerLink="/hood" routerLinkActive="active">
+      <i class="bi bi-search"></i>
+      <span>Hood</span>
+    </a>
+
+    <a class="nav-item" routerLink="/tagmate" routerLinkActive="active">
+      <i class="bi bi-person"></i>
+      <span>Globe</span>
+    </a>
+    <div></div>
+  </nav>
+</div>
+
+<div class="main-container">
   <router-outlet></router-outlet>
 </div>
