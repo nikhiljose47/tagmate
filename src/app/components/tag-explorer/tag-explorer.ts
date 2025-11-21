@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Utils } from '../../services/utils';
 import { FormsModule } from '@angular/forms';
 import { Component } from '@angular/core';
+import markersData from '../../data/tags.json';
 
 @Component({
   selector: 'tag-explorer',
@@ -17,7 +17,9 @@ export class TagExplorer {
   selectedMonth = new Date().toISOString().slice(0, 7); // default current month
   tagSearch = '';
 
-
+  ngOnInit() {
+    this.cards = markersData;
+  }
 
   filteredTags() {
     const q = this.tagSearch.toLowerCase();
@@ -36,8 +38,6 @@ export class TagExplorer {
     this.selectedTags = this.selectedTags.filter(t => t !== tag);
   }
 
-
-
   onRangeChange() {
     if (this.selectedRange) {
       // clear month if range selected
@@ -53,17 +53,5 @@ export class TagExplorer {
       // clear range if month selected
       this.selectedRange = '';
     }
-  }
-
-  constructor(private utils: Utils) {
-  }
-
-  ngOnInit() {
-    this.utils.cards$.subscribe(data => this.cards = data);
-  }
-
-  handleFormSubmit(data: any) {
-    console.log('📍 Received Tag Data:', data);
-    this.cards[0] = data;
   }
 }

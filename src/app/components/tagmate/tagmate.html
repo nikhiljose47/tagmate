@@ -1,30 +1,47 @@
 <div class="map-wrapper">
-
   <!-- Top overlay: toggle + news -->
   <div class="topbar d-flex justify-content-between align-items-center">
     <!-- Toggle -->
     <div class="d-flex align-items-center gap-2">
       <div class="form-check form-switch m-0">
-        <input class="form-check-input" type="checkbox" id="countryModeSwitch" [(ngModel)]="countryMode" />
-        <label class="form-check-label small text-white" for="countryModeSwitch">Country Mode</label>
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="countryModeSwitch"
+          [(ngModel)]="countryMode"
+        />
+        <label class="form-check-label small text-white" for="countryModeSwitch"
+          >Country Mode</label
+        >
       </div>
     </div>
 
     <!-- News -->
     <div class="news-bar d-flex align-items-center">
       <marquee behavior="scroll" direction="left" scrollamount="3">
-        🔥 New: Street music vibes tonight 🎸 | ☔ Rain near Indiranagar | 🧘 Yoga at sunrise | 🛍️ Orion Mall sale!
+        🔥 New: Street music vibes tonight 🎸 | ☔ Rain near Indiranagar | 🧘 Yoga at sunrise | 🛍️
+        Orion Mall sale!
       </marquee>
-      <button class="btn btn-sm btn-light p-0 ms-1 info-btn" (click)="showInfo = !showInfo">i</button>
+      <button class="btn btn-sm btn-light p-0 ms-1 info-btn" (click)="showInfo = !showInfo">
+        i
+      </button>
     </div>
   </div>
 
-    <!-- Multiplier buttons -->
+  <!-- Multiplier buttons -->
   <div class="multi-box shadow-sm p-2" role="radiogroup">
-    <button type="button" class="switch-btn" (click)="select(7)" [class.active]="selected === 7">7x</button>
-    <button type="button" class="switch-btn" (click)="select(10)" [class.active]="selected === 10">10x</button>
-    <button type="button" class="switch-btn" (click)="select(12)" [class.active]="selected === 12">12x</button>
-    <button type="button" class="switch-btn" (click)="select(16)" [class.active]="selected === 16">16x</button>
+    <button type="button" class="switch-btn" (click)="select(7)" [class.active]="selected === 7">
+      7x
+    </button>
+    <button type="button" class="switch-btn" (click)="select(10)" [class.active]="selected === 10">
+      10x
+    </button>
+    <button type="button" class="switch-btn" (click)="select(12)" [class.active]="selected === 12">
+      12x
+    </button>
+    <button type="button" class="switch-btn" (click)="select(16)" [class.active]="selected === 16">
+      16x
+    </button>
   </div>
 
   <!-- Info popup -->
@@ -34,13 +51,17 @@
 
   <!-- Search -->
   <div class="search-box d-flex gap-2">
-    <input type="text" class="form-control form-control-sm" [(ngModel)]="query"
-      placeholder="Current hood - Marathahalli" />
-    <button class="btn btn-primary btn-sm" (click)="search()" [disabled]="isSearching()">
+    <input
+      #q
+      type="text"
+      class="form-control form-control-sm"
+      [placeholder]="'Current hood: ' + (hood().name || '')"
+    />
+
+    <button class="btn btn-primary btn-sm" (click)="search(q.value)" [disabled]="isSearching()">
       {{ isSearching() ? 'Searching...' : 'Search' }}
     </button>
   </div>
-
 
   <!-- Map -->
   <div id="map" class="map-container"></div>

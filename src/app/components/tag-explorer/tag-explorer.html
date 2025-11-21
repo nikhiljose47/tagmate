@@ -63,20 +63,28 @@
     </div>
 
     <!-- Main Content -->
+    <!-- INSTAGRAM STYLE POST CARD -->
+    <div class="col-12 mb-4" *ngFor="let card of cards">
+      <div class="insta-card shadow-sm">
 
-    <div class="col-12 mb-1" *ngFor="let card of cards">
-      <div class="card shadow-sm custom-card">
-        <div class="card-body d-flex flex-column justify-content-between h-100">
-          <div>
-            <h5 class="card-title">{{ card.username }}</h5>
-            <p class="card-text">{{ card.highlight }}</p>
-          </div>
-          <div class="small text-muted mt-1">
+        <!-- IMAGE SECTION -->
+        <div class="insta-image-wrapper">
+          <img src="assets/abbu.jpg" class="insta-image" />
+        </div>
+
+        <!-- TEXT SECTION -->
+        <div class="p-3">
+          <h5 class="fw-bold mb-1">{{ card.username }}</h5>
+          <p class="mb-2">{{ card.highlight }}</p>
+
+          <div class="text-muted small">
             📍 Lat: {{ card.lat | number:'1.4-4' }},
             Lng: {{ card.lng | number:'1.4-4' }}<br />
-            ⏳ Expires in: {{ card.expiresIn }}s
+            ⏳ {{ card.expiresIn }}s left
           </div>
         </div>
+
       </div>
     </div>
+
   </div>

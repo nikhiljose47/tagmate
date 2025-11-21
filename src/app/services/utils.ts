@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
-import L, { Layer, Marker } from 'leaflet';
+import L, { Layer, LayerGroup, Marker } from 'leaflet';
 import { BehaviorSubject } from 'rxjs';
+
+export type PlaceLayer = L.GeoJSON | L.Rectangle | null;
 
 @Injectable({
   providedIn: 'root',
@@ -20,10 +22,7 @@ export class Utils {
       if (this.allCards.length > 0) {
         const randomIndex = Math.floor(Math.random() * this.allCards.length);
         const randomCard = this.allCards[randomIndex];
-        this.visibleCards.next([
-          ...this.visibleCards.getValue(),
-          randomCard
-        ]);
+        this.visibleCards.next([...this.visibleCards.getValue(), randomCard]);
       }
     }, intervalMs);
   }
@@ -34,10 +33,9 @@ export class Utils {
       color: '#007bff1e',
       weight: 1,
       fillColor: '#007bff',
-      fillOpacity: 0.25
+      fillOpacity: 0.25,
     });
   }
-
 
   getIcon(iconName: string, L: any): L.Icon {
     return L.icon({
@@ -45,7 +43,7 @@ export class Utils {
       iconSize: [15, 15],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
-      className: 'custom-marker'
+      className: 'custom-marker',
     });
   }
 
@@ -67,5 +65,42 @@ export class Utils {
     }, 1000);
   }
 
+  static async getPlaceLayer(L: any, query: string): Promise<PlaceLayer | null> {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&q=${query}`;
+    const res = await fetch(url);
+    const result = await res.json();
 
+    if (!result || result.length === 0) return null;
+    const place = result[0];
+
+    // 1️⃣ If polygon exists → return polygon layer
+    if (place.geojson) {
+      return L.geoJSON(place.geojson, {
+        style: {
+          color: 'blue',
+          weight: 2,
+          fillOpacity: 0.1,
+        },
+      });
+    }
+
+    // 2️⃣ Else → return rectangle from bounding box
+    const box = place.boundingbox; // [south, north, west, east]
+
+    const south = parseFloat(box[0]);
+    const north = parseFloat(box[1]);
+    const west = parseFloat(box[2]);
+    const east = parseFloat(box[3]);
+
+    const bounds = [
+      [south, west],
+      [north, east],
+    ];
+
+    return L.rectangle(bounds, {
+      color: 'blue',
+      weight: 2,
+      fillOpacity: 0.1,
+    });
+  }
 }

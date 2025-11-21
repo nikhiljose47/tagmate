@@ -29,3 +29,28 @@
   background: #ccc;
   border-radius: 4px;
 }
+
+/* Outer Card */
+.insta-card {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Image container with fixed ratio like Instagram (4:5) */
+.insta-image-wrapper {
+  width: 100%;
+  aspect-ratio: 4 / 5;      /* 🔥 Instagram standard portrait ratio */
+  background: #f1f1f1;
+  overflow: hidden;
+}
+
+/* Auto-cropped image */
+.insta-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;        /* 🔥 KEY */
+  object-position: center;
+  display: block;
+}
