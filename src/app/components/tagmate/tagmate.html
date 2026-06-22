@@ -30,17 +30,14 @@
 
   <!-- Multiplier buttons -->
   <div class="multi-box shadow-sm p-2" role="radiogroup">
-    <button type="button" class="switch-btn" (click)="select(7)" [class.active]="selected === 7">
-      7x
-    </button>
-    <button type="button" class="switch-btn" (click)="select(10)" [class.active]="selected === 10">
-      10x
-    </button>
-    <button type="button" class="switch-btn" (click)="select(12)" [class.active]="selected === 12">
-      12x
-    </button>
-    <button type="button" class="switch-btn" (click)="select(16)" [class.active]="selected === 16">
-      16x
+    <button
+      *ngFor="let zoom of zoomLevels"
+      type="button"
+      class="switch-btn"
+      (click)="select(zoom)"
+      [class.active]="selected === zoom"
+    >
+      {{ zoom }}x
     </button>
   </div>
 

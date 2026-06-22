@@ -2,8 +2,10 @@
 .map-wrapper {
   position: relative;
   width: 100%;
-  height: 91vh;
+  height: calc(100dvh - 56px);
+  min-height: 520px;
   overflow: hidden;
+  background: #eef2f5;
 }
 
 /* Map fills entire screen */
@@ -12,7 +14,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 500px;
+  min-height: inherit;
 }
 
 /* --- TOPBAR (toggle + news) --- */
@@ -21,13 +23,19 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 32px;   /* FIXED height */
-  padding: 0 6px;
+  min-height: 36px;
+  padding: 4px 8px;
   z-index: 2000;
   background: rgba(0,0,0,0.35);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+}
+
+.news-bar {
+  min-width: 0;
+  flex: 1;
 }
 
 .news-bar marquee {
@@ -58,13 +66,16 @@
 /* --- MULTIPLIER BUTTON BOX --- */
 .multi-box {
   position: absolute;
-  top: 36px;     /* below topbar */
+  top: 44px;
   left: 10px;
   z-index: 2000;
   background: white;
   padding: 6px;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 
@@ -85,9 +96,10 @@
 
 .search-box {
   position: absolute;
-  top: 82px;    /* below multi-box */
+  top: 92px;
   left: 10px;
   right: 10px;
+  max-width: 520px;
   z-index: 2000;
   padding: 6px;
   border-radius: 6px;
@@ -110,4 +122,58 @@
 
 :host ::ng-deep .selected-location-marker:active {
   cursor: grabbing;
+}
+
+@media (max-width: 768px) {
+  .map-wrapper {
+    height: calc(100dvh - 48px);
+    min-height: 440px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    min-height: 44px;
+  }
+
+  .topbar .form-check-label {
+    font-size: 10px;
+  }
+
+  .news-bar marquee {
+    font-size: 10px;
+  }
+
+  .multi-box {
+    top: 52px;
+    left: 8px;
+    right: auto;
+    max-width: calc(100% - 16px);
+  }
+
+  .switch-btn {
+    min-width: 42px;
+    padding: 4px 7px;
+  }
+
+  .search-box {
+    top: 102px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .map-wrapper {
+    min-height: 400px;
+  }
+
+  .search-box {
+    flex-wrap: wrap;
+  }
+
+  .search-box input,
+  .search-box button {
+    width: 100%;
+  }
 }

@@ -47,6 +47,8 @@ const INDIVIDUAL_POSTS_LAYER = 'individual-posts';
 const HOOD_SOURCE = 'hood-source';
 const HOOD_FILL_LAYER = 'hood-fill';
 const HOOD_LINE_LAYER = 'hood-line';
+const DEFAULT_ZOOM = 12;
+const ZOOM_LEVELS = [7, 10, 12, 16] as const;
 
 interface MapPost extends Tag {
   id?: string;
@@ -117,7 +119,8 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   postMode = signal(false);
   countryMode = false;
   showInfo = false;
-  selected = 7;
+  readonly zoomLevels = ZOOM_LEVELS;
+  selected = DEFAULT_ZOOM;
   hood = this.store.selectSignal(selectHood);
 
   async ngAfterViewInit(): Promise<void> {
@@ -133,7 +136,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
 
   select(value: number): void {
     this.selected = value;
-    this.map?.setZoom(value);
+    this.map?.easeTo({ zoom: value, duration: 250 });
   }
 
   search(value: string): void {
@@ -141,7 +144,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     if (!q) return;
 
     this.isSearching.set(true);
-    this.setBoundary(q);
+    this.setBoundary(q, true);
     // Nominatim API Proxy
     const url = `/api/nominatim/search?q=${encodeURIComponent(q)}`;
 
@@ -220,7 +223,13 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       container: this.mapContainer.nativeElement,
       style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${mapTilerApiKey}`,
       center: [coords.lng, coords.lat],
-      zoom: 11,
+      zoom: DEFAULT_ZOOM,
+      minZoom: 4,
+      maxZoom: 18,
+      fadeDuration: 150,
+      renderWorldCopies: false,
+      dragRotate: false,
+      pitchWithRotate: false,
       attributionControl: { compact: true },
     });
 
@@ -230,8 +239,9 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       this.addBoundarySourceAndLayers();
       this.addPostSourceAndLayers();
       this.registerMapEvents();
-      void this.setBoundary(this.hood().name);
+      void this.setBoundary(this.hood().name, false);
       this.loadVisiblePosts();
+      this.syncSelectedZoom();
       this.map?.resize();
     });
 
@@ -349,6 +359,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     if (!this.map) return;
 
     this.map.on('moveend', () => this.loadVisiblePosts());
+    this.map.on('zoomend', () => this.ngZone.run(() => this.syncSelectedZoom()));
     this.map.on('click', (event) => this.handleMapClick(event));
     this.map.on('click', CLUSTERS_LAYER, (event) => void this.handleClusterClick(event));
     this.map.on('click', INDIVIDUAL_POSTS_LAYER, (event) => this.handleMarkerClick(event));
@@ -438,7 +449,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     };
   }
 
-  private async setBoundary(name: string): Promise<void> {
+  private async setBoundary(name: string, fitToBoundary: boolean): Promise<void> {
     if (!this.map) return;
 
     try {
@@ -446,7 +457,9 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       if (!boundary) return;
 
       this.updateBoundarySource(boundary.geometry, name);
-      this.fitBoundary(boundary.bounds);
+      if (fitToBoundary) {
+        this.fitBoundary(boundary.bounds);
+      }
     } catch (error) {
       console.error('Boundary lookup failed', error);
       this.showUserError('Could not load the neighbourhood boundary.');
@@ -482,9 +495,22 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   private fitBoundary(bounds: LngLatBoundsLike): void {
     this.map?.fitBounds(bounds, {
       padding: 32,
-      duration: 700,
-      maxZoom: 13,
+      duration: 450,
+      maxZoom: 14,
     });
+  }
+
+  private syncSelectedZoom(): void {
+    const zoom = this.map?.getZoom();
+    if (zoom === undefined) return;
+
+    this.selected = this.getNearestZoomLevel(zoom);
+  }
+
+  private getNearestZoomLevel(zoom: number): number {
+    return ZOOM_LEVELS.reduce((nearest, value) =>
+      Math.abs(value - zoom) < Math.abs(nearest - zoom) ? value : nearest
+    );
   }
 
   private enableLocationSelection(): void {
