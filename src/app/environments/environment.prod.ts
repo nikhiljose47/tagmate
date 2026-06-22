@@ -1,4 +1,5 @@
 export const environment = {
+    mapTilerApiKey: "1hAbQJYYNfEOl5YZkol6",
     firebase: {
         apiKey: "AIzaSyCGtgKFFpxGqdgqqCwSbE28h8P-yY5cmJQ",
         authDomain: "expensereport-prod-p01.firebaseapp.com",

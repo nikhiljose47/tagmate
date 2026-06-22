@@ -1,15 +1,90 @@
-import { AfterViewInit, Component, inject, OnDestroy, signal } from '@angular/core';
-import markersData from '../../data/tags.json';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  NgZone,
+  OnDestroy,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
-import { Utils } from '../../services/utils';
 import { CommonModule } from '@angular/common';
-import { SharedStateService } from '../../services/shared-state.service';
-import { Hood } from '../../models/hood.model';
-
+import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { selectHood } from '../../store/user-preferences/user-preference.selectors';
+import { catchError, debounceTime, of, Subject, switchMap, takeUntil } from 'rxjs';
+import type {
+  Feature,
+  FeatureCollection,
+  MultiPolygon,
+  Point,
+  Polygon,
+} from 'geojson';
+import type {
+  GeoJSONSource,
+  LngLatBoundsLike,
+  Map as MapLibreMap,
+  MapLayerMouseEvent,
+  MapMouseEvent,
+  Marker,
+} from 'maplibre-gl';
+
+import markersData from '../../data/tags.json';
+import { environment } from '../../environments/environment.prod';
+import { Hood } from '../../models/hood.model';
+import { Tag } from '../../models/tag.model';
+import { SharedStateService } from '../../services/shared-state.service';
+import { PlaceBoundary, Utils } from '../../services/utils';
 import { setUserPreference } from '../../store/user-preferences/user-preference.actions';
+import { selectHood } from '../../store/user-preferences/user-preference.selectors';
+
+const POSTS_SOURCE = 'posts-source';
+const CLUSTERS_LAYER = 'post-clusters';
+const CLUSTER_COUNT_LAYER = 'post-cluster-count';
+const INDIVIDUAL_POSTS_LAYER = 'individual-posts';
+
+const HOOD_SOURCE = 'hood-source';
+const HOOD_FILL_LAYER = 'hood-fill';
+const HOOD_LINE_LAYER = 'hood-line';
+
+interface MapPost extends Tag {
+  id?: string;
+  hoodId?: string;
+  title?: string;
+  type?: string;
+  imageUrl?: string;
+}
+
+interface MapPostProperties {
+  id: string;
+  title: string;
+  type: string;
+  imageUrl: string;
+  hoodId: string;
+  username: string;
+}
+
+interface MapViewportQuery {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+  zoom: number;
+  hoodId: string;
+}
+
+interface NominatimSearchResult {
+  lat: string;
+  lon: string;
+  display_name?: string;
+}
+
+interface ClusterFeatureProperties {
+  cluster_id?: number;
+}
+
+type HoodBoundaryGeometry = Polygon | MultiPolygon;
 
 @Component({
   selector: 'app-tagmate',
@@ -17,137 +92,48 @@ import { setUserPreference } from '../../store/user-preferences/user-preference.
   styleUrls: ['./tagmate.scss'],
   standalone: true,
   imports: [FormsModule, CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tagmate implements AfterViewInit, OnDestroy {
-  private map: any;
-  private L: any;
-  private markerLayer!: L.LayerGroup;
+  @ViewChild('mapContainer', { static: true })
+  private readonly mapContainer?: ElementRef<HTMLDivElement>;
+
+  private readonly http = inject(HttpClient);
+  private readonly ngZone = inject(NgZone);
+  private readonly state = inject(SharedStateService);
+  private readonly store = inject(Store);
+  private readonly destroy$ = new Subject<void>();
+  private readonly viewportChange$ = new Subject<MapViewportQuery>();
+  private readonly boundaryCache = new globalThis.Map<string, PlaceBoundary>();
+
+  private maplibre?: typeof import('maplibre-gl');
+  private map?: MapLibreMap;
+  private temporaryMarker?: Marker;
+  private resizeObserver?: ResizeObserver;
+  private locationSelectionEnabled = false;
+  private mapErrorShown = false;
+
   isSearching = signal(false);
   postMode = signal(false);
   countryMode = false;
   showInfo = false;
-  selected: number = 7;
-  boundaryLayer: any;
-  private store = inject(Store);
+  selected = 7;
   hood = this.store.selectSignal(selectHood);
 
-  constructor(private http: HttpClient, private utils: Utils, private state: SharedStateService) {}
-
   async ngAfterViewInit(): Promise<void> {
-    if (typeof window === 'undefined') return; // Skip SSR
+    if (typeof window === 'undefined') return;
 
-    const leaflet = await import('leaflet');
-    this.L = leaflet.default ?? leaflet;
+    this.registerViewportRequests();
+    this.maplibre = await import('maplibre-gl');
 
-    this.initMap();
-    this.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href=https://www.openstreetmap.org/copyright>OpenStreetMap</a> contributors',
-    }).addTo(this.map);
-
-    this.markerLayer = this.L.layerGroup().addTo(this.map);
-
-    const input = document.getElementById('geo-search-input') as HTMLInputElement | null;
-    if (input) {
-      input.addEventListener('keyup', (e) => {
-        if (e instanceof KeyboardEvent && e.key === 'Enter') this.search('');
-      });
-    }
-    this.loadMarkers();
+    this.ngZone.runOutsideAngular(() => {
+      this.initializeMap();
+    });
   }
 
-  initMap(): void {
-    const coords = this.hood().coords;
-    this.map = this.L.map('map', {
-      //center: [coords.lat, coords.lng],
-      zoom: 11,
-      scrollWheelZoom: false,
-    });
-    this.setBoundary(this.hood().name);
-  }
-
-  loadMarkers() {
-    this.L.FeatureGroup.include({
-      openPopup: function (popup: any) {
-        if (popup && !popup.isOpen()) popup.openOn(this._map);
-      },
-    });
-
-    // const circle = this.utils.drawCircle(12.952179272658608, 77.70078033997684, 2500, this.L);
-    // console.log('circle', circle);
-    // circle.addTo(this.map);
-
-    markersData.forEach((m: any) => {
-      m.iconName = 'alert';
-      const icon = this.utils.getIcon(m.iconName || 'default', this.L);
-      const marker = this.L.marker([m.lat, m.lng], { icon }).addTo(this.map);
-
-      //  const popup = this.L.popup({ className: 'transparent-popup', autoClose: false, closeOnClick: false, closeButton: false }).setContent('<p>HI</p>');
-      // marker.bindPopup(popup).openPopup();
-
-      //       new CustomPopup(this.L,
-      //         [m.lat, m.lng],
-      //         `<div style="
-      //   display:flex;
-      //   flex-direction:column;
-      //   justify-content:space-between;
-      //   width:120px;
-      //   height:55px;
-      //   padding:6px 8px;
-      //   border-radius:6px;
-      //   box-shadow:0 1px 3px rgba(0,0,0,0.3);
-      //   font-family:'Inter',sans-serif;
-      //   background:#1e1e1e;
-      //   color:#f1f1f1;
-      // ">
-      //   <div style="
-      //     flex:2.2;
-      //     font-size:12px;
-      //     font-weight:600;
-      //     color:#ffcc66;
-      //     overflow:hidden;
-      //     text-overflow:ellipsis;
-      //     white-space:nowrap;
-      //   ">
-      //     ${m.highlight}
-      //   </div>
-
-      //   <div style="
-      //     flex:0.8;
-      //     display:flex;
-      //     justify-content:space-between;
-      //     align-items:center;
-      //     font-size:10px;
-      //   ">
-      //     <div style="color:#bbb;">${m.username}</div>
-      //     <div id="timer-${m.username}" style="color:#ffb84d;">⏳ ${m.expiresIn}s</div>
-      //   </div>
-      // </div>
-      //   `
-      //       ).addTo(this.map);
-
-      // Timer logic
-      let remaining = m.expiresIn;
-      // const timerElement = popupDiv.querySelector(`#timer-${m.username}`)!;
-      // const interval = setInterval(() => {
-      //   remaining--;
-      //   if (remaining <= 0) {
-      //     timerElement.textContent = '⏱ Expired';
-      //     clearInterval(interval);
-      //   } else {
-      //     timerElement.textContent = `⏳ ${remaining}s`;
-      //   }
-      // }, 1000);
-    });
-
-    // this.utils.startTimer(60, (s) => {
-    //   var popup = this.L.popup([this.utils.getRandom(7, 15), this.utils.getRandom(65, 90)], { content: '<p>Hello world!<br />This is a nice popup.</p>' })
-    //     .openOn(this.map);
-    // }, () => { });
-  }
-
-  select(value: number) {
-    this.map.setZoom(value);
+  select(value: number): void {
+    this.selected = value;
+    this.map?.setZoom(value);
   }
 
   search(value: string): void {
@@ -155,87 +141,496 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     if (!q) return;
 
     this.isSearching.set(true);
-    this.setBoundary(q);
-    // Nominatim API (OpenStreetMap) — polite usage: include `format=jsonv2` and optionally `email` param.
+    void this.setBoundary(q);
+
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
       q
     )}`;
 
-    this.http.get<any[]>(url).subscribe({
-      next: (res) => {
+    this.http
+      .get<NominatimSearchResult[]>(url)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError((error: unknown) => {
+          this.isSearching.set(false);
+          console.error('Geocoding error', error);
+          this.showUserError('Geocoding failed. Please try another location.');
+          return of([]);
+        })
+      )
+      .subscribe((res) => {
         this.isSearching.set(false);
-        if (!res || res.length === 0) {
-          alert('Location not found');
+        if (!res.length) {
+          this.showUserError('Location not found.');
           return;
         }
+
         const first = res[0];
-        const lat = parseFloat(first.lat);
-        const lng = parseFloat(first.lon);
+        const lat = Number.parseFloat(first.lat);
+        const lng = Number.parseFloat(first.lon);
+        if (!this.isValidCoordinate(lat, lng)) {
+          this.showUserError('The selected location has invalid coordinates.');
+          return;
+        }
 
-        const hood = new Hood({ name: q, coords: { lat: lat, lng: lng } });
-        this.store.dispatch(setUserPreference({ pref: { hood: hood, mapZoom: 13 } }));
+        const hood = new Hood({ name: q, coords: { lat, lng } });
+        this.store.dispatch(setUserPreference({ pref: { hood, mapZoom: 13 } }));
 
-        // clear previous markers
-        this.markerLayer.clearLayers();
-
-        // custom icon
-        const icon = this.utils.getIcon('loc-pin', this.L);
-
-        // add draggable marker
-        const m = this.L.marker([lat, lng], { icon, draggable: true }).addTo(this.markerLayer);
-
-        // bind popup
-        //  m.bindPopup(`${first.display_name}`).openPopup();
-
-        // pan + zoom
-        this.map.setView([lat, lng], 13);
-
-        // 🧭 Listen to dragend event
-        m.on('dragend', (event: any) => {
-          const position = event.target.getLatLng();
-          const { lat, lng } = position;
-          console.log(`📍 Marker moved to: ${lat}, ${lng}`);
-          this.state.updateCoordinates(lat, lng);
-
-          // Reverse geocode to get address
-          this.getAddressFromCoords(lat, lng);
-        });
-      },
-      error: (err) => {
-        this.isSearching.set(false);
-        console.error('Geocoding error', err);
-        alert('Geocoding failed');
-      },
-    });
+        this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
+        this.enableLocationSelection();
+        this.setTemporaryMarker(lng, lat);
+        this.state.updateCoordinates(lat, lng);
+        this.state.updateText(first.display_name ?? q);
+        this.loadVisiblePosts();
+      });
   }
 
-  getAddressFromCoords(lat: number, lon: number) {
+  getAddressFromCoords(lat: number, lon: number): void {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
 
-    this.http.get<any>(url).subscribe({
-      next: (res) => {
-        const address = res.display_name || 'Unknown location';
-        this.state.updateText(address);
-        console.log(`📫 Address: ${address}`);
-      },
-      error: (err) => console.error('Reverse geocoding failed', err),
+    this.http
+      .get<{ display_name?: string }>(url)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError((error: unknown) => {
+          console.error('Reverse geocoding failed', error);
+          this.showUserError('Could not resolve the selected address.');
+          return of({ display_name: undefined });
+        })
+      )
+      .subscribe((res) => {
+        this.state.updateText(res.display_name ?? 'Unknown location');
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.cleanupMap();
+  }
+
+  private initializeMap(): void {
+    if (!this.maplibre || !this.mapContainer?.nativeElement) return;
+
+    const coords = this.hood().coords;
+    const mapTilerApiKey = environment.mapTilerApiKey;
+    if (!mapTilerApiKey) {
+      this.showUserError('MapTiler API key is missing. Add it to the Angular environment.');
+    }
+
+    this.map = new this.maplibre.Map({
+      container: this.mapContainer.nativeElement,
+      style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${mapTilerApiKey}`,
+      center: [coords.lng, coords.lat],
+      zoom: 11,
+      attributionControl: { compact: true },
+    });
+
+    this.map.addControl(new this.maplibre.NavigationControl({ showCompass: false }), 'bottom-right');
+
+    this.map.on('load', () => {
+      this.addBoundarySourceAndLayers();
+      this.addPostSourceAndLayers();
+      this.registerMapEvents();
+      void this.setBoundary(this.hood().name);
+      this.loadVisiblePosts();
+      this.map?.resize();
+    });
+
+    this.map.on('error', (event) => {
+      console.error('MapLibre error', event.error);
+      if (!this.mapErrorShown) {
+        this.mapErrorShown = true;
+        this.showUserError('The map style could not be loaded. Please check the MapTiler API key.');
+      }
+    });
+
+    this.resizeObserver = new ResizeObserver(() => this.map?.resize());
+    this.resizeObserver.observe(this.mapContainer.nativeElement);
+  }
+
+  private addPostSourceAndLayers(): void {
+    if (!this.map) return;
+
+    if (!this.map.getSource(POSTS_SOURCE)) {
+      this.map.addSource(POSTS_SOURCE, {
+        type: 'geojson',
+        data: this.emptyPointCollection(),
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 45,
+      });
+    }
+
+    if (!this.map.getLayer(CLUSTERS_LAYER)) {
+      this.map.addLayer({
+        id: CLUSTERS_LAYER,
+        type: 'circle',
+        source: POSTS_SOURCE,
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': ['step', ['get', 'point_count'], '#2b7de9', 25, '#f5a623', 100, '#e14b3b'],
+          'circle-radius': ['step', ['get', 'point_count'], 16, 25, 22, 100, 30],
+          'circle-opacity': 0.88,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+
+    if (!this.map.getLayer(CLUSTER_COUNT_LAYER)) {
+      this.map.addLayer({
+        id: CLUSTER_COUNT_LAYER,
+        type: 'symbol',
+        source: POSTS_SOURCE,
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 12,
+        },
+        paint: {
+          'text-color': '#ffffff',
+        },
+      });
+    }
+
+    if (!this.map.getLayer(INDIVIDUAL_POSTS_LAYER)) {
+      this.map.addLayer({
+        id: INDIVIDUAL_POSTS_LAYER,
+        type: 'circle',
+        source: POSTS_SOURCE,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': '#ff5a3d',
+          'circle-radius': 7,
+          'circle-opacity': 0.92,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+  }
+
+  private addBoundarySourceAndLayers(): void {
+    if (!this.map) return;
+
+    if (!this.map.getSource(HOOD_SOURCE)) {
+      this.map.addSource(HOOD_SOURCE, {
+        type: 'geojson',
+        data: this.emptyBoundaryCollection(),
+      });
+    }
+
+    if (!this.map.getLayer(HOOD_FILL_LAYER)) {
+      this.map.addLayer({
+        id: HOOD_FILL_LAYER,
+        type: 'fill',
+        source: HOOD_SOURCE,
+        paint: {
+          'fill-color': '#007bff',
+          'fill-opacity': 0.1,
+        },
+      });
+    }
+
+    if (!this.map.getLayer(HOOD_LINE_LAYER)) {
+      this.map.addLayer({
+        id: HOOD_LINE_LAYER,
+        type: 'line',
+        source: HOOD_SOURCE,
+        paint: {
+          'line-color': '#007bff',
+          'line-width': 2,
+        },
+      });
+    }
+  }
+
+  private registerMapEvents(): void {
+    if (!this.map) return;
+
+    this.map.on('moveend', () => this.loadVisiblePosts());
+    this.map.on('click', (event) => this.handleMapClick(event));
+    this.map.on('click', CLUSTERS_LAYER, (event) => void this.handleClusterClick(event));
+    this.map.on('click', INDIVIDUAL_POSTS_LAYER, (event) => this.handleMarkerClick(event));
+
+    this.map.on('mouseenter', CLUSTERS_LAYER, () => this.setCursor('pointer'));
+    this.map.on('mouseleave', CLUSTERS_LAYER, () => this.setCursorForMode());
+    this.map.on('mouseenter', INDIVIDUAL_POSTS_LAYER, () => this.setCursor('pointer'));
+    this.map.on('mouseleave', INDIVIDUAL_POSTS_LAYER, () => this.setCursorForMode());
+  }
+
+  private registerViewportRequests(): void {
+    this.viewportChange$
+      .pipe(
+        debounceTime(300),
+        switchMap((query) =>
+          this.fetchPostsForViewport(query).pipe(
+            catchError((error: unknown) => {
+              console.error('Failed to load map posts', error);
+              this.showUserError('Could not load posts for this map area.');
+              return of([]);
+            })
+          )
+        ),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((posts) => {
+        this.updatePostSource(posts);
+      });
+  }
+
+  private fetchPostsForViewport(query: MapViewportQuery) {
+    const posts = (markersData as MapPost[]).filter(
+      (post) =>
+        this.isValidCoordinate(post.lat, post.lng) &&
+        post.lng >= query.west &&
+        post.lng <= query.east &&
+        post.lat >= query.south &&
+        post.lat <= query.north
+    );
+
+    return of(posts);
+  }
+
+  private loadVisiblePosts(): void {
+    if (!this.map) return;
+
+    const bounds = this.map.getBounds();
+    this.viewportChange$.next({
+      west: bounds.getWest(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      north: bounds.getNorth(),
+      zoom: this.map.getZoom(),
+      hoodId: this.hood().id,
     });
   }
 
-  async setBoundary(name: string) {
-    const newLayer = await Utils.getPlaceLayer(this.L, name);
-    if (!newLayer) return;
+  private updatePostSource(posts: MapPost[]): void {
+    const source = this.map?.getSource(POSTS_SOURCE) as GeoJSONSource | undefined;
+    if (!source) return;
 
-    if (this.boundaryLayer) {
-      this.map.removeLayer(this.boundaryLayer);
-    }
-    newLayer.addTo(this.map);
-
-    this.map.fitBounds(newLayer.getBounds());
-    this.boundaryLayer = newLayer;
+    source.setData(this.convertPostsToGeoJson(posts));
   }
 
-  ngOnDestroy() {
-    if (this.map) this.map.remove();
+  private convertPostsToGeoJson(
+    posts: MapPost[]
+  ): FeatureCollection<Point, MapPostProperties> {
+    return {
+      type: 'FeatureCollection',
+      features: posts
+        .filter((post) => this.isValidCoordinate(post.lat, post.lng))
+        .map((post, index) => ({
+          type: 'Feature',
+          properties: {
+            id: post.id ?? `${post.userId}-${post.createdAt}-${index}`,
+            title: post.title ?? post.highlight ?? '',
+            type: post.type ?? post.tag ?? '',
+            imageUrl: post.imageUrl ?? post.images?.[0] ?? '',
+            hoodId: post.hoodId ?? '',
+            username: post.username ?? '',
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [post.lng, post.lat],
+          },
+        })),
+    };
+  }
+
+  private async setBoundary(name: string): Promise<void> {
+    if (!this.map) return;
+
+    try {
+      const boundary = await this.getPlaceBoundary(name);
+      if (!boundary) return;
+
+      this.updateBoundarySource(boundary.geometry, name);
+      this.fitBoundary(boundary.bounds);
+    } catch (error) {
+      console.error('Boundary lookup failed', error);
+      this.showUserError('Could not load the neighbourhood boundary.');
+    }
+  }
+
+  private async getPlaceBoundary(name: string): Promise<PlaceBoundary | null> {
+    const cacheKey = name.trim().toLowerCase();
+    const cached = this.boundaryCache.get(cacheKey);
+    if (cached) return cached;
+
+    const boundary = await Utils.getPlaceBoundary(name);
+    if (boundary) this.boundaryCache.set(cacheKey, boundary);
+    return boundary;
+  }
+
+  private updateBoundarySource(geometry: HoodBoundaryGeometry, name: string): void {
+    const source = this.map?.getSource(HOOD_SOURCE) as GeoJSONSource | undefined;
+    if (!source) return;
+
+    source.setData({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { name },
+          geometry,
+        },
+      ],
+    } satisfies FeatureCollection<HoodBoundaryGeometry>);
+  }
+
+  private fitBoundary(bounds: LngLatBoundsLike): void {
+    this.map?.fitBounds(bounds, {
+      padding: 32,
+      duration: 700,
+      maxZoom: 13,
+    });
+  }
+
+  private enableLocationSelection(): void {
+    this.locationSelectionEnabled = true;
+    this.setCursorForMode();
+  }
+
+  private disableLocationSelection(): void {
+    this.locationSelectionEnabled = false;
+    this.setCursorForMode();
+  }
+
+  private handleMapClick(event: MapMouseEvent): void {
+    if (!this.locationSelectionEnabled) return;
+
+    const { lng, lat } = event.lngLat;
+    if (!this.isValidCoordinate(lat, lng)) return;
+
+    this.ngZone.run(() => {
+      this.setTemporaryMarker(lng, lat);
+      this.state.updateCoordinates(lat, lng);
+      this.getAddressFromCoords(lat, lng);
+    });
+  }
+
+  private async handleClusterClick(event: MapLayerMouseEvent): Promise<void> {
+    if (!this.map) return;
+
+    const feature = event.features?.[0] as Feature<Point, ClusterFeatureProperties> | undefined;
+    if (!feature) return;
+
+    const clusterId = feature.properties?.cluster_id;
+    const [lng, lat] = feature.geometry.coordinates;
+    if (clusterId === undefined || lng === undefined || lat === undefined) return;
+
+    const source = this.map.getSource(POSTS_SOURCE) as GeoJSONSource | undefined;
+    if (!source) return;
+
+    const zoom = await source.getClusterExpansionZoom(clusterId);
+    this.map.easeTo({
+      center: [lng, lat],
+      zoom,
+      duration: 600,
+    });
+  }
+
+  private handleMarkerClick(event: MapLayerMouseEvent): void {
+    if (!this.map || !this.maplibre) return;
+
+    const feature = event.features?.[0] as Feature<Point, MapPostProperties> | undefined;
+    if (!feature) return;
+
+    this.ngZone.run(() => {
+      const [lng, lat] = feature.geometry.coordinates;
+      if (lng === undefined || lat === undefined) return;
+
+      const coordinates: [number, number] = [lng, lat];
+      const title = feature.properties.title || 'Tag post';
+      const username = feature.properties.username ? ` by ${feature.properties.username}` : '';
+
+      new this.maplibre!.Popup({ closeButton: true, offset: 12 })
+        .setLngLat(coordinates)
+        .setHTML(`<strong>${this.escapeHtml(title)}</strong><br><span>${this.escapeHtml(feature.properties.type)}${this.escapeHtml(username)}</span>`)
+        .addTo(this.map!);
+    });
+  }
+
+  private setTemporaryMarker(lng: number, lat: number): void {
+    if (!this.map || !this.maplibre) return;
+
+    if (!this.temporaryMarker) {
+      this.temporaryMarker = new this.maplibre.Marker({
+        draggable: true,
+        element: this.createTemporaryMarkerElement(),
+      }).addTo(this.map);
+
+      this.temporaryMarker.on('dragend', () => {
+        const lngLat = this.temporaryMarker?.getLngLat();
+        if (!lngLat || !this.isValidCoordinate(lngLat.lat, lngLat.lng)) return;
+
+        this.ngZone.run(() => {
+          this.state.updateCoordinates(lngLat.lat, lngLat.lng);
+          this.getAddressFromCoords(lngLat.lat, lngLat.lng);
+        });
+      });
+    }
+
+    this.temporaryMarker.setLngLat([lng, lat]);
+  }
+
+  private createTemporaryMarkerElement(): HTMLElement {
+    const element = document.createElement('img');
+    element.src = 'assets/icons/loc-pin.svg';
+    element.alt = 'Selected location';
+    element.className = 'selected-location-marker';
+    return element;
+  }
+
+  private setCursor(cursor: string): void {
+    const canvas = this.map?.getCanvas();
+    if (canvas) canvas.style.cursor = cursor;
+  }
+
+  private setCursorForMode(): void {
+    this.setCursor(this.locationSelectionEnabled ? 'crosshair' : '');
+  }
+
+  private isValidCoordinate(lat: number, lng: number): boolean {
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    );
+  }
+
+  private emptyPointCollection(): FeatureCollection<Point, MapPostProperties> {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  private emptyBoundaryCollection(): FeatureCollection<HoodBoundaryGeometry> {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  private escapeHtml(value: string): string {
+    const div = document.createElement('div');
+    div.textContent = value;
+    return div.innerHTML;
+  }
+
+  private showUserError(message: string): void {
+    if (typeof window !== 'undefined') {
+      window.alert(message);
+    }
+  }
+
+  private cleanupMap(): void {
+    this.disableLocationSelection();
+    this.resizeObserver?.disconnect();
+    this.temporaryMarker?.remove();
+    this.temporaryMarker = undefined;
+    this.map?.remove();
+    this.map = undefined;
   }
 }
