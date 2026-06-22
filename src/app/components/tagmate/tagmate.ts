@@ -82,62 +82,51 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       const icon = this.utils.getIcon(m.iconName || 'default', this.L);
       const marker = this.L.marker([m.lat, m.lng], { icon }).addTo(this.map);
 
-      //  const popup = this.L.popup({ className: 'transparent-popup', autoClose: false, closeOnClick: false, closeButton: false }).setContent('<p>HI</p>');
-      // marker.bindPopup(popup).openPopup();
+      // Safe Popup construction
+      const popupDiv = document.createElement('div');
+      popupDiv.style.cssText = `
+        display:flex; flex-direction:column; justify-content:space-between;
+        width:120px; height:55px; padding:6px 8px; border-radius:6px;
+        box-shadow:0 1px 3px rgba(0,0,0,0.3); font-family:'Inter',sans-serif;
+        background:#1e1e1e; color:#f1f1f1;
+      `;
 
-      //       new CustomPopup(this.L,
-      //         [m.lat, m.lng],
-      //         `<div style="
-      //   display:flex;
-      //   flex-direction:column;
-      //   justify-content:space-between;
-      //   width:120px;
-      //   height:55px;
-      //   padding:6px 8px;
-      //   border-radius:6px;
-      //   box-shadow:0 1px 3px rgba(0,0,0,0.3);
-      //   font-family:'Inter',sans-serif;
-      //   background:#1e1e1e;
-      //   color:#f1f1f1;
-      // ">
-      //   <div style="
-      //     flex:2.2;
-      //     font-size:12px;
-      //     font-weight:600;
-      //     color:#ffcc66;
-      //     overflow:hidden;
-      //     text-overflow:ellipsis;
-      //     white-space:nowrap;
-      //   ">
-      //     ${m.highlight}
-      //   </div>
+      const highlightDiv = document.createElement('div');
+      highlightDiv.style.cssText = 'flex:2.2; font-size:12px; font-weight:600; color:#ffcc66; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+      highlightDiv.textContent = m.highlight; // Safe injection
 
-      //   <div style="
-      //     flex:0.8;
-      //     display:flex;
-      //     justify-content:space-between;
-      //     align-items:center;
-      //     font-size:10px;
-      //   ">
-      //     <div style="color:#bbb;">${m.username}</div>
-      //     <div id="timer-${m.username}" style="color:#ffb84d;">⏳ ${m.expiresIn}s</div>
-      //   </div>
-      // </div>
-      //   `
-      //       ).addTo(this.map);
+      const bottomDiv = document.createElement('div');
+      bottomDiv.style.cssText = 'flex:0.8; display:flex; justify-content:space-between; align-items:center; font-size:10px;';
+
+      const userDiv = document.createElement('div');
+      userDiv.style.color = '#bbb';
+      userDiv.textContent = m.username; // Safe injection
+
+      const timerDiv = document.createElement('div');
+      timerDiv.id = `timer-${m.username}`;
+      timerDiv.style.color = '#ffb84d';
+      timerDiv.textContent = `⏳ ${m.expiresIn}s`;
+
+      bottomDiv.appendChild(userDiv);
+      bottomDiv.appendChild(timerDiv);
+      popupDiv.appendChild(highlightDiv);
+      popupDiv.appendChild(bottomDiv);
+
+      const popup = this.L.popup({ className: 'transparent-popup', autoClose: false, closeOnClick: false, closeButton: false }).setContent(popupDiv);
+      marker.bindPopup(popup).openPopup();
 
       // Timer logic
       let remaining = m.expiresIn;
-      // const timerElement = popupDiv.querySelector(`#timer-${m.username}`)!;
-      // const interval = setInterval(() => {
-      //   remaining--;
-      //   if (remaining <= 0) {
-      //     timerElement.textContent = '⏱ Expired';
-      //     clearInterval(interval);
-      //   } else {
-      //     timerElement.textContent = `⏳ ${remaining}s`;
-      //   }
-      // }, 1000);
+      const timerElement = timerDiv;
+      const interval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          timerElement.textContent = '⏱ Expired';
+          clearInterval(interval);
+        } else {
+          timerElement.textContent = `⏳ ${remaining}s`;
+        }
+      }, 1000);
     });
 
     // this.utils.startTimer(60, (s) => {
@@ -156,10 +145,8 @@ export class Tagmate implements AfterViewInit, OnDestroy {
 
     this.isSearching.set(true);
     this.setBoundary(q);
-    // Nominatim API (OpenStreetMap) — polite usage: include `format=jsonv2` and optionally `email` param.
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-      q
-    )}`;
+    // Nominatim API Proxy
+    const url = `/api/nominatim/search?q=${encodeURIComponent(q)}`;
 
     this.http.get<any[]>(url).subscribe({
       next: (res) => {
@@ -210,7 +197,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   }
 
   getAddressFromCoords(lat: number, lon: number) {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+    const url = `/api/nominatim/reverse?lat=${lat}&lon=${lon}`;
 
     this.http.get<any>(url).subscribe({
       next: (res) => {

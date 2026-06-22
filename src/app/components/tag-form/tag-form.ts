@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { SharedStateService } from '../../services/shared-state.service';
 import { Tag } from '../../models/tag.model';
+import { FirestoreService } from '../../services/firebase.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'tag-form',
@@ -15,7 +17,8 @@ export class TagForm {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<any>();
 
-  constructor(public shared: SharedStateService) { }
+  constructor(public shared: SharedStateService, private firestore: FirestoreService, private router: Router) { }
+  isSubmitting = false;
 
   tags = [
     'news', 'weather', 'food', 'event', 'sale', 'traffic', 'alert',
@@ -55,30 +58,52 @@ export class TagForm {
     // Example: this.mapService.enablePickMode();
   }
 
-  onSubmit(f: NgForm) {
-    if (!f.valid) return;
+  async onSubmit(f: NgForm) {
+    if (!f.valid || this.isSubmitting) return;
 
+    this.isSubmitting = true;
     const coords = this.shared.coordinates();
 
-    const tagObject: Tag = {
-      username: this.user.name,
-      userId: 'GuestPanda',
-      highlight: this.formData.headline,
-      lat: coords[0],
-      lng: coords[1],
-      expiresIn: this.formData.expiresIn,
-      tag: this.formData.tag,
-      createdAt: new Date().toISOString(),
-      images: [...this.formData.images]
-    };
+    try {
+      const uploadedImages = [];
+      for (const img of this.formData.images) {
+        if (img.startsWith('data:')) {
+          const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}`;
+          const url = await this.firestore.uploadImageBase64(path, img);
+          uploadedImages.push(url);
+        } else {
+          uploadedImages.push(img);
+        }
+      }
 
-    this.submitted.emit(tagObject);
+      const tagObject: Tag = {
+        username: this.user.name,
+        userId: 'GuestPanda',
+        highlight: this.formData.headline,
+        lat: coords[0],
+        lng: coords[1],
+        expiresIn: this.formData.expiresIn,
+        tag: this.formData.tag,
+        createdAt: new Date().toISOString(),
+        images: uploadedImages
+      };
+
+      await this.firestore.addDoc('tags', tagObject).toPromise();
+      this.submitted.emit(tagObject);
+      this.router.navigate(['/hood']);
+    } catch (e) {
+      console.error('Error saving tag', e);
+      alert('Failed to post tag');
+    } finally {
+      this.isSubmitting = false;
+    }
   }
 
   onDiscard() {
     this.formData = { headline: '', images: [], expiresIn: 60, tag: '' };
     this.showMapHint = false;
     this.discarded.emit();
+    this.router.navigate(['/hood']);
   }
 
 }

@@ -3,6 +3,7 @@ import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } f
 import { Firestore, doc, setDoc, getDoc, collection, collectionData, query, where, addDoc, updateDoc, deleteDoc, DocumentData } from '@angular/fire/firestore';
 import { BehaviorSubject, from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { Storage, ref, uploadString, getDownloadURL } from '@angular/fire/storage';
 
 @Injectable({
   providedIn: 'root',
@@ -10,6 +11,7 @@ import { map } from 'rxjs/operators';
 export class FirestoreService {
   private auth = inject(Auth);
   private firestore = inject(Firestore);
+  private storage = inject(Storage);
 
   // Auth state as BehaviorSubject for zone-less updates
   private currentUser$ = new BehaviorSubject<User | null>(null);
@@ -61,6 +63,13 @@ export class FirestoreService {
   deleteDoc(path: string, id: string) {
     const ref = doc(this.firestore, `${path}/${id}`);
     return from(deleteDoc(ref));
+  }
+
+  /** -------- STORAGE -------- */
+  async uploadImageBase64(path: string, base64Data: string): Promise<string> {
+    const storageRef = ref(this.storage, path);
+    await uploadString(storageRef, base64Data, 'data_url');
+    return await getDownloadURL(storageRef);
   }
 
   /** -------- EXTRA UTILITY -------- */
