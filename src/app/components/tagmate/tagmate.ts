@@ -141,11 +141,9 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     if (!q) return;
 
     this.isSearching.set(true);
-    void this.setBoundary(q);
-
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-      q
-    )}`;
+    this.setBoundary(q);
+    // Nominatim API Proxy
+    const url = `/api/nominatim/search?q=${encodeURIComponent(q)}`;
 
     this.http
       .get<NominatimSearchResult[]>(url)
@@ -185,8 +183,8 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       });
   }
 
-  getAddressFromCoords(lat: number, lon: number): void {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+  getAddressFromCoords(lat: number, lon: number) {
+    const url = `/api/nominatim/reverse?lat=${lat}&lon=${lon}`;
 
     this.http
       .get<{ display_name?: string }>(url)
