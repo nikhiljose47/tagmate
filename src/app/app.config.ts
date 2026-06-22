@@ -1,5 +1,9 @@
 import { provideHttpClient, withFetch } from '@angular/common/http';
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
@@ -14,17 +18,19 @@ import { toggleReducer } from './store/toggle/toggle.state';
 import { userPrefReducer } from './store/user-preferences/user-preference.reducer';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideHttpClient(withFetch()),
-  provideBrowserGlobalErrorListeners(),
-  provideZonelessChangeDetection(),
-  provideRouter(routes), provideClientHydration(withEventReplay()),
-  provideFirebaseApp(() => initializeApp(environment.firebase)),
-  provideFirestore(() => getFirestore()),
-  provideAuth(() => getAuth()),
-  provideStorage(() => getStorage()),
-  provideStore({
-    toggle: toggleReducer,
-    userPref: userPrefReducer
-  }),
-  ]
+  providers: [
+    provideHttpClient(withFetch()),
+    provideBrowserGlobalErrorListeners(),
+    provideZonelessChangeDetection(),
+    provideRouter(routes),
+    provideClientHydration(withEventReplay()),
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
+    provideFirestore(() => getFirestore()),
+    provideAuth(() => getAuth()),
+    provideStorage(() => getStorage()),
+    provideStore({
+      toggle: toggleReducer,
+      userPref: userPrefReducer,
+    }),
+  ],
 };

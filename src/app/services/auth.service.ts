@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
+import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from '@angular/fire/auth';
 import { BehaviorSubject } from 'rxjs';
 import { UserModel } from '../models/user.model';
-
+import { AuthResponse } from '../models/auth-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -15,9 +15,7 @@ export class AuthService {
   user$ = this._user.asObservable();
 
   constructor(private auth: Auth) {
-    // Listen to Firebase Auth state
     onAuthStateChanged(this.auth, (user) => {
-      console.log('came', user)
       if (user) {
         this._user.next({
           uid: user.uid,
@@ -26,21 +24,40 @@ export class AuthService {
           isGuest: false,
         });
       } else {
-        this._user.next({ uid: 'guest', email: null, username: 'Guest', isGuest: true, });
+        this._user.next({
+          uid: 'guest',
+          email: null,
+          username: 'Guest',
+          isGuest: true,
+        });
       }
     });
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<AuthResponse> {
     try {
       const userCred = await signInWithEmailAndPassword(this.auth, email, password);
-      console.log('✅ Logged in:', userCred.user);
-    } catch (err: any) {
-      console.error('❌ Login error:', err.code, err.message);
+      const u = userCred.user;
+      const response: AuthResponse = {
+        ok: true,
+        uid: u.uid,
+        email: u.email,
+        username: u.displayName || u.email?.split('@')[0] || 'User',
+      };
 
+      return response;
+    } catch (err: any) {
+      const errorResponse: AuthResponse = {
+        ok: false,
+        code: err.code ?? 'auth/unknown',
+        message: err.message ?? 'Something went wrong',
+      };
+
+      return errorResponse;
     }
   }
-  async logout() {
+
+  async logout(): Promise<void> {
     await signOut(this.auth);
   }
 }

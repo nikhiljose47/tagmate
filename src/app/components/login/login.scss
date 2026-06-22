@@ -1,4 +1,48 @@
-img {
-    height: 125px;
-    width: 125px;
+.login-wrapper {
+  height: 100vh;
+  background: #fafafa;
+}
+
+.login-card {
+  width: 350px;
+  background: #ffffff;
+  border: 1px solid #dbdbdb;
+  border-radius: 8px;
+}
+
+.brand {
+  font-family: 'Billabong', cursive;
+  font-size: 48px;
+  color: #000;
+}
+
+.divider {
+  position: relative;
+  color: #999;
+  margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  width: 40%;
+  height: 1px;
+  background: #ddd;
+  position: absolute;
+  top: 50%;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+.signup-box {
+  width: 350px;
+  border: 1px solid #dbdbdb;
+  background: #fff;
+  border-radius: 8px;
 }
