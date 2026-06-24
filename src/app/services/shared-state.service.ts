@@ -1,27 +1,25 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+export type SelectedCoordinates = readonly [lat: number, lng: number] | null;
+
 @Injectable({ providedIn: 'root' })
 export class SharedStateService {
-  // writable signal for input text
   private _text = signal<string>('');
-  private _cd = signal<number[]>([]);
+  private _coordinates = signal<SelectedCoordinates>(null);
 
-  // public readonly accessors
   readonly text = computed(() => this._text());
-  readonly coordinates = computed(() => this._cd());
+  readonly coordinates = computed(() => this._coordinates());
 
-  // method to update text
-  updateText(value: string) {
+  updateText(value: string): void {
     this._text.set(value);
   }
 
-  updateCoordinates(lat: number, long: number){
-    this._cd.set([lat, long]);
+  updateCoordinates(lat: number, lng: number): void {
+    this._coordinates.set([lat, lng]);
   }
 
-  // optional clear/reset
-  clear() {
+  clear(): void {
     this._text.set('');
-    this._cd.set([]);
+    this._coordinates.set(null);
   }
 }

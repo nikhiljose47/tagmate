@@ -1,65 +1,90 @@
 <div class="map-wrapper">
-  <!-- Top overlay: toggle + news -->
   <div class="topbar d-flex justify-content-between align-items-center">
-    <!-- Toggle -->
     <div class="d-flex align-items-center gap-2">
-      <div class="form-check form-switch m-0">
+      <div class="form-check form-switch m-0 custom-switch">
         <input
           class="form-check-input"
           type="checkbox"
           id="countryModeSwitch"
           [(ngModel)]="countryMode"
+          (ngModelChange)="onCountryModeChange()"
         />
-        <label class="form-check-label small text-white" for="countryModeSwitch"
-          >Country Mode</label
-        >
+        <label class="form-check-label small text-white fw-medium" for="countryModeSwitch">
+          Country Mode
+        </label>
       </div>
     </div>
 
-    <!-- News -->
     <div class="news-bar d-flex align-items-center">
-      <marquee behavior="scroll" direction="left" scrollamount="3">
-        🔥 New: Street music vibes tonight 🎸 | ☔ Rain near Indiranagar | 🧘 Yoga at sunrise | 🛍️
-        Orion Mall sale!
-      </marquee>
-      <button class="btn btn-sm btn-light p-0 ms-1 info-btn" (click)="showInfo = !showInfo">
-        i
+      <div class="ticker-wrap">
+        <div class="ticker">
+          <span class="ticker-item">New: Street music vibes tonight</span>
+          <span class="ticker-item">Rain near Indiranagar</span>
+          <span class="ticker-item">Yoga at sunrise</span>
+          <span class="ticker-item">Orion Mall sale</span>
+        </div>
+      </div>
+      <button
+        class="btn btn-sm btn-light p-0 ms-1 info-btn"
+        type="button"
+        aria-label="Show country mode details"
+        (click)="showInfo = !showInfo"
+      >
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
       </button>
     </div>
   </div>
 
-  <!-- Multiplier buttons -->
-  <div class="multi-box shadow-sm p-2" role="radiogroup">
+  <div class="multi-box shadow-sm p-2" role="radiogroup" aria-label="Map zoom level">
     <button
       *ngFor="let zoom of zoomLevels"
       type="button"
       class="switch-btn"
       (click)="select(zoom)"
       [class.active]="selected === zoom"
+      [attr.aria-checked]="selected === zoom"
+      role="radio"
     >
       {{ zoom }}x
     </button>
   </div>
 
-  <!-- Info popup -->
   <div *ngIf="showInfo" class="info-popup">
     Country mode filters tags by nation borders. Toggle off for global view.
   </div>
 
-  <!-- Search -->
-  <div class="search-box d-flex gap-2">
+  <div class="search-box d-flex gap-2 align-items-center">
+    <button
+      class="btn btn-icon"
+      type="button"
+      (click)="locateMe()"
+      title="Locate me"
+      aria-label="Locate me"
+      [disabled]="isSearching()"
+    >
+      <i class="bi bi-geo-fill text-primary" aria-hidden="true"></i>
+    </button>
     <input
       #q
       type="text"
-      class="form-control form-control-sm"
+      class="search-input"
       [placeholder]="'Current hood: ' + (hood().name || '')"
+      aria-label="Search hood or location"
     />
 
-    <button class="btn btn-primary btn-sm" (click)="search(q.value)" [disabled]="isSearching()">
-      {{ isSearching() ? 'Searching...' : 'Search' }}
+    <button
+      class="btn search-action-btn"
+      type="button"
+      (click)="search(q.value)"
+      aria-label="Search location"
+      [disabled]="isSearching()"
+    >
+      <i class="bi bi-search" aria-hidden="true" *ngIf="!isSearching()"></i>
+      <div class="spinner-border spinner-border-sm" role="status" *ngIf="isSearching()">
+        <span class="visually-hidden">Loading...</span>
+      </div>
     </button>
   </div>
 
-  <!-- Map -->
   <div #mapContainer id="map" class="map-container"></div>
 </div>

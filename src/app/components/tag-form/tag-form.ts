@@ -5,6 +5,7 @@ import { SharedStateService } from '../../services/shared-state.service';
 import { Tag } from '../../models/tag.model';
 import { FirestoreService } from '../../services/firebase.service';
 import { Router } from '@angular/router';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'tag-form',
@@ -17,7 +18,12 @@ export class TagForm {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<any>();
 
-  constructor(public shared: SharedStateService, private firestore: FirestoreService, private router: Router) { }
+  constructor(
+    public shared: SharedStateService,
+    private firestore: FirestoreService,
+    private router: Router,
+    private toast: ToastService
+  ) { }
   isSubmitting = false;
 
   tags = [
@@ -63,6 +69,11 @@ export class TagForm {
 
     this.isSubmitting = true;
     const coords = this.shared.coordinates();
+    if (!coords) {
+      this.toast.show('Choose a location from the Hood map before posting.', 'warning');
+      this.isSubmitting = false;
+      return;
+    }
 
     try {
       const uploadedImages = [];
@@ -93,7 +104,7 @@ export class TagForm {
       this.router.navigate(['/hood']);
     } catch (e) {
       console.error('Error saving tag', e);
-      alert('Failed to post tag');
+      this.toast.show('Failed to post tag. Please try again.', 'danger');
     } finally {
       this.isSubmitting = false;
     }

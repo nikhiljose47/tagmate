@@ -1,0 +1,36 @@
+<div class="profile-container p-3">
+  <h3>My Posts</h3>
+  <p class="text-muted small">Manage your active neighborhood tags here.</p>
+
+  <div *ngIf="isLoading" class="d-flex flex-column gap-3">
+    <div class="skeleton-box p-3" style="height: 100px;"></div>
+    <div class="skeleton-box p-3" style="height: 100px;"></div>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div *ngIf="myTags$ | async as tags">
+      <div *ngIf="tags.length === 0" class="text-center p-5 text-muted">
+        <i class="bi bi-inbox fs-1"></i>
+        <p>You haven't posted anything yet.</p>
+      </div>
+      <div class="d-flex flex-column gap-3">
+        <div *ngFor="let tag of tags" class="card shadow-sm border-0 glass-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h5 class="card-title">{{ tag.highlight || 'Untitled' }}</h5>
+                <span class="badge bg-primary">{{ tag.tag }}</span>
+              </div>
+              <button class="btn btn-outline-danger btn-sm" (click)="deleteTag(tag.id)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+            <p class="card-text small text-muted mt-2 mb-0" *ngIf="tag.hoodId">
+              <i class="bi bi-geo-alt"></i> {{ tag.hoodId }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

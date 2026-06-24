@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Tagmate } from './tagmate';
+import { testProviders } from '../../test-providers';
 
 describe('Tagmate', () => {
   let component: Tagmate;
@@ -8,13 +9,14 @@ describe('Tagmate', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Tagmate]
+      imports: [Tagmate],
+      providers: testProviders,
+      teardown: { destroyAfterEach: false },
     })
     .compileComponents();
 
     fixture = TestBed.createComponent(Tagmate);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {

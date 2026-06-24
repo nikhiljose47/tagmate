@@ -1,22 +1,24 @@
-.custom-card {
-  width: 100%;
-  aspect-ratio: 2.6 / 1; /* 1:2 (width : height) ratio */
-  display: flex;
-  flex-direction: column;
+.tag-explorer-page {
+  max-width: 720px;
 }
 
-.card-body {
-  height: 100%;
+.filter-panel {
+  margin-bottom: 18px;
+  padding: 14px;
+  border-radius: var(--tm-radius);
 }
 
-.filter-card {
-  width: 95%;
-  margin: 0 auto;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+.tag-search-row {
+  position: relative;
+  max-width: 320px;
 }
 
 .tag-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
   max-height: 140px;
   overflow-y: auto;
   background: #fff;
@@ -25,32 +27,40 @@
 .tag-dropdown::-webkit-scrollbar {
   width: 6px;
 }
+
 .tag-dropdown::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
-/* Outer Card */
+.chip-remove {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .insta-card {
   width: 100%;
-  border-radius: 12px;
   overflow: hidden;
   background: #fff;
+  border-radius: var(--tm-radius);
 }
 
-/* Image container with fixed ratio like Instagram (4:5) */
 .insta-image-wrapper {
   width: 100%;
-  aspect-ratio: 4 / 5;      /* 🔥 Instagram standard portrait ratio */
-  background: #f1f1f1;
+  aspect-ratio: 4 / 5;
   overflow: hidden;
+  background: #f1f5f9;
 }
 
-/* Auto-cropped image */
 .insta-image {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;        /* 🔥 KEY */
+  object-fit: cover;
   object-position: center;
-  display: block;
 }

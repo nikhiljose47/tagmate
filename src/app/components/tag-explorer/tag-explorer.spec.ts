@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TagExplorer } from './tag-explorer';
+import { testProviders } from '../../test-providers';
 
 describe('TagExplorer', () => {
   let component: TagExplorer;
@@ -8,7 +9,9 @@ describe('TagExplorer', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TagExplorer]
+      imports: [TagExplorer],
+      providers: testProviders,
+      teardown: { destroyAfterEach: false },
     })
     .compileComponents();
 

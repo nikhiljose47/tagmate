@@ -10,14 +10,14 @@ export const routes: Routes = [
   { path: 'login', component: Login, title: 'Login' },
   {
     path: 'tagmate',
-    title: 'TagMate',
+    title: 'Globe',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./components/tag-explorer/tag-explorer').then((m) => m.TagExplorer),
   },
   {
     path: 'hood',
-    title: 'Hood',
+    title: 'Hood Map',
     canActivate: [authGuard],
     loadComponent: () => import('./components/tagmate/tagmate').then((m) => m.Tagmate),
   },
@@ -25,8 +25,13 @@ export const routes: Routes = [
     path: 'post',
     title: 'Post',
     canActivate: [authGuard],
-
     loadComponent: () => import('./components/tag-form/tag-form').then((m) => m.TagForm),
+  },
+  {
+    path: 'profile',
+    title: 'Profile',
+    canActivate: [authGuard],
+    loadComponent: () => import('./components/profile/profile').then((m) => m.Profile),
   },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },

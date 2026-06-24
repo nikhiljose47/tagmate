@@ -1,23 +1,40 @@
+<div class="main-container">
+  <router-outlet></router-outlet>
+</div>
+
+<div
+  *ngIf="toast.message() as message"
+  class="app-toast"
+  [class]="'app-toast app-toast-' + message.tone"
+  role="status"
+  aria-live="polite"
+>
+  <span>{{ message.text }}</span>
+  <button type="button" class="toast-close" aria-label="Dismiss notification" (click)="toast.dismiss()">
+    <i class="bi bi-x-lg" aria-hidden="true"></i>
+  </button>
+</div>
+
 <div class="nav-wrap">
-  <nav class="app-nav shadow-sm">
-    <a class="nav-item" routerLink="/post" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-      <i class="bi bi-house"></i>
+  <nav class="app-nav">
+    <a class="nav-item" routerLink="/post" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" aria-label="Create post">
+      <i class="bi bi-plus-square" aria-hidden="true"></i>
       <span>Post</span>
     </a>
 
-    <a class="nav-item" routerLink="/hood" routerLinkActive="active">
-      <i class="bi bi-search"></i>
+    <a class="nav-item" routerLink="/hood" routerLinkActive="active" aria-label="Hood map">
+      <i class="bi bi-geo-alt" aria-hidden="true"></i>
       <span>Hood</span>
     </a>
 
-    <a class="nav-item" routerLink="/tagmate" routerLinkActive="active">
-      <i class="bi bi-person"></i>
+    <a class="nav-item" routerLink="/tagmate" routerLinkActive="active" aria-label="Globe feed">
+      <i class="bi bi-globe" aria-hidden="true"></i>
       <span>Globe</span>
     </a>
-    <div></div>
-  </nav>
-</div>
 
-<div class="main-container">
-  <router-outlet></router-outlet>
+    <a class="nav-item" routerLink="/profile" routerLinkActive="active" aria-label="Profile">
+      <i class="bi bi-person" aria-hidden="true"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
 </div>

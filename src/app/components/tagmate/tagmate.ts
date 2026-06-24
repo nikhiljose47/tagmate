@@ -35,6 +35,7 @@ import { environment } from '../../environments/environment.prod';
 import { Hood } from '../../models/hood.model';
 import { Tag } from '../../models/tag.model';
 import { SharedStateService } from '../../services/shared-state.service';
+import { ToastService } from '../../services/toast.service';
 import { PlaceBoundary, Utils } from '../../services/utils';
 import { setUserPreference } from '../../store/user-preferences/user-preference.actions';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
@@ -56,6 +57,7 @@ interface MapPost extends Tag {
   title?: string;
   type?: string;
   imageUrl?: string;
+  country?: string;
 }
 
 interface MapPostProperties {
@@ -104,6 +106,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   private readonly ngZone = inject(NgZone);
   private readonly state = inject(SharedStateService);
   private readonly store = inject(Store);
+  private readonly toast = inject(ToastService);
   private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
   private readonly boundaryCache = new globalThis.Map<string, PlaceBoundary>();
@@ -125,9 +128,14 @@ export class Tagmate implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     if (typeof window === 'undefined') return;
+    if (!this.supportsWebGl()) {
+      this.showUserError('This browser cannot start the map because WebGL is unavailable.');
+      return;
+    }
 
     this.registerViewportRequests();
-    this.maplibre = await import('maplibre-gl');
+    const maplibreModule = await import('maplibre-gl');
+    this.maplibre = (maplibreModule.default ?? maplibreModule) as typeof import('maplibre-gl');
 
     this.ngZone.runOutsideAngular(() => {
       this.initializeMap();
@@ -137,6 +145,43 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   select(value: number): void {
     this.selected = value;
     this.map?.easeTo({ zoom: value, duration: 250 });
+  }
+
+  onCountryModeChange(): void {
+    this.loadVisiblePosts();
+  }
+
+  locateMe(): void {
+    if (!navigator.geolocation) {
+      this.showUserError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    this.isSearching.set(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.isSearching.set(false);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        if (!this.isValidCoordinate(lat, lng)) {
+          this.showUserError('Invalid coordinates retrieved.');
+          return;
+        }
+
+        this.map?.flyTo({ center: [lng, lat], zoom: 14, essential: true });
+        this.enableLocationSelection();
+        this.setTemporaryMarker(lng, lat);
+        this.state.updateCoordinates(lat, lng);
+        this.getAddressFromCoords(lat, lng);
+        this.loadVisiblePosts();
+      },
+      (error) => {
+        this.isSearching.set(false);
+        this.showUserError('Unable to retrieve your location. Please check your browser permissions.');
+      },
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+    );
   }
 
   search(value: string): void {
@@ -397,7 +442,8 @@ export class Tagmate implements AfterViewInit, OnDestroy {
         post.lng >= query.west &&
         post.lng <= query.east &&
         post.lat >= query.south &&
-        post.lat <= query.north
+        post.lat <= query.north &&
+        this.matchesCountryMode(post)
     );
 
     return of(posts);
@@ -511,6 +557,24 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     return ZOOM_LEVELS.reduce((nearest, value) =>
       Math.abs(value - zoom) < Math.abs(nearest - zoom) ? value : nearest
     );
+  }
+
+  private matchesCountryMode(post: MapPost): boolean {
+    if (!this.countryMode) return true;
+
+    const selectedCountry = this.hood().country || 'India';
+    if (post.country) {
+      return post.country.toLowerCase() === selectedCountry.toLowerCase();
+    }
+
+    return this.isInCountryBounds(post.lat, post.lng, selectedCountry);
+  }
+
+  private isInCountryBounds(lat: number, lng: number, country: string): boolean {
+    const normalized = country.trim().toLowerCase();
+    if (normalized !== 'india') return true;
+
+    return lat >= 6.5 && lat <= 37.1 && lng >= 68.1 && lng <= 97.4;
   }
 
   private enableLocationSelection(): void {
@@ -644,8 +708,15 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   }
 
   private showUserError(message: string): void {
-    if (typeof window !== 'undefined') {
-      window.alert(message);
+    this.ngZone.run(() => this.toast.show(message, 'danger'));
+  }
+
+  private supportsWebGl(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+    } catch {
+      return false;
     }
   }
 

@@ -1,90 +1,115 @@
-<div class="container mt-3">
+<div class="container mt-3 tag-explorer-page">
   <div class="row justify-content-center">
-    <!-- Filter Card -->
-    <h6 class="fw-bold mb-3">🔍 Filter Posts</h6>
-
-    <!-- TAG SEARCH + SELECTED TAGS -->
-    <div class="mb-3">
-      <div class="d-flex align-items-center mb-1">
-
-        <!-- Label -->
-        <label class="form-label small fw-semibold mb-0 me-2">
-          Tags (max 2)
-        </label>
-
-        <!-- Selected Tags (chips) -->
-        <div class="d-flex flex-wrap gap-2">
-          <span *ngFor="let t of selectedTags" class="badge rounded-pill bg-success px-3 py-2">
-            {{ t }}
-            <span class="ms-2" role="button" (click)="removeTag(t)">×</span>
-          </span>
-        </div>
-
-      </div>
-
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-
-        <!-- Search Box -->
-        <input type="text" class="form-control form-control-sm w-auto" style="min-width: 200px;"
-          placeholder="Search tag..." [(ngModel)]="tagSearch" />
-
-        <!-- Dropdown: only when typed >= 1 char -->
-        <div *ngIf="tagSearch.length >= 1" class="tag-dropdown px-2 py-2 rounded border mt-2">
-          <button *ngFor="let tag of filteredTags()" class="btn btn-sm w-100 text-start mb-1" [ngClass]="selectedTags.includes(tag)
-                          ? 'btn-success'
-                          : 'btn-outline-secondary'" (click)="toggleTag(tag)"
-            [disabled]="!selectedTags.includes(tag) && selectedTags.length >= 2">
-            {{ tag }}
+    <div class="col-12">
+      <div class="filter-panel tm-glass">
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+          <h6 class="fw-bold mb-0">Filter Posts</h6>
+          <button class="btn btn-sm btn-light border" type="button" (click)="clearFilters()">
+            Clear
           </button>
         </div>
-      </div>
 
-      <!-- NEXT LINE: RANGE + MONTH -->
-      <div class="row g-3 mt-1">
+        <div class="mb-3">
+          <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+            <label class="form-label small fw-semibold mb-0">Tags (max 2)</label>
 
-        <div class="col-12 col-md-6">
-          <label class="form-label small fw-semibold">Created Within</label>
-          <select class="form-select form-select-sm" [(ngModel)]="selectedRange" (change)="onRangeChange()">
-            <option value="">-- Select Range --</option>
-            <option value="1h">Last 1 hour</option>
-            <option value="24h">Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-          </select>
-        </div>
+            <span *ngFor="let tag of selectedTags" class="badge rounded-pill bg-success px-3 py-2">
+              {{ tag | titlecase }}
+              <button
+                class="chip-remove"
+                type="button"
+                aria-label="Remove tag filter"
+                (click)="removeTag(tag)"
+              >
+                &times;
+              </button>
+            </span>
+          </div>
 
-        <div class="col-12 col-md-6">
-          <label class="form-label small fw-semibold">Month</label>
-          <input type="month" class="form-control form-control-sm" [(ngModel)]="selectedMonth"
-            (change)="onMonthChange()" />
-        </div>
+          <div class="tag-search-row">
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Search tag..."
+              aria-label="Search tag"
+              [(ngModel)]="tagSearch"
+            />
 
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <!-- INSTAGRAM STYLE POST CARD -->
-    <div class="col-12 mb-4" *ngFor="let card of cards">
-      <div class="insta-card shadow-sm">
-
-        <!-- IMAGE SECTION -->
-        <div class="insta-image-wrapper">
-          <img src="assets/abbu.jpg" class="insta-image" />
-        </div>
-
-        <!-- TEXT SECTION -->
-        <div class="p-3">
-          <h5 class="fw-bold mb-1">{{ card.username }}</h5>
-          <p class="mb-2">{{ card.highlight }}</p>
-
-          <div class="text-muted small">
-            📍 Lat: {{ card.lat | number:'1.4-4' }},
-            Lng: {{ card.lng | number:'1.4-4' }}<br />
-            ⏳ {{ card.expiresIn }}s left
+            <div *ngIf="tagSearch.length >= 1" class="tag-dropdown px-2 py-2 rounded border">
+              <button
+                *ngFor="let tag of filteredTags()"
+                class="btn btn-sm w-100 text-start mb-1"
+                type="button"
+                [ngClass]="selectedTags.includes(tag) ? 'btn-success' : 'btn-outline-secondary'"
+                (click)="toggleTag(tag)"
+                [disabled]="!selectedTags.includes(tag) && selectedTags.length >= 2"
+              >
+                {{ tag | titlecase }}
+              </button>
+            </div>
           </div>
         </div>
 
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold">Created Within</label>
+            <select
+              class="form-select form-select-sm"
+              [(ngModel)]="selectedRange"
+              (change)="onRangeChange()"
+            >
+              <option value="">Any time</option>
+              <option value="1h">Last 1 hour</option>
+              <option value="24h">Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold">Month</label>
+            <input
+              type="month"
+              class="form-control form-control-sm"
+              [(ngModel)]="selectedMonth"
+              (change)="onMonthChange()"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
+    <div *ngIf="isLoading" class="col-12 mb-4 d-flex flex-column gap-3">
+      <div class="skeleton-box" style="height: 300px;"></div>
+      <div class="skeleton-box" style="height: 300px;"></div>
+    </div>
+
+    <ng-container *ngIf="!isLoading">
+      <div *ngIf="visibleCards.length === 0" class="col-12 text-center p-5 text-muted">
+        <i class="bi bi-globe fs-1" aria-hidden="true"></i>
+        <p class="mt-3">No active posts found on the globe.</p>
+        <p class="small">Try clearing filters or create a post from the Post tab.</p>
+      </div>
+
+      <div class="col-12 mb-4" *ngFor="let card of visibleCards">
+        <div class="insta-card shadow-sm">
+          <div class="insta-image-wrapper">
+            <img [src]="card.images[0] || 'assets/abbu.jpg'" class="insta-image" alt="Tag post image" />
+          </div>
+
+          <div class="p-3">
+            <h5 class="fw-bold mb-1">{{ card.username || 'Anonymous' }}</h5>
+            <p class="mb-2">{{ card.highlight || 'Untitled post' }}</p>
+            <span class="badge bg-primary mb-2">{{ card.tag | titlecase }}</span>
+
+            <div class="text-muted small">
+              Lat: {{ card.lat | number:'1.4-4' }},
+              Lng: {{ card.lng | number:'1.4-4' }}<br />
+              <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ card.hoodId || 'Nearby' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
   </div>
+</div>

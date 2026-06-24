@@ -1,4 +1,5 @@
 export interface Tag {
+    id?: string;
     username: string;
     userId: string;
     highlight: string;
@@ -8,4 +9,6 @@ export interface Tag {
     tag: string;
     createdAt: string; // ISO timestamp
     images: string[];  // array of image URLs
+    hoodId?: string;
+    country?: string;
 }

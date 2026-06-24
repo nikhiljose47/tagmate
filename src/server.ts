@@ -16,6 +16,13 @@ export const reqHandler = createRequestHandler(async (req) => {
 		return new Response(response.body, { status: response.status, headers: { 'Content-Type': 'application/json' } });
 	}
 
+	if (url.pathname === '/api/nominatim/boundary') {
+		const q = url.searchParams.get('q') || '';
+		const proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&q=${encodeURIComponent(q)}`;
+		const response = await fetch(proxyUrl, { headers: { 'User-Agent': 'TagmateApp/1.0 (Contact: admin@tagmate.com)' } });
+		return new Response(response.body, { status: response.status, headers: { 'Content-Type': 'application/json' } });
+	}
+
 	if (url.pathname === '/api/nominatim/reverse') {
 		const lat = url.searchParams.get('lat') || '';
 		const lon = url.searchParams.get('lon') || '';

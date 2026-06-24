@@ -60,9 +60,7 @@ export class Utils {
   }
 
   static async getPlaceBoundary(query: string): Promise<PlaceBoundary | null> {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&q=${encodeURIComponent(
-      query
-    )}`;
+    const url = `/api/nominatim/boundary?q=${encodeURIComponent(query)}`;
     const res = await fetch(url);
     if (!res.ok) {
       throw new Error(`Boundary lookup failed with status ${res.status}`);

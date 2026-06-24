@@ -1,12 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 
 import { SharedStateService } from './shared-state.service';
+import { testProviders } from '../test-providers';
 
 describe('SharedStateService', () => {
   let service: SharedStateService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: testProviders,
+      teardown: { destroyAfterEach: false },
+    });
     service = TestBed.inject(SharedStateService);
   });
 
