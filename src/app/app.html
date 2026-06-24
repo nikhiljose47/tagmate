@@ -15,7 +15,7 @@
   </button>
 </div>
 
-<div class="nav-wrap">
+<div class="nav-wrap" *ngIf="showNav()">
   <nav class="app-nav">
     <a class="nav-item" routerLink="/post" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" aria-label="Create post">
       <i class="bi bi-plus-square" aria-hidden="true"></i>

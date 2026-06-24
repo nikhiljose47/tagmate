@@ -5,6 +5,8 @@ import { AuthService } from '../../services/auth.service';
 import { Tag } from '../../models/tag.model';
 import { Observable, of } from 'rxjs';
 import markersData from '../../data/tags.json';
+import { Router } from '@angular/router';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-profile',
@@ -16,6 +18,9 @@ import markersData from '../../data/tags.json';
 export class Profile implements OnInit {
   private firestore = inject(FirestoreService);
   private auth = inject(AuthService);
+  private router = inject(Router);
+  private toast = inject(ToastService);
+  readonly user$ = this.auth.user$;
   
   myTags$: Observable<Tag[]> | null = null;
   isLoading = true;
@@ -32,6 +37,17 @@ export class Profile implements OnInit {
     if (!id) return;
     if (confirm('Are you sure you want to delete this post?')) {
       this.firestore.deleteDoc('tags', id).subscribe();
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.auth.logout();
+      this.toast.show('You have been logged out.', 'success');
+      await this.router.navigate(['/login']);
+    } catch (error) {
+      console.error('Logout failed', error);
+      this.toast.show('Could not log out. Please try again.', 'danger');
     }
   }
 }

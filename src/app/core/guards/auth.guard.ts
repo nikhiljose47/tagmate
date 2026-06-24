@@ -1,19 +1,14 @@
 import { inject } from '@angular/core';
+import { Auth, authState } from '@angular/fire/auth';
 import { CanActivateFn, Router } from '@angular/router';
 import { map, take } from 'rxjs';
-import { AuthService } from '../../services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
-  const auth = inject(AuthService);
+  const auth = inject(Auth);
   const router = inject(Router);
 
-  return auth.user$.pipe(
+  return authState(auth).pipe(
     take(1),
-    map(user => {
-      if (!user.isGuest) return true;    // logged in → allow
-
-      router.navigateByUrl('/login');     // not logged → redirect
-      return false;
-    })
+    map((user) => (user ? true : router.createUrlTree(['/login'])))
   );
 };
