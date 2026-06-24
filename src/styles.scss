@@ -1,5 +1,24 @@
 /* You can add global styles to this file, and also import other style files */
+@import 'tailwindcss/theme.css' layer(theme);
+@tailwind utilities source('./app');
 @import 'maplibre-gl/dist/maplibre-gl.css';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-tm-primary: #6366f1;
+  --color-tm-primary-hover: #4f46e5;
+  --color-tm-success: #16a34a;
+  --color-tm-warning: #f59e0b;
+  --color-tm-danger: #dc2626;
+  --color-tm-bg: #f8fafc;
+  --color-tm-surface: #ffffff;
+  --color-tm-text: #0f172a;
+  --color-tm-muted: #64748b;
+  --radius-tm: 12px;
+  --shadow-tm-sm: 0 4px 15px rgba(15, 23, 42, 0.08);
+  --shadow-tm-md: 0 8px 25px rgba(15, 23, 42, 0.12);
+  --shadow-tm-lg: 0 14px 36px rgba(15, 23, 42, 0.16);
+}
 
 :root {
   --tm-primary: #6366f1;
@@ -60,6 +79,93 @@ textarea {
   box-shadow: var(--tm-shadow-md);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+@layer components {
+  .tm-panel {
+    @apply rounded-tm border border-white/60 bg-white/90 shadow-tm-md;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .tm-btn {
+    @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-tm border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-tm-text shadow-sm transition;
+  }
+
+  .tm-btn:hover {
+    @apply border-indigo-200 bg-indigo-50 text-tm-primary;
+  }
+
+  .tm-btn:disabled,
+  .tm-icon-btn:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .tm-btn-primary {
+    @apply border-tm-primary bg-tm-primary text-white;
+  }
+
+  .tm-btn-primary:hover {
+    @apply border-tm-primary-hover bg-tm-primary-hover text-white;
+  }
+
+  .tm-btn-danger {
+    @apply border-red-200 bg-white text-tm-danger;
+  }
+
+  .tm-btn-danger:hover {
+    @apply border-red-200 bg-red-50 text-tm-danger;
+  }
+
+  .tm-icon-btn {
+    @apply inline-grid size-10 place-items-center rounded-full border border-slate-200 bg-white text-tm-muted shadow-sm transition;
+  }
+
+  .tm-icon-btn:hover {
+    @apply border-indigo-200 bg-indigo-50 text-tm-primary;
+  }
+
+  .tm-input,
+  .tm-select {
+    @apply min-h-10 w-full rounded-tm border border-slate-200 bg-white px-3 py-2 text-sm text-tm-text shadow-sm outline-none transition;
+  }
+
+  .tm-input:focus,
+  .tm-select:focus {
+    @apply border-tm-primary ring-4 ring-indigo-100;
+  }
+
+  .tm-action-row {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .tm-chip {
+    @apply inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-tm-primary;
+  }
+
+  .tm-toggle {
+    @apply flex cursor-pointer items-center gap-3 text-sm font-semibold text-tm-text;
+  }
+
+  .tm-toggle-track {
+    @apply relative inline-flex h-6 w-11 shrink-0 rounded-full bg-slate-300 transition;
+  }
+
+  .tm-toggle-track::after {
+    @apply absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition content-[''];
+  }
+
+  .tm-toggle input:checked + .tm-toggle-track,
+  .tm-toggle input:checked ~ .tm-toggle-track,
+  .tm-toggle .peer:checked + .tm-toggle-track {
+    @apply bg-tm-primary shadow-[0_0_0_4px_rgba(99,102,241,0.15)];
+  }
+
+  .tm-toggle input:checked + .tm-toggle-track::after,
+  .tm-toggle input:checked ~ .tm-toggle-track::after,
+  .tm-toggle .peer:checked + .tm-toggle-track::after {
+    transform: translateX(20px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

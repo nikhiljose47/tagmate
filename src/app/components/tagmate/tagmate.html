@@ -1,21 +1,20 @@
 <div class="map-wrapper">
-  <div class="topbar d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center gap-2">
-      <div class="form-check form-switch m-0 custom-switch">
+  <div class="topbar">
+    <div class="flex items-center gap-2">
+      <label class="tm-toggle country-toggle" for="countryModeSwitch">
         <input
-          class="form-check-input"
+          class="peer sr-only"
           type="checkbox"
           id="countryModeSwitch"
-          [(ngModel)]="countryMode"
-          (ngModelChange)="onCountryModeChange()"
+          [ngModel]="countryMode()"
+          (ngModelChange)="countryMode.set($event); onCountryModeChange()"
         />
-        <label class="form-check-label small text-white fw-medium" for="countryModeSwitch">
-          Country Mode
-        </label>
-      </div>
+        <span class="tm-toggle-track"></span>
+        <span>Country Mode</span>
+      </label>
     </div>
 
-    <div class="news-bar d-flex align-items-center">
+    <div class="news-bar flex items-center">
       <div class="ticker-wrap">
         <div class="ticker">
           <span class="ticker-item">New: Street music vibes tonight</span>
@@ -25,44 +24,92 @@
         </div>
       </div>
       <button
-        class="btn btn-sm btn-light p-0 ms-1 info-btn"
+        class="info-btn ml-1"
         type="button"
         aria-label="Show country mode details"
-        (click)="showInfo = !showInfo"
+        (click)="toggleInfo()"
       >
         <i class="bi bi-info-circle" aria-hidden="true"></i>
       </button>
     </div>
   </div>
 
-  <div class="multi-box shadow-sm p-2" role="radiogroup" aria-label="Map zoom level">
+  <div class="multi-box" role="radiogroup" aria-label="Map zoom level">
     <button
       *ngFor="let zoom of zoomLevels"
       type="button"
       class="switch-btn"
       (click)="select(zoom)"
-      [class.active]="selected === zoom"
-      [attr.aria-checked]="selected === zoom"
+      [class.active]="selected() === zoom"
+      [attr.aria-checked]="selected() === zoom"
       role="radio"
     >
       {{ zoom }}x
     </button>
   </div>
 
-  <div *ngIf="showInfo" class="info-popup">
+  <div *ngIf="showInfo()" class="info-popup">
     Country mode filters tags by nation borders. Toggle off for global view.
   </div>
 
-  <div class="search-box d-flex gap-2 align-items-center">
+  <div class="map-toolbox" aria-label="Map tools">
+    <button class="tool-btn" type="button" title="Recenter" aria-label="Recenter map" (click)="recenter()">
+      <i class="bi bi-crosshair" aria-hidden="true"></i>
+    </button>
+    <button class="tool-btn" type="button" title="Filters" aria-label="Map filters" (click)="toggleMapFilters()">
+      <i class="bi bi-sliders" aria-hidden="true"></i>
+    </button>
+    <button class="tool-btn" type="button" title="Layers" aria-label="Map layers" (click)="toggleLayerMenu()">
+      <i class="bi bi-layers" aria-hidden="true"></i>
+    </button>
+    <button class="tool-btn" type="button" title="Refresh" aria-label="Refresh map" (click)="refreshMap()">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+    </button>
+    <button class="tool-btn" type="button" title="Clear selection" aria-label="Clear map selection" (click)="clearSelection()">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div *ngIf="showMapFilters()" class="map-panel tm-panel">
+    <label class="tm-toggle">
+      <input
+        class="peer sr-only"
+        type="checkbox"
+        id="countryModePanelSwitch"
+        [ngModel]="countryMode()"
+        (ngModelChange)="countryMode.set($event); onCountryModeChange()"
+      />
+      <span class="tm-toggle-track"></span>
+      <span>Country Mode</span>
+    </label>
+    <button class="tm-btn tm-btn-primary mt-3 w-full" type="button" (click)="refreshMap()">
+      Apply filters
+    </button>
+  </div>
+
+  <div *ngIf="showLayerMenu()" class="map-panel tm-panel layer-panel">
+    <label class="tm-toggle">
+      <input class="peer sr-only" type="checkbox" [checked]="postsVisible()" (change)="togglePostsLayer()" />
+      <span class="tm-toggle-track"></span>
+      <span>Posts</span>
+    </label>
+    <label class="tm-toggle">
+      <input class="peer sr-only" type="checkbox" [checked]="boundaryVisible()" (change)="toggleBoundaryLayer()" />
+      <span class="tm-toggle-track"></span>
+      <span>Boundary</span>
+    </label>
+  </div>
+
+  <div class="search-box flex items-center gap-2">
     <button
-      class="btn btn-icon"
+      class="btn-icon"
       type="button"
       (click)="locateMe()"
       title="Locate me"
       aria-label="Locate me"
       [disabled]="isSearching()"
     >
-      <i class="bi bi-geo-fill text-primary" aria-hidden="true"></i>
+      <i class="bi bi-geo-fill text-tm-primary" aria-hidden="true"></i>
     </button>
     <input
       #q
@@ -73,15 +120,15 @@
     />
 
     <button
-      class="btn search-action-btn"
+      class="search-action-btn"
       type="button"
       (click)="search(q.value)"
       aria-label="Search location"
       [disabled]="isSearching()"
     >
       <i class="bi bi-search" aria-hidden="true" *ngIf="!isSearching()"></i>
-      <div class="spinner-border spinner-border-sm" role="status" *ngIf="isSearching()">
-        <span class="visually-hidden">Loading...</span>
+      <div class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" role="status" *ngIf="isSearching()">
+        <span class="sr-only">Loading...</span>
       </div>
     </button>
   </div>

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { SharedStateService } from '../../services/shared-state.service';
@@ -44,7 +44,8 @@ export class TagForm {
     tag: '',
   };
 
-  showMapHint = false;
+  showMapHint = signal(false);
+  showPreview = signal(false);
 
   onImageSelect(event: any) {
     const file = event.target.files[0];
@@ -59,9 +60,30 @@ export class TagForm {
   }
 
   onPickLocation() {
-    this.showMapHint = true;
-    // Notify map component to enable location picking
-    // Example: this.mapService.enablePickMode();
+    this.showMapHint.set(true);
+    this.toast.show('Choose a location on the Hood map, then return to Post.', 'info');
+    this.router.navigate(['/hood']);
+  }
+
+  useCurrentLocation(): void {
+    if (!navigator.geolocation) {
+      this.toast.show('Geolocation is not supported by this browser.', 'danger');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.shared.updateCoordinates(position.coords.latitude, position.coords.longitude);
+        this.shared.updateText('Current device location');
+        this.toast.show('Current location attached to this post.', 'success');
+      },
+      () => this.toast.show('Could not read your current location.', 'danger'),
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+    );
+  }
+
+  togglePreview(): void {
+    this.showPreview.update((value) => !value);
   }
 
   async onSubmit(f: NgForm) {
@@ -112,7 +134,8 @@ export class TagForm {
 
   onDiscard() {
     this.formData = { headline: '', images: [], expiresIn: 60, tag: '' };
-    this.showMapHint = false;
+    this.showMapHint.set(false);
+    this.showPreview.set(false);
     this.discarded.emit();
     this.router.navigate(['/hood']);
   }

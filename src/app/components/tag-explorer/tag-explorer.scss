@@ -8,6 +8,24 @@
   border-radius: var(--tm-radius);
 }
 
+.feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+  overflow-x: auto;
+  border-radius: var(--tm-radius);
+}
+
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 140px;
+  color: var(--tm-text-secondary);
+}
+
 .tag-search-row {
   position: relative;
   max-width: 320px;
@@ -48,6 +66,44 @@
   overflow: hidden;
   background: #fff;
   border-radius: var(--tm-radius);
+}
+
+.card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 8px;
+  color: var(--tm-text-secondary);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-action-btn.active {
+  color: var(--tm-primary);
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.card-action-btn.danger {
+  color: var(--tm-danger);
+}
+
+@media (max-width: 420px) {
+  .card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .insta-image-wrapper {

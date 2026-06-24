@@ -1,72 +1,72 @@
-<div class="login-wrapper d-flex justify-content-center align-items-center">
-  <div class="login-card p-4">
+<div class="login-wrapper flex min-h-dvh items-center justify-center px-3 py-8">
+  <div class="w-full max-w-[350px]">
+    <div class="login-card tm-panel p-4">
 
-    <h1 class="brand text-center mb-4">Tag -_-</h1>
+      <h1 class="brand mb-4 text-center">Tag -_-</h1>
 
-    <!-- LOGIN FORM -->
-    <div class="w-100 mb-3">
+      <div class="mb-3 w-full">
 
-      <input
-        type="text"
-        class="form-control mb-2"
-        placeholder="Phone number, username, or email"
-        [value]="email()"
-        (input)="email.set($any($event.target).value)"
-        [disabled]="loading()"
-      />
+        <input
+          type="text"
+          class="tm-input mb-2"
+          placeholder="Phone number, username, or email"
+          [value]="email()"
+          (input)="email.set($any($event.target).value)"
+          [disabled]="loading()"
+        />
 
-      <input
-        type="password"
-        class="form-control mb-3"
-        placeholder="Password"
-        [value]="password()"
-        (input)="password.set($any($event.target).value)"
-        [disabled]="loading()"
-      />
+        <input
+          type="password"
+          class="tm-input mb-3"
+          placeholder="Password"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+          [disabled]="loading()"
+        />
+
+        <button
+          class="tm-btn tm-btn-primary mb-3 w-full"
+          [disabled]="loading()"
+          (click)="login()"
+        >
+          <ng-container *ngIf="!loading(); else loaderTpl">
+            Log In
+          </ng-container>
+        </button>
+
+        <ng-template #loaderTpl>
+          <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+          <span>Loading...</span>
+        </ng-template>
+
+      </div>
+
+      <div class="divider text-center">OR</div>
 
       <button
-        class="btn btn-primary w-100 mb-3 d-flex justify-content-center align-items-center"
+        class="tm-btn mt-3 w-full border-slate-900 bg-slate-900 text-white hover:border-slate-800 hover:bg-slate-800 hover:text-white"
         [disabled]="loading()"
-        (click)="login()"
+        (click)="loginGuest()"
       >
-        <ng-container *ngIf="!loading(); else loaderTpl">
-          Log In
+        <ng-container *ngIf="!loading(); else loaderTpl2">
+          Continue as Guest
         </ng-container>
       </button>
 
-      <ng-template #loaderTpl>
-        <span class="spinner-border spinner-border-sm"></span>
-        <span class="ms-2">Loading...</span>
+      <ng-template #loaderTpl2>
+        <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+        <span>Please wait...</span>
       </ng-template>
 
+      <div class="mt-2 text-center text-sm font-semibold text-tm-danger" *ngIf="error()">
+        {{ error() }}
+      </div>
+
     </div>
 
-    <div class="divider text-center">OR</div>
-
-    <!-- GUEST MODE -->
-    <button
-      class="btn btn-dark w-100 mt-3 d-flex justify-content-center align-items-center"
-      [disabled]="loading()"
-      (click)="loginGuest()"
-    >
-      <ng-container *ngIf="!loading(); else loaderTpl2">
-        Continue as Guest
-      </ng-container>
-    </button>
-
-    <ng-template #loaderTpl2>
-      <span class="spinner-border spinner-border-sm"></span>
-      <span class="ms-2">Please wait...</span>
-    </ng-template>
-
-    <div class="text-danger text-center mt-2" *ngIf="error()">
-      {{ error() }}
+    <div class="signup-box tm-panel mt-3 p-3 text-center text-sm text-tm-text">
+      Don't have an account?
+      <a routerLink="/signup" class="font-bold text-tm-primary">Sign up</a>
     </div>
-
-  </div>
-
-  <div class="signup-box text-center mt-3 p-3">
-    Don't have an account?
-    <a routerLink="/signup" class="text-primary fw-bold">Sign up</a>
   </div>
 </div>

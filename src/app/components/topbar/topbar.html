@@ -1,22 +1,22 @@
-<nav class="topbar d-flex align-items-center justify-content-end px-3">
+<nav class="topbar flex items-center justify-end gap-2 px-3">
   <button
-    class="btn btn-blue d-flex align-items-center me-2"
+    class="tm-icon-btn border-tm-primary bg-tm-primary text-white hover:border-tm-primary-hover hover:bg-tm-primary-hover hover:text-white"
     type="button"
     aria-label="Notifications"
     (click)="onNotifyClick()"
   >
-    <i class="bi bi-bell me-1" aria-hidden="true"></i>
+    <i class="bi bi-bell" aria-hidden="true"></i>
   </button>
 
-  <button class="btn btn-blue d-flex align-items-center me-3" type="button" (click)="onAddPost()">
-    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+  <button class="tm-btn tm-btn-primary" type="button" (click)="onAddPost()">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i>
     Create Post
   </button>
 
   <div *ngIf="(auth.user$ | async) as user">
     <button
       *ngIf="user.uid === 'guest'"
-      class="btn btn-primary shadow-sm me-2"
+      class="tm-btn tm-btn-primary"
       type="button"
       (click)="signIn()"
     >
@@ -25,7 +25,7 @@
 
     <button
       *ngIf="user.uid !== 'guest'"
-      class="btn btn-outline-danger shadow-sm me-2"
+      class="tm-btn tm-btn-danger"
       type="button"
       (click)="auth.logout()"
     >

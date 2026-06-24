@@ -1,10 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Tag } from '../../models/tag.model';
 import markersData from '../../data/tags.json';
+import { SharedStateService } from '../../services/shared-state.service';
+import { ToastService } from '../../services/toast.service';
 
 type DateRange = '' | '1h' | '24h' | '7d' | '30d';
+type SortMode = 'newest' | 'oldest' | 'nearby';
 
 @Component({
   selector: 'tag-explorer',
@@ -13,6 +17,10 @@ type DateRange = '' | '1h' | '24h' | '7d' | '30d';
   styleUrl: './tag-explorer.scss',
 })
 export class TagExplorer implements OnInit {
+  private readonly router = inject(Router);
+  private readonly shared = inject(SharedStateService);
+  private readonly toast = inject(ToastService);
+
   cards: Tag[] = [];
   isLoading = true;
   allTags: string[] = [];
@@ -20,6 +28,11 @@ export class TagExplorer implements OnInit {
   selectedRange: DateRange = '';
   selectedMonth = '';
   tagSearch = '';
+  sortMode: SortMode = 'newest';
+  filtersOpen = signal(true);
+  savedView = signal(false);
+  likedCards = signal(new Set<string>());
+  savedCards = signal(new Set<string>());
 
   ngOnInit(): void {
     this.cards = markersData as Tag[];
@@ -30,7 +43,65 @@ export class TagExplorer implements OnInit {
   }
 
   get visibleCards(): Tag[] {
-    return this.cards.filter((card) => this.matchesTags(card) && this.matchesDate(card));
+    const filtered = this.cards.filter((card) => this.matchesTags(card) && this.matchesDate(card));
+
+    return [...filtered].sort((a, b) => {
+      if (this.sortMode === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+
+      if (this.sortMode === 'nearby') {
+        return Math.abs(a.lat) + Math.abs(a.lng) - (Math.abs(b.lat) + Math.abs(b.lng));
+      }
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }
+
+  refresh(): void {
+    this.cards = [...(markersData as Tag[])];
+    this.toast.show('Globe feed refreshed.', 'success');
+  }
+
+  toggleFilters(): void {
+    this.filtersOpen.update((value) => !value);
+  }
+
+  saveView(): void {
+    this.savedView.update((value) => !value);
+    this.toast.show(this.savedView() ? 'View saved.' : 'Saved view removed.', 'success');
+  }
+
+  async shareView(): Promise<void> {
+    await this.shareText('Tagmate Globe', 'Check out this Tagmate globe feed.');
+  }
+
+  toggleLike(card: Tag): void {
+    this.toggleSet(this.likedCards, this.cardKey(card));
+  }
+
+  toggleSave(card: Tag): void {
+    const key = this.cardKey(card);
+    this.toggleSet(this.savedCards, key);
+    this.toast.show(this.savedCards().has(key) ? 'Post saved.' : 'Post removed from saved.', 'success');
+  }
+
+  comment(card: Tag): void {
+    this.toast.show(`Comments for "${card.highlight || 'this post'}" are coming soon.`, 'info');
+  }
+
+  async shareCard(card: Tag): Promise<void> {
+    await this.shareText('Tagmate post', card.highlight || 'Check out this Tagmate post.');
+  }
+
+  report(card: Tag): void {
+    this.toast.show(`Thanks. "${card.highlight || 'Post'}" has been flagged for review.`, 'warning');
+  }
+
+  openOnMap(card: Tag): void {
+    this.shared.updateCoordinates(card.lat, card.lng);
+    this.shared.updateText(card.highlight || card.hoodId || 'Selected post');
+    void this.router.navigate(['/hood']);
   }
 
   filteredTags(): string[] {
@@ -59,6 +130,38 @@ export class TagExplorer implements OnInit {
     this.selectedRange = '';
     this.selectedMonth = '';
     this.tagSearch = '';
+  }
+
+  cardKey(card: Tag): string {
+    return card.id ?? `${card.userId}-${card.createdAt}`;
+  }
+
+  private toggleSet(setSignal: ReturnType<typeof signal<Set<string>>>, key: string): void {
+    setSignal.update((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  private async shareText(title: string, text: string): Promise<void> {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+        return;
+      }
+
+      await navigator.clipboard?.writeText(`${text} ${url}`.trim());
+      this.toast.show('Share link copied.', 'success');
+    } catch {
+      this.toast.show('Share was cancelled.', 'info');
+    }
   }
 
   onRangeChange(): void {

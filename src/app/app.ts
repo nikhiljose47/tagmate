@@ -25,4 +25,5 @@ export class App {
   );
 
   protected readonly showNav = computed(() => !this.currentUrl().startsWith('/login'));
+  protected readonly showQuickPost = computed(() => this.showNav() && !this.currentUrl().startsWith('/post'));
 }

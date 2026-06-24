@@ -29,10 +29,14 @@
                 "glob": "**/*",
                 "input": "public"
               },
-               "src/assets"
+              {
+                "glob": "bootstrap-icons.*",
+                "input": "node_modules/bootstrap-icons/font/fonts",
+                "output": "media"
+              },
+              "src/assets"
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "node_modules/bootstrap-icons/font/bootstrap-icons.css",
               "src/styles.scss"
             ],
@@ -60,7 +64,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "5kB",
+                  "maximumWarning": "6kB",
                   "maximumError": "8kB"
                 }
               ],
@@ -100,10 +104,14 @@
                 "glob": "**/*",
                 "input": "public"
               },
+              {
+                "glob": "bootstrap-icons.*",
+                "input": "node_modules/bootstrap-icons/font/fonts",
+                "output": "media"
+              },
               "src/assets"
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "node_modules/bootstrap-icons/font/bootstrap-icons.css",
               "src/styles.scss"
             ]

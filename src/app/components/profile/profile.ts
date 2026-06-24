@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FirestoreService } from '../../services/firebase.service';
 import { AuthService } from '../../services/auth.service';
@@ -7,6 +7,9 @@ import { Observable, of } from 'rxjs';
 import markersData from '../../data/tags.json';
 import { Router } from '@angular/router';
 import { ToastService } from '../../services/toast.service';
+import { SharedStateService } from '../../services/shared-state.service';
+
+type ProfileTab = 'posts' | 'saved' | 'settings';
 
 @Component({
   selector: 'app-profile',
@@ -20,10 +23,13 @@ export class Profile implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private toast = inject(ToastService);
+  private shared = inject(SharedStateService);
   readonly user$ = this.auth.user$;
   
   myTags$: Observable<Tag[]> | null = null;
   isLoading = true;
+  activeTab = signal<ProfileTab>('posts');
+  editMode = signal(false);
 
   ngOnInit() {
     this.auth.user$.subscribe(user => {
@@ -38,6 +44,37 @@ export class Profile implements OnInit {
     if (confirm('Are you sure you want to delete this post?')) {
       this.firestore.deleteDoc('tags', id).subscribe();
     }
+  }
+
+  setTab(tab: ProfileTab): void {
+    this.activeTab.set(tab);
+  }
+
+  toggleEditProfile(): void {
+    this.editMode.update((value) => !value);
+  }
+
+  saveProfile(): void {
+    this.editMode.set(false);
+    this.toast.show('Profile changes saved locally.', 'success');
+  }
+
+  viewOnMap(tag: Tag): void {
+    this.shared.updateCoordinates(tag.lat, tag.lng);
+    this.shared.updateText(tag.highlight || tag.hoodId || 'Selected post');
+    void this.router.navigate(['/hood']);
+  }
+
+  editPost(tag: Tag): void {
+    this.toast.show(`Editing "${tag.highlight || 'this post'}" is coming soon.`, 'info');
+  }
+
+  repost(tag: Tag): void {
+    this.toast.show(`"${tag.highlight || 'Post'}" was queued for reposting.`, 'success');
+  }
+
+  saveSettings(): void {
+    this.toast.show('Settings saved.', 'success');
   }
 
   async logout(): Promise<void> {

@@ -120,10 +120,14 @@ export class Tagmate implements AfterViewInit, OnDestroy {
 
   isSearching = signal(false);
   postMode = signal(false);
-  countryMode = false;
-  showInfo = false;
+  countryMode = signal(false);
+  showInfo = signal(false);
+  showMapFilters = signal(false);
+  showLayerMenu = signal(false);
+  postsVisible = signal(true);
+  boundaryVisible = signal(true);
   readonly zoomLevels = ZOOM_LEVELS;
-  selected = DEFAULT_ZOOM;
+  selected = signal(DEFAULT_ZOOM);
   hood = this.store.selectSignal(selectHood);
 
   async ngAfterViewInit(): Promise<void> {
@@ -143,12 +147,59 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   }
 
   select(value: number): void {
-    this.selected = value;
+    this.selected.set(value);
     this.map?.easeTo({ zoom: value, duration: 250 });
   }
 
   onCountryModeChange(): void {
     this.loadVisiblePosts();
+  }
+
+  toggleInfo(): void {
+    this.showInfo.update((value) => !value);
+  }
+
+  recenter(): void {
+    const coords = this.hood().coords;
+    this.map?.flyTo({ center: [coords.lng, coords.lat], zoom: this.selected(), essential: true });
+    this.toast.show('Map recentered to your current hood.', 'success');
+  }
+
+  refreshMap(): void {
+    this.loadVisiblePosts();
+    void this.setBoundary(this.hood().name, false);
+    this.toast.show('Map refreshed.', 'success');
+  }
+
+  toggleMapFilters(): void {
+    this.showMapFilters.update((value) => !value);
+    this.showLayerMenu.set(false);
+  }
+
+  toggleLayerMenu(): void {
+    this.showLayerMenu.update((value) => !value);
+    this.showMapFilters.set(false);
+  }
+
+  togglePostsLayer(): void {
+    this.postsVisible.update((value) => !value);
+    this.setLayerVisibility(
+      [CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER],
+      this.postsVisible()
+    );
+  }
+
+  toggleBoundaryLayer(): void {
+    this.boundaryVisible.update((value) => !value);
+    this.setLayerVisibility([HOOD_FILL_LAYER, HOOD_LINE_LAYER], this.boundaryVisible());
+  }
+
+  clearSelection(): void {
+    this.temporaryMarker?.remove();
+    this.temporaryMarker = undefined;
+    this.disableLocationSelection();
+    this.state.clear();
+    this.toast.show('Map selection cleared.', 'info');
   }
 
   locateMe(): void {
@@ -550,7 +601,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     const zoom = this.map?.getZoom();
     if (zoom === undefined) return;
 
-    this.selected = this.getNearestZoomLevel(zoom);
+    this.selected.set(this.getNearestZoomLevel(zoom));
   }
 
   private getNearestZoomLevel(zoom: number): number {
@@ -560,7 +611,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   }
 
   private matchesCountryMode(post: MapPost): boolean {
-    if (!this.countryMode) return true;
+    if (!this.countryMode()) return true;
 
     const selectedCountry = this.hood().country || 'India';
     if (post.country) {
@@ -680,6 +731,16 @@ export class Tagmate implements AfterViewInit, OnDestroy {
 
   private setCursorForMode(): void {
     this.setCursor(this.locationSelectionEnabled ? 'crosshair' : '');
+  }
+
+  private setLayerVisibility(layerIds: string[], visible: boolean): void {
+    if (!this.map) return;
+
+    for (const layerId of layerIds) {
+      if (this.map.getLayer(layerId)) {
+        this.map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+      }
+    }
   }
 
   private isValidCoordinate(lat: number, lng: number): boolean {
