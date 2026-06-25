@@ -33,7 +33,7 @@
       </div>
 
       <div class="filter-panel tm-panel">
-        <div class="flex items-center justify-between gap-3" [class.mb-3]="filtersOpen()">
+        <div class="filter-heading flex items-center justify-between gap-3" [class.mb-3]="filtersOpen()">
           <h6 class="m-0 font-bold text-tm-text">Filter Posts</h6>
           <button class="tm-btn min-h-8 px-3 py-1.5 text-xs" type="button" (click)="clearFilters()">
             Clear
@@ -116,7 +116,7 @@
     </div>
 
     <ng-container *ngIf="!isLoading">
-      <div *ngIf="visibleCards.length === 0" class="p-10 text-center text-tm-muted">
+      <div *ngIf="visibleCards.length === 0" class="empty-feed tm-panel text-center text-tm-muted">
         <i class="bi bi-globe text-4xl" aria-hidden="true"></i>
         <p class="mt-3">No active posts found on the globe.</p>
         <p class="text-sm">Try clearing filters or create a post from the Post tab.</p>
@@ -129,11 +129,11 @@
           </div>
 
           <div class="p-3">
-            <h5 class="mb-1 font-bold text-tm-text">{{ card.username || 'Anonymous' }}</h5>
-            <p class="mb-2">{{ card.highlight || 'Untitled post' }}</p>
+            <h5 class="card-title mb-1 font-bold text-tm-text">{{ card.username || 'Anonymous' }}</h5>
+            <p class="card-copy mb-2">{{ card.highlight || 'Untitled post' }}</p>
             <span class="tm-chip mb-2">{{ card.tag | titlecase }}</span>
 
-            <div class="text-sm text-tm-muted">
+            <div class="card-meta text-sm text-tm-muted">
               Lat: {{ card.lat | number:'1.4-4' }},
               Lng: {{ card.lng | number:'1.4-4' }}<br />
               <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ card.hoodId || 'Nearby' }}

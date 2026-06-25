@@ -41,8 +41,38 @@ body {
   background-color: var(--tm-bg);
   color: var(--tm-text);
   margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--tm-bg);
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body,
@@ -89,7 +119,7 @@ textarea {
   }
 
   .tm-btn {
-    @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-tm border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-tm-text shadow-sm transition;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-tm border border-slate-200 bg-white px-3 py-2 text-sm font-semibold leading-tight text-tm-text shadow-sm transition;
   }
 
   .tm-btn:hover {
@@ -127,7 +157,7 @@ textarea {
 
   .tm-input,
   .tm-select {
-    @apply min-h-10 w-full rounded-tm border border-slate-200 bg-white px-3 py-2 text-sm text-tm-text shadow-sm outline-none transition;
+    @apply min-h-11 w-full rounded-tm border border-slate-200 bg-white px-3 py-2 text-sm text-tm-text shadow-sm outline-none transition;
   }
 
   .tm-input:focus,

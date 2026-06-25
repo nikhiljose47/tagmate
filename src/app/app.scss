@@ -1,5 +1,20 @@
+.main-container.with-bottom-nav {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+
 .nav-wrap {
-  bottom: max(20px, env(safe-area-inset-bottom));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  min-width: 300px;
+  max-width: min(400px, calc(100vw - 24px));
+}
+
+.app-nav {
+  min-height: 70px;
+}
+
+.nav-item {
+  min-width: 62px;
+  min-height: 50px;
 }
 
 .nav-item:hover i,
@@ -18,7 +33,7 @@
 }
 
 .app-toast {
-  bottom: calc(100px + env(safe-area-inset-bottom));
+  bottom: calc(106px + env(safe-area-inset-bottom));
   animation: toastIn 0.24s ease-out;
 }
 
@@ -36,7 +51,44 @@
 
 .quick-post-btn {
   right: max(18px, env(safe-area-inset-right));
-  bottom: calc(112px + env(safe-area-inset-bottom));
+  bottom: calc(116px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 480px) {
+  .main-container.with-bottom-nav {
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .nav-wrap {
+    width: calc(100% - 20px);
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .app-nav {
+    min-height: 58px;
+    padding-block: 6px;
+    padding-inline: 8px;
+  }
+
+  .nav-item {
+    min-width: 56px;
+    min-height: 46px;
+    padding: 5px 4px;
+    font-size: 10px;
+  }
+
+  .nav-item i {
+    font-size: 18px;
+  }
+
+  .quick-post-btn {
+    display: none;
+  }
+
+  .app-toast {
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    width: min(420px, calc(100% - 20px));
+  }
 }
 
 @keyframes toastIn {

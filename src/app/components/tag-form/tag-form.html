@@ -1,11 +1,11 @@
-<div class="flex justify-center px-3 py-4">
+<div class="post-page flex justify-center px-3 py-4">
   <form
     #f="ngForm"
     (ngSubmit)="onSubmit(f)"
     class="post-form tm-panel w-full max-w-[720px] p-4"
     novalidate
   >
-    <div class="mb-4 flex items-center border-b border-slate-200 pb-3">
+    <div class="post-author mb-4 flex items-center border-b border-slate-200 pb-3">
       <img
         [src]="user.avatarUrl || 'assets/avatar/panda.png'"
         alt="Avatar"
@@ -13,7 +13,7 @@
         width="50"
         height="50"
       />
-      <div>
+      <div class="min-w-0">
         <h6 class="m-0 font-semibold text-tm-text">{{ user.name }}</h6>
         <small class="text-sm text-tm-muted">Create a tag post</small>
       </div>
@@ -22,7 +22,7 @@
     <div class="mb-4">
       <input
         type="text"
-        class="w-full border-0 border-b border-slate-200 bg-transparent px-0 py-3 text-lg font-semibold text-tm-text outline-none transition placeholder:text-slate-400 focus:border-tm-primary"
+        class="headline-input w-full border-0 border-b border-slate-200 bg-transparent px-0 py-3 text-lg font-semibold text-tm-text outline-none transition placeholder:text-slate-400 focus:border-tm-primary"
         placeholder="Write something about your tag..."
         [(ngModel)]="formData.headline"
         name="headline"
@@ -32,8 +32,8 @@
 
     <div class="mb-4">
       <label class="mb-2 block text-sm font-semibold text-tm-text">Images</label>
-      <div class="flex flex-wrap gap-3">
-        <div *ngFor="let img of formData.images; let i = index" class="relative">
+      <div class="image-grid">
+        <div *ngFor="let img of formData.images; let i = index" class="image-tile relative">
           <img [src]="img" alt="Selected" class="size-[90px] rounded-tm border border-slate-200 object-cover" width="90" height="90" />
           <button
             type="button"
@@ -47,7 +47,7 @@
 
         <label
           *ngIf="formData.images.length < 3"
-          class="flex size-[90px] cursor-pointer flex-col items-center justify-center rounded-tm border border-dashed border-slate-300 bg-slate-50/70 transition hover:border-tm-primary hover:bg-indigo-50"
+          class="image-tile flex size-[90px] cursor-pointer flex-col items-center justify-center rounded-tm border border-dashed border-slate-300 bg-slate-50/70 transition hover:border-tm-primary hover:bg-indigo-50"
         >
           <i class="bi bi-plus-circle text-3xl text-tm-primary" aria-hidden="true"></i>
           <small class="text-sm text-tm-muted">Add</small>
@@ -107,7 +107,7 @@
       </div>
     </div>
 
-    <div class="flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-3">
+    <div class="form-actions flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-3">
       <button type="button" class="tm-btn" (click)="togglePreview()">
         <i class="bi bi-eye" aria-hidden="true"></i>
         Preview
@@ -116,7 +116,10 @@
         <i class="bi bi-trash" aria-hidden="true"></i>
         Discard
       </button>
-      <button type="submit" class="tm-btn tm-btn-primary px-5" [disabled]="!f.valid">Post</button>
+      <button type="submit" class="tm-btn tm-btn-primary px-5" [disabled]="!f.valid || isSubmitting">
+        <span *ngIf="!isSubmitting">Post</span>
+        <span *ngIf="isSubmitting">Posting...</span>
+      </button>
     </div>
   </form>
 </div>

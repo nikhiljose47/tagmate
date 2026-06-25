@@ -16,7 +16,7 @@ export class Login implements OnInit {
   email = signal('');
   password = signal('');
   error = signal('');
-  loading = signal(false);      // 🔥 added minimal
+  loading = signal(false);
 
   constructor(
     private auth: AuthService,
@@ -43,7 +43,7 @@ export class Login implements OnInit {
 
   async login() {
     this.error.set('');
-    this.loading.set(true);     // 🔥 added minimal
+    this.loading.set(true);
 
     try {
       const res: any = await Promise.race([
@@ -57,7 +57,7 @@ export class Login implements OnInit {
         this.error.set(res.message ?? 'Login failed');
       }
     } finally {
-      this.loading.set(false);  // 🔥 added minimal
+      this.loading.set(false);
     }
   }
 

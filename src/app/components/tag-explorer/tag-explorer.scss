@@ -1,10 +1,10 @@
 .tag-explorer-page {
-  max-width: 720px;
+  width: min(100%, 720px);
 }
 
 .filter-panel {
   margin-bottom: 18px;
-  padding: 14px;
+  padding: 16px;
   border-radius: var(--tm-radius);
 }
 
@@ -15,20 +15,35 @@
   margin-bottom: 12px;
   padding: 10px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   border-radius: var(--tm-radius);
+}
+
+.feed-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.feed-actions .tm-btn,
+.sort-control {
+  flex: 0 0 auto;
 }
 
 .sort-control {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 140px;
+  min-width: 150px;
   color: var(--tm-text-secondary);
+}
+
+.filter-heading {
+  flex-wrap: wrap;
 }
 
 .tag-search-row {
   position: relative;
-  max-width: 320px;
+  width: min(100%, 360px);
 }
 
 .tag-dropdown {
@@ -65,12 +80,19 @@
   width: 100%;
   overflow: hidden;
   background: #fff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--tm-radius);
+}
+
+.card-title,
+.card-copy,
+.card-meta {
+  overflow-wrap: anywhere;
 }
 
 .card-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
   gap: 8px;
   margin-top: 14px;
 }
@@ -88,6 +110,8 @@
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .card-action-btn.active {
@@ -98,12 +122,6 @@
 
 .card-action-btn.danger {
   color: var(--tm-danger);
-}
-
-@media (max-width: 420px) {
-  .card-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .insta-image-wrapper {
@@ -119,4 +137,43 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+.empty-feed {
+  padding: 36px 18px;
+}
+
+@media (max-width: 520px) {
+  .tag-explorer-page {
+    padding: 12px 10px 16px;
+  }
+
+  .filter-panel {
+    padding: 14px;
+  }
+
+  .feed-actions {
+    margin-inline: -2px;
+    padding: 8px;
+  }
+
+  .sort-control {
+    min-width: 138px;
+  }
+
+  .tag-search-row {
+    width: 100%;
+  }
+
+  .insta-card {
+    border-radius: 10px;
+  }
+
+  .insta-image-wrapper {
+    aspect-ratio: 1 / 1;
+  }
+
+  .card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

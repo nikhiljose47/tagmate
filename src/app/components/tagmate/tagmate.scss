@@ -2,8 +2,8 @@
 .map-wrapper {
   position: relative;
   width: 100%;
-  height: calc(100dvh - 56px);
-  min-height: 520px;
+  height: calc(100dvh - 104px - env(safe-area-inset-bottom));
+  min-height: 500px;
   overflow: hidden;
   background: var(--tm-bg);
 }
@@ -22,7 +22,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  right: 0;
+  width: auto;
   min-height: 40px;
   padding: 6px 12px;
   z-index: 2000;
@@ -117,7 +118,7 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   padding: 8px 12px;
-  width: 180px;
+  width: min(180px, calc(100vw - 24px));
   border-radius: var(--tm-radius);
   box-shadow: var(--tm-shadow-lg);
   font-size: 11px;
@@ -162,7 +163,7 @@
   top: 158px;
   left: 64px;
   z-index: 2000;
-  width: 190px;
+  width: min(190px, calc(100vw - 82px));
   padding: 12px;
   border-radius: var(--tm-radius);
   font-size: 12px;
@@ -228,7 +229,7 @@
   top: 108px;
   left: 12px;
   right: 12px;
-  max-width: 500px;
+  max-width: min(500px, calc(100% - 24px));
   z-index: 2000;
   padding: 6px;
   border-radius: 30px;
@@ -269,6 +270,7 @@
 
 .search-input {
   flex: 1;
+  min-width: 0;
   font-size: 13px;
   padding: 8px 12px;
   border: none;
@@ -312,7 +314,7 @@
 
 @media (max-width: 768px) {
   .map-wrapper {
-    height: calc(100dvh - 48px);
+    height: calc(100dvh - 96px - env(safe-area-inset-bottom));
     min-height: 440px;
   }
 
@@ -354,5 +356,50 @@
 @media (max-width: 420px) {
   .map-wrapper {
     min-height: 400px;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .news-bar {
+    flex: 0 0 auto;
+    min-width: auto;
+  }
+
+  .ticker-wrap {
+    display: none;
+  }
+
+  .ticker-item {
+    padding: 0 1rem;
+  }
+
+  .multi-box {
+    max-width: calc(100vw - 16px);
+    overflow-x: auto;
+  }
+
+  .switch-btn {
+    padding-inline: 9px;
+  }
+
+  .search-box {
+    padding: 5px;
+  }
+
+  .search-input {
+    padding-inline: 6px;
+  }
+
+  .map-toolbox {
+    right: 8px;
+    left: auto;
+  }
+
+  .map-panel {
+    right: 56px;
+    left: auto;
+    width: min(190px, calc(100vw - 72px));
   }
 }

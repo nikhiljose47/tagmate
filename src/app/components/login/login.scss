@@ -1,33 +1,59 @@
 .login-wrapper {
-  background: var(--tm-bg);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 32rem),
+    linear-gradient(180deg, #ffffff 0%, var(--tm-bg) 72%);
+}
+
+.login-stack {
+  margin: 0 auto;
+}
+
+.login-card {
+  padding: 24px;
 }
 
 .brand {
-  font-family: 'Billabong', cursive;
-  font-size: 48px;
-  color: #000;
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--tm-text);
+}
+
+.login-fields {
+  display: grid;
+  gap: 10px;
 }
 
 .divider {
   position: relative;
-  color: #999;
-  margin: 20px 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  color: var(--tm-text-secondary);
+  margin: 18px 0;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .divider::before,
 .divider::after {
   content: '';
-  width: 40%;
   height: 1px;
-  background: #ddd;
-  position: absolute;
-  top: 50%;
+  background: #e2e8f0;
 }
 
-.divider::before {
-  left: 0;
-}
+@media (max-width: 420px) {
+  .login-wrapper {
+    align-items: flex-start;
+    padding-top: max(28px, env(safe-area-inset-top));
+  }
 
-.divider::after {
-  right: 0;
+  .login-card {
+    padding: 18px;
+  }
+
+  .brand {
+    font-size: 36px;
+  }
 }
