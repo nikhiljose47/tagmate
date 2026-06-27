@@ -4,7 +4,7 @@
     type="button"
     aria-label="Notifications"
     (click)="onNotifyClick()"
-  >
+    >
     <i class="bi bi-bell" aria-hidden="true"></i>
   </button>
 
@@ -13,23 +13,26 @@
     Create Post
   </button>
 
-  <div *ngIf="(auth.user$ | async) as user">
-    <button
-      *ngIf="user.uid === 'guest'"
-      class="tm-btn tm-btn-primary"
-      type="button"
-      (click)="signIn()"
-    >
-      Sign In
-    </button>
-
-    <button
-      *ngIf="user.uid !== 'guest'"
-      class="tm-btn tm-btn-danger"
-      type="button"
-      (click)="auth.logout()"
-    >
-      Logout
-    </button>
-  </div>
+  @if ((auth.user$ | async); as user) {
+    <div>
+      @if (user.uid === 'guest') {
+        <button
+          class="tm-btn tm-btn-primary"
+          type="button"
+          (click)="signIn()"
+          >
+          Sign In
+        </button>
+      }
+      @if (user.uid !== 'guest') {
+        <button
+          class="tm-btn tm-btn-danger"
+          type="button"
+          (click)="auth.logout()"
+          >
+          Logout
+        </button>
+      }
+    </div>
+  }
 </nav>

@@ -2,13 +2,13 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { CommonModule } from '@angular/common';
+
 import { UserSessionService } from '../../services/user-session.service';
 
 @Component({
   selector: 'login',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule],
   templateUrl: './login.html',
   styleUrls: ['./login.scss'],
 })

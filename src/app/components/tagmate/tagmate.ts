@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { catchError, debounceTime, map, of, Subject, switchMap, takeUntil } from 'rxjs';
@@ -96,7 +96,7 @@ type HoodBoundaryGeometry = Polygon | MultiPolygon;
   templateUrl: './tagmate.html',
   styleUrls: ['./tagmate.scss'],
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Tagmate implements AfterViewInit, OnDestroy {

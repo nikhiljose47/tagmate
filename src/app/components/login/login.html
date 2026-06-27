@@ -13,60 +13,60 @@
           [value]="email()"
           (input)="email.set($any($event.target).value)"
           [disabled]="loading()"
-        />
+          />
 
-        <input
-          type="password"
-          class="tm-input mb-3"
-          placeholder="Password"
-          [value]="password()"
-          (input)="password.set($any($event.target).value)"
-          [disabled]="loading()"
-        />
+          <input
+            type="password"
+            class="tm-input mb-3"
+            placeholder="Password"
+            [value]="password()"
+            (input)="password.set($any($event.target).value)"
+            [disabled]="loading()"
+            />
 
-        <button
-          class="tm-btn tm-btn-primary mb-3 w-full"
-          [disabled]="loading()"
-          (click)="login()"
-        >
-          <ng-container *ngIf="!loading(); else loaderTpl">
-            Log In
-          </ng-container>
-        </button>
+            <button
+              class="tm-btn tm-btn-primary mb-3 w-full"
+              [disabled]="loading()"
+              (click)="login()"
+              >
+              @if (!loading()) {
+                Log In
+              } @else {
+                <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                <span>Loading...</span>
+              }
+            </button>
 
-        <ng-template #loaderTpl>
-          <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-          <span>Loading...</span>
-        </ng-template>
 
+          </div>
+
+          <div class="divider text-center">OR</div>
+
+          <button
+            class="tm-btn mt-3 w-full border-slate-900 bg-slate-900 text-white hover:border-slate-800 hover:bg-slate-800 hover:text-white"
+            [disabled]="loading()"
+            (click)="loginGuest()"
+            >
+            @if (!loading()) {
+              Continue as Guest
+            } @else {
+              <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+              <span>Please wait...</span>
+            }
+          </button>
+
+
+          @if (error()) {
+            <div class="mt-2 text-center text-sm font-semibold text-tm-danger">
+              {{ error() }}
+            </div>
+          }
+
+        </div>
+
+        <div class="signup-box tm-panel mt-3 p-3 text-center text-sm text-tm-text">
+          Don't have an account?
+          <span class="font-bold text-tm-primary">Sign up soon</span>
+        </div>
       </div>
-
-      <div class="divider text-center">OR</div>
-
-      <button
-        class="tm-btn mt-3 w-full border-slate-900 bg-slate-900 text-white hover:border-slate-800 hover:bg-slate-800 hover:text-white"
-        [disabled]="loading()"
-        (click)="loginGuest()"
-      >
-        <ng-container *ngIf="!loading(); else loaderTpl2">
-          Continue as Guest
-        </ng-container>
-      </button>
-
-      <ng-template #loaderTpl2>
-        <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-        <span>Please wait...</span>
-      </ng-template>
-
-      <div class="mt-2 text-center text-sm font-semibold text-tm-danger" *ngIf="error()">
-        {{ error() }}
-      </div>
-
     </div>
-
-    <div class="signup-box tm-panel mt-3 p-3 text-center text-sm text-tm-text">
-      Don't have an account?
-      <span class="font-bold text-tm-primary">Sign up soon</span>
-    </div>
-  </div>
-</div>

@@ -1,9 +1,11 @@
 <div class="profile-container px-3 py-4">
   <div class="profile-header tm-panel">
-    <div class="profile-title" *ngIf="user$ | async as user">
-      <h3 class="mb-1 text-2xl font-bold text-tm-text">{{ user.username || 'Profile' }}</h3>
-      <p class="m-0 text-sm text-tm-muted">Manage your active neighborhood tags here.</p>
-    </div>
+    @if (user$ | async; as user) {
+      <div class="profile-title">
+        <h3 class="mb-1 text-2xl font-bold text-tm-text">{{ user.username || 'Profile' }}</h3>
+        <p class="m-0 text-sm text-tm-muted">Manage your active neighborhood tags here.</p>
+      </div>
+    }
 
     <div class="profile-header-actions">
       <button class="tm-btn" type="button" (click)="toggleEditProfile()">
@@ -17,13 +19,15 @@
     </div>
   </div>
 
-  <div *ngIf="editMode()" class="profile-edit tm-panel">
-    <label class="mb-1 text-sm font-semibold text-tm-text">Display Name</label>
-    <input class="tm-input mb-3" type="text" value="Guest User" />
-    <label class="mb-1 text-sm font-semibold text-tm-text">Bio</label>
-    <textarea class="tm-input mb-3 min-h-20" rows="2">Exploring nearby tags.</textarea>
-    <button class="tm-btn tm-btn-primary" type="button" (click)="saveProfile()">Save Profile</button>
-  </div>
+  @if (editMode()) {
+    <div class="profile-edit tm-panel">
+      <label class="mb-1 text-sm font-semibold text-tm-text">Display Name</label>
+      <input class="tm-input mb-3" type="text" value="Guest User" />
+      <label class="mb-1 text-sm font-semibold text-tm-text">Bio</label>
+      <textarea class="tm-input mb-3 min-h-20" rows="2">Exploring nearby tags.</textarea>
+      <button class="tm-btn tm-btn-primary" type="button" (click)="saveProfile()">Save Profile</button>
+    </div>
+  }
 
   <div class="profile-tabs tm-panel" role="tablist" aria-label="Profile sections">
     <button class="profile-tab" type="button" [class.active]="activeTab() === 'posts'" (click)="setTab('posts')">
@@ -40,77 +44,87 @@
     </button>
   </div>
 
-  <div *ngIf="isLoading" class="flex flex-col gap-3">
-    <div class="skeleton-box h-24 p-3"></div>
-    <div class="skeleton-box h-24 p-3"></div>
-  </div>
+  @if (isLoading) {
+    <div class="flex flex-col gap-3">
+      <div class="skeleton-box h-24 p-3"></div>
+      <div class="skeleton-box h-24 p-3"></div>
+    </div>
+  }
 
-  <ng-container *ngIf="!isLoading">
-    <ng-container *ngIf="activeTab() === 'posts'">
-      <div *ngIf="myTags$ | async as tags">
-        <div *ngIf="tags.length === 0" class="p-10 text-center text-tm-muted">
-          <i class="bi bi-inbox text-4xl" aria-hidden="true"></i>
-          <p class="mt-3">You haven't posted anything yet.</p>
-        </div>
-
-        <div class="flex flex-col gap-3">
-          <div *ngFor="let tag of tags" class="glass-card">
-            <div class="p-4">
-              <div class="flex items-start justify-between gap-3">
-                <div class="post-summary min-w-0">
-                  <h5 class="mb-2 text-lg font-bold text-tm-text">{{ tag.highlight || 'Untitled' }}</h5>
-                  <span class="tm-chip">{{ tag.tag }}</span>
-                </div>
-                <button
-                  class="tm-icon-btn hover:border-red-200 hover:bg-red-50 hover:text-tm-danger"
-                  type="button"
-                  aria-label="Delete post"
-                  (click)="deleteTag(tag.id)"
-                >
-                  <i class="bi bi-trash" aria-hidden="true"></i>
-                </button>
-              </div>
-              <p class="mt-3 mb-0 text-sm text-tm-muted" *ngIf="tag.hoodId">
-                <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ tag.hoodId }}
-              </p>
-
-              <div class="post-manage-actions">
-                <button class="tm-btn" type="button" (click)="editPost(tag)">
-                  <i class="bi bi-pencil" aria-hidden="true"></i>
-                  Edit
-                </button>
-                <button class="tm-btn" type="button" (click)="viewOnMap(tag)">
-                  <i class="bi bi-map" aria-hidden="true"></i>
-                  View on Map
-                </button>
-                <button class="tm-btn" type="button" (click)="repost(tag)">
-                  <i class="bi bi-repeat" aria-hidden="true"></i>
-                  Repost
-                </button>
-              </div>
+  @if (!isLoading) {
+    @if (activeTab() === 'posts') {
+      @if (myTags$ | async; as tags) {
+        <div>
+          @if (tags.length === 0) {
+            <div class="p-10 text-center text-tm-muted">
+              <i class="bi bi-inbox text-4xl" aria-hidden="true"></i>
+              <p class="mt-3">You haven't posted anything yet.</p>
             </div>
+          }
+          <div class="flex flex-col gap-3">
+            @for (tag of tags; track tag) {
+              <div class="glass-card">
+                <div class="p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="post-summary min-w-0">
+                      <h5 class="mb-2 text-lg font-bold text-tm-text">{{ tag.highlight || 'Untitled' }}</h5>
+                      <span class="tm-chip">{{ tag.tag }}</span>
+                    </div>
+                    <button
+                      class="tm-icon-btn hover:border-red-200 hover:bg-red-50 hover:text-tm-danger"
+                      type="button"
+                      aria-label="Delete post"
+                      (click)="deleteTag(tag.id)"
+                      >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  @if (tag.hoodId) {
+                    <p class="mt-3 mb-0 text-sm text-tm-muted">
+                      <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ tag.hoodId }}
+                    </p>
+                  }
+                  <div class="post-manage-actions">
+                    <button class="tm-btn" type="button" (click)="editPost(tag)">
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                      Edit
+                    </button>
+                    <button class="tm-btn" type="button" (click)="viewOnMap(tag)">
+                      <i class="bi bi-map" aria-hidden="true"></i>
+                      View on Map
+                    </button>
+                    <button class="tm-btn" type="button" (click)="repost(tag)">
+                      <i class="bi bi-repeat" aria-hidden="true"></i>
+                      Repost
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
         </div>
+      }
+    }
+    @if (activeTab() === 'saved') {
+      <div class="empty-panel tm-panel">
+        <i class="bi bi-bookmark text-3xl" aria-hidden="true"></i>
+        <p class="m-0">Saved posts will appear here.</p>
       </div>
-    </ng-container>
-
-    <div *ngIf="activeTab() === 'saved'" class="empty-panel tm-panel">
-      <i class="bi bi-bookmark text-3xl" aria-hidden="true"></i>
-      <p class="m-0">Saved posts will appear here.</p>
-    </div>
-
-    <div *ngIf="activeTab() === 'settings'" class="settings-panel tm-panel">
-      <label class="tm-toggle">
-        <input class="peer sr-only" type="checkbox" checked />
-        <span class="tm-toggle-track"></span>
-        <span>Location-aware suggestions</span>
-      </label>
-      <label class="tm-toggle">
-        <input class="peer sr-only" type="checkbox" checked />
-        <span class="tm-toggle-track"></span>
-        <span>Post activity notifications</span>
-      </label>
-      <button class="tm-btn tm-btn-primary mt-2" type="button" (click)="saveSettings()">Save Settings</button>
-    </div>
-  </ng-container>
+    }
+    @if (activeTab() === 'settings') {
+      <div class="settings-panel tm-panel">
+        <label class="tm-toggle">
+          <input class="peer sr-only" type="checkbox" checked />
+          <span class="tm-toggle-track"></span>
+          <span>Location-aware suggestions</span>
+        </label>
+        <label class="tm-toggle">
+          <input class="peer sr-only" type="checkbox" checked />
+          <span class="tm-toggle-track"></span>
+          <span>Post activity notifications</span>
+        </label>
+        <button class="tm-btn tm-btn-primary mt-2" type="button" (click)="saveSettings()">Save Settings</button>
+      </div>
+    }
+  }
 </div>
