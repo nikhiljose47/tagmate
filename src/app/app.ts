@@ -1,13 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter, map, startWith } from 'rxjs';
 import { ToastService } from './services/toast.service';
+import { NavComponent } from './components/nav/nav';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, RouterLinkActive, RouterLink],
+  imports: [RouterOutlet, CommonModule, NavComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -25,5 +26,4 @@ export class App {
   );
 
   protected readonly showNav = computed(() => !this.currentUrl().startsWith('/login'));
-  protected readonly showQuickPost = computed(() => this.showNav() && !this.currentUrl().startsWith('/post'));
 }

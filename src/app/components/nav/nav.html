@@ -1,0 +1,31 @@
+<nav class="app-nav" aria-label="Main navigation">
+
+  <!-- Brand — desktop sidebar only -->
+  <a class="nav-brand" routerLink="/tagmate" aria-label="Tagmate home">
+    <span class="brand-icon">
+      <i class="bi bi-geo-alt-fill"></i>
+    </span>
+    <span class="brand-name">Tagmate</span>
+  </a>
+
+  <!-- Nav items -->
+  <div class="nav-items">
+    @for (item of navItems; track item.route) {
+      <a
+        class="nav-item"
+        [class.post-item]="item.route === '/post'"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
+        [attr.aria-label]="item.label"
+        #rla="routerLinkActive"
+      >
+        <span class="nav-icon">
+          <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+        </span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    }
+  </div>
+
+</nav>

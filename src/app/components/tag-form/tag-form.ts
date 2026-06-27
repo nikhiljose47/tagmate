@@ -103,13 +103,26 @@ export class TagForm {
     }
 
     try {
+      const session = await firstValueFrom(this.supabase.session$);
+      if (!session?.user) {
+        this.toast.show('You must be signed in to post a tag.', 'warning');
+        this.isSubmitting = false;
+        return;
+      }
+      const uid = session.user.id;
       const currentUser = await firstValueFrom(this.auth.user$);
-      const uploadedImages = [];
+
+      const uploadedImages: string[] = [];
       for (const img of this.formData.images) {
         if (img.startsWith('data:')) {
-          const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}`;
-          const url = await this.supabase.uploadImageBase64(path, img);
-          uploadedImages.push(url);
+          try {
+            const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}`;
+            const url = await this.supabase.uploadImageBase64(path, img);
+            uploadedImages.push(url);
+          } catch (imgErr) {
+            console.error('Image upload failed', imgErr);
+            this.toast.show('Image upload failed — posting without that photo.', 'warning');
+          }
         } else {
           uploadedImages.push(img);
         }
@@ -117,7 +130,7 @@ export class TagForm {
 
       const tagObject: Tag = {
         username: currentUser.username,
-        userId: currentUser.uid ?? 'guest',
+        userId: uid,
         highlight: this.formData.headline,
         lat: coords[0],
         lng: coords[1],

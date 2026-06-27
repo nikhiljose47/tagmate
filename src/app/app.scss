@@ -1,114 +1,54 @@
-.main-container.with-bottom-nav {
-  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+/* ─────────────────────────────────────────────────────────────
+   Main container — offset for the nav on every breakpoint
+───────────────────────────────────────────────────────────── */
+
+/* Mobile / tablet: space for bottom bar (~64px + safe area) */
+@media (max-width: 1023px) {
+  .main-container.with-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
 }
 
-.nav-wrap {
-  bottom: max(16px, env(safe-area-inset-bottom));
-  min-width: 300px;
-  max-width: min(400px, calc(100vw - 24px));
+/* Narrow desktop: space for 72px icon-only sidebar */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .main-container.with-nav {
+    margin-left: 72px;
+  }
 }
 
-.app-nav {
-  min-height: 70px;
+/* Wide desktop: space for 245px full sidebar */
+@media (min-width: 1280px) {
+  .main-container.with-nav {
+    margin-left: 245px;
+  }
 }
 
-.nav-item {
-  min-width: 62px;
-  min-height: 50px;
-}
-
-.nav-item:hover i,
-.nav-item.active i {
-  transform: translateY(-2px);
-}
-
-.nav-item.active {
-  color: var(--tm-primary);
-  font-weight: 700;
-}
-
-.nav-item.active i {
-  color: var(--tm-primary);
-  transform: translateY(-2px) scale(1.1);
-}
-
+/* ─────────────────────────────────────────────────────────────
+   Toast — above bottom bar on mobile, centered on desktop
+───────────────────────────────────────────────────────────── */
 .app-toast {
-  bottom: calc(106px + env(safe-area-inset-bottom));
+  bottom: calc(72px + env(safe-area-inset-bottom));
   animation: toastIn 0.24s ease-out;
 }
 
-.app-toast-success {
-  border-left-color: var(--tm-success);
-}
-
-.app-toast-warning {
-  border-left-color: var(--tm-warning);
-}
-
-.app-toast-danger {
-  border-left-color: var(--tm-danger);
-}
-
-.quick-post-btn {
-  right: max(18px, env(safe-area-inset-right));
-  bottom: calc(116px + env(safe-area-inset-bottom));
-}
-
-@media (max-width: 480px) {
-  .main-container.with-bottom-nav {
-    padding-bottom: calc(86px + env(safe-area-inset-bottom));
-  }
-
-  .nav-wrap {
-    width: calc(100% - 20px);
-    bottom: max(10px, env(safe-area-inset-bottom));
-  }
-
-  .app-nav {
-    min-height: 58px;
-    padding-block: 6px;
-    padding-inline: 8px;
-  }
-
-  .nav-item {
-    min-width: 56px;
-    min-height: 46px;
-    padding: 5px 4px;
-    font-size: 10px;
-  }
-
-  .nav-item i {
-    font-size: 18px;
-  }
-
-  .quick-post-btn {
-    display: none;
-  }
-
+@media (min-width: 1024px) {
   .app-toast {
-    bottom: calc(92px + env(safe-area-inset-bottom));
-    width: min(420px, calc(100% - 20px));
+    bottom: 24px;
   }
 }
 
+.app-toast-success { border-left-color: var(--tm-success); }
+.app-toast-warning { border-left-color: var(--tm-warning); }
+.app-toast-danger  { border-left-color: var(--tm-danger);  }
+
+/* ─────────────────────────────────────────────────────────────
+   Toast animation
+───────────────────────────────────────────────────────────── */
 @keyframes toastIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 10px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0);    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-nav,
-  .nav-item,
-  .nav-item i,
-  .app-toast,
-  .quick-post-btn {
-    animation: none;
-    transition: none;
-  }
+  .app-toast { animation: none; }
 }

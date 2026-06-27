@@ -1,72 +1,72 @@
-<div class="login-wrapper flex min-h-dvh items-center justify-center px-4 py-8">
-  <div class="login-stack w-full max-w-[380px]">
-    <div class="login-card tm-panel">
+<div class="login-page">
+  <div class="login-content">
 
-      <h1 class="brand mb-4 text-center">Tagmate</h1>
+    <!-- Brand -->
+    <div class="brand-block">
+      <div class="brand-logo">
+        <i class="bi bi-geo-alt-fill"></i>
+      </div>
+      <h1 class="brand-name">Tagmate</h1>
+      <p class="brand-tagline">Your neighborhood, in real time.</p>
+    </div>
 
-      <div class="login-fields mb-3 w-full">
-
+    <!-- Card -->
+    <div class="login-card">
+      <div class="login-fields">
         <input
           type="text"
-          class="tm-input mb-2"
-          placeholder="Phone number, username, or email"
+          class="tm-input"
+          placeholder="Email address"
           [value]="email()"
           (input)="email.set($any($event.target).value)"
           [disabled]="loading()"
-          />
+          autocomplete="email"
+        />
+        <input
+          type="password"
+          class="tm-input"
+          placeholder="Password"
+          [value]="password()"
+          (input)="password.set($any($event.target).value)"
+          [disabled]="loading()"
+          autocomplete="current-password"
+        />
 
-          <input
-            type="password"
-            class="tm-input mb-3"
-            placeholder="Password"
-            [value]="password()"
-            (input)="password.set($any($event.target).value)"
-            [disabled]="loading()"
-            />
-
-            <button
-              class="tm-btn tm-btn-primary mb-3 w-full"
-              [disabled]="loading()"
-              (click)="login()"
-              >
-              @if (!loading()) {
-                Log In
-              } @else {
-                <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-                <span>Loading...</span>
-              }
-            </button>
-
-
-          </div>
-
-          <div class="divider text-center">OR</div>
-
-          <button
-            class="tm-btn mt-3 w-full border-slate-900 bg-slate-900 text-white hover:border-slate-800 hover:bg-slate-800 hover:text-white"
-            [disabled]="loading()"
-            (click)="loginGuest()"
-            >
-            @if (!loading()) {
-              Continue as Guest
-            } @else {
-              <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-              <span>Please wait...</span>
-            }
-          </button>
-
-
-          @if (error()) {
-            <div class="mt-2 text-center text-sm font-semibold text-tm-danger">
-              {{ error() }}
-            </div>
+        <button class="tm-btn tm-btn-primary w-full" [disabled]="loading()" (click)="login()">
+          @if (!loading()) { Log In }
+          @else {
+            <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+            Signing in...
           }
-
-        </div>
-
-        <div class="signup-box tm-panel mt-3 p-3 text-center text-sm text-tm-text">
-          Don't have an account?
-          <span class="font-bold text-tm-primary">Sign up soon</span>
-        </div>
+        </button>
       </div>
+
+      <div class="divider">OR</div>
+
+      <button
+        class="guest-btn"
+        [disabled]="loading()"
+        (click)="loginGuest()"
+      >
+        @if (!loading()) {
+          <i class="bi bi-incognito"></i>
+          Continue as Guest
+        } @else {
+          <span class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"></span>
+          Please wait...
+        }
+      </button>
+
+      @if (error()) {
+        <div class="error-msg">
+          <i class="bi bi-exclamation-circle"></i> {{ error() }}
+        </div>
+      }
     </div>
+
+    <p class="signup-hint">
+      Don't have an account? <span class="text-tm-primary font-semibold">Sign up soon</span>
+    </p>
+
+  </div>
+</div>

@@ -113,12 +113,21 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
   private readonly boundaryCache = new globalThis.Map<string, PlaceBoundary>();
 
+  // Kick off the heavy maplibre-gl download as soon as this class is referenced
+  // (when the router loads this lazy chunk) rather than waiting for ngAfterViewInit.
+  private static readonly _maplibrePromise = import('maplibre-gl');
+  private static readonly POSTS_CACHE_TTL = 60_000;
+
   private maplibre?: typeof import('maplibre-gl');
   private map?: MapLibreMap;
   private temporaryMarker?: Marker;
   private resizeObserver?: ResizeObserver;
   private locationSelectionEnabled = false;
   private mapErrorShown = false;
+
+  private readonly postsCache = new globalThis.Map<string, { posts: MapPost[]; ts: number }>();
+  private readonly reverseCache = new globalThis.Map<string, string>();
+  private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
 
   isSearching = signal(false);
   postMode = signal(false);
@@ -140,7 +149,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     }
 
     this.registerViewportRequests();
-    const maplibreModule = await import('maplibre-gl');
+    const maplibreModule = await Tagmate._maplibrePromise;
     this.maplibre = (maplibreModule.default ?? maplibreModule) as typeof import('maplibre-gl');
 
     this.ngZone.runOutsideAngular(() => {
@@ -241,9 +250,14 @@ export class Tagmate implements AfterViewInit, OnDestroy {
     const q = value?.trim();
     if (!q) return;
 
+    const cachedGeo = this.geocodeCache.get(q.toLowerCase());
+    if (cachedGeo?.length) {
+      this.applyGeocodingResult(cachedGeo, q);
+      return;
+    }
+
     this.isSearching.set(true);
     this.setBoundary(q, true);
-    // Nominatim API Proxy
     const url = `/api/nominatim/search?q=${encodeURIComponent(q)}`;
 
     this.http
@@ -259,32 +273,45 @@ export class Tagmate implements AfterViewInit, OnDestroy {
       )
       .subscribe((res) => {
         this.isSearching.set(false);
-        if (!res.length) {
-          this.showUserError('Location not found.');
-          return;
-        }
-
-        const first = res[0];
-        const lat = Number.parseFloat(first.lat);
-        const lng = Number.parseFloat(first.lon);
-        if (!this.isValidCoordinate(lat, lng)) {
-          this.showUserError('The selected location has invalid coordinates.');
-          return;
-        }
-
-        const hood = new Hood({ name: q, coords: { lat, lng } });
-        this.store.dispatch(setUserPreference({ pref: { hood, mapZoom: 13 } }));
-
-        this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
-        this.enableLocationSelection();
-        this.setTemporaryMarker(lng, lat);
-        this.state.updateCoordinates(lat, lng);
-        this.state.updateText(first.display_name ?? q);
-        this.loadVisiblePosts();
+        if (res.length) this.geocodeCache.set(q.toLowerCase(), res);
+        this.applyGeocodingResult(res, q);
       });
   }
 
+  private applyGeocodingResult(res: NominatimSearchResult[], q: string): void {
+    this.isSearching.set(false);
+    if (!res.length) {
+      this.showUserError('Location not found.');
+      return;
+    }
+
+    const first = res[0];
+    const lat = Number.parseFloat(first.lat);
+    const lng = Number.parseFloat(first.lon);
+    if (!this.isValidCoordinate(lat, lng)) {
+      this.showUserError('The selected location has invalid coordinates.');
+      return;
+    }
+
+    const hood = new Hood({ name: q, coords: { lat, lng } });
+    this.store.dispatch(setUserPreference({ pref: { hood, mapZoom: 13 } }));
+
+    this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
+    this.enableLocationSelection();
+    this.setTemporaryMarker(lng, lat);
+    this.state.updateCoordinates(lat, lng);
+    this.state.updateText(first.display_name ?? q);
+    this.loadVisiblePosts();
+  }
+
   getAddressFromCoords(lat: number, lon: number) {
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    const cached = this.reverseCache.get(key);
+    if (cached) {
+      this.state.updateText(cached);
+      return;
+    }
+
     const url = `/api/nominatim/reverse?lat=${lat}&lon=${lon}`;
 
     this.http
@@ -298,7 +325,9 @@ export class Tagmate implements AfterViewInit, OnDestroy {
         })
       )
       .subscribe((res) => {
-        this.state.updateText(res.display_name ?? 'Unknown location');
+        const name = res.display_name ?? 'Unknown location';
+        this.reverseCache.set(key, name);
+        this.state.updateText(name);
       });
   }
 
@@ -489,12 +518,19 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   }
 
   private fetchPostsForViewport(query: MapViewportQuery) {
+    const key = `${query.west.toFixed(2)},${query.south.toFixed(2)},${query.east.toFixed(2)},${query.north.toFixed(2)}`;
+    const cached = this.postsCache.get(key);
+    if (cached && Date.now() - cached.ts < Tagmate.POSTS_CACHE_TTL) {
+      return of(cached.posts.filter((post) => this.matchesCountryMode(post)));
+    }
     return this.supabase
       .fetchTagsInBounds(query.west, query.south, query.east, query.north)
       .pipe(
-        map(({ data }) =>
-          (data ?? []).map(rowToTag).filter((post) => this.matchesCountryMode(post)) as MapPost[]
-        )
+        map(({ data }) => {
+          const posts = (data ?? []).map(rowToTag) as MapPost[];
+          this.postsCache.set(key, { posts, ts: Date.now() });
+          return posts.filter((post) => this.matchesCountryMode(post));
+        })
       );
   }
 

@@ -1,4 +1,4 @@
-<div class="main-container min-h-dvh w-full" [class.with-bottom-nav]="showNav()">
+<div class="main-container" [class.with-nav]="showNav()">
   <router-outlet></router-outlet>
 </div>
 
@@ -8,48 +8,19 @@
     [ngClass]="'app-toast-' + message.tone"
     role="status"
     aria-live="polite"
-    >
+  >
     <span class="flex-1 text-[13px] font-semibold leading-snug">{{ message.text }}</span>
     <button
       type="button"
       class="toast-close grid size-7 place-items-center rounded-full border-0 bg-transparent text-tm-muted transition hover:bg-slate-900/10 hover:text-tm-text"
       aria-label="Dismiss notification"
       (click)="toast.dismiss()"
-      >
+    >
       <i class="bi bi-x-lg" aria-hidden="true"></i>
     </button>
   </div>
 }
 
-@if (showQuickPost()) {
-  <a
-    class="quick-post-btn fixed z-[9998] grid size-[52px] place-items-center rounded-full border border-white/50 bg-tm-primary text-white no-underline shadow-tm-lg transition hover:-translate-y-0.5 hover:bg-tm-primary-hover hover:text-white"
-    routerLink="/post"
-    aria-label="Create a quick post"
-    >
-    <i class="bi bi-plus-lg text-[22px]" aria-hidden="true"></i>
-  </a>
-}
-
 @if (showNav()) {
-  <div class="nav-wrap fixed left-1/2 z-[9999] w-[90%] max-w-[400px] -translate-x-1/2">
-    <nav class="app-nav flex items-center justify-around rounded-[30px] border border-white/40 bg-white/85 px-4 py-2.5 shadow-tm-lg backdrop-blur-2xl transition">
-      <a class="nav-item flex cursor-pointer flex-col items-center gap-1 rounded-tm p-2 text-[11px] font-medium text-tm-muted no-underline transition hover:bg-indigo-50 hover:text-tm-primary" routerLink="/post" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" aria-label="Create post">
-        <i class="bi bi-plus-square text-xl transition-transform" aria-hidden="true"></i>
-        <span>Post</span>
-      </a>
-      <a class="nav-item flex cursor-pointer flex-col items-center gap-1 rounded-tm p-2 text-[11px] font-medium text-tm-muted no-underline transition hover:bg-indigo-50 hover:text-tm-primary" routerLink="/hood" routerLinkActive="active" aria-label="Hood map">
-        <i class="bi bi-geo-alt text-xl transition-transform" aria-hidden="true"></i>
-        <span>Hood</span>
-      </a>
-      <a class="nav-item flex cursor-pointer flex-col items-center gap-1 rounded-tm p-2 text-[11px] font-medium text-tm-muted no-underline transition hover:bg-indigo-50 hover:text-tm-primary" routerLink="/tagmate" routerLinkActive="active" aria-label="Globe feed">
-        <i class="bi bi-globe text-xl transition-transform" aria-hidden="true"></i>
-        <span>Globe</span>
-      </a>
-      <a class="nav-item flex cursor-pointer flex-col items-center gap-1 rounded-tm p-2 text-[11px] font-medium text-tm-muted no-underline transition hover:bg-indigo-50 hover:text-tm-primary" routerLink="/profile" routerLinkActive="active" aria-label="Profile">
-        <i class="bi bi-person text-xl transition-transform" aria-hidden="true"></i>
-        <span>Profile</span>
-      </a>
-    </nav>
-  </div>
+  <app-nav />
 }

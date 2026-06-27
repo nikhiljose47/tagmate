@@ -22,15 +22,21 @@ export class UserSessionService {
       if (appUser) {
         this.user.set(appUser);
       } else {
-        this.user.set({
-          uid,
-          name:
-            (session.user.user_metadata?.['username'] as string | undefined) ??
-            session.user.email?.split('@')[0] ??
-            'User',
-          isGuest: session.user.is_anonymous ?? false,
-          email: session.user.email,
-        });
+        const name =
+          (session.user.user_metadata?.['username'] as string | undefined) ??
+          session.user.email?.split('@')[0] ??
+          'User';
+        const isGuest = session.user.is_anonymous ?? false;
+        await firstValueFrom(
+          this.supabase.upsertRow('users', {
+            uid,
+            name,
+            is_guest: isGuest,
+            email: session.user.email ?? null,
+            created_at: new Date().toISOString(),
+          })
+        );
+        this.user.set({ uid, name, isGuest, email: session.user.email ?? undefined });
       }
     });
   }
