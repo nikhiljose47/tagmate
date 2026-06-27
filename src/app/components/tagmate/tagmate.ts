@@ -13,7 +13,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, of, Subject, switchMap, takeUntil } from 'rxjs';
+import { catchError, debounceTime, map, of, Subject, switchMap, takeUntil } from 'rxjs';
 import type {
   Feature,
   FeatureCollection,
@@ -30,8 +30,9 @@ import type {
   Marker,
 } from 'maplibre-gl';
 
-import markersData from '../../data/tags.json';
 import { environment } from '../../environments/environment.prod';
+import { SupabaseService } from '../../services/supabase.service';
+import { rowToTag } from '../../services/tag.mapper';
 import { Hood } from '../../models/hood.model';
 import { Tag } from '../../models/tag.model';
 import { SharedStateService } from '../../services/shared-state.service';
@@ -107,6 +108,7 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   private readonly state = inject(SharedStateService);
   private readonly store = inject(Store);
   private readonly toast = inject(ToastService);
+  private readonly supabase = inject(SupabaseService);
   private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
   private readonly boundaryCache = new globalThis.Map<string, PlaceBoundary>();
@@ -487,17 +489,13 @@ export class Tagmate implements AfterViewInit, OnDestroy {
   }
 
   private fetchPostsForViewport(query: MapViewportQuery) {
-    const posts = (markersData as MapPost[]).filter(
-      (post) =>
-        this.isValidCoordinate(post.lat, post.lng) &&
-        post.lng >= query.west &&
-        post.lng <= query.east &&
-        post.lat >= query.south &&
-        post.lat <= query.north &&
-        this.matchesCountryMode(post)
-    );
-
-    return of(posts);
+    return this.supabase
+      .fetchTagsInBounds(query.west, query.south, query.east, query.north)
+      .pipe(
+        map(({ data }) =>
+          (data ?? []).map(rowToTag).filter((post) => this.matchesCountryMode(post)) as MapPost[]
+        )
+      );
   }
 
   private loadVisiblePosts(): void {

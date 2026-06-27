@@ -1,62 +1,61 @@
-// core/services/user-session.service.ts
 import { Injectable, signal, inject } from '@angular/core';
-import {
-  Auth,
-  authState,
-  signOut,
-  signInAnonymously,
-  signInWithEmailAndPassword,
-} from '@angular/fire/auth';
-import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
 import { AppUser } from '../models/app-user.model';
+import { SupabaseService } from './supabase.service';
 
 @Injectable({ providedIn: 'root' })
 export class UserSessionService {
-  private auth = inject(Auth);
-  private afs = inject(Firestore);
+  private supabase = inject(SupabaseService);
 
   user = signal<AppUser | null>(null);
 
   constructor() {
-    authState(this.auth).subscribe(async (fbUser) => {
-      if (!fbUser) return this.user.set(null);
+    this.supabase.session$.subscribe(async (session) => {
+      if (!session?.user) {
+        this.user.set(null);
+        return;
+      }
 
-      const snap = await getDoc(doc(this.afs, `users/${fbUser.uid}`));
+      const uid = session.user.id;
+      const appUser = await firstValueFrom(this.supabase.getUserById(uid));
 
-      if (snap.exists()) {
-        this.user.set(snap.data() as AppUser);
+      if (appUser) {
+        this.user.set(appUser);
       } else {
         this.user.set({
-          uid: fbUser.uid,
-          name: fbUser.displayName ?? 'User',
-          isGuest: fbUser.isAnonymous,
+          uid,
+          name:
+            (session.user.user_metadata?.['username'] as string | undefined) ??
+            session.user.email?.split('@')[0] ??
+            'User',
+          isGuest: session.user.is_anonymous ?? false,
+          email: session.user.email,
         });
       }
     });
   }
 
   login(email: string, password: string) {
-    return signInWithEmailAndPassword(this.auth, email, password);
+    return firstValueFrom(this.supabase.signInWithPassword(email, password));
   }
 
   logout() {
     this.user.set(null);
-    return signOut(this.auth);
+    return firstValueFrom(this.supabase.signOut());
   }
 
   async loginGuest() {
-    const credential = await signInAnonymously(this.auth);
-    const uid = credential.user.uid;
+    const { data, error } = await firstValueFrom(this.supabase.signInAnonymously());
+    if (error) throw error;
 
-    await setDoc(
-      doc(this.afs, `users/${uid}`),
-      {
+    const uid = data.user!.id;
+    await firstValueFrom(
+      this.supabase.upsertRow('users', {
         uid,
         name: 'Guest User',
-        isGuest: true,
-        createdAt: Date.now(),
-      },
-      { merge: true }
+        is_guest: true,
+        created_at: new Date().toISOString(),
+      })
     );
   }
 }

@@ -3,7 +3,8 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Tag } from '../../models/tag.model';
-import markersData from '../../data/tags.json';
+import { SupabaseService } from '../../services/supabase.service';
+import { TagRow, rowToTag } from '../../services/tag.mapper';
 import { SharedStateService } from '../../services/shared-state.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -20,6 +21,7 @@ export class TagExplorer implements OnInit {
   private readonly router = inject(Router);
   private readonly shared = inject(SharedStateService);
   private readonly toast = inject(ToastService);
+  private readonly supabase = inject(SupabaseService);
 
   cards: Tag[] = [];
   isLoading = true;
@@ -35,11 +37,13 @@ export class TagExplorer implements OnInit {
   savedCards = signal(new Set<string>());
 
   ngOnInit(): void {
-    this.cards = markersData as Tag[];
-    this.allTags = Array.from(new Set(this.cards.map((card) => card.tag).filter(Boolean))).sort(
-      (a, b) => a.localeCompare(b)
-    );
-    this.isLoading = false;
+    this.supabase.getRows<TagRow>('tags').subscribe(({ data }) => {
+      this.cards = (data ?? []).map(rowToTag);
+      this.allTags = Array.from(new Set(this.cards.map((card) => card.tag).filter(Boolean))).sort(
+        (a, b) => a.localeCompare(b)
+      );
+      this.isLoading = false;
+    });
   }
 
   get visibleCards(): Tag[] {
@@ -59,8 +63,10 @@ export class TagExplorer implements OnInit {
   }
 
   refresh(): void {
-    this.cards = [...(markersData as Tag[])];
-    this.toast.show('Globe feed refreshed.', 'success');
+    this.supabase.getRows<TagRow>('tags').subscribe(({ data }) => {
+      this.cards = (data ?? []).map(rowToTag);
+      this.toast.show('Globe feed refreshed.', 'success');
+    });
   }
 
   toggleFilters(): void {

@@ -8,11 +8,6 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
-import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
-import { getAuth, provideAuth } from '@angular/fire/auth';
-import { getStorage, provideStorage } from '@angular/fire/storage';
-import { getFirestore, provideFirestore } from '@angular/fire/firestore';
-import { environment } from './environments/environment.prod';
 import { provideStore } from '@ngrx/store';
 import { toggleReducer } from './store/toggle/toggle.state';
 import { userPrefReducer } from './store/user-preferences/user-preference.reducer';
@@ -24,10 +19,6 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideClientHydration(withEventReplay()),
-    provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideFirestore(() => getFirestore()),
-    provideAuth(() => getAuth()),
-    provideStorage(() => getStorage()),
     provideStore({
       toggle: toggleReducer,
       userPref: userPrefReducer,

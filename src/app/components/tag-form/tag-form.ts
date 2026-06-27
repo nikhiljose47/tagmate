@@ -1,11 +1,14 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { SharedStateService } from '../../services/shared-state.service';
 import { Tag } from '../../models/tag.model';
-import { FirestoreService } from '../../services/firebase.service';
+import { SupabaseService } from '../../services/supabase.service';
+import { AuthService } from '../../services/auth.service';
+import { tagToRow } from '../../services/tag.mapper';
 import { Router } from '@angular/router';
 import { ToastService } from '../../services/toast.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'tag-form',
@@ -18,9 +21,11 @@ export class TagForm {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<any>();
 
+  private supabase = inject(SupabaseService);
+  private auth = inject(AuthService);
+
   constructor(
     public shared: SharedStateService,
-    private firestore: FirestoreService,
     private router: Router,
     private toast: ToastService
   ) { }
@@ -98,11 +103,12 @@ export class TagForm {
     }
 
     try {
+      const currentUser = await firstValueFrom(this.auth.user$);
       const uploadedImages = [];
       for (const img of this.formData.images) {
         if (img.startsWith('data:')) {
           const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}`;
-          const url = await this.firestore.uploadImageBase64(path, img);
+          const url = await this.supabase.uploadImageBase64(path, img);
           uploadedImages.push(url);
         } else {
           uploadedImages.push(img);
@@ -110,18 +116,19 @@ export class TagForm {
       }
 
       const tagObject: Tag = {
-        username: this.user.name,
-        userId: 'GuestPanda',
+        username: currentUser.username,
+        userId: currentUser.uid ?? 'guest',
         highlight: this.formData.headline,
         lat: coords[0],
         lng: coords[1],
         expiresIn: this.formData.expiresIn,
         tag: this.formData.tag,
         createdAt: new Date().toISOString(),
-        images: uploadedImages
+        images: uploadedImages,
       };
 
-      await this.firestore.addDoc('tags', tagObject).toPromise();
+      const { error } = await firstValueFrom(this.supabase.addRow('tags', tagToRow(tagObject) as Record<string, unknown>));
+      if (error) throw error;
       this.submitted.emit(tagObject);
       this.router.navigate(['/hood']);
     } catch (e) {

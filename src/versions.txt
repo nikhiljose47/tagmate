@@ -1,15 +1,16 @@
 
+Later - 
+PostgreSQL
+PostGIS
 
 
 
+V1.6.27
 
 
-V1.2
+
+V1.6.0
 Change of services :
 Angular
 MapLibre
 Node.js
-PostgreSQL
-PostGIS
-
-because - 

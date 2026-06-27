@@ -1,13 +1,5 @@
 export const environment = {
-    mapTilerApiKey: "1hAbQJYYNfEOl5YZkol6",
-    firebase: {
-        apiKey: "AIzaSyCGtgKFFpxGqdgqqCwSbE28h8P-yY5cmJQ",
-        authDomain: "expensereport-prod-p01.firebaseapp.com",
-        databaseURL: "https://expensereport-prod-p01.firebaseio.com",
-        projectId: "expensereport-prod-p01",
-        storageBucket: "expensereport-prod-p01.firebasestorage.app",
-        messagingSenderId: "880305620336",
-        appId: "1:880305620336:web:3135a4e59ea24ea7e33bb5",
-        measurementId: "G-4Y25YD81M4"
-    }
-}
+  mapTilerApiKey: '1hAbQJYYNfEOl5YZkol6',
+  supabaseUrl: 'https://peiriuszdvhtwewydgte.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlaXJpdXN6ZHZodHdld3lkZ3RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTkyMzEsImV4cCI6MjA5ODEzNTIzMX0.UZtCSfBnO6aN0QbFRYibnrVdssoENq6FgtnYVUDLt7Q',
+};
