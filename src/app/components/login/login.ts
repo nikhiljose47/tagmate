@@ -66,17 +66,10 @@ export class Login implements OnInit {
     this.loading.set(true);
 
     try {
-      const res: any = await Promise.race([
-        this.session.loginGuest(),
-        this.timeoutPromise(),
-      ]);
-
-      if (res.ok === false) {
-        this.error.set(res.message ?? 'Guest login failed');
-        return;
-      }
-
+      await Promise.race([this.session.loginGuest(), this.timeoutPromise()]);
       this.router.navigateByUrl('/tagmate');
+    } catch (err: any) {
+      this.error.set(err?.message ?? 'Guest login failed');
     } finally {
       this.loading.set(false);
     }
