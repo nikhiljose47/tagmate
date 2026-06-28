@@ -1,38 +1,35 @@
 import { Routes } from '@angular/router';
-import { Tagmate } from './components/tagmate/tagmate';
-import { Login } from './components/login/login';
-import { Tagmate2 } from './components/tagmate2/tagmate2';
-import { TagForm } from './components/tag-form/tag-form';
-import { TagExplorer } from './components/tag-explorer/tag-explorer';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: 'login', component: Login, title: 'Login' },
+  // Public routes
   {
-    path: 'tagmate',
-    title: 'Globe',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./components/tag-explorer/tag-explorer').then((m) => m.TagExplorer),
+    path: 'login',
+    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
   },
+
+  // Protected routes — each feature loads its own chunk
   {
     path: 'hood',
-    title: 'Hood Map',
     canActivate: [authGuard],
-    loadComponent: () => import('./components/tagmate/tagmate').then((m) => m.Tagmate),
+    loadChildren: () => import('./features/hood/hood.routes').then((m) => m.HOOD_ROUTES),
+  },
+  {
+    path: 'tagmate',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/globe/globe.routes').then((m) => m.GLOBE_ROUTES),
   },
   {
     path: 'post',
-    title: 'Post',
     canActivate: [authGuard],
-    loadComponent: () => import('./components/tag-form/tag-form').then((m) => m.TagForm),
+    loadChildren: () => import('./features/post/post.routes').then((m) => m.POST_ROUTES),
   },
   {
     path: 'profile',
-    title: 'Profile',
     canActivate: [authGuard],
-    loadComponent: () => import('./components/profile/profile').then((m) => m.Profile),
+    loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
   },
+
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
 ];

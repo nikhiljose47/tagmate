@@ -3,8 +3,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter, map, startWith } from 'rxjs';
-import { ToastService } from './services/toast.service';
-import { NavComponent } from './components/nav/nav';
+import { ToastService } from './core/services/toast.service';
+import { NavComponent } from './layout/nav/nav';
 
 @Component({
   selector: 'app-root',

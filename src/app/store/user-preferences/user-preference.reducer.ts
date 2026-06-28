@@ -1,7 +1,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { setUserPreference } from './user-preference.actions';
-import { UserPreference } from '../../models/user-preference.model';
-import { Hood } from '../../models/hood.model';
+import { UserPreference } from '../../core/models/user-preference.model';
+import { Hood } from '../../core/models/hood.model';
 
 
 export const initialUserPref: UserPreference = {

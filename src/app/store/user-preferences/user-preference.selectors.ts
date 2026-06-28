@@ -1,5 +1,5 @@
 import { createSelector, createFeatureSelector } from '@ngrx/store';
-import { UserPreference } from '../../models/user-preference.model';
+import { UserPreference } from '../../core/models/user-preference.model';
 
 
 export const selectUserPrefState = createFeatureSelector<UserPreference>('userPref');
