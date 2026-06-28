@@ -172,6 +172,7 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--tm-text);
+  text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -201,6 +202,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 .banner-img {
@@ -234,6 +236,7 @@
 .post-location {
   font-size: 12px;
   color: var(--tm-text-secondary);
+  text-decoration: none;
 }
 
 .post-location i {

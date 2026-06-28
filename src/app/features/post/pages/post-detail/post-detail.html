@@ -1,0 +1,117 @@
+<main class="detail-page">
+  <a class="back-link" routerLink="/feed">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+    Feed
+  </a>
+
+  @if (isLoading()) {
+    <div class="skeleton-box detail-skeleton"></div>
+  } @else if (post(); as post) {
+    <section class="detail-shell">
+      <article class="detail-card">
+        <header class="detail-header">
+          <a class="avatar-link" routerLink="/profile" aria-label="Open profile">
+            <tm-avatar [username]="post.username || 'Anonymous'" [size]="44" />
+          </a>
+          <div>
+            <a routerLink="/profile">{{ post.username || 'Anonymous' }}</a>
+            <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
+              {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
+            </a>
+          </div>
+          <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost()">
+            <i class="bi bi-flag" aria-hidden="true"></i>
+          </button>
+        </header>
+
+        <div class="detail-media" [style.background]="post.tag | tagGradient">
+          @if (post.images[0]) {
+            <img [src]="post.images[0]" alt="Tag post image" />
+          } @else {
+            <span>{{ post.tag | tagEmoji }}</span>
+          }
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-actions">
+            <button type="button" [class.active]="social.isLiked(post)" (click)="toggleLike()" aria-label="Like post">
+              <i class="bi" [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
+            </button>
+            <button type="button" aria-label="Comment">
+              <i class="bi bi-chat" aria-hidden="true"></i>
+            </button>
+            <button type="button" (click)="sharePost()" aria-label="Share post">
+              <i class="bi bi-send" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="push-right" (click)="openMap()" aria-label="Open on map">
+              <i class="bi bi-map" aria-hidden="true"></i>
+            </button>
+            <button type="button" [class.active]="social.isSaved(post)" (click)="toggleSave()" aria-label="Save post">
+              <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <p class="detail-counts">{{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments</p>
+          <p class="detail-caption">
+            <strong>{{ post.username || 'Anonymous' }}</strong>
+            {{ post.highlight || 'Untitled post' }}
+          </p>
+          <span class="tm-chip">{{ post.tag | titlecase }}</span>
+        </div>
+      </article>
+
+      <section class="comments-panel tm-panel">
+        <h2>Comments</h2>
+
+        @if ((post.comments?.length || 0) === 0 && social.commentsFor(post).length === 0) {
+          <div class="comment-empty">No comments yet.</div>
+        }
+
+        @for (comment of post.comments ?? []; track comment) {
+          <div class="comment-row">
+            <strong>{{ post.username || 'Neighbor' }}</strong>
+            <span>{{ comment }}</span>
+          </div>
+        }
+
+        @for (comment of social.commentsFor(post); track comment.id) {
+          <div class="comment-row">
+            <strong>{{ comment.author }}</strong>
+            <span>{{ comment.text }}</span>
+          </div>
+        }
+
+        <form class="comment-form" (ngSubmit)="addComment()">
+          <input
+            class="tm-input"
+            name="comment"
+            placeholder="Add a comment"
+            [ngModel]="commentText()"
+            (ngModelChange)="commentText.set($event)"
+          />
+          <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!commentText().trim()">Post</button>
+        </form>
+      </section>
+
+      @if (relatedPosts().length) {
+        <section class="related-panel">
+          <h2>More #{{ post.tag | lowercase }}</h2>
+          <div class="related-grid">
+            @for (related of relatedPosts(); track social.postKey(related)) {
+              <a [routerLink]="['/posts', social.postKey(related)]" [style.background]="related.tag | tagGradient">
+                @if (related.images[0]) {
+                  <img [src]="related.images[0]" alt="" />
+                } @else {
+                  <span class="related-emoji">{{ related.tag | tagEmoji }}</span>
+                }
+                <span>{{ related.highlight || 'Untitled post' }}</span>
+              </a>
+            }
+          </div>
+        </section>
+      }
+    </section>
+  } @else {
+    <tm-empty-state icon="!" title="Post not found" subtitle="This post may have been removed." />
+  }
+</main>

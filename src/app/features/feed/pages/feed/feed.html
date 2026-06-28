@@ -1,0 +1,119 @@
+<main class="feed-page">
+  <header class="feed-header">
+    <div>
+      <p class="feed-kicker">Nearby now</p>
+      <h1>Tagmate</h1>
+    </div>
+    <a class="tm-btn tm-btn-primary" routerLink="/post" aria-label="Create post">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>
+      Post
+    </a>
+  </header>
+
+  <section class="composer tm-panel">
+    <a class="composer-avatar" routerLink="/profile" aria-label="Open profile">
+      <tm-avatar username="You" [size]="42" />
+    </a>
+    <a class="composer-input" routerLink="/post">What's happening nearby?</a>
+    <a class="tm-icon-btn" routerLink="/hood" aria-label="Open map">
+      <i class="bi bi-map" aria-hidden="true"></i>
+    </a>
+  </section>
+
+  <section class="feed-controls tm-panel" aria-label="Feed controls">
+    <div class="mode-tabs" role="tablist" aria-label="Feed modes">
+      <button type="button" [class.active]="mode() === 'forYou'" (click)="setMode('forYou')">For you</button>
+      <button type="button" [class.active]="mode() === 'nearby'" (click)="setMode('nearby')">Nearby</button>
+      <button type="button" [class.active]="mode() === 'following'" (click)="setMode('following')">Following</button>
+      <button type="button" [class.active]="mode() === 'saved'" (click)="setMode('saved')">Saved</button>
+    </div>
+
+    <label class="feed-search">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input
+        type="search"
+        placeholder="Search posts, tags, people"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+    </label>
+
+    <div class="category-strip" aria-label="Post categories">
+      @for (category of categories(); track category) {
+        <button
+          type="button"
+          [class.active]="selectedCategory() === category"
+          (click)="setCategory(category)"
+        >
+          {{ category === 'all' ? 'All' : (category | titlecase) }}
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (isLoading()) {
+    <div class="feed-skeletons">
+      <div class="skeleton-box"></div>
+      <div class="skeleton-box"></div>
+    </div>
+  } @else if (visiblePosts().length === 0) {
+    <tm-empty-state icon="◎" title="No posts here yet" subtitle="Try another filter or start the neighborhood thread." />
+  } @else {
+    <section class="post-list" aria-label="Feed posts">
+      @for (post of visiblePosts(); track postKey(post)) {
+        <article class="post-card">
+          <header class="post-card-header">
+            <a class="avatar-link" routerLink="/profile" aria-label="Open profile">
+              <tm-avatar [username]="post.username || 'Anonymous'" [size]="42" />
+            </a>
+            <div class="post-author">
+              <a [routerLink]="['/posts', postKey(post)]">{{ post.username || 'Anonymous' }}</a>
+              <a class="post-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
+              </a>
+            </div>
+            <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost(post)">
+              <i class="bi bi-three-dots" aria-hidden="true"></i>
+            </button>
+          </header>
+
+          <a class="post-media" [routerLink]="['/posts', postKey(post)]" [style.background]="post.tag | tagGradient">
+            @if (post.images[0]) {
+              <img [src]="post.images[0]" alt="Tag post image" />
+            } @else {
+              <span>{{ post.tag | tagEmoji }}</span>
+            }
+          </a>
+
+          <div class="post-body">
+            <div class="post-action-row">
+              <button type="button" [class.active]="social.isLiked(post)" (click)="toggleLike(post)" aria-label="Like post">
+                <i class="bi" [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
+              </button>
+              <a [routerLink]="['/posts', postKey(post)]" aria-label="Open comments">
+                <i class="bi bi-chat" aria-hidden="true"></i>
+              </a>
+              <button type="button" (click)="sharePost(post)" aria-label="Share post">
+                <i class="bi bi-send" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="push-right" (click)="openMap(post)" aria-label="Open on map">
+                <i class="bi bi-map" aria-hidden="true"></i>
+              </button>
+              <button type="button" [class.active]="social.isSaved(post)" (click)="toggleSave(post)" aria-label="Save post">
+                <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <p class="post-counts">{{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments</p>
+            <p class="post-caption">
+              <strong>{{ post.username || 'Anonymous' }}</strong>
+              {{ post.highlight || 'Untitled post' }}
+            </p>
+            <a class="post-tag" [routerLink]="['/posts', postKey(post)]">#{{ post.tag | lowercase }}</a>
+          </div>
+        </article>
+      }
+    </section>
+  }
+</main>

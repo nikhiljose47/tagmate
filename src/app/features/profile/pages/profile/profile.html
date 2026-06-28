@@ -51,6 +51,11 @@
           <span class="stat-num"><i class="bi bi-geo-alt-fill text-sm"></i></span>
           <span class="stat-label">Neighborhood</span>
         </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">{{ savedCount() }}</span>
+          <span class="stat-label">Saved</span>
+        </div>
       </div>
     </div>
 
@@ -116,8 +121,26 @@
       }
 
       <!-- Saved Tab -->
-      @if (activeTab() === 'saved') {
+      @if (activeTab() === 'saved' && savedTags().length === 0) {
         <tm-empty-state icon="🔖" title="Nothing saved yet" subtitle="Your saved posts will appear here." />
+      }
+
+      @if (activeTab() === 'saved' && savedTags().length > 0) {
+        <div class="posts-grid">
+          @for (tag of savedTags(); track social.postKey(tag)) {
+            <a class="post-card saved-card" [routerLink]="['/posts', social.postKey(tag)]" [style.background]="tag.tag | tagGradient">
+              @if (tag.images[0]) {
+                <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" />
+              } @else {
+                <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+              }
+              <div class="post-card-overlay">
+                <p class="post-card-text">{{ tag.highlight }}</p>
+                <span class="saved-tag">#{{ tag.tag }}</span>
+              </div>
+            </a>
+          }
+        </div>
       }
 
       <!-- Settings Tab -->

@@ -1,0 +1,87 @@
+<main class="neighborhood-page">
+  <a class="back-link" routerLink="/feed">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+    Feed
+  </a>
+
+  <header class="hood-header tm-panel">
+    <div>
+      <p>Neighborhood</p>
+      <h1>{{ name }}</h1>
+      <span>{{ neighborhoodPosts().length }} posts · {{ tagCounts().length }} active tags</span>
+    </div>
+    <button class="tm-btn tm-btn-primary" type="button" (click)="openMap()">
+      <i class="bi bi-map" aria-hidden="true"></i>
+      Map
+    </button>
+  </header>
+
+  <section class="hood-stats" aria-label="Neighborhood stats">
+    <div class="tm-panel">
+      <strong>{{ neighborhoodPosts().length }}</strong>
+      <span>Posts</span>
+    </div>
+    <div class="tm-panel">
+      <strong>{{ contributors().length }}</strong>
+      <span>People</span>
+    </div>
+    <div class="tm-panel">
+      <strong>{{ (tagCounts()[0]?.[0] || 'None') | titlecase }}</strong>
+      <span>Top tag</span>
+    </div>
+  </section>
+
+  @if (tagCounts().length) {
+    <section class="hood-section tm-panel">
+      <h2>Active Tags</h2>
+      <div class="tag-list">
+        @for (tag of tagCounts(); track tag[0]) {
+          <span class="tm-chip">#{{ tag[0] }} · {{ tag[1] }}</span>
+        }
+      </div>
+    </section>
+  }
+
+  @if (contributors().length) {
+    <section class="hood-section tm-panel">
+      <h2>Contributors</h2>
+      <div class="people-list">
+        @for (person of contributors(); track person[0]) {
+          <div>
+            <span class="person-avatar">{{ person[0].slice(0, 1) }}</span>
+            <span>{{ person[0] }}</span>
+            <small>{{ person[1] }} posts</small>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="hood-feed" aria-label="Neighborhood posts">
+    @if (isLoading()) {
+      <div class="skeleton-box h-24"></div>
+    } @else {
+      @for (post of neighborhoodPosts(); track social.postKey(post)) {
+        <article class="hood-post">
+          <div class="hood-post-media" [style.background]="post.tag | tagGradient">
+            @if (post.images[0]) {
+              <img [src]="post.images[0]" alt="" />
+            } @else {
+              <span>{{ post.tag | tagEmoji }}</span>
+            }
+          </div>
+          <div>
+            <a [routerLink]="['/posts', social.postKey(post)]">{{ post.highlight || 'Untitled post' }}</a>
+            <p>{{ post.username || 'Anonymous' }} · #{{ post.tag }}</p>
+            <button class="tm-btn" type="button" (click)="openMap(post)">
+              <i class="bi bi-geo-alt" aria-hidden="true"></i>
+              Map
+            </button>
+          </div>
+        </article>
+      } @empty {
+        <div class="tm-panel empty-hood">No posts in this neighborhood yet.</div>
+      }
+    }
+  </section>
+</main>

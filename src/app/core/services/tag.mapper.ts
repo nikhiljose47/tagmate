@@ -14,6 +14,9 @@ export interface TagRow {
   images: string[];
   hood_id?: string;
   country?: string;
+  loves?: number;
+  dislikes?: number;
+  comments?: string[];
 }
 
 /** Converts a domain Tag into a Supabase row for insert/update. */
@@ -30,6 +33,9 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     images:     tag.images,
     hood_id:    tag.hoodId,
     country:    tag.country,
+    loves:      tag.loves,
+    dislikes:   tag.dislikes,
+    comments:   tag.comments,
   };
 }
 
@@ -48,5 +54,8 @@ export function rowToTag(row: TagRow): Tag {
     images:    row.images,
     hoodId:    row.hood_id,
     country:   row.country,
+    loves:     row.loves,
+    dislikes:  row.dislikes,
+    comments:  row.comments,
   };
 }

@@ -10,6 +10,7 @@ export interface BoundingBox {
 
 export interface ITagRepository {
   getAll(): Observable<Tag[]>;
+  getById(id: string): Observable<Tag | null>;
   getByUserId(userId: string): Observable<Tag[]>;
   getInBounds(box: BoundingBox): Observable<Tag[]>;
   create(tag: Omit<Tag, 'id'>): Observable<Tag>;
