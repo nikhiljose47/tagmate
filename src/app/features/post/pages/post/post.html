@@ -1,8 +1,8 @@
-<div class="post-page flex justify-center px-3 py-4">
+<div class="post-page">
   <form
     #f="ngForm"
     (ngSubmit)="onSubmit(f)"
-    class="post-form w-full max-w-[560px]"
+    class="post-form"
     novalidate
   >
     <!-- Author -->
@@ -14,7 +14,7 @@
         width="44"
         height="44"
       />
-      <div class="min-w-0">
+      <div class="author-info">
         <p class="author-name">{{ user.name }}</p>
         <p class="author-sub">What's happening in your hood?</p>
       </div>
@@ -30,25 +30,52 @@
       rows="3"
     ></textarea>
 
-    <!-- Image Upload -->
-    <div class="img-section">
-      <div class="img-grid">
-        @for (img of formData.images; track img; let i = $index) {
-          <div class="img-tile">
-            <img [src]="img" alt="Selected" class="img-thumb" />
+    <!-- Media Grid (images + videos) -->
+    <div class="media-section">
+      <div class="media-grid">
+
+        <!-- Existing media tiles -->
+        @for (item of mediaItems(); track item.previewUrl; let i = $index) {
+          <div class="media-tile" [class.media-tile--video]="isVideo(item)">
+
+            @if (isVideo(item)) {
+              <!-- Video preview with native controls -->
+              <video
+                [src]="item.previewUrl"
+                class="media-thumb"
+                muted
+                playsinline
+                preload="metadata"
+              ></video>
+              <span class="media-badge">
+                <i class="bi bi-play-circle-fill"></i>
+              </span>
+            } @else {
+              <img [src]="item.previewUrl" alt="Preview" class="media-thumb" />
+            }
+
             <button
               type="button"
-              class="img-remove"
-              aria-label="Remove image"
-              (click)="removeImage(i)"
+              class="media-remove"
+              aria-label="Remove"
+              (click)="removeMedia(i)"
             >&times;</button>
           </div>
         }
-        @if (formData.images.length < 3) {
-          <label class="img-add">
-            <i class="bi bi-image text-2xl text-slate-400"></i>
-            <span class="text-xs text-slate-400 mt-1">Add photo</span>
-            <input type="file" (change)="onImageSelect($event)" accept="image/*" hidden />
+
+        <!-- Add media button -->
+        @if (canAddMore()) {
+          <label class="media-add" [attr.aria-label]="'Add photo or video (' + mediaItems().length + '/' + maxMedia + ')'">
+            <i class="bi bi-plus-circle media-add-icon"></i>
+            <span class="media-add-label">Photo / Video</span>
+            <span class="media-add-count">{{ mediaItems().length }}/{{ maxMedia }}</span>
+            <input
+              type="file"
+              (change)="onFileSelect($event)"
+              accept="image/*,video/*"
+              multiple
+              hidden
+            />
           </label>
         }
       </div>
@@ -80,8 +107,8 @@
 
     <!-- Location -->
     <div class="location-row">
-      <div class="location-display">
-        <i class="bi bi-geo-alt-fill text-tm-primary"></i>
+      <div class="location-display" [class.location-display--set]="!!shared.text()">
+        <i class="bi bi-geo-alt-fill"></i>
         <span>{{ shared.text() || 'No location selected' }}</span>
       </div>
       <div class="location-btns">
@@ -94,13 +121,18 @@
       </div>
     </div>
 
+    <!-- Inline Preview Card -->
     @if (showPreview()) {
       <div class="preview-card">
-        <div class="preview-img" [style.background]="formData.images[0] ? '' : '#e0e7ff'">
-          @if (formData.images[0]) {
-            <img [src]="formData.images[0]" alt="Preview" />
+        <div class="preview-thumb">
+          @if (mediaItems()[0]) {
+            @if (isVideo(mediaItems()[0])) {
+              <video [src]="mediaItems()[0].previewUrl" class="preview-media" muted playsinline preload="metadata"></video>
+            } @else {
+              <img [src]="mediaItems()[0].previewUrl" alt="Preview" class="preview-media" />
+            }
           } @else {
-            <i class="bi bi-image text-3xl text-slate-400"></i>
+            <i class="bi bi-image text-3xl" style="color:#94a3b8"></i>
           }
         </div>
         <div class="preview-info">
@@ -111,17 +143,31 @@
       </div>
     }
 
-    <!-- Actions -->
+    <!-- Footer actions -->
     <div class="form-foot">
-      <button type="button" class="foot-action" (click)="togglePreview()">
-        <i class="bi bi-eye"></i>
+      <button
+        type="button"
+        class="foot-action"
+        [class.foot-action--active]="showPreview()"
+        (click)="togglePreview()"
+        aria-label="Toggle preview"
+      >
+        <i class="bi" [class]="showPreview() ? 'bi-eye-fill' : 'bi-eye'"></i>
       </button>
-      <button type="button" class="foot-action danger" (click)="onDiscard()">
+      <button type="button" class="foot-action foot-action--danger" (click)="onDiscard()" aria-label="Discard">
         <i class="bi bi-trash"></i>
       </button>
-      <button type="submit" class="post-btn" [disabled]="!f.valid || isSubmitting">
-        @if (!isSubmitting) { <i class="bi bi-send-fill"></i> Post }
-        @else { Posting... }
+
+      <button
+        type="submit"
+        class="post-btn"
+        [disabled]="!f.valid || isSubmitting()"
+      >
+        @if (isSubmitting()) {
+          <span class="post-spinner"></span> Posting…
+        } @else {
+          <i class="bi bi-send-fill"></i> Post
+        }
       </button>
     </div>
   </form>

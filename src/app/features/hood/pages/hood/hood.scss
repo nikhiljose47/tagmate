@@ -179,21 +179,23 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* --- MULTIPLIER BUTTON BOX (Segmented Control) --- */
+/* --- ZOOM LEVEL SELECTOR (vertical, right side, above MapLibre +/-) --- */
 .multi-box {
   position: absolute;
-  top: 52px;
-  left: 12px;
+  /* Sit above MapLibre's NavigationControl (~70px tall) with a small gap */
+  bottom: 90px;
+  right: 10px;
   z-index: 2000;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding: 4px;
   border-radius: 12px;
   box-shadow: var(--tm-shadow-sm);
   display: flex;
+  flex-direction: column;
   gap: 2px;
-  animation: slideRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes slideRight {
@@ -201,16 +203,24 @@
   to { transform: translateX(0); opacity: 1; }
 }
 
+@keyframes slideLeft {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 .switch-btn {
   background: transparent;
   border: none;
-  padding: 6px 12px;
+  padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
   border-radius: 8px;
   color: var(--tm-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: nowrap;
 }
 
 .switch-btn:hover {
@@ -327,12 +337,12 @@
   }
 
   .multi-box {
-    top: 56px;
-    left: 8px;
+    bottom: 86px;
+    right: 8px;
   }
 
   .switch-btn {
-    padding: 5px 10px;
+    padding: 7px 12px;
   }
 
   .search-box {
@@ -376,12 +386,12 @@
   }
 
   .multi-box {
-    max-width: calc(100vw - 16px);
-    overflow-x: auto;
+    bottom: 82px;
+    right: 6px;
   }
 
   .switch-btn {
-    padding-inline: 9px;
+    padding: 7px 10px;
   }
 
   .search-box {

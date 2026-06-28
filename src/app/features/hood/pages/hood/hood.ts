@@ -42,8 +42,8 @@ const INDIVIDUAL_POSTS_LAYER = 'individual-posts';
 const HOOD_SOURCE           = 'hood-source';
 const HOOD_FILL_LAYER       = 'hood-fill';
 const HOOD_LINE_LAYER       = 'hood-line';
-const DEFAULT_ZOOM          = 12;
-const ZOOM_LEVELS           = [7, 10, 12, 16] as const;
+const DEFAULT_ZOOM          = 15;
+const ZOOM_LEVELS           = [7, 10, 12, 15] as const;
 
 interface MapPost extends Tag {
   title?: string;

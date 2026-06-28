@@ -1,13 +1,20 @@
 .post-page {
   width: 100%;
+  min-height: 100dvh;
   background: var(--tm-bg);
+  display: flex;
+  justify-content: center;
+  padding: 16px 12px;
 }
 
 .post-form {
+  width: 100%;
+  max-width: 560px;
   background: #fff;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 8px 32px rgba(15,23,42,0.08);
+  align-self: flex-start;
 }
 
 /* ── Author ─────────────────────────────── */
@@ -26,6 +33,8 @@
   flex-shrink: 0;
   border: 2px solid #e2e8f0;
 }
+
+.author-info { min-width: 0; }
 
 .author-name {
   margin: 0 0 2px;
@@ -55,39 +64,58 @@
   resize: none;
   outline: none;
   font-family: inherit;
+  box-sizing: border-box;
 
   &::placeholder { color: #94a3b8; }
   &:focus { border-bottom-color: var(--tm-primary); }
 }
 
-/* ── Images ─────────────────────────────── */
-.img-section {
+/* ── Media grid ─────────────────────────── */
+.media-section {
   padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.img-grid {
+.media-grid {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.img-tile {
+/* Individual tile (image or video) */
+.media-tile {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
+  background: #f1f5f9;
+
+  /* Subtle ring to separate from background */
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
 }
 
-.img-thumb {
+.media-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-.img-remove {
+/* Video-specific badge so user knows it's a video */
+.media-badge {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  font-size: 16px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.media-remove {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -95,33 +123,61 @@
   height: 22px;
   border-radius: 50%;
   border: none;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.55);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
   display: grid;
   place-items: center;
   backdrop-filter: blur(4px);
+  transition: background 0.15s;
+
+  &:hover { background: rgba(220,38,38,0.8); }
 }
 
-.img-add {
+/* "Add" button */
+.media-add {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
+  gap: 3px;
+  width: 88px;
+  height: 88px;
   border-radius: 12px;
   border: 1.5px dashed #cbd5e1;
   background: #f8fafc;
   cursor: pointer;
-  transition: 0.15s;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
 
   &:hover {
     border-color: var(--tm-primary);
     background: rgba(99,102,241,0.05);
+
+    .media-add-icon { color: var(--tm-primary); }
   }
+}
+
+.media-add-icon {
+  font-size: 22px;
+  color: #94a3b8;
+  transition: color 0.15s;
+}
+
+.media-add-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.media-add-count {
+  font-size: 10px;
+  color: #cbd5e1;
+  font-weight: 500;
 }
 
 /* ── Meta row ───────────────────────────── */
@@ -132,8 +188,6 @@
   padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
 }
-
-.meta-field {}
 
 .meta-label {
   display: block;
@@ -159,12 +213,23 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--tm-text-secondary);
+  color: #94a3b8;
   font-weight: 500;
   padding: 8px 12px;
   background: #f8fafc;
   border-radius: 10px;
   min-height: 38px;
+  border: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+
+  /* When a location is actually set, make it stand out */
+  &.location-display--set {
+    color: var(--tm-text);
+    border-color: rgba(99,102,241,0.2);
+    background: rgba(99,102,241,0.04);
+
+    i { color: var(--tm-primary); }
+  }
 }
 
 .location-btns {
@@ -193,7 +258,7 @@
   }
 }
 
-/* ── Preview ────────────────────────────── */
+/* ── Inline Preview ─────────────────────── */
 .preview-card {
   display: grid;
   grid-template-columns: 72px 1fr;
@@ -203,15 +268,21 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
-.preview-img {
+.preview-thumb {
   width: 72px;
   height: 72px;
   border-radius: 10px;
   overflow: hidden;
   display: grid;
   place-items: center;
+  background: #e2e8f0;
+}
 
-  img { width: 100%; height: 100%; object-fit: cover; }
+.preview-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .preview-tag {
@@ -259,11 +330,29 @@
   font-size: 16px;
   cursor: pointer;
   transition: 0.15s;
+  flex-shrink: 0;
+
+  /* No browser default active/pressed look */
+  -webkit-appearance: none;
+  appearance: none;
 
   &:hover { border-color: #cbd5e1; color: var(--tm-text); }
-  &.danger:hover { border-color: #fca5a5; color: var(--tm-danger); background: #fef2f2; }
+
+  /* Active state for the preview toggle */
+  &.foot-action--active {
+    border-color: var(--tm-primary);
+    color: var(--tm-primary);
+    background: rgba(99,102,241,0.08);
+  }
+
+  &.foot-action--danger:hover {
+    border-color: #fca5a5;
+    color: var(--tm-danger);
+    background: #fef2f2;
+  }
 }
 
+/* Post button — no :active transform so it never looks "stuck" */
 .post-btn {
   display: inline-flex;
   align-items: center;
@@ -277,14 +366,40 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: 0.15s;
+  transition: background 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Suppress sticky tap-highlight on iOS/Android */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 
-  &:hover:not(:disabled) { background: var(--tm-primary-hover); }
-  &:disabled { opacity: 0.55; cursor: not-allowed; }
+  &:hover:not(:disabled) { background: var(--tm-primary-hover, #4f46e5); }
+
+  /* Grey out clearly — avoids the "faded blue = pressed" visual confusion */
+  &:disabled {
+    background: #cbd5e1;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
 }
 
+/* Spinner inside the post button while submitting */
+.post-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Mobile ─────────────────────────────── */
 @media (max-width: 520px) {
-  .post-page { padding: 0 !important; }
-  .post-form { border-radius: 0; box-shadow: none; min-height: 100dvh; }
-  .meta-row { grid-template-columns: 1fr; }
+  .post-page { padding: 0; }
+  .post-form { border-radius: 0; box-shadow: none; }
+  .meta-row  { grid-template-columns: 1fr; }
 }

@@ -11,7 +11,7 @@ import { provideStore } from '@ngrx/store';
 
 import { routes } from './app.routes';
 import { toggleReducer } from './store/toggle/toggle.state';
-import { userPrefReducer } from './store/user-preferences/user-preference.reducer';
+import { userPrefReducer, hoodPersistMetaReducer } from './store/user-preferences/user-preference.reducer';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
@@ -30,10 +30,10 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideClientHydration(withEventReplay()),
-    provideStore({
-      toggle: toggleReducer,
-      userPref: userPrefReducer,
-    }),
+    provideStore(
+      { toggle: toggleReducer, userPref: userPrefReducer },
+      { metaReducers: [hoodPersistMetaReducer] }
+    ),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     { provide: TAG_REPOSITORY,  useClass: SupabaseTagRepository  },
     { provide: USER_REPOSITORY, useClass: SupabaseUserRepository },
