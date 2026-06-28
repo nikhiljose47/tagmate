@@ -15,6 +15,12 @@ export class SupabaseTagRepository implements ITagRepository {
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
+  getById(id: string): Observable<Tag | null> {
+    return this.supabase
+      .getRow<TagRow>('tags', id)
+      .pipe(map(({ data }) => (data ? rowToTag(data) : null)));
+  }
+
   getByUserId(userId: string): Observable<Tag[]> {
     return this.supabase
       .getRows<TagRow>('tags', { field: 'user_id', op: '==', value: userId })

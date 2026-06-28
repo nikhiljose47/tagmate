@@ -11,4 +11,7 @@ export interface Tag {
   images: string[];
   hoodId?: string;
   country?: string;
+  loves?: number;
+  dislikes?: number;
+  comments?: string[];
 }

@@ -1,0 +1,259 @@
+.feed-page {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 16px 12px 20px;
+}
+
+.feed-header,
+.post-card-header,
+.composer,
+.post-action-row {
+  display: flex;
+  align-items: center;
+}
+
+.feed-header {
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.feed-kicker {
+  margin: 0 0 2px;
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.feed-header h1 {
+  margin: 0;
+  color: var(--tm-text);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 850;
+}
+
+.composer {
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.composer-avatar,
+.avatar-link {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.composer-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 0 14px;
+  color: var(--tm-muted);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.feed-controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px;
+}
+
+.mode-tabs,
+.category-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.mode-tabs::-webkit-scrollbar,
+.category-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.mode-tabs button,
+.category-strip button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 14px;
+  color: var(--tm-text-secondary);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.mode-tabs button.active,
+.category-strip button.active {
+  border-color: rgba(79, 70, 229, 0.25);
+  background: #eef2ff;
+  color: var(--tm-primary);
+}
+
+.feed-search {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--tm-radius);
+  background: #fff;
+  padding: 0 12px;
+  color: var(--tm-muted);
+}
+
+.feed-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--tm-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.post-list,
+.feed-skeletons {
+  display: grid;
+  gap: 14px;
+}
+
+.feed-skeletons .skeleton-box {
+  height: 420px;
+}
+
+.post-card {
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: var(--tm-radius);
+  background: #fff;
+  box-shadow: var(--tm-shadow-sm);
+}
+
+.post-card-header {
+  gap: 10px;
+  min-height: 62px;
+  padding: 10px 12px;
+}
+
+.post-author {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.post-author a:first-child {
+  color: var(--tm-text);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.post-location {
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.post-media {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #f1f5f9;
+  color: #fff;
+  font-size: 68px;
+  text-decoration: none;
+}
+
+.post-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-body {
+  padding: 10px 12px 14px;
+}
+
+.post-action-row {
+  gap: 4px;
+  min-height: 38px;
+}
+
+.post-action-row button,
+.post-action-row a {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tm-text);
+  font-size: 21px;
+  text-decoration: none;
+}
+
+.post-action-row button.active {
+  color: var(--tm-primary);
+}
+
+.post-action-row .push-right {
+  margin-left: auto;
+}
+
+.post-counts {
+  margin: 4px 0 6px;
+  color: var(--tm-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.post-caption {
+  margin: 0 0 8px;
+  color: var(--tm-text);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.post-tag {
+  color: var(--tm-primary);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 520px) {
+  .feed-page {
+    padding: 12px 10px 16px;
+  }
+
+  .feed-header h1 {
+    font-size: 26px;
+  }
+
+  .post-media {
+    aspect-ratio: 1 / 1;
+  }
+}

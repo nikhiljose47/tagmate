@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
@@ -8,6 +8,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SharedStateService } from '../../../../core/services/shared-state.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
@@ -19,7 +20,7 @@ type ProfileTab = 'posts' | 'saved' | 'settings';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, TagGradientPipe, TagEmojiPipe, EmptyStateComponent],
+  imports: [CommonModule, RouterLink, TagGradientPipe, TagEmojiPipe, EmptyStateComponent],
   templateUrl: './profile.html',
   styleUrls: ['./profile.scss'],
 })
@@ -30,6 +31,7 @@ export class ProfilePage implements OnInit {
   private readonly toast   = inject(ToastService);
   private readonly shared  = inject(SharedStateService);
   private readonly logger  = inject(LoggerService);
+  protected readonly social = inject(SocialInteractionsService);
 
   readonly user$          = this.auth.user$;
   readonly coverGradient  = coverGradient;
@@ -39,8 +41,15 @@ export class ProfilePage implements OnInit {
   isLoading  = true;
   activeTab  = signal<ProfileTab>('posts');
   editMode   = signal(false);
+  allTags    = signal<Tag[]>([]);
+  savedTags  = computed(() => this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)));
 
   ngOnInit(): void {
+    this.tagRepo.getAll().subscribe({
+      next: (tags) => this.allTags.set(tags),
+      error: (err) => this.logger.error('Failed to load saved posts', err),
+    });
+
     this.auth.user$.subscribe((user) => {
       if (user.isGuest) {
         this.myTags$  = of([]);
@@ -77,6 +86,7 @@ export class ProfilePage implements OnInit {
   toggleEditProfile(): void         { this.editMode.update((v) => !v); }
   saveProfile(): void               { this.editMode.set(false); this.toast.show('Profile saved.', 'success'); }
   saveSettings(): void              { this.toast.show('Settings saved.', 'success'); }
+  savedCount(): number              { return this.savedTags().length; }
 
   viewOnMap(tag: Tag): void {
     this.shared.updateCoordinates(tag.lat, tag.lng);

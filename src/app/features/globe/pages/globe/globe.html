@@ -98,7 +98,7 @@
           <div class="card-head">
             <tm-avatar [username]="card.username || 'Anonymous'" [size]="38" />
             <div class="user-info">
-              <span class="user-name">{{ card.username || 'Anonymous' }}</span>
+              <a class="user-name" [routerLink]="['/posts', cardKey(card)]">{{ card.username || 'Anonymous' }}</a>
               <span class="post-time">{{ card.createdAt | timeAgo }}</span>
             </div>
             <span class="tag-badge">{{ card.tag | tagEmoji }} {{ card.tag | titlecase }}</span>
@@ -107,6 +107,7 @@
           <!-- Banner: image or gradient -->
           <div
             class="card-banner"
+            [routerLink]="['/posts', cardKey(card)]"
             [style.background]="hasBanner(card) ? (card.tag | tagGradient) : 'transparent'"
           >
             @if (!hasBanner(card)) {
@@ -125,9 +126,9 @@
           <div class="card-body">
             <p class="post-text">{{ card.highlight || 'Untitled post' }}</p>
             @if (card.hoodId) {
-              <span class="post-location">
+              <a class="post-location" [routerLink]="['/neighborhood', neighborhoodSlug(card)]">
                 <i class="bi bi-geo-alt-fill"></i> {{ card.hoodId }}
-              </span>
+              </a>
             }
           </div>
 
@@ -135,12 +136,12 @@
           <div class="card-foot">
             <button
               class="act-btn"
-              [class.liked]="likedCards().has(cardKey(card))"
+              [class.liked]="social.isLiked(card)"
               type="button"
               (click)="toggleLike(card)"
               aria-label="Like"
             >
-              <i class="bi" [ngClass]="likedCards().has(cardKey(card)) ? 'bi-heart-fill' : 'bi-heart'"></i>
+              <i class="bi" [ngClass]="social.isLiked(card) ? 'bi-heart-fill' : 'bi-heart'"></i>
             </button>
             <button class="act-btn" type="button" (click)="comment(card)" aria-label="Comment">
               <i class="bi bi-chat"></i>
@@ -150,12 +151,12 @@
             </button>
             <button
               class="act-btn"
-              [class.saved]="savedCards().has(cardKey(card))"
+              [class.saved]="social.isSaved(card)"
               type="button"
               (click)="toggleSave(card)"
               aria-label="Save"
             >
-              <i class="bi" [ngClass]="savedCards().has(cardKey(card)) ? 'bi-bookmark-fill' : 'bi-bookmark'"></i>
+              <i class="bi" [ngClass]="social.isSaved(card) ? 'bi-bookmark-fill' : 'bi-bookmark'"></i>
             </button>
             <button class="act-btn" type="button" (click)="openOnMap(card)" aria-label="View on map">
               <i class="bi bi-map"></i>
