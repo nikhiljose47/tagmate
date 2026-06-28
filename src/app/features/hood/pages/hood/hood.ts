@@ -11,8 +11,9 @@ import {
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, map, of, Subject, switchMap, takeUntil } from 'rxjs';
+import { catchError, debounceTime, map, of, Subject, switchMap, take, takeUntil } from 'rxjs';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import type {
   GeoJSONSource,
@@ -33,6 +34,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { PlaceBoundary, Utils } from '../../../../core/services/utils.service';
 import { setUserPreference } from '../../../../store/user-preferences/user-preference.actions';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
+import { PreloadService } from '../../../../core/services/preload.service';
 
 // MapLibre source/layer IDs kept as module-level constants for clarity.
 const POSTS_SOURCE          = 'posts-source';
@@ -44,6 +46,8 @@ const HOOD_FILL_LAYER       = 'hood-fill';
 const HOOD_LINE_LAYER       = 'hood-line';
 const DEFAULT_ZOOM          = 15;
 const ZOOM_LEVELS           = [7, 10, 12, 15] as const;
+
+type MapStyleKey = 'streets' | 'satellite' | 'hybrid' | 'outdoor';
 
 interface MapPost extends Tag {
   title?: string;
@@ -95,10 +99,13 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private readonly http    = inject(HttpClient);
   private readonly ngZone  = inject(NgZone);
+  private readonly router  = inject(Router);
+  private readonly route   = inject(ActivatedRoute);
   private readonly state   = inject(SharedStateService);
   private readonly store   = inject(Store);
   private readonly toast   = inject(ToastService);
   private readonly supabase = inject(SupabaseService);
+  private readonly preload  = inject(PreloadService);
 
   private readonly destroy$        = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -113,21 +120,33 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private temporaryMarker?: Marker;
   private resizeObserver?: ResizeObserver;
   private locationSelectionEnabled = false;
-  private mapErrorShown = false;
+  private mapErrorShown            = false;
+  private mapInitialized           = false;
 
   private readonly postsCache   = new globalThis.Map<string, { posts: MapPost[]; ts: number }>();
   private readonly reverseCache = new globalThis.Map<string, string>();
   private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
 
   isSearching      = signal(false);
-  postMode         = signal(false);
   countryMode      = signal(false);
   showInfo         = signal(false);
   showMapFilters   = signal(false);
   showLayerMenu    = signal(false);
+  showStylePanel   = signal(false);
   postsVisible     = signal(true);
   boundaryVisible  = signal(true);
+  /** True when opened from the Post page via ?pick=1 */
+  pickMode         = signal(false);
+  /** True once the user has tapped the map in pick mode */
+  locationPicked   = signal(false);
+  currentStyle     = signal<MapStyleKey>('streets');
   readonly zoomLevels = ZOOM_LEVELS;
+  readonly MAP_STYLES: { key: MapStyleKey; label: string }[] = [
+    { key: 'streets',   label: 'Streets'   },
+    { key: 'satellite', label: 'Satellite' },
+    { key: 'hybrid',    label: 'Hybrid'    },
+    { key: 'outdoor',   label: 'Outdoor'   },
+  ];
   selected = signal(DEFAULT_ZOOM);
   hood     = this.store.selectSignal(selectHood);
 
@@ -136,6 +155,15 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (!this.supportsWebGl()) {
       this.showUserError('This browser cannot start the map because WebGL is unavailable.');
       return;
+    }
+
+    const isPick =
+      this.route.snapshot.queryParamMap.get('pick') === '1' ||
+      new URLSearchParams(window.location.search).get('pick') === '1' ||
+      this.state.pickModeActive();
+    if (isPick) {
+      this.pickMode.set(true);
+      this.state.pickModeActive.set(false);
     }
 
     this.registerViewportRequests();
@@ -168,11 +196,27 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   toggleMapFilters(): void {
     this.showMapFilters.update((v) => !v);
     this.showLayerMenu.set(false);
+    this.showStylePanel.set(false);
   }
 
   toggleLayerMenu(): void {
     this.showLayerMenu.update((v) => !v);
     this.showMapFilters.set(false);
+    this.showStylePanel.set(false);
+  }
+
+  toggleStylePanel(): void {
+    this.showStylePanel.update((v) => !v);
+    this.showLayerMenu.set(false);
+    this.showMapFilters.set(false);
+  }
+
+  setMapStyle(styleKey: MapStyleKey): void {
+    this.showStylePanel.set(false);
+    if (this.currentStyle() === styleKey || !this.map) return;
+    this.currentStyle.set(styleKey);
+    // The 'style.load' handler in initializeMap() re-adds all sources/layers automatically.
+    this.ngZone.runOutsideAngular(() => this.map!.setStyle(this.getStyleUrl(styleKey)));
   }
 
   togglePostsLayer(): void {
@@ -252,14 +296,13 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     const cached = this.reverseCache.get(key);
     if (cached) { this.state.updateText(cached); return; }
 
+    // Use take(1) so the HTTP request completes even if the user navigates
+    // away (clicking Done) before the reverse-geocoding response arrives.
     this.http
       .get<{ display_name?: string }>(`/api/nominatim/reverse?lat=${lat}&lon=${lon}`)
       .pipe(
-        takeUntil(this.destroy$),
-        catchError((err: unknown) => {
-          this.showUserError('Could not resolve the selected address.');
-          return of({ display_name: undefined });
-        })
+        take(1),
+        catchError(() => of({ display_name: undefined }))
       )
       .subscribe((res) => {
         const name = res.display_name ?? 'Unknown location';
@@ -300,14 +343,44 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     this.map.addControl(new this.maplibre.NavigationControl({ showCompass: false }), 'bottom-right');
 
-    this.map.on('load', () => {
+    // 'style.load' fires as soon as the style JSON + sprites are ready —
+    // no tile rendering required. This means it fires even in headless/offscreen
+    // environments. It also re-fires after setStyle() calls, letting us
+    // rebuild sources/layers automatically on map style switches.
+    // 'style.load' fires as soon as the style JSON + sprites are ready —
+    // no tile rendering required. This means it fires even in headless/offscreen
+    // environments. It also re-fires after setStyle() calls, letting us
+    // rebuild sources/layers automatically on map style switches.
+    this.map.on('style.load', () => {
+      const firstLoad = !this.mapInitialized;
+      if (firstLoad) {
+        this.mapInitialized = true;
+        this.registerMapEvents();
+        this.syncSelectedZoom();
+        this.map?.resize();
+      }
+
+      // Re-add sources/layers on every style load (initial + after setStyle).
       this.addBoundarySourceAndLayers();
       this.addPostSourceAndLayers();
-      this.registerMapEvents();
       void this.setBoundary(this.hood().name, false);
       this.loadVisiblePosts();
-      this.syncSelectedZoom();
-      this.map?.resize();
+
+      // Instantly paint pre-fetched markers on first load.
+      if (firstLoad) {
+        const preloaded = this.preload.getHoodPosts();
+        if (preloaded?.length) {
+          this.updatePostSource(preloaded as MapPost[]);
+          const b   = this.map!.getBounds();
+          const key = `${b.getWest().toFixed(2)},${b.getSouth().toFixed(2)},${b.getEast().toFixed(2)},${b.getNorth().toFixed(2)}`;
+          this.postsCache.set(key, { posts: preloaded as MapPost[], ts: Date.now() });
+        }
+      }
+
+      // Enable pick mode cursor + click handling as soon as style is ready.
+      if (this.pickMode() && !this.locationSelectionEnabled) {
+        this.enableLocationSelection();
+      }
     });
 
     this.map.on('error', (event) => {
@@ -574,7 +647,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       this.setTemporaryMarker(lng, lat);
       this.state.updateCoordinates(lat, lng);
       this.getAddressFromCoords(lat, lng);
+      if (this.pickMode()) this.locationPicked.set(true);
     });
+  }
+
+  donePickingLocation(): void {
+    void this.router.navigate(['/post']);
   }
 
   private async handleClusterClick(event: MapLayerMouseEvent): Promise<void> {
@@ -682,8 +760,20 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     } catch { return false; }
   }
 
+  private getStyleUrl(style: MapStyleKey): string {
+    const key = environment.mapTilerApiKey;
+    const urls: Record<MapStyleKey, string> = {
+      streets:   `https://api.maptiler.com/maps/streets-v4/style.json?key=${key}`,
+      satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${key}`,
+      hybrid:    `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`,
+      outdoor:   `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`,
+    };
+    return urls[style];
+  }
+
   private cleanupMap(): void {
     this.disableLocationSelection();
+    this.mapInitialized = false;
     this.resizeObserver?.disconnect();
     this.temporaryMarker?.remove();
     this.temporaryMarker = undefined;

@@ -65,6 +65,9 @@
       <button class="tool-btn" type="button" title="Layers" aria-label="Map layers" (click)="toggleLayerMenu()">
         <i class="bi bi-layers" aria-hidden="true"></i>
       </button>
+      <button class="tool-btn" [class.tool-btn--active]="showStylePanel()" type="button" title="Map style" aria-label="Map style" (click)="toggleStylePanel()">
+        <i class="bi bi-map" aria-hidden="true"></i>
+      </button>
       <button class="tool-btn" type="button" title="Refresh" aria-label="Refresh map" (click)="refreshMap()">
         <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
       </button>
@@ -107,6 +110,22 @@
         </div>
       }
 
+      @if (showStylePanel()) {
+        <div class="map-panel tm-panel style-panel">
+          <p class="style-panel-title">Map Style</p>
+          @for (style of MAP_STYLES; track style.key) {
+            <button
+              class="style-btn"
+              type="button"
+              [class.style-btn--active]="currentStyle() === style.key"
+              (click)="setMapStyle(style.key)"
+            >
+              {{ style.label }}
+            </button>
+          }
+        </div>
+      }
+
       <div class="search-box flex items-center gap-2">
         <button
           class="btn-icon"
@@ -143,6 +162,22 @@
             }
           </button>
         </div>
+
+        <!-- Pick-location banner (shown when opened from Post with ?pick=1) -->
+        @if (pickMode()) {
+          <div class="pick-banner" [class.pick-banner--done]="locationPicked()">
+            @if (!locationPicked()) {
+              <i class="bi bi-geo-alt-fill pick-banner-icon"></i>
+              <span class="pick-banner-text">Tap anywhere on the map to place your tag</span>
+            } @else {
+              <i class="bi bi-check-circle-fill pick-banner-icon pick-banner-icon--ok"></i>
+              <span class="pick-banner-text">Location set — tap again to move it</span>
+              <button class="pick-done-btn" type="button" (click)="donePickingLocation()">
+                <i class="bi bi-arrow-left-short"></i> Done
+              </button>
+            }
+          </div>
+        }
 
         <div #mapContainer id="map" class="map-container"></div>
       </div>

@@ -11,7 +11,7 @@ export class SupabaseTagRepository implements ITagRepository {
 
   getAll(): Observable<Tag[]> {
     return this.supabase
-      .getRows<TagRow>('tags')
+      .getLatest<TagRow>('tags', 50)
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 

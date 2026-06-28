@@ -107,9 +107,9 @@
 
     <!-- Location -->
     <div class="location-row">
-      <div class="location-display" [class.location-display--set]="!!shared.text()">
+      <div class="location-display" [class.location-display--set]="!!(shared.text() || shared.coordinates())">
         <i class="bi bi-geo-alt-fill"></i>
-        <span>{{ shared.text() || 'No location selected' }}</span>
+        <span>{{ shared.text() || (shared.coordinates() ? 'Location pinned on map' : 'No location selected') }}</span>
       </div>
       <div class="location-btns">
         <button class="loc-btn" type="button" (click)="useCurrentLocation()">

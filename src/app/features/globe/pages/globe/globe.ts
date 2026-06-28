@@ -13,6 +13,7 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
+import { PreloadService } from '../../../../core/services/preload.service';
 
 type DateRange = '' | '1h' | '24h' | '7d' | '30d';
 type SortMode  = 'newest' | 'oldest' | 'nearby';
@@ -30,6 +31,7 @@ export class GlobePage implements OnInit {
   private readonly toast    = inject(ToastService);
   private readonly logger   = inject(LoggerService);
   private readonly tagRepo  = inject(TAG_REPOSITORY);
+  private readonly preload  = inject(PreloadService);
 
   cards: Tag[]        = [];
   isLoading           = true;
@@ -47,10 +49,17 @@ export class GlobePage implements OnInit {
   brokenImages = new Set<string>();
 
   ngOnInit(): void {
+    // Use preloaded data immediately if available — avoids a network round-trip on first visit.
+    const cached = this.preload.getGlobePosts();
+    if (cached) {
+      this.setCards(cached);
+      this.isLoading = false;
+      return;
+    }
+
     this.tagRepo.getAll().subscribe({
       next: (tags) => {
-        this.cards   = tags;
-        this.allTags = Array.from(new Set(tags.map((c) => c.tag).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+        this.setCards(tags);
         this.isLoading = false;
       },
       error: (err) => {
@@ -59,6 +68,11 @@ export class GlobePage implements OnInit {
         this.toast.show('Could not load posts. Please try again.', 'danger');
       },
     });
+  }
+
+  private setCards(tags: Tag[]): void {
+    this.cards   = tags;
+    this.allTags = Array.from(new Set(tags.map((c) => c.tag).filter(Boolean))).sort((a, b) => a.localeCompare(b));
   }
 
   get visibleCards(): Tag[] {

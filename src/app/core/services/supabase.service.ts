@@ -107,6 +107,13 @@ export class SupabaseService {
 
   // ---------- GEOSPATIAL ----------
 
+  /** Fetch the most-recent `limit` rows from a table, ordered by created_at desc. */
+  getLatest<T>(table: string, limit: number): Observable<{ data: T[] | null; error: unknown }> {
+    return from(
+      this.client.from(table).select('*').order('created_at', { ascending: false }).limit(limit)
+    ) as Observable<{ data: T[] | null; error: unknown }>;
+  }
+
   fetchTagsInBounds(
     minLng: number,
     minLat: number,

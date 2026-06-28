@@ -98,8 +98,8 @@ export class PostPage {
 
   onPickLocation(): void {
     this.showMapHint.set(true);
-    this.toast.show('Choose a location on the Hood map, then return to Post.', 'info');
-    void this.router.navigate([AppRoute.Hood]);
+    this.shared.pickModeActive.set(true);   // belt-and-suspenders alongside query param
+    void this.router.navigate([AppRoute.Hood], { queryParams: { pick: '1' } });
   }
 
   useCurrentLocation(): void {

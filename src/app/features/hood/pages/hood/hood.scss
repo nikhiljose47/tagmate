@@ -174,6 +174,54 @@
   gap: 8px;
 }
 
+.tool-btn--active {
+  color: var(--tm-primary);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.style-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.style-panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tm-text-secondary);
+  margin: 0 0 4px;
+}
+
+.style-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tm-text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--tm-text);
+  }
+
+  &.style-btn--active {
+    background: var(--tm-primary);
+    color: #fff;
+    border-color: var(--tm-primary);
+  }
+}
+
 @keyframes popIn {
   0% { transform: scale(0.9); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
@@ -310,6 +358,92 @@
 .search-action-btn:hover {
   background: var(--tm-primary-hover);
   transform: scale(1.05);
+}
+
+/* ── Pick-location banner ─────────────────────────────────── */
+.pick-banner {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 30px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: pickBannerIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: background 0.25s ease;
+
+  &.pick-banner--done {
+    background: rgba(22, 163, 74, 0.9);
+  }
+}
+
+@keyframes pickBannerIn {
+  from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+.pick-banner-icon {
+  font-size: 16px;
+  color: #f59e0b;
+  flex-shrink: 0;
+
+  &.pick-banner-icon--ok {
+    color: #fff;
+  }
+}
+
+.pick-banner-text {
+  flex: 1;
+}
+
+.pick-done-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: none;
+  background: #fff;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.88; }
+}
+
+@media (max-width: 480px) {
+  .pick-banner {
+    left: 16px;
+    right: 16px;
+    transform: none;
+    white-space: normal;
+
+    &.pick-banner--done {
+      flex-wrap: wrap;
+    }
+  }
+
+  @keyframes pickBannerIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
 }
 
 :host ::ng-deep .selected-location-marker {

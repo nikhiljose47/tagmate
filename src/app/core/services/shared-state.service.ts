@@ -4,6 +4,9 @@ export type SelectedCoordinates = readonly [lat: number, lng: number] | null;
 
 @Injectable({ providedIn: 'root' })
 export class SharedStateService {
+  /** Set from PostPage before navigating to Hood for pick-location flow */
+  readonly pickModeActive = signal(false);
+
   private _text = signal<string>('');
   private _coordinates = signal<SelectedCoordinates>(null);
 
