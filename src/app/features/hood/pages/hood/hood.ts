@@ -687,10 +687,14 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private setTemporaryMarker(lng: number, lat: number): void {
     if (!this.map || !this.maplibre) return;
     if (!this.temporaryMarker) {
+      // setLngLat MUST be called before addTo — MapLibre projects the marker
+      // position inside addTo() and throws if no lngLat has been set yet.
       this.temporaryMarker = new this.maplibre.Marker({
         draggable: true,
         element: this.createTemporaryMarkerElement(),
-      }).addTo(this.map);
+      })
+        .setLngLat([lng, lat])
+        .addTo(this.map);
 
       this.temporaryMarker.on('dragend', () => {
         const lngLat = this.temporaryMarker?.getLngLat();
