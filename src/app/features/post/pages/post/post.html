@@ -105,6 +105,25 @@
       </div>
     </div>
 
+    <div class="event-row">
+      <label class="event-toggle">
+        <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
+        <span>Local event with RSVP</span>
+      </label>
+      @if (formData.isEvent) {
+        <div class="event-times">
+          <label>
+            <span>Starts</span>
+            <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventStart" name="eventStart" />
+          </label>
+          <label>
+            <span>Ends</span>
+            <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventEnd" name="eventEnd" />
+          </label>
+        </div>
+      }
+    </div>
+
     <!-- Location -->
     <div class="location-row">
       <div class="location-display" [class.location-display--set]="!!(shared.text() || shared.coordinates())">

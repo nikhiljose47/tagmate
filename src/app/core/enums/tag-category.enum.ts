@@ -19,6 +19,7 @@ export enum TagCategory {
   Network     = 'network',
   Utility     = 'utility',
   Shopping    = 'shopping',
+  Question    = 'question',
 }
 
 export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
@@ -42,9 +43,10 @@ export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
   [TagCategory.Utility]:       ['#78716c', '#44403c'],
   [TagCategory.Traffic]:       ['#fb923c', '#c2410c'],
   [TagCategory.Sale]:          ['#4ade80', '#15803d'],
+  [TagCategory.Question]:      ['#38bdf8', '#0369a1'],
 };
 
-export const TAG_EMOJIS: Readonly<Record<TagCategory, string>> = {
+export const TAG_EMOJIS: Readonly<Partial<Record<TagCategory, string>>> = {
   [TagCategory.News]:          '📰',
   [TagCategory.Weather]:       '⛅',
   [TagCategory.Food]:          '🍜',

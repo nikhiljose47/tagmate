@@ -4,11 +4,37 @@
       <p class="feed-kicker">Nearby now</p>
       <h1>Tagmate</h1>
     </div>
-    <a class="tm-btn tm-btn-primary" routerLink="/post" aria-label="Create post">
-      <i class="bi bi-plus-lg" aria-hidden="true"></i>
-      Post
-    </a>
+    <div class="feed-header-actions">
+      <button class="tm-icon-btn notify-btn" type="button" aria-label="Notifications" (click)="notificationsOpen.update(v => !v)">
+        <i class="bi bi-bell" aria-hidden="true"></i>
+        @if (social.unreadNotifications()) {
+          <span>{{ social.unreadNotifications() }}</span>
+        }
+      </button>
+      <a class="tm-btn tm-btn-primary" routerLink="/post" aria-label="Create post">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        Post
+      </a>
+    </div>
   </header>
+
+  @if (notificationsOpen()) {
+    <section class="notifications-panel tm-panel">
+      <div class="notifications-head">
+        <strong>Alerts</strong>
+        <button type="button" (click)="requestPushPermission()">Enable push</button>
+      </div>
+      @if (social.notifications().length === 0) {
+        <p>No notifications yet.</p>
+      }
+      @for (notification of social.notifications(); track notification.id) {
+        <a [routerLink]="notification.postId ? ['/posts', notification.postId] : []">
+          <strong>{{ notification.title }}</strong>
+          <span>{{ notification.body }}</span>
+        </a>
+      }
+    </section>
+  }
 
   <section class="composer tm-panel">
     <a class="composer-avatar" routerLink="/profile" aria-label="Open profile">

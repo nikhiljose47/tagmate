@@ -13,6 +13,7 @@ export interface ITagRepository {
   getById(id: string): Observable<Tag | null>;
   getByUserId(userId: string): Observable<Tag[]>;
   getInBounds(box: BoundingBox): Observable<Tag[]>;
+  liveTags(): Observable<Tag>;
   create(tag: Omit<Tag, 'id'>): Observable<Tag>;
   delete(id: string): Observable<void>;
 }
