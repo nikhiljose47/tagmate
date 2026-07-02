@@ -108,7 +108,7 @@
             <p class="post-counts">{{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments</p>
             <p class="post-caption">
               <strong>{{ post.username || 'Anonymous' }}</strong>
-              {{ post.highlight || 'Untitled post' }}
+              <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
             </p>
             <a class="post-tag" [routerLink]="['/posts', postKey(post)]">#{{ post.tag | lowercase }}</a>
           </div>

@@ -136,6 +136,11 @@
   overflow-wrap: anywhere;
 }
 
+/* Author's body text: preserve the line breaks & spacing they typed. */
+.detail-caption .post-body {
+  white-space: pre-wrap;
+}
+
 .comments-panel {
   display: grid;
   gap: 10px;

@@ -231,6 +231,8 @@
   color: var(--tm-text);
   line-height: 1.5;
   overflow-wrap: anywhere;
+  /* Preserve the line breaks & spacing the author typed. */
+  white-space: pre-wrap;
 }
 
 .post-location {

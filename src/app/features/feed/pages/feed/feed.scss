@@ -237,6 +237,12 @@
   overflow-wrap: anywhere;
 }
 
+/* Author's body text: keep the line breaks & spacing they typed.
+   Scoped to a span so the template's own indentation isn't rendered. */
+.post-caption .post-body {
+  white-space: pre-wrap;
+}
+
 .post-tag {
   color: var(--tm-primary);
   font-size: 13px;

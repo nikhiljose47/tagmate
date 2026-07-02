@@ -54,7 +54,7 @@
           <p class="detail-counts">{{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments</p>
           <p class="detail-caption">
             <strong>{{ post.username || 'Anonymous' }}</strong>
-            {{ post.highlight || 'Untitled post' }}
+            <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
           </p>
           <span class="tm-chip">{{ post.tag | titlecase }}</span>
         </div>
