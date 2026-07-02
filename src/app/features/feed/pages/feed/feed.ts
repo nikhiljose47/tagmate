@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Tag } from '../../../../core/models/tag.model';
@@ -14,6 +14,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
 
@@ -33,7 +34,7 @@ type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
   templateUrl: './feed.html',
   styleUrl: './feed.scss',
 })
-export class FeedPage implements OnInit {
+export class FeedPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly shared = inject(SharedStateService);
@@ -46,6 +47,8 @@ export class FeedPage implements OnInit {
   protected readonly mode = signal<FeedMode>('forYou');
   protected readonly selectedCategory = signal('all');
   protected readonly searchText = signal('');
+  protected readonly notificationsOpen = signal(false);
+  private readonly destroy$ = new Subject<void>();
 
   protected readonly categories = computed(() => [
     'all',
@@ -78,6 +81,22 @@ export class FeedPage implements OnInit {
 
   ngOnInit(): void {
     this.loadPosts();
+    this.tagRepo.liveTags()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((post) => {
+        this.posts.update((posts) => [post, ...posts.filter((item) => this.postKey(item) !== this.postKey(post))]);
+        this.social.addNotification(
+          post.tag === 'alert' ? 'alert' : 'reply',
+          post.tag === 'alert' ? 'Nearby alert' : 'New nearby post',
+          post.highlight || 'A neighbor posted a new tag.',
+          this.postKey(post)
+        );
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   protected loadPosts(): void {
@@ -101,6 +120,11 @@ export class FeedPage implements OnInit {
 
   protected setCategory(category: string): void {
     this.selectedCategory.set(category);
+  }
+
+  protected requestPushPermission(): void {
+    this.social.requestPushPermission();
+    this.toast.show('Notification preference updated.', 'success');
   }
 
   protected postKey(post: Tag): string {

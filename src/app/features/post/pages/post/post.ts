@@ -11,6 +11,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { AppRoute } from '../../../../core/enums/route.enum';
+import { TagCategory } from '../../../../core/enums/tag-category.enum';
 
 /** A locally-selected file + instant Object URL preview. */
 interface MediaItem {
@@ -53,11 +54,7 @@ export class PostPage {
   readonly maxMedia   = MAX_MEDIA;
 
   // ── Form data ────────────────────────────────────────────────────────────
-  readonly tags = [
-    'news', 'weather', 'food', 'event', 'sale', 'traffic', 'alert',
-    'sports', 'fitness', 'environment', 'business', 'tech', 'art',
-    'health', 'market', 'entertainment', 'startup', 'network', 'utility',
-  ];
+  readonly tags = Object.values(TagCategory);
 
   user = { name: 'Guest User', avatarUrl: 'assets/avatar/panda.png' };
 
@@ -65,6 +62,9 @@ export class PostPage {
     headline:  '',
     expiresIn: 60,
     tag:       '',
+    isEvent:   false,
+    eventStart: '',
+    eventEnd:   '',
   };
 
   // ── Media selection ──────────────────────────────────────────────────────
@@ -165,6 +165,10 @@ export class PostPage {
         tag:       this.formData.tag,
         createdAt: new Date().toISOString(),
         images:    uploadedUrls,
+        kind:      this.formData.isEvent || this.formData.tag === TagCategory.Event ? 'event' : 'post',
+        category:  this.formData.tag,
+        eventStart: this.formData.isEvent ? this.formData.eventStart || undefined : undefined,
+        eventEnd:   this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
       };
 
       await firstValueFrom(this.tagRepo.create(tagObject));
@@ -191,7 +195,7 @@ export class PostPage {
     // Revoke all object URLs to avoid memory leaks.
     this.mediaItems().forEach((m) => URL.revokeObjectURL(m.previewUrl));
     this.mediaItems.set([]);
-    this.formData  = { headline: '', expiresIn: 60, tag: '' };
+    this.formData  = { headline: '', expiresIn: 60, tag: '', isEvent: false, eventStart: '', eventEnd: '' };
     this.showMapHint.set(false);
     this.showPreview.set(false);
   }

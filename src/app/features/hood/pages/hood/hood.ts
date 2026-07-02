@@ -35,6 +35,9 @@ import { PlaceBoundary, Utils } from '../../../../core/services/utils.service';
 import { setUserPreference } from '../../../../store/user-preferences/user-preference.actions';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { PreloadService } from '../../../../core/services/preload.service';
+import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
+import { TagCategory } from '../../../../core/enums/tag-category.enum';
+import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 
 // MapLibre source/layer IDs kept as module-level constants for clarity.
 const POSTS_SOURCE          = 'posts-source';
@@ -106,6 +109,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly toast   = inject(ToastService);
   private readonly supabase = inject(SupabaseService);
   private readonly preload  = inject(PreloadService);
+  private readonly tagRepo  = inject(TAG_REPOSITORY);
+  private readonly social   = inject(SocialInteractionsService);
 
   private readonly destroy$        = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -126,6 +131,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly postsCache   = new globalThis.Map<string, { posts: MapPost[]; ts: number }>();
   private readonly reverseCache = new globalThis.Map<string, string>();
   private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
+  private currentPosts: MapPost[] = [];
 
   isSearching      = signal(false);
   countryMode      = signal(false);
@@ -135,6 +141,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   showStylePanel   = signal(false);
   postsVisible     = signal(true);
   boundaryVisible  = signal(true);
+  selectedMapCategories = signal<string[]>([]);
   /** True when opened from the Post page via ?pick=1 */
   pickMode         = signal(false);
   /** True once the user has tapped the map in pick mode */
@@ -147,6 +154,15 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     { key: 'hybrid',    label: 'Hybrid'    },
     { key: 'outdoor',   label: 'Outdoor'   },
   ];
+  readonly CATEGORY_FILTERS = [
+    TagCategory.Alert,
+    TagCategory.Event,
+    TagCategory.Sale,
+    TagCategory.Food,
+    TagCategory.Traffic,
+    TagCategory.Market,
+    TagCategory.Question,
+  ].filter(Boolean);
   selected = signal(DEFAULT_ZOOM);
   hood     = this.store.selectSignal(selectHood);
 
@@ -167,6 +183,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     }
 
     this.registerViewportRequests();
+    this.registerLivePosts();
     const maplibreModule = await HoodPage._maplibrePromise;
     this.maplibre = (maplibreModule.default ?? maplibreModule) as typeof import('maplibre-gl');
 
@@ -227,6 +244,24 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   toggleBoundaryLayer(): void {
     this.boundaryVisible.update((v) => !v);
     this.setLayerVisibility([HOOD_FILL_LAYER, HOOD_LINE_LAYER], this.boundaryVisible());
+  }
+
+  toggleMapCategory(category: string): void {
+    this.selectedMapCategories.update((current) =>
+      current.includes(category)
+        ? current.filter((item) => item !== category)
+        : [...current, category]
+    );
+    this.loadVisiblePosts();
+  }
+
+  clearMapCategories(): void {
+    this.selectedMapCategories.set([]);
+    this.loadVisiblePosts();
+  }
+
+  categoryLabel(category: string): string {
+    return category.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 
   clearSelection(): void {
@@ -445,7 +480,16 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         source: POSTS_SOURCE,
         filter: ['!', ['has', 'point_count']],
         paint: {
-          'circle-color': '#ff5a3d',
+          'circle-color': [
+            'match',
+            ['get', 'type'],
+            'alert', '#ef4444',
+            'event', '#8b5cf6',
+            'sale', '#22c55e',
+            'market', '#f43f5e',
+            'traffic', '#f97316',
+            '#ff5a3d',
+          ],
           'circle-radius': 7,
           'circle-opacity': 0.92,
           'circle-stroke-width': 2,
@@ -512,6 +556,22 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .subscribe((posts) => this.updatePostSource(posts));
   }
 
+  private registerLivePosts(): void {
+    this.tagRepo.liveTags()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (post) => {
+          if (!this.map || !this.postIsInsideViewport(post) || !this.matchesActiveFilters(post as MapPost)) return;
+          this.postsCache.clear();
+          this.updatePostSource([post as MapPost, ...this.currentPosts]);
+          this.toast.show('New nearby tag just landed.', 'success');
+          if (post.tag === TagCategory.Alert) {
+            this.social.addNotification('alert', 'Nearby alert', post.highlight || 'An alert was posted nearby.', this.social.postKey(post));
+          }
+        },
+      });
+  }
+
   private fetchPostsForViewport(query: MapViewportQuery) {
     const key    = `${query.west.toFixed(2)},${query.south.toFixed(2)},${query.east.toFixed(2)},${query.north.toFixed(2)}`;
     const cached = this.postsCache.get(key);
@@ -524,7 +584,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         map(({ data }) => {
           const posts = (data ?? []).map(rowToTag) as MapPost[];
           this.postsCache.set(key, { posts, ts: Date.now() });
-          return posts.filter((p) => this.matchesCountryMode(p));
+          return posts.filter((p) => this.matchesActiveFilters(p));
         })
       );
   }
@@ -540,7 +600,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private updatePostSource(posts: MapPost[]): void {
     const source = this.map?.getSource(POSTS_SOURCE) as GeoJSONSource | undefined;
-    source?.setData(this.convertPostsToGeoJson(posts));
+    this.currentPosts = posts.filter((post) => this.matchesActiveFilters(post));
+    source?.setData(this.convertPostsToGeoJson(this.currentPosts));
   }
 
   private convertPostsToGeoJson(posts: MapPost[]): FeatureCollection<Point, MapPostProperties> {
@@ -629,6 +690,18 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     const selected = this.hood().country || 'India';
     if (post.country) return post.country.toLowerCase() === selected.toLowerCase();
     return this.isInCountryBounds(post.lat, post.lng, selected);
+  }
+
+  private matchesActiveFilters(post: MapPost): boolean {
+    if (!this.matchesCountryMode(post)) return false;
+    const categories = this.selectedMapCategories();
+    return categories.length === 0 || categories.includes(post.tag || post.category || '');
+  }
+
+  private postIsInsideViewport(post: Tag): boolean {
+    const b = this.map?.getBounds();
+    if (!b) return false;
+    return post.lng >= b.getWest() && post.lng <= b.getEast() && post.lat >= b.getSouth() && post.lat <= b.getNorth();
   }
 
   private isInCountryBounds(lat: number, lng: number, country: string): boolean {

@@ -130,6 +130,32 @@ export class SupabaseService {
     ) as Observable<{ data: TagRow[] | null; error: unknown }>;
   }
 
+  liveInserts<T>(table: string): Observable<T> {
+    return new Observable<T>((subscriber) => {
+      if (!isPlatformBrowser(this.platformId)) {
+        subscriber.complete();
+        return undefined;
+      }
+
+      const channel = this.client
+        .channel(`${table}-live-inserts`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table },
+          (payload) => subscriber.next(payload.new as T)
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            subscriber.error(new Error(`Realtime channel failed for ${table}`));
+          }
+        });
+
+      return () => {
+        void this.client.removeChannel(channel);
+      };
+    });
+  }
+
   // ---------- STORAGE ----------
 
   /** Upload a raw File (image or video) directly to the tag-images bucket. */

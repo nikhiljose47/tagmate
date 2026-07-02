@@ -18,6 +18,76 @@
   margin-bottom: 14px;
 }
 
+.feed-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notify-btn {
+  position: relative;
+}
+
+.notify-btn span {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.notifications-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.notifications-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notifications-head button {
+  min-height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 10px;
+  color: var(--tm-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.notifications-panel p {
+  margin: 0;
+  color: var(--tm-muted);
+  font-size: 13px;
+}
+
+.notifications-panel a {
+  display: grid;
+  gap: 2px;
+  border-top: 1px solid #edf2f7;
+  padding-top: 8px;
+  color: var(--tm-text);
+  text-decoration: none;
+}
+
+.notifications-panel a span {
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
 .feed-kicker {
   margin: 0 0 2px;
   color: var(--tm-muted);

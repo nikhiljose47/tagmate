@@ -57,5 +57,7 @@ export function rowToTag(row: TagRow): Tag {
     loves:     row.loves,
     dislikes:  row.dislikes,
     comments:  row.comments,
+    category:  row.tag,
+    kind:      row.tag === 'event' ? 'event' : 'post',
   };
 }

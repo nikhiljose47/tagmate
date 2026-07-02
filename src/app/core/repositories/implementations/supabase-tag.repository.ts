@@ -33,6 +33,10 @@ export class SupabaseTagRepository implements ITagRepository {
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
+  liveTags(): Observable<Tag> {
+    return this.supabase.liveInserts<TagRow>('tags').pipe(map(rowToTag));
+  }
+
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {
     return this.supabase
       .addRow('tags', tagToRow(tag as Tag) as Record<string, unknown>)

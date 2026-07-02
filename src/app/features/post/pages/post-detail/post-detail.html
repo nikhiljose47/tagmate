@@ -16,8 +16,9 @@
           <div>
             <a routerLink="/profile">{{ post.username || 'Anonymous' }}</a>
             <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
-              {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
+              {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }}
             </a>
+            <span class="trust-badge">{{ social.trustBadge(post.username || '') }} - {{ social.trustScore(post.username || '') }} pts</span>
           </div>
           <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost()">
             <i class="bi bi-flag" aria-hidden="true"></i>
@@ -25,12 +26,32 @@
         </header>
 
         <div class="detail-media" [style.background]="post.tag | tagGradient">
-          @if (post.images[0]) {
-            <img [src]="post.images[0]" alt="Tag post image" />
+          @if (post.images[mediaIndex()]) {
+            @if (isVideoUrl(post.images[mediaIndex()])) {
+              <video [src]="post.images[mediaIndex()]" controls playsinline></video>
+            } @else {
+              <img [src]="post.images[mediaIndex()]" alt="Tag post media" />
+            }
+            @if (post.images.length > 1) {
+              <button class="media-nav media-nav--prev" type="button" aria-label="Previous media" (click)="prevMedia()">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button class="media-nav media-nav--next" type="button" aria-label="Next media" (click)="nextMedia()">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            }
           } @else {
             <span>{{ post.tag | tagEmoji }}</span>
           }
         </div>
+
+        @if (post.images.length > 1) {
+          <div class="media-dots" aria-label="Media carousel">
+            @for (image of post.images; track image; let i = $index) {
+              <button type="button" [class.active]="mediaIndex() === i" (click)="selectMedia(i)" [attr.aria-label]="'Show media ' + (i + 1)"></button>
+            }
+          </div>
+        }
 
         <div class="detail-body">
           <div class="detail-actions">
@@ -46,17 +67,50 @@
             <button type="button" class="push-right" (click)="openMap()" aria-label="Open on map">
               <i class="bi bi-map" aria-hidden="true"></i>
             </button>
+            <button type="button" (click)="showMessageBox.update(v => !v)" aria-label="Message author">
+              <i class="bi bi-envelope" aria-hidden="true"></i>
+            </button>
             <button type="button" [class.active]="social.isSaved(post)" (click)="toggleSave()" aria-label="Save post">
               <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
             </button>
           </div>
 
-          <p class="detail-counts">{{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments</p>
+          <p class="detail-counts">{{ social.likeCount(post) }} likes - {{ social.commentCount(post) }} comments</p>
           <p class="detail-caption">
             <strong>{{ post.username || 'Anonymous' }}</strong>
             <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
           </p>
           <span class="tm-chip">{{ post.tag | titlecase }}</span>
+
+          @if (post.kind === 'event' || post.tag === 'event') {
+            <div class="event-box">
+              <div>
+                <strong>Local event</strong>
+                <span>{{ post.eventStart ? (post.eventStart | date:'medium') : 'Time TBA' }}</span>
+              </div>
+              <button class="tm-btn tm-btn-primary" type="button" (click)="toggleRsvp()">
+                {{ social.isRsvped(post) ? 'Going' : 'RSVP' }} - {{ social.rsvpCount(post) }}
+              </button>
+            </div>
+          }
+
+          <div class="directions-row">
+            <button type="button" (click)="openDirections('walking')"><i class="bi bi-person-walking"></i> Walk</button>
+            <button type="button" (click)="openDirections('driving')"><i class="bi bi-car-front"></i> Drive</button>
+          </div>
+
+          @if (showMessageBox()) {
+            <form class="message-form" (ngSubmit)="sendMessage()">
+              <input
+                class="tm-input"
+                name="message"
+                placeholder="Private message"
+                [ngModel]="messageText()"
+                (ngModelChange)="messageText.set($event)"
+              />
+              <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!messageText().trim()">Send</button>
+            </form>
+          }
         </div>
       </article>
 
@@ -74,10 +128,35 @@
           </div>
         }
 
-        @for (comment of social.commentsFor(post); track comment.id) {
+        @for (comment of social.topLevelCommentsFor(post); track comment.id) {
           <div class="comment-row">
-            <strong>{{ comment.author }}</strong>
-            <span>{{ comment.text }}</span>
+            <div class="comment-main">
+              <strong>{{ comment.author }}</strong>
+              <span>{{ comment.text }}</span>
+              <small>{{ comment.createdAt | timeAgo }} - {{ comment.mentions.length ? '@' + comment.mentions.join(' @') : 'No mentions' }}</small>
+            </div>
+            <div class="comment-actions">
+              <button type="button" (click)="upvoteComment(comment.id)"><i class="bi bi-arrow-up"></i> {{ comment.upvotes }}</button>
+              <button type="button" (click)="replyTo.set(replyTo() === comment.id ? null : comment.id)">Reply</button>
+            </div>
+            @for (reply of social.repliesFor(post, comment.id); track reply.id) {
+              <div class="comment-row comment-row--reply">
+                <strong>{{ reply.author }}</strong>
+                <span>{{ reply.text }}</span>
+              </div>
+            }
+            @if (replyTo() === comment.id) {
+              <form class="comment-form reply-form" (ngSubmit)="addReply(comment.id)">
+                <input
+                  class="tm-input"
+                  name="reply"
+                  placeholder="Reply with @mentions"
+                  [ngModel]="replyText()"
+                  (ngModelChange)="replyText.set($event)"
+                />
+                <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!replyText().trim()">Reply</button>
+              </form>
+            }
           </div>
         }
 
@@ -85,7 +164,7 @@
           <input
             class="tm-input"
             name="comment"
-            placeholder="Add a comment"
+            placeholder="Add a comment with @mentions"
             [ngModel]="commentText()"
             (ngModelChange)="commentText.set($event)"
           />

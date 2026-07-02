@@ -44,6 +44,11 @@ export class PostDetailPage implements OnInit {
   protected readonly relatedPosts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly commentText = signal('');
+  protected readonly replyText = signal('');
+  protected readonly replyTo = signal<string | null>(null);
+  protected readonly messageText = signal('');
+  protected readonly showMessageBox = signal(false);
+  protected readonly mediaIndex = signal(0);
 
   protected readonly postKey = computed(() => {
     const post = this.post();
@@ -94,12 +99,68 @@ export class PostDetailPage implements OnInit {
     this.commentText.set('');
   }
 
+  protected addReply(parentId: string): void {
+    const post = this.post();
+    if (!post) return;
+    this.social.addComment(post, this.replyText(), 'You', parentId);
+    this.replyText.set('');
+    this.replyTo.set(null);
+  }
+
+  protected upvoteComment(commentId: string): void {
+    const post = this.post();
+    if (post) this.social.upvoteComment(post, commentId);
+  }
+
+  protected toggleRsvp(): void {
+    const post = this.post();
+    if (!post) return;
+    const attending = this.social.toggleRsvp(post);
+    this.toast.show(attending ? 'RSVP saved.' : 'RSVP removed.', 'success');
+  }
+
+  protected sendMessage(): void {
+    const post = this.post();
+    if (!post) return;
+    this.social.sendMessage(post, this.messageText());
+    this.messageText.set('');
+    this.showMessageBox.set(false);
+  }
+
   protected openMap(): void {
     const post = this.post();
     if (!post) return;
     this.shared.updateCoordinates(post.lat, post.lng);
     this.shared.updateText(post.highlight || post.hoodId || 'Selected post');
     void this.router.navigate([AppRoute.Hood]);
+  }
+
+  protected openDirections(mode: 'driving' | 'walking'): void {
+    const post = this.post();
+    if (!post || typeof window === 'undefined') return;
+    const profile = mode === 'walking' ? 'foot' : 'car';
+    const url = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_${profile}&route=;${post.lat},${post.lng}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  protected selectMedia(index: number): void {
+    this.mediaIndex.set(index);
+  }
+
+  protected nextMedia(): void {
+    const post = this.post();
+    if (!post?.images?.length) return;
+    this.mediaIndex.set((this.mediaIndex() + 1) % post.images.length);
+  }
+
+  protected prevMedia(): void {
+    const post = this.post();
+    if (!post?.images?.length) return;
+    this.mediaIndex.set((this.mediaIndex() - 1 + post.images.length) % post.images.length);
+  }
+
+  protected isVideoUrl(url: string): boolean {
+    return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url);
   }
 
   protected async sharePost(): Promise<void> {

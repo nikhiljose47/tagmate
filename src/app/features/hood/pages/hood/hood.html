@@ -78,9 +78,9 @@
 
     @if (showMapFilters()) {
       <div class="map-panel tm-panel">
-        <label class="tm-toggle">
-          <input
-            class="peer sr-only"
+          <label class="tm-toggle">
+            <input
+              class="peer sr-only"
             type="checkbox"
             id="countryModePanelSwitch"
             [ngModel]="countryMode()"
@@ -89,6 +89,20 @@
             <span class="tm-toggle-track"></span>
             <span>Country Mode</span>
           </label>
+          <div class="map-category-filter" aria-label="Map category filters">
+            @for (category of CATEGORY_FILTERS; track category) {
+              <button
+                type="button"
+                [class.active]="selectedMapCategories().includes(category)"
+                (click)="toggleMapCategory(category)"
+              >
+                {{ categoryLabel(category) }}
+              </button>
+            }
+          </div>
+          @if (selectedMapCategories().length) {
+            <button class="clear-filter-btn" type="button" (click)="clearMapCategories()">Clear categories</button>
+          }
           <button class="tm-btn tm-btn-primary mt-3 w-full" type="button" (click)="refreshMap()">
             Apply filters
           </button>
