@@ -60,7 +60,7 @@
         type="search"
         placeholder="Search posts, tags, people"
         [ngModel]="searchText()"
-        (ngModelChange)="searchText.set($event)"
+        (ngModelChange)="onSearchChange($event)"
       />
     </label>
 
@@ -78,12 +78,32 @@
   </section>
 
   @if (isLoading()) {
-    <div class="feed-skeletons">
-      <div class="skeleton-box"></div>
-      <div class="skeleton-box"></div>
+    <div class="feed-skeletons" aria-label="Loading feed">
+      @for (i of [1, 2]; track i) {
+        <div class="skeleton-card tm-panel">
+          <div class="skeleton-header">
+            <div class="skeleton-avatar skeleton-pulse"></div>
+            <div class="skeleton-text-group">
+              <div class="skeleton-line title skeleton-pulse"></div>
+              <div class="skeleton-line sub skeleton-pulse"></div>
+            </div>
+          </div>
+          <div class="skeleton-media skeleton-pulse"></div>
+          <div class="skeleton-body">
+            <div class="skeleton-line body skeleton-pulse"></div>
+            <div class="skeleton-line body skeleton-pulse" style="width: 75%;"></div>
+          </div>
+        </div>
+      }
     </div>
   } @else if (visiblePosts().length === 0) {
-    <tm-empty-state icon="◎" title="No posts here yet" subtitle="Try another filter or start the neighborhood thread." />
+    <tm-empty-state
+      icon="+"
+      title="No posts here yet"
+      subtitle="Try another filter or start the neighborhood thread."
+      actionText="Create post"
+      (actionClicked)="createPost()"
+    />
   } @else {
     <section class="post-list" aria-label="Feed posts">
       @for (post of visiblePosts(); track postKey(post)) {
@@ -106,7 +126,7 @@
 
           <a class="post-media" [routerLink]="['/posts', postKey(post)]" [style.background]="post.tag | tagGradient">
             @if (post.images[0]) {
-              <img [src]="post.images[0]" alt="Tag post image" />
+              <img [src]="post.images[0]" alt="Tag post image" loading="lazy" />
             } @else {
               <span>{{ post.tag | tagEmoji }}</span>
             }
@@ -140,6 +160,19 @@
           </div>
         </article>
       }
+      
+      <div #scrollSentinel style="height: 1px; visibility: hidden;"></div>
     </section>
+  }
+
+  @if (showScrollTop()) {
+    <button
+      class="scroll-top-btn"
+      type="button"
+      (click)="scrollToTop()"
+      aria-label="Scroll to top"
+    >
+      <i class="bi bi-arrow-up" aria-hidden="true"></i>
+    </button>
   }
 </main>

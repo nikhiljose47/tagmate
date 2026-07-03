@@ -14,6 +14,7 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { coverGradient, avatarBg } from '../../../../shared/utils/color.utils';
+import { ThemeService, AppTheme } from '../../../../core/services/theme.service';
 
 type ProfileTab = 'posts' | 'saved' | 'settings';
 
@@ -32,6 +33,15 @@ export class ProfilePage implements OnInit {
   private readonly shared  = inject(SharedStateService);
   private readonly logger  = inject(LoggerService);
   protected readonly social = inject(SocialInteractionsService);
+  protected readonly theme  = inject(ThemeService);
+
+  readonly availableThemes: { value: AppTheme; label: string }[] = [
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' },
+    { value: 'midnight', label: 'Midnight (OLED Black)' },
+    { value: 'forest', label: 'Forest' },
+    { value: 'sepia', label: 'Sepia' },
+  ];
 
   readonly user$          = this.auth.user$;
   readonly coverGradient  = coverGradient;

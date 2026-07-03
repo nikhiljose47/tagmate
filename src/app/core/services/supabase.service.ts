@@ -114,6 +114,17 @@ export class SupabaseService {
     ) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
+  getLatestPaginated<T>(table: string, limit: number, offset: number, search?: string): Observable<{ data: T[] | null; error: unknown }> {
+    let query = this.client.from(table).select('*').order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+    
+    if (search) {
+      const searchTerm = `%${search}%`;
+      query = query.or(`highlight.ilike.${searchTerm},username.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`);
+    }
+
+    return from(query) as Observable<{ data: T[] | null; error: unknown }>;
+  }
+
   fetchTagsInBounds(
     minLng: number,
     minLat: number,

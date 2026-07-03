@@ -21,14 +21,29 @@
     </div>
 
     <!-- Headline -->
-    <textarea
-      class="headline-input"
-      placeholder="Write something about your tag..."
-      [(ngModel)]="formData.headline"
-      name="headline"
-      required
-      rows="3"
-    ></textarea>
+    <div class="field-block">
+      <textarea
+        #headline="ngModel"
+        class="headline-input"
+        [class.is-invalid]="headline.touched && headline.invalid"
+        placeholder="Write something about your tag..."
+        [(ngModel)]="formData.headline"
+        name="headline"
+        required
+        maxlength="280"
+        rows="3"
+      ></textarea>
+      <div class="field-meta">
+        <span class="field-help" [class.field-help--error]="headline.touched && headline.invalid">
+          @if (headline.touched && headline.invalid) {
+            Headline is required.
+          } @else {
+            Keep it clear and local.
+          }
+        </span>
+        <span class="char-count">{{ formData.headline.length }}/280</span>
+      </div>
+    </div>
 
     <!-- Media Grid (images + videos) -->
     <div class="media-section">
@@ -85,23 +100,39 @@
     <div class="meta-row">
       <div class="meta-field">
         <label class="meta-label">Category</label>
-        <select class="tm-select" [(ngModel)]="formData.tag" name="tag" required>
+        <select
+          #tag="ngModel"
+          class="tm-select"
+          [class.is-invalid]="tag.touched && tag.invalid"
+          [(ngModel)]="formData.tag"
+          name="tag"
+          required
+        >
           <option value="" disabled selected>Select tag</option>
           @for (t of tags; track t) {
             <option [value]="t">{{ t | titlecase }}</option>
           }
         </select>
+        @if (tag.touched && tag.invalid) {
+          <p class="field-help field-help--error">Choose a tag category.</p>
+        }
       </div>
       <div class="meta-field">
         <label class="meta-label">Expires in (sec)</label>
         <input
+          #expiresIn="ngModel"
           type="number"
           class="tm-input"
+          [class.is-invalid]="expiresIn.touched && expiresIn.invalid"
           [(ngModel)]="formData.expiresIn"
           name="expiresIn"
           placeholder="3600"
           required
+          min="1"
         />
+        @if (expiresIn.touched && expiresIn.invalid) {
+          <p class="field-help field-help--error">Enter a positive expiry time.</p>
+        }
       </div>
     </div>
 
@@ -125,11 +156,14 @@
     </div>
 
     <!-- Location -->
-    <div class="location-row">
+    <div class="location-row" [class.location-row--invalid]="locationErrorVisible() && !shared.coordinates()" [class.shake-error]="shakeLocation()">
       <div class="location-display" [class.location-display--set]="!!(shared.text() || shared.coordinates())">
         <i class="bi bi-geo-alt-fill"></i>
         <span>{{ shared.text() || (shared.coordinates() ? 'Location pinned on map' : 'No location selected') }}</span>
       </div>
+      @if (locationErrorVisible() && !shared.coordinates()) {
+        <p class="field-help field-help--error">Attach a location before posting.</p>
+      }
       <div class="location-btns">
         <button class="loc-btn" type="button" (click)="useCurrentLocation()">
           <i class="bi bi-crosshair"></i> Current
@@ -180,7 +214,7 @@
       <button
         type="submit"
         class="post-btn"
-        [disabled]="!f.valid || isSubmitting()"
+        [disabled]="isSubmitting()"
       >
         @if (isSubmitting()) {
           <span class="post-spinner"></span> Posting…

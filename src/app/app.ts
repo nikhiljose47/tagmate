@@ -7,6 +7,8 @@ import { filter, map, startWith } from 'rxjs';
 import { ToastService } from './core/services/toast.service';
 import { NavComponent } from './layout/nav/nav';
 import { PreloadService } from './core/services/preload.service';
+import { NetworkService } from './core/services/network.service';
+import { ThemeService } from './core/services/theme.service';
 
 /** Minimum time the static splash (#tm-splash in index.html) stays visible. */
 const SPLASH_SHOW_MS = 1800;
@@ -21,6 +23,8 @@ const SPLASH_FADE_MS =  450;
 export class App {
   protected readonly title = signal('tagmate');
   protected readonly toast = inject(ToastService);
+  protected readonly network = inject(NetworkService);
+  protected readonly theme = inject(ThemeService);
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly preload    = inject(PreloadService);

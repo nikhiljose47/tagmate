@@ -49,6 +49,8 @@ export class PostPage {
   mediaItems   = signal<MediaItem[]>([]);
   showMapHint  = signal(false);
   showPreview  = signal(false);
+  locationErrorVisible = signal(false);
+  shakeLocation = signal(false);
 
   readonly canAddMore = computed(() => this.mediaItems().length < MAX_MEDIA);
   readonly maxMedia   = MAX_MEDIA;
@@ -111,6 +113,7 @@ export class PostPage {
       ({ coords }) => {
         this.shared.updateCoordinates(coords.latitude, coords.longitude);
         this.shared.updateText('Current device location');
+        this.locationErrorVisible.set(false);
         this.toast.show('Current location attached to this post.', 'success');
       },
       () => this.toast.show('Could not read your current location.', 'danger'),
@@ -123,10 +126,16 @@ export class PostPage {
   // ── Submit ───────────────────────────────────────────────────────────────
 
   async onSubmit(f: NgForm): Promise<void> {
-    if (!f.valid || this.isSubmitting()) return;
+    if (this.isSubmitting()) return;
+    if (!f.valid) {
+      f.form.markAllAsTouched();
+      return;
+    }
 
     const coords = this.shared.coordinates();
     if (!coords) {
+      this.locationErrorVisible.set(true);
+      this.triggerLocationShake();
       this.toast.show('Choose a location from the Hood map before posting.', 'warning');
       return;
     }
@@ -198,5 +207,13 @@ export class PostPage {
     this.formData  = { headline: '', expiresIn: 60, tag: '', isEvent: false, eventStart: '', eventEnd: '' };
     this.showMapHint.set(false);
     this.showPreview.set(false);
+    this.locationErrorVisible.set(false);
+    this.shakeLocation.set(false);
+  }
+
+  private triggerLocationShake(): void {
+    this.shakeLocation.set(false);
+    setTimeout(() => this.shakeLocation.set(true));
+    setTimeout(() => this.shakeLocation.set(false), 450);
   }
 }

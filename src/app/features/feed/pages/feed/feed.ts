@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, AfterViewInit, computed, inject, signal, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { Tag } from '../../../../core/models/tag.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
@@ -14,6 +15,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { Subject, takeUntil } from 'rxjs';
 
 type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
@@ -34,20 +36,33 @@ type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
   templateUrl: './feed.html',
   styleUrl: './feed.scss',
 })
-export class FeedPage implements OnInit, OnDestroy {
+export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly shared = inject(SharedStateService);
   private readonly toast = inject(ToastService);
   private readonly logger = inject(LoggerService);
+  private readonly store = inject(Store);
   protected readonly social = inject(SocialInteractionsService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
+  protected readonly isLoadingMore = signal(false);
+  protected readonly hasMore = signal(true);
+  protected readonly showScrollTop = signal(false);
+  private offset = 0;
+  private readonly PAGE_SIZE = 25;
+  private searchTimeout: any;
+
+  @ViewChild('scrollSentinel') sentinel?: ElementRef<HTMLElement>;
+  private observer?: IntersectionObserver;
+
   protected readonly mode = signal<FeedMode>('forYou');
+  protected readonly proximityCoords = signal<readonly [lat: number, lng: number] | null>(null);
   protected readonly selectedCategory = signal('all');
   protected readonly searchText = signal('');
   protected readonly notificationsOpen = signal(false);
+  protected readonly hood = this.store.selectSignal(selectHood);
   private readonly destroy$ = new Subject<void>();
 
   protected readonly categories = computed(() => [
@@ -57,22 +72,17 @@ export class FeedPage implements OnInit, OnDestroy {
 
   protected readonly visiblePosts = computed(() => {
     const category = this.selectedCategory();
-    const query = this.searchText().trim().toLowerCase();
 
     return [...this.posts()]
       .filter((post) => {
         if (this.social.isHidden(post)) return false;
         if (category !== 'all' && post.tag !== category) return false;
         if (this.mode() === 'saved' && !this.social.isSaved(post)) return false;
-        if (!query) return true;
-
-        return [post.highlight, post.username, post.tag, post.hoodId]
-          .filter(Boolean)
-          .some((value) => value!.toLowerCase().includes(query));
+        return true;
       })
       .sort((a, b) => {
         if (this.mode() === 'nearby') {
-          return Math.abs(a.lat) + Math.abs(a.lng) - (Math.abs(b.lat) + Math.abs(b.lng));
+          return this.distanceFromProximityOrigin(a) - this.distanceFromProximityOrigin(b);
         }
 
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -94,28 +104,98 @@ export class FeedPage implements OnInit, OnDestroy {
       });
   }
 
+  ngAfterViewInit(): void {
+    if (typeof IntersectionObserver !== 'undefined' && this.sentinel) {
+      this.observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && this.hasMore() && !this.isLoadingMore() && !this.isLoading()) {
+          this.loadMore();
+        }
+      }, { rootMargin: '200px' });
+      this.observer.observe(this.sentinel.nativeElement);
+    }
+  }
+
   ngOnDestroy(): void {
+    this.observer?.disconnect();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  protected loadPosts(): void {
-    this.isLoading.set(true);
-    this.tagRepo.getAll().subscribe({
-      next: (posts) => {
-        this.posts.set(posts);
+  protected loadPosts(reset = false): void {
+    if (reset) {
+      this.isLoading.set(true);
+      this.posts.set([]);
+    } else {
+      this.isLoadingMore.set(true);
+    }
+    
+    this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset, this.searchText().trim()).subscribe({
+      next: (newPosts) => {
+        if (reset) {
+          this.posts.set(newPosts);
+        } else {
+          this.posts.update(p => {
+            // filter out duplicates just in case
+            const existingKeys = new Set(p.map(item => this.postKey(item)));
+            const uniqueNew = newPosts.filter(item => !existingKeys.has(this.postKey(item)));
+            return [...p, ...uniqueNew];
+          });
+        }
+        this.hasMore.set(newPosts.length === this.PAGE_SIZE);
         this.isLoading.set(false);
+        this.isLoadingMore.set(false);
       },
       error: (err) => {
         this.logger.error('Failed to load feed', err);
         this.toast.show('Could not load the feed.', 'danger');
         this.isLoading.set(false);
+        this.isLoadingMore.set(false);
       },
     });
   }
 
-  protected setMode(mode: FeedMode): void {
+  protected loadMore(): void {
+    this.offset += this.PAGE_SIZE;
+    this.loadPosts();
+  }
+
+  protected onSearchChange(text: string): void {
+    this.searchText.set(text);
+    clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.offset = 0;
+      this.hasMore.set(true);
+      this.loadPosts(true);
+    }, 400);
+  }
+
+  @HostListener('window:scroll', [])
+  onWindowScroll() {
+    if (typeof window !== 'undefined') {
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      this.showScrollTop.set(scrollPos > 400);
+    }
+  }
+
+  protected scrollToTop(): void {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  protected async setMode(mode: FeedMode): Promise<void> {
     this.mode.set(mode);
+    if (mode !== 'nearby') return;
+
+    const coords = await this.shared.getDeviceCoordinates();
+    this.proximityCoords.set(coords ?? [this.hood().coords.lat, this.hood().coords.lng]);
+    if (!coords) {
+      this.toast.show('Sorting nearby from your current hood because location permission was unavailable.', 'info');
+    }
+  }
+
+  protected createPost(): void {
+    void this.router.navigate([AppRoute.Post]);
   }
 
   protected setCategory(category: string): void {
@@ -177,5 +257,10 @@ export class FeedPage implements OnInit, OnDestroy {
 
   private slugFor(value: string): string {
     return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nearby';
+  }
+
+  private distanceFromProximityOrigin(post: Tag): number {
+    const [lat, lng] = this.proximityCoords() ?? [this.hood().coords.lat, this.hood().coords.lng];
+    return Math.pow(post.lat - lat, 2) + Math.pow(post.lng - lng, 2);
   }
 }

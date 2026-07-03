@@ -1,6 +1,32 @@
+@if (!network.isOnline()) {
+  <div class="fixed top-0 left-0 right-0 z-[10001] bg-red-500 text-white text-center py-1 text-sm font-semibold">
+    You are currently offline.
+  </div>
+}
+
 <div class="main-container" [class.with-nav]="showNav()">
   <router-outlet></router-outlet>
 </div>
+
+@if (showNav()) {
+  <button
+    class="tm-icon-btn fixed bottom-20 right-4 md:top-4 md:right-4 md:bottom-auto z-[9999] shadow-lg"
+    type="button"
+    (click)="theme.toggleTheme()"
+    aria-label="Toggle theme"
+  >
+    <i
+      class="bi"
+      [ngClass]="{
+        'bi-sun-fill': theme.currentTheme() === 'light',
+        'bi-moon-fill': theme.currentTheme() === 'dark',
+        'bi-moon-stars-fill': theme.currentTheme() === 'midnight',
+        'bi-tree-fill': theme.currentTheme() === 'forest',
+        'bi-cup-hot-fill': theme.currentTheme() === 'sepia'
+      }"
+    ></i>
+  </button>
+}
 
 @if (toast.message(); as message) {
   <div
