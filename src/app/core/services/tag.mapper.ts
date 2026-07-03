@@ -17,6 +17,8 @@ export interface TagRow {
   loves?: number;
   dislikes?: number;
   comments?: string[];
+  poll_options?: string[];
+  poll_votes?: Record<string, string[]>;
 }
 
 /** Converts a domain Tag into a Supabase row for insert/update. */
@@ -36,6 +38,8 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     loves:      tag.loves,
     dislikes:   tag.dislikes,
     comments:   tag.comments,
+    poll_options: tag.pollOptions,
+    poll_votes: tag.pollVotes,
   };
 }
 
@@ -57,6 +61,8 @@ export function rowToTag(row: TagRow): Tag {
     loves:     row.loves,
     dislikes:  row.dislikes,
     comments:  row.comments,
+    pollOptions: row.poll_options,
+    pollVotes: row.poll_votes,
     category:  row.tag,
     kind:      row.tag === 'event' ? 'event' : 'post',
   };

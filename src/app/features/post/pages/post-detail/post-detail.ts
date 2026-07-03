@@ -14,6 +14,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
 
 @Component({
   selector: 'app-post-detail',
@@ -27,6 +28,7 @@ import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
     TagEmojiPipe,
     TagGradientPipe,
     TimeAgoPipe,
+    LifespanPipe,
   ],
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
@@ -117,6 +119,35 @@ export class PostDetailPage implements OnInit {
     if (!post) return;
     const attending = this.social.toggleRsvp(post);
     this.toast.show(attending ? 'RSVP saved.' : 'RSVP removed.', 'success');
+  }
+
+  // --- Polls ---
+
+  votePoll(optionIndex: number): void {
+    const p = this.post();
+    if (!p) return;
+    const key = this.postKey();
+    // Since we don't have auth yet, just use a dummy username 'Guest User'
+    this.social.votePoll(key, optionIndex, 'Guest User');
+    this.toast.show('Vote recorded!', 'success');
+  }
+
+  hasVotedPoll(optionIndex: number): boolean {
+    const p = this.post();
+    if (!p) return false;
+    return this.social.hasVotedPoll(this.postKey(), optionIndex, 'Guest User');
+  }
+
+  getPollPercentage(optionIndex: number): number {
+    const p = this.post();
+    if (!p) return 0;
+    const key = this.postKey();
+    const total = this.social.totalPollVotes(key);
+    if (total === 0) return 0;
+    const votes = this.social.getPollVotes(key);
+    const optKey = optionIndex.toString();
+    const count = votes[optKey] ? votes[optKey].length : 0;
+    return Math.round((count / total) * 100);
   }
 
   protected sendMessage(): void {

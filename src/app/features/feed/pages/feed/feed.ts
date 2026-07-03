@@ -15,6 +15,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -32,6 +33,7 @@ type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
     TagEmojiPipe,
     TagGradientPipe,
     TimeAgoPipe,
+    LifespanPipe,
   ],
   templateUrl: './feed.html',
   styleUrl: './feed.scss',
@@ -253,6 +255,28 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected reportPost(post: Tag): void {
     this.social.reportPost(post);
     this.toast.show('Post hidden and flagged for review.', 'warning');
+  }
+
+  // --- Polls ---
+
+  votePoll(post: Tag, optionIndex: number): void {
+    const key = this.postKey(post);
+    // Since we don't have auth yet, just use a dummy username 'Guest User'
+    this.social.votePoll(key, optionIndex, 'Guest User');
+    this.toast.show('Vote recorded!', 'success');
+  }
+
+  hasVotedPoll(post: Tag, optionIndex: number): boolean {
+    return this.social.hasVotedPoll(this.postKey(post), optionIndex, 'Guest User');
+  }
+
+  getPollPercentage(post: Tag, optionIndex: number): number {
+    const total = this.social.totalPollVotes(this.postKey(post));
+    if (total === 0) return 0;
+    const votes = this.social.getPollVotes(this.postKey(post));
+    const optKey = optionIndex.toString();
+    const count = votes[optKey] ? votes[optKey].length : 0;
+    return Math.round((count / total) * 100);
   }
 
   private slugFor(value: string): string {

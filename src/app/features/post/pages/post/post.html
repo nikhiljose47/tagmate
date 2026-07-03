@@ -136,6 +136,38 @@
       </div>
     </div>
 
+    <!-- Poll Options (visible only if Question tag is selected) -->
+    @if (formData.tag === 'question') {
+      <div class="meta-field" style="margin-top: 1rem; margin-bottom: 1rem;">
+        <label class="meta-label">Poll Options ({{ formData.pollOptions.length }}/5)</label>
+        <div class="poll-options">
+          @for (opt of formData.pollOptions; track trackByIndex($index)) {
+            <div class="poll-option-row flex gap-2 mb-2" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <input
+                type="text"
+                class="tm-input"
+                style="flex: 1;"
+                placeholder="Option {{ $index + 1 }}"
+                [(ngModel)]="formData.pollOptions[$index]"
+                name="pollOpt{{ $index }}"
+                required
+              />
+              @if (formData.pollOptions.length > 2) {
+                <button type="button" class="tm-icon-btn text-tm-danger" (click)="removePollOption($index)" aria-label="Remove option">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+        @if (formData.pollOptions.length < 5) {
+          <button type="button" class="tm-btn mt-2" (click)="addPollOption()">
+            <i class="bi bi-plus-lg"></i> Add Option
+          </button>
+        }
+      </div>
+    }
+
     <div class="event-row">
       <label class="event-toggle">
         <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />

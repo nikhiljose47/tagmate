@@ -17,6 +17,12 @@
             <a routerLink="/profile">{{ post.username || 'Anonymous' }}</a>
             <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
               {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }}
+              @if (post.expiresIn) {
+                @let ls = post.createdAt | lifespan:post.expiresIn;
+                <span class="lifespan-badge" [class]="'severity-' + ls.severity">
+                  <i class="bi bi-clock"></i> {{ ls.text }}
+                </span>
+              }
             </a>
             <span class="trust-badge">{{ social.trustBadge(post.username || '') }} - {{ social.trustScore(post.username || '') }} pts</span>
           </div>
@@ -80,6 +86,30 @@
             <strong>{{ post.username || 'Anonymous' }}</strong>
             <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
           </p>
+
+          @if (post.pollOptions?.length) {
+            <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
+              @for (opt of post.pollOptions; track $index) {
+                @let voted = hasVotedPoll($index);
+                @let pct = getPollPercentage($index);
+                <button 
+                  class="poll-option-btn relative w-full overflow-hidden rounded-md border border-[var(--tm-border)] p-2 text-left transition hover:border-indigo-300"
+                  [class.ring-2]="voted"
+                  [class.ring-indigo-500]="voted"
+                  (click)="votePoll($index)"
+                >
+                  <div 
+                    class="absolute inset-y-0 left-0 bg-indigo-500/20 transition-all duration-500" 
+                    [style.width.%]="pct"
+                  ></div>
+                  <div class="relative z-10 flex justify-between">
+                    <span class="font-medium text-sm">{{ opt }}</span>
+                    <span class="text-xs text-tm-muted font-semibold">{{ pct }}%</span>
+                  </div>
+                </button>
+              }
+            </div>
+          }
           <span class="tm-chip">{{ post.tag | titlecase }}</span>
 
           @if (post.kind === 'event' || post.tag === 'event') {

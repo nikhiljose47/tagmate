@@ -67,7 +67,25 @@ export class PostPage {
     isEvent:   false,
     eventStart: '',
     eventEnd:   '',
+    pollOptions: ['', ''],
   };
+
+  // ── Polls ────────────────────────────────────────────────────────────────
+  addPollOption(): void {
+    if (this.formData.pollOptions.length < 5) {
+      this.formData.pollOptions.push('');
+    }
+  }
+
+  removePollOption(index: number): void {
+    if (this.formData.pollOptions.length > 2) {
+      this.formData.pollOptions.splice(index, 1);
+    }
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
 
   // ── Media selection ──────────────────────────────────────────────────────
 
@@ -178,6 +196,8 @@ export class PostPage {
         category:  this.formData.tag,
         eventStart: this.formData.isEvent ? this.formData.eventStart || undefined : undefined,
         eventEnd:   this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
+        pollOptions: this.formData.tag === TagCategory.Question ? this.formData.pollOptions.filter(o => o.trim().length > 0) : undefined,
+        pollVotes: this.formData.tag === TagCategory.Question ? {} : undefined,
       };
 
       await firstValueFrom(this.tagRepo.create(tagObject));
@@ -204,7 +224,7 @@ export class PostPage {
     // Revoke all object URLs to avoid memory leaks.
     this.mediaItems().forEach((m) => URL.revokeObjectURL(m.previewUrl));
     this.mediaItems.set([]);
-    this.formData  = { headline: '', expiresIn: 60, tag: '', isEvent: false, eventStart: '', eventEnd: '' };
+    this.formData  = { headline: '', expiresIn: 60, tag: '', isEvent: false, eventStart: '', eventEnd: '', pollOptions: ['', ''] };
     this.showMapHint.set(false);
     this.showPreview.set(false);
     this.locationErrorVisible.set(false);

@@ -24,6 +24,7 @@ export class SocialInteractionsService {
   readonly messages = signal<Record<string, DirectMessage[]>>({});
   readonly notifications = signal<LocalNotification[]>([]);
   readonly reputation = signal<Record<string, number>>({});
+  readonly pollVotes = signal<Record<string, Record<string, string[]>>>({});
 
   constructor() {
     this.likedPosts.set(new Set(this.readJson<string[]>(this.likedKey, [])));
@@ -35,6 +36,7 @@ export class SocialInteractionsService {
     this.messages.set(this.readJson<Record<string, DirectMessage[]>>(this.messagesKey, {}));
     this.notifications.set(this.readJson<LocalNotification[]>(this.notificationsKey, []));
     this.reputation.set(this.readJson<Record<string, number>>(this.reputationKey, {}));
+    this.pollVotes.set(this.readJson<Record<string, Record<string, string[]>>>('tagmate.pollVotes', {}));
   }
 
   postKey(post: Tag): string {
@@ -127,6 +129,56 @@ export class SocialInteractionsService {
       `${author} commented on ${post.highlight || 'a nearby tag'}.`,
       key
     );
+  }
+
+  toggleLoveComment(postKey: string, commentId: string): void {
+    const state = { ...this.comments() };
+    if (!state[postKey]) return;
+    const comment = state[postKey].find(c => c.id === commentId);
+    if (!comment) return;
+    // Toggle logic: For local testing, just increment.
+    comment.upvotes++;
+    this.comments.set(state);
+    this.writeJson(this.commentsKey, state);
+  }
+
+  // --- Polls ---
+
+  getPollVotes(postKey: string): Record<string, string[]> {
+    return this.pollVotes()[postKey] || {};
+  }
+
+  votePoll(postKey: string, optionIndex: number, username: string): void {
+    const current = { ...this.pollVotes() };
+    if (!current[postKey]) {
+      current[postKey] = {};
+    }
+    
+    // Remove user's previous votes on this poll
+    for (const key of Object.keys(current[postKey])) {
+      current[postKey][key] = current[postKey][key].filter(u => u !== username);
+    }
+    
+    // Add vote
+    const optKey = optionIndex.toString();
+    if (!current[postKey][optKey]) {
+      current[postKey][optKey] = [];
+    }
+    current[postKey][optKey].push(username);
+    
+    this.pollVotes.set(current);
+    this.writeJson('tagmate.pollVotes', current);
+  }
+
+  hasVotedPoll(postKey: string, optionIndex: number, username: string): boolean {
+    const votes = this.getPollVotes(postKey);
+    const optKey = optionIndex.toString();
+    return !!votes[optKey] && votes[optKey].includes(username);
+  }
+
+  totalPollVotes(postKey: string): number {
+    const votes = this.getPollVotes(postKey);
+    return Object.values(votes).reduce((sum, arr) => sum + arr.length, 0);
   }
 
   upvoteComment(post: Tag, commentId: string): void {
