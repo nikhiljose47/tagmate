@@ -1,0 +1,77 @@
+# Tagmate Features and Verification Guide
+
+This document tracks all implemented core features of Tagmate, outlines proposed future updates, and defines the verification workflows required when making changes to the application.
+
+> [!IMPORTANT]
+> **Developer Agent Instruction**: Whenever a new feature is added, modified, or verification routines change, developer agents **must** update this file to ensure the features log, roadmap, and test procedures remain perfectly accurate.
+
+---
+
+## 1. Current Core Features
+
+### Location-Based Posting & Map (Hood)
+- **Interactive Mapping**: Renders high-performance map styles (Streets, Satellite, Hybrid, Outdoor) powered by MapLibre GL JS and MapTiler.
+- **Geographic Clustering**: Implements WebGL clustering for neighborhood posts with dynamic zoom expansion on click.
+- **Boundary Rendering**: Dynamic fetching and visual polygon boundary outline of neighborhoods using OpenStreetMap Nominatim API place boundaries.
+- **Draggable Location Picker**: A temporary pick marker with geocoding feedback for attaching precise coordinates to new posts.
+- **Heatmap Mode**: Visualization of high-density post areas with adjustable circle paint weights.
+
+### Neighborhood AI Concierge ("Chatmate AI")
+- **Dynamic Assistant Panel**: A slide-over glassmorphic chatbot panel in the Neighborhood view.
+- **Dynamic Context Parsing**: Analyzes active neighborhood posts in real-time to answer neighbor queries about traffic alerts, sales, event schedules, and local recommendations.
+- **Quick Action Prompts**: Preset query buttons to summarize activity, check traffic status, or find local bargains in one tap.
+- **Interactive Map Highlights**: Provides recommended tag attachments in the chat flow with direct "Pin on Map" and "Details" action links.
+- **Polished UX**: Smooth typing status animations and distinct user/AI message alignment.
+
+### Hood Champion & Gamification
+- **Reputation & Ranks**: Tracks user contribution points ("Reputation") and assigns status badges (`New`, `Rising`, `Helpful`, `Trusted`).
+- **Weekly Civic Quests**: Interactive checklists that reward contribution with reputation:
+  - *Civic Love* (Liking neighborhood posts)
+  - *Chatty Neighbor* (Adding threaded comments)
+  - *Active Citizen* (RSVPing to events)
+  - *Vocal Resident* (Voting in active polls)
+- **Top Contributors Leaderboard**: Dynamic ranking of top neighbors in each neighborhood based on their post counts and trust metrics.
+
+### Social Interaction Suite
+- **Direct Messaging**: Private message threads initiated from individual tags, allowing direct peer-to-peer neighborhood coordinate discussions.
+- **Threaded Comments**: Interactive comment sections supporting parent-reply trees, comment liking, and user mentions.
+- **Event RSVPs**: Attending/declining status tracking for posts of kind `event`.
+- **Question Polls**: Custom question creation with up to 5 poll options, live percentage updates, and singular vote lock-in.
+- **Rich Notifications**: Local message center notifying users of replies, new alerts, RSVPs, likes, and direct messages.
+
+### Aesthetics & Customizations
+- **curated Theme Modes**: Instant switching across custom color schemes: `Light`, `Dark`, `Midnight` (OLED black), `Forest`, and `Sepia`.
+- **Dynamic Gradients**: Color-gradient headers mapping to different post category tags (Alert, Event, Sale, Food, Traffic, Market, Question).
+
+---
+
+## 2. Proposed Future Updates
+
+- [ ] **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post.
+- [ ] **Virtual Sticky Bulletin Board**: A fast announcement wall for short, non-geolocated notes (e.g. "Found keys at the park").
+- [ ] **External LLM Service Integration**: Upgrade the local rules-based Chatmate AI to use remote APIs (like Gemini or Llama) for fully open-ended local inquiries.
+- [ ] **Advanced Geofencing Notifications**: Push alert notifications when a user enters a geographic bounding box containing active high-severity traffic alerts or emergencies.
+
+---
+
+## 3. Verification & Testing Guide
+
+Every pull request or modification must pass both automated and manual verification check routines.
+
+### Automated Verification
+Run the unit test suite headless from the root workspace:
+```bash
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+Ensure all tests compile and pass successfully.
+
+### Manual UI Verification Checklist
+Before deploying changes:
+1. **Theme Switching**: Click the theme switcher button and verify styles render correctly in all modes, particularly dark/midnight.
+2. **AI Chatmate Responses**: Open the Neighborhood Page, switch to the "Chatmate AI" tab, click the *"Summarize"* chip, and confirm the AI lists correct active tag counts.
+3. **Map Highlight Links**: Ask the AI to find an event or sale, click the resulting attachment's "Pin" button, and ensure the map flies to the correct coordinates.
+4. **Quest Progress & Reputation**: Complete a quest (e.g. vote in a poll) and confirm:
+   - The quest card updates to "Done" state.
+   - The Weekly Quest progress bar increases.
+   - The user's reputation score increases by 5.
+   - The Rank badge adjusts if the new reputation score crosses a badge threshold.
