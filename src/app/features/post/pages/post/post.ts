@@ -9,6 +9,7 @@ import { SupabaseService } from '../../../../core/services/supabase.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { MediaCompressionService } from '../../../../core/services/media-compression.service';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
@@ -37,6 +38,7 @@ export class PostPage {
   private readonly auth     = inject(AuthService);
   private readonly tagRepo  = inject(TAG_REPOSITORY);
   private readonly logger   = inject(LoggerService);
+  private readonly media    = inject(MediaCompressionService);
 
   constructor(
     public  shared: SharedStateService,
@@ -146,9 +148,12 @@ export class PostPage {
 
       for (const item of this.mediaItems()) {
         try {
-          const ext  = item.file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
+          // Shrink images before upload (videos pass through untouched) so we
+          // save bandwidth on the upload and on every future download.
+          const { file } = await this.media.compress(item.file);
+          const ext  = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
           const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-          uploadedUrls.push(await this.supabase.uploadFile(path, item.file));
+          uploadedUrls.push(await this.supabase.uploadFile(path, file));
         } catch (err) {
           this.logger.error('Media upload failed', err);
           this.toast.show('One file failed to upload — continuing without it.', 'warning');
