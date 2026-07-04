@@ -81,13 +81,21 @@ export class NeighborhoodPage implements OnInit {
   });
 
   protected readonly contributors = computed(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { name: string; count: number }>();
     for (const post of this.neighborhoodPosts()) {
-      const name = post.username || 'Anonymous';
-      counts.set(name, (counts.get(name) ?? 0) + 1);
+      const uid = post.userId;
+      if (!uid) continue;
+      const entry = counts.get(uid);
+      if (entry) entry.count++;
+      else counts.set(uid, { name: post.username || 'Anonymous', count: 1 });
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return [...counts.entries()]
+      .map(([uid, { name, count }]) => ({ uid, name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
   });
+
+  protected readonly myUid = computed(() => this.social.myUid());
 
   ngOnInit(): void {
     this.tagRepo.getAll().subscribe({

@@ -64,11 +64,11 @@
       <section class="hood-section tm-panel">
         <h2>Top Contributors</h2>
         <div class="people-list">
-          @for (person of contributors(); track person[0]) {
+          @for (person of contributors(); track person.uid) {
             <div>
-              <span class="person-avatar">{{ person[0].slice(0, 1) }}</span>
-              <span>{{ person[0] }}</span>
-              <small>{{ person[1] }} posts</small>
+              <span class="person-avatar">{{ person.name.slice(0, 1) }}</span>
+              <span>{{ person.name }}</span>
+              <small>{{ person.count }} posts</small>
             </div>
           }
         </div>
@@ -199,15 +199,15 @@
             <p class="text-muted small">Complete quests to rise through the neighbor ranks</p>
           </div>
           <div class="score-badge text-center p-2 rounded">
-            <strong class="d-block">{{ social.trustScore('Guest User') }}</strong>
+            <strong class="d-block">{{ social.trustScore(myUid() || '') }}</strong>
             <span class="small font-semibold">Reputation</span>
           </div>
         </div>
 
         <div class="my-2 d-flex align-items-center gap-2">
           <span class="text-sm font-bold">Rank:</span>
-          <span class="rank-badge" [ngClass]="social.trustBadge('Guest User') | lowercase">
-            {{ social.trustBadge('Guest User') }}
+          <span class="rank-badge" [ngClass]="social.trustBadge(myUid() || '') | lowercase">
+            {{ social.trustBadge(myUid() || '') }}
           </span>
         </div>
 
@@ -256,24 +256,24 @@
       <div class="leaderboard-panel tm-panel p-4">
         <h2>Top Neighborhood Contributors</h2>
         <div class="leaderboard-list">
-          @for (person of contributors(); track person[0]; let idx = $index) {
-            <div class="leaderboard-item" [class.highlighted]="person[0] === 'Guest User' || person[0] === 'You'">
+          @for (person of contributors(); track person.uid; let idx = $index) {
+            <div class="leaderboard-item" [class.highlighted]="person.uid === myUid()">
               <div class="rank-pos">
                 @if (idx === 0) { 🥇 }
                 @else if (idx === 1) { 🥈 }
                 @else if (idx === 2) { 🥉 }
                 @else { #{{ idx + 1 }} }
               </div>
-              <span class="person-avatar">{{ person[0].slice(0, 1) }}</span>
+              <span class="person-avatar">{{ person.name.slice(0, 1) }}</span>
               <div class="user-info flex-1">
-                <h3>{{ person[0] }}</h3>
-                <p class="small text-muted">{{ person[1] }} posts contributed</p>
+                <h3>{{ person.name }}</h3>
+                <p class="small text-muted">{{ person.count }} posts contributed</p>
               </div>
               <div class="user-score text-end">
-                <span class="rank-badge" [ngClass]="social.trustBadge(person[0]) | lowercase">
-                  {{ social.trustBadge(person[0]) }}
+                <span class="rank-badge" [ngClass]="social.trustBadge(person.uid) | lowercase">
+                  {{ social.trustBadge(person.uid) }}
                 </span>
-                <small class="d-block text-muted mt-1 font-semibold">{{ social.trustScore(person[0]) }} Rep Points</small>
+                <small class="d-block text-muted mt-1 font-semibold">{{ social.trustScore(person.uid) }} Rep Points</small>
               </div>
             </div>
           } @empty {

@@ -22,25 +22,38 @@ interface RsvpRow { post_id: string; user_id: string; }
 interface PollVoteRow { post_id: string; option_index: number; user_id: string; }
 interface OwnershipRow { post_id: string; }
 
+const QUESTS_KEY = 'tagmate.completedQuests';
+const QUEST_NAMES: Record<string, string> = {
+  love: 'Civic Love',
+  comment: 'Chatty Neighbor',
+  rsvp: 'Active Citizen',
+  poll: 'Vocal Resident',
+};
+
 /**
  * Supabase-backed social interactions. Every public method here keeps its
  * exact original signature so every calling component stays untouched — only
  * the internals moved from localStorage to Postgres. See the migration plan
  * (persist-social-interactions) for the full design rationale.
+ *
+ * Quests (`completeQuest`/`isQuestCompleted`/`resetQuests`) are a local-only
+ * achievement layer, not synced to Supabase — real reputation is entirely
+ * trigger-maintained server-side (see `trustScore`), so quests never bump it
+ * directly; they're just a checklist badge kept in this browser.
  */
 @Injectable({ providedIn: 'root' })
 export class SocialInteractionsService {
-  private readonly likedKey = 'tagmate.likedPosts';
-  private readonly savedKey = 'tagmate.savedPosts';
-  private readonly commentsKey = 'tagmate.comments';
-  private readonly hiddenKey = 'tagmate.hiddenPosts';
-  private readonly reportedKey = 'tagmate.reportedPosts';
-  private readonly rsvpsKey = 'tagmate.rsvps';
-  private readonly messagesKey = 'tagmate.messages';
-  private readonly notificationsKey = 'tagmate.notifications';
-  private readonly reputationKey = 'tagmate.reputation';
-  private readonly questsKey = 'tagmate.completedQuests';
+  private readonly supabase = inject(SupabaseService);
+  private readonly auth = inject(AuthService);
+  private readonly logger = inject(LoggerService);
+  private readonly toast = inject(ToastService);
 
+  // ---- identity ----
+  private readonly currentUid = signal<string | null>(null);
+  private currentUsername = 'Guest';
+  private lastHydratedUid: string | null = null;
+
+  // ---- personal / viewer-specific state ----
   readonly likedPosts = signal(new Set<string>());
   readonly savedPosts = signal(new Set<string>());
   readonly hiddenPosts = signal(new Set<string>());
@@ -52,22 +65,53 @@ export class SocialInteractionsService {
   readonly pollVotes = signal<Record<string, Record<string, string[]>>>({});
   readonly completedQuests = signal(new Set<string>());
 
+  // Optimistic overlays on top of the trigger-maintained aggregate columns on
+  // `tags` — keeps counts instant on click without an extra query per toggle.
+  private readonly likeDeltas = signal<Record<string, number>>({});
+  private readonly commentDeltas = signal<Record<string, number>>({});
+  private readonly rsvpDeltas = signal<Record<string, number>>({});
+  private readonly reputationCache = signal<Record<string, number>>({});
+
+  // Coalesced batch fetch for "did I like/rsvp this" across a whole rendered
+  // list — one query per table per render pass, not one per post.
+  private readonly pendingBatchIds = new Set<string>();
+  private readonly hydratedLikeRsvp = new Set<string>();
+  private batchScheduled = false;
+
+  // Per-post/thread lazy hydration guards (comments, poll tallies, DM threads).
+  private readonly hydratingComments = new Set<string>();
+  private readonly hydratingPoll = new Set<string>();
+  private readonly hydratingThreads = new Set<string>();
+  private readonly hydratingReputation = new Set<string>();
+
   constructor() {
-    this.likedPosts.set(new Set(this.readJson<string[]>(this.likedKey, [])));
-    this.savedPosts.set(new Set(this.readJson<string[]>(this.savedKey, [])));
-    this.hiddenPosts.set(new Set(this.readJson<string[]>(this.hiddenKey, [])));
-    this.reportedPosts.set(new Set(this.readJson<string[]>(this.reportedKey, [])));
-    this.comments.set(this.readJson<Record<string, LocalComment[]>>(this.commentsKey, {}));
-    this.rsvps.set(this.readJson<Record<string, string[]>>(this.rsvpsKey, {}));
-    this.messages.set(this.readJson<Record<string, DirectMessage[]>>(this.messagesKey, {}));
-    this.notifications.set(this.readJson<LocalNotification[]>(this.notificationsKey, []));
-    this.reputation.set(this.readJson<Record<string, number>>(this.reputationKey, {}));
-    this.pollVotes.set(this.readJson<Record<string, Record<string, string[]>>>('tagmate.pollVotes', {}));
-    this.completedQuests.set(new Set(this.readJson<string[]>(this.questsKey, [])));
+    this.supabase.session$.subscribe((session) => {
+      const uid = session?.user?.id ?? null;
+      this.currentUid.set(uid);
+      if (uid && uid !== this.lastHydratedUid) {
+        this.lastHydratedUid = uid;
+        this.hydratePersonalData(uid);
+      } else if (!uid) {
+        this.lastHydratedUid = null;
+        this.resetPersonalSignals();
+      }
+    });
+
+    // Cosmetic only — display-name fallback while the real session resolves.
+    this.auth.user$.subscribe((u) => { this.currentUsername = u.username; });
+
+    this.completedQuests.set(new Set(this.readJson<string[]>(QUESTS_KEY, [])));
+
+    this.registerRealtime();
   }
 
   postKey(post: Tag): string {
     return post.id ?? `${post.userId}-${post.createdAt}`;
+  }
+
+  /** Current viewer's uid (null until the session resolves), for components that used to hardcode 'Guest User'/'You'. */
+  myUid(): string | null {
+    return this.currentUid();
   }
 
   // ---------- LIKES ----------
@@ -104,6 +148,7 @@ export class SocialInteractionsService {
       this.toast.show('Could not update like — please try again.', 'danger');
     });
 
+    if (nowLiked) this.completeQuest('love');
     return nowLiked;
   }
 
@@ -176,20 +221,6 @@ export class SocialInteractionsService {
     return this.commentsFor(post).filter((comment) => comment.parentId === parentId);
   }
 
-  toggleLike(post: Tag): boolean {
-    const liked = this.toggleSet(this.likedPosts, this.postKey(post), this.likedKey);
-    this.bumpReputation(post.username, liked ? 2 : -2);
-    if (liked) {
-      this.addNotification('love', 'New love', `${post.username || 'A neighbor'} got love on a post.`, this.postKey(post));
-      this.completeQuest('love');
-    }
-    return liked;
-  }
-
-  toggleSave(post: Tag): boolean {
-    return this.toggleSet(this.savedPosts, this.postKey(post), this.savedKey);
-  }
-
   addComment(post: Tag, text: string, author = 'You', parentId?: string): void {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -209,16 +240,35 @@ export class SocialInteractionsService {
       mentions,
       parentId,
     };
+    this.comments.update((c) => ({ ...c, [key]: [...(c[key] ?? []), optimisticComment] }));
+    this.bumpDelta(this.commentDeltas, key, 1);
 
-    this.comments.update((current) => {
-      const next = { ...current, [key]: [...(current[key] ?? []), comment] };
-      this.writeJson(this.commentsKey, next);
-      return next;
-    });
+    const row = {
+      post_id: post.id,
+      parent_id: parentId ?? null,
+      author_uid: uid,
+      author_name: author,
+      text: trimmed,
+      mentions,
+    };
 
-    if (author === 'You' || author === 'Guest User') {
-      this.completeQuest('comment');
-    }
+    firstValueFrom(this.supabase.addRow('post_comments', row))
+      .then(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('addComment: no row returned');
+        const commentRow = data as PostCommentRow;
+        this.comments.update((c) => ({
+          ...c,
+          [key]: (c[key] ?? []).map((cm) => (cm.id === optimisticId ? rowToComment(commentRow) : cm)),
+        }));
+      })
+      .catch((err) => {
+        this.logger.error('addComment failed, rolling back', err);
+        this.comments.update((c) => ({ ...c, [key]: (c[key] ?? []).filter((cm) => cm.id !== optimisticId) }));
+        this.bumpDelta(this.commentDeltas, key, -1);
+        this.toast.show('Could not post your comment — please try again.', 'danger');
+      });
+
+    this.completeQuest('comment');
 
     this.pushLocalNotification(
       parentId ? 'reply' : 'reply',
@@ -257,30 +307,28 @@ export class SocialInteractionsService {
     return this.pollVotes()[postKey] ?? {};
   }
 
-  votePoll(postKey: string, optionIndex: number, username: string): void {
-    const current = { ...this.pollVotes() };
-    if (!current[postKey]) {
-      current[postKey] = {};
-    }
-    
-    // Remove user's previous votes on this poll
-    for (const key of Object.keys(current[postKey])) {
-      current[postKey][key] = current[postKey][key].filter(u => u !== username);
-    }
-    
-    // Add vote
-    const optKey = optionIndex.toString();
-    if (!current[postKey][optKey]) {
-      current[postKey][optKey] = [];
-    }
-    current[postKey][optKey].push(username);
-    
-    this.pollVotes.set(current);
-    this.writeJson('tagmate.pollVotes', current);
+  votePoll(postKey: string, optionIndex: number, _username: string): void {
+    const uid = this.currentUid();
+    if (!uid) { this.warnSignInRequired('vote'); return; }
 
-    if (username === 'You' || username === 'Guest User') {
-      this.completeQuest('poll');
-    }
+    const prevForPost = this.pollVotes()[postKey] ?? {};
+    const nextForPost = this.applyVoteOptimistically(prevForPost, optionIndex, uid);
+    this.pollVotes.update((v) => ({ ...v, [postKey]: nextForPost }));
+
+    void this.fireAndForget(
+      this.supabase.upsertRow(
+        'post_poll_votes',
+        { post_id: postKey, option_index: optionIndex, user_id: uid },
+        'post_id,user_id'
+      ),
+      (err) => {
+        this.logger.error('votePoll failed, rolling back', err);
+        this.pollVotes.update((v) => ({ ...v, [postKey]: prevForPost }));
+        this.toast.show('Could not record your vote — please try again.', 'danger');
+      }
+    );
+
+    this.completeQuest('poll');
   }
 
   hasVotedPoll(postKey: string, optionIndex: number, _username: string): boolean {
@@ -330,13 +378,12 @@ export class SocialInteractionsService {
       this.bumpDelta(this.rsvpDeltas, key, wasAttending ? 1 : -1);
       this.toast.show('Could not update RSVP — please try again.', 'danger');
     });
-    if (attending) {
-      this.addNotification('rsvp', 'RSVP saved', `You are attending ${post.highlight || 'this event'}.`, key);
-      if (user === 'You' || user === 'Guest User') {
-        this.completeQuest('rsvp');
-      }
+
+    if (nowAttending) {
+      this.pushLocalNotification('rsvp', 'RSVP saved', `You are attending ${post.highlight || 'this event'}.`, key);
+      this.completeQuest('rsvp');
     }
-    return attending;
+    return nowAttending;
   }
 
   // ---------- DIRECT MESSAGES ----------
@@ -440,6 +487,36 @@ export class SocialInteractionsService {
     if (score >= 20) return 'Helpful';
     if (score >= 8) return 'Rising';
     return 'New';
+  }
+
+  // ---------- QUESTS (local-only achievement layer) ----------
+
+  completeQuest(questId: string): boolean {
+    let newlyCompleted = false;
+    this.completedQuests.update((current) => {
+      if (current.has(questId)) return current;
+      newlyCompleted = true;
+      const next = new Set(current).add(questId);
+      this.writeJson(QUESTS_KEY, [...next]);
+      return next;
+    });
+    if (newlyCompleted) {
+      this.pushLocalNotification(
+        'love',
+        'Quest Completed!',
+        `You completed the "${QUEST_NAMES[questId] ?? questId}" quest!`
+      );
+    }
+    return newlyCompleted;
+  }
+
+  isQuestCompleted(questId: string): boolean {
+    return this.completedQuests().has(questId);
+  }
+
+  resetQuests(): void {
+    this.completedQuests.set(new Set());
+    this.writeJson(QUESTS_KEY, []);
   }
 
   // ---------- private: hydration ----------
@@ -674,61 +751,39 @@ export class SocialInteractionsService {
     }
   }
 
-  requestPushPermission(): void {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'default') return;
-    void Notification.requestPermission();
+  private warnSignInRequired(action: string): void {
+    this.logger.warn(`Tried to ${action} before a session was ready — ignored.`);
   }
 
-  reportPost(post: Tag): void {
-    const key = this.postKey(post);
-    this.addToSet(this.reportedPosts, key, this.reportedKey);
-    this.addToSet(this.hiddenPosts, key, this.hiddenKey);
-  }
-
-  private bumpReputation(username: string | undefined, delta: number): void {
-    if (!username) return;
-    this.reputation.update((current) => {
-      const next = { ...current, [username]: Math.max(0, (current[username] ?? 0) + delta) };
-      this.writeJson(this.reputationKey, next);
-      return next;
-    });
-  }
-
-  private toggleSet(
-    setSignal: ReturnType<typeof signal<Set<string>>>,
-    key: string,
-    storageKey: string
-  ): boolean {
-    let hasKey = false;
-
-    setSignal.update((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-        hasKey = false;
-      } else {
-        next.add(key);
-        hasKey = true;
+  /** Awaits a Supabase write, treating a resolved `{error}` field as a rejection too. */
+  private async fireAndForget(
+    obs: Observable<unknown>,
+    onError: (err: unknown) => void
+  ): Promise<void> {
+    try {
+      const result = await firstValueFrom(obs);
+      if (result && typeof result === 'object' && 'error' in result && (result as { error: unknown }).error) {
+        throw (result as { error: unknown }).error;
       }
-
-      this.writeJson(storageKey, [...next]);
-      return next;
-    });
-
-    return hasKey;
+    } catch (err) {
+      onError(err);
+    }
   }
 
-  private addToSet(
-    setSignal: ReturnType<typeof signal<Set<string>>>,
-    key: string,
-    storageKey: string
-  ): void {
-    setSignal.update((current) => {
+  private toggleInSet(sig: WritableSignal<Set<string>>, key: string, shouldHave: boolean): void {
+    sig.update((current) => {
       const next = new Set(current);
-      next.add(key);
-      this.writeJson(storageKey, [...next]);
+      if (shouldHave) next.add(key); else next.delete(key);
       return next;
     });
+  }
+
+  private addToSetLocal(sig: WritableSignal<Set<string>>, key: string): void {
+    sig.update((current) => new Set(current).add(key));
+  }
+
+  private bumpDelta(sig: WritableSignal<Record<string, number>>, key: string, amount: number): void {
+    sig.update((d) => ({ ...d, [key]: (d[key] ?? 0) + amount }));
   }
 
   private readJson<T>(key: string, fallback: T): T {
@@ -746,50 +801,7 @@ export class SocialInteractionsService {
       if (typeof localStorage === 'undefined') return;
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // Local social state should never block the main posting flow.
+      // Local quest state should never block the main posting flow.
     }
-  }
-
-  completeQuest(questId: string): boolean {
-    let newlyCompleted = false;
-    this.completedQuests.update((current) => {
-      const next = new Set(current);
-      if (!next.has(questId)) {
-        next.add(questId);
-        newlyCompleted = true;
-        this.writeJson(this.questsKey, [...next]);
-        this.bumpReputation('You', 5);
-        this.bumpReputation('Guest User', 5);
-        this.addNotification('love', 'Quest Completed!', `You completed the "${this.questName(questId)}" quest! (+5 Reputation)`, undefined);
-      }
-      return next;
-    });
-    return newlyCompleted;
-  }
-
-  isQuestCompleted(questId: string): boolean {
-    return this.completedQuests().has(questId);
-  }
-
-  resetQuests(): void {
-    this.completedQuests.set(new Set());
-    this.writeJson(this.questsKey, []);
-    this.reputation.update((r) => {
-      const next = { ...r };
-      next['You'] = 0;
-      next['Guest User'] = 0;
-      this.writeJson(this.reputationKey, next);
-      return next;
-    });
-  }
-
-  private questName(id: string): string {
-    const names: Record<string, string> = {
-      love: 'Civic Love',
-      comment: 'Chatty Neighbor',
-      rsvp: 'Active Citizen',
-      poll: 'Vocal Resident',
-    };
-    return names[id] || id;
   }
 }
