@@ -121,6 +121,8 @@
                 [src]="card.images![0]"
                 class="banner-img"
                 [alt]="card.highlight"
+                loading="lazy"
+                decoding="async"
                 (error)="onImgError(card)"
               />
             } @else {

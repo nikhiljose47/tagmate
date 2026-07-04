@@ -19,6 +19,9 @@ export interface TagRow {
   comments?: string[];
   poll_options?: string[];
   poll_votes?: Record<string, string[]>;
+  like_count?: number;
+  comment_count?: number;
+  rsvp_count?: number;
 }
 
 /** Converts a domain Tag into a Supabase row for insert/update. */
@@ -65,5 +68,8 @@ export function rowToTag(row: TagRow): Tag {
     pollVotes: row.poll_votes,
     category:  row.tag,
     kind:      row.tag === 'event' ? 'event' : 'post',
+    likeCount:    row.like_count,
+    commentCount: row.comment_count,
+    rsvpCount:    row.rsvp_count,
   };
 }

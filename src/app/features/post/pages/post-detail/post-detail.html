@@ -24,7 +24,7 @@
                 </span>
               }
             </a>
-            <span class="trust-badge">{{ social.trustBadge(post.username || '') }} - {{ social.trustScore(post.username || '') }} pts</span>
+            <span class="trust-badge">{{ social.trustBadge(post.userId) }} - {{ social.trustScore(post.userId) }} pts</span>
           </div>
           <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost()">
             <i class="bi bi-flag" aria-hidden="true"></i>
@@ -36,7 +36,7 @@
             @if (isVideoUrl(post.images[mediaIndex()])) {
               <video [src]="post.images[mediaIndex()]" controls playsinline></video>
             } @else {
-              <img [src]="post.images[mediaIndex()]" alt="Tag post media" />
+              <img [src]="post.images[mediaIndex()]" alt="Tag post media" loading="eager" decoding="async" fetchpriority="high" />
             }
             @if (post.images.length > 1) {
               <button class="media-nav media-nav--prev" type="button" aria-label="Previous media" (click)="prevMedia()">
@@ -209,7 +209,7 @@
             @for (related of relatedPosts(); track social.postKey(related)) {
               <a [routerLink]="['/posts', social.postKey(related)]" [style.background]="related.tag | tagGradient">
                 @if (related.images[0]) {
-                  <img [src]="related.images[0]" alt="" />
+                  <img [src]="related.images[0]" alt="" loading="lazy" decoding="async" />
                 } @else {
                   <span class="related-emoji">{{ related.tag | tagEmoji }}</span>
                 }

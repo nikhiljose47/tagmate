@@ -6,6 +6,7 @@ import {
   NgZone,
   OnDestroy,
   ViewChild,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -38,6 +39,7 @@ import { PreloadService } from '../../../../core/services/preload.service';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
+import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
 
 // MapLibre source/layer IDs kept as module-level constants for clarity.
 const POSTS_SOURCE          = 'posts-source';
@@ -51,6 +53,44 @@ const DEFAULT_ZOOM          = 15;
 const ZOOM_LEVELS           = [7, 10, 12, 15] as const;
 
 type MapStyleKey = 'streets' | 'satellite' | 'hybrid' | 'outdoor';
+const MAP_STYLE_KEYS: readonly MapStyleKey[] = ['streets', 'satellite', 'hybrid', 'outdoor'];
+
+/** Display preferences persisted across reloads — same pattern as ThemeService. */
+const HOOD_SETTINGS_KEY = 'tagmate_hood_settings';
+
+interface StoredHoodSettings {
+  countryMode: boolean;
+  postsVisible: boolean;
+  boundaryVisible: boolean;
+  heatmapMode: boolean;
+  mapStyle: MapStyleKey;
+  categoryFilters: string[];
+}
+
+const DEFAULT_HOOD_SETTINGS: StoredHoodSettings = {
+  countryMode:      false,
+  postsVisible:     true,
+  boundaryVisible:  true,
+  heatmapMode:      false,
+  mapStyle:         'streets',
+  categoryFilters:  [],
+};
+
+function readStoredHoodSettings(): StoredHoodSettings {
+  const stored = readLocalStorage<Partial<StoredHoodSettings>>(HOOD_SETTINGS_KEY, {});
+  return {
+    countryMode:     stored.countryMode     ?? DEFAULT_HOOD_SETTINGS.countryMode,
+    postsVisible:    stored.postsVisible    ?? DEFAULT_HOOD_SETTINGS.postsVisible,
+    boundaryVisible: stored.boundaryVisible ?? DEFAULT_HOOD_SETTINGS.boundaryVisible,
+    heatmapMode:     stored.heatmapMode     ?? DEFAULT_HOOD_SETTINGS.heatmapMode,
+    mapStyle:        MAP_STYLE_KEYS.includes(stored.mapStyle as MapStyleKey)
+                        ? (stored.mapStyle as MapStyleKey)
+                        : DEFAULT_HOOD_SETTINGS.mapStyle,
+    categoryFilters: Array.isArray(stored.categoryFilters)
+                        ? stored.categoryFilters
+                        : DEFAULT_HOOD_SETTINGS.categoryFilters,
+  };
+}
 
 interface MapPost extends Tag {
   title?: string;
@@ -133,21 +173,25 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
   private currentPosts: MapPost[] = [];
 
+  // Restored once at construction time — same "remember what I picked last
+  // time" behaviour as the theme setting, scoped to this map's display prefs.
+  private readonly storedSettings = readStoredHoodSettings();
+
   isSearching      = signal(false);
-  countryMode      = signal(false);
+  countryMode      = signal(this.storedSettings.countryMode);
   showInfo         = signal(false);
   showMapFilters   = signal(false);
   showLayerMenu    = signal(false);
   showStylePanel   = signal(false);
-  heatmapMode      = signal(false);
-  postsVisible     = signal(true);
-  boundaryVisible  = signal(true);
-  selectedMapCategories = signal<string[]>([]);
+  heatmapMode      = signal(this.storedSettings.heatmapMode);
+  postsVisible     = signal(this.storedSettings.postsVisible);
+  boundaryVisible  = signal(this.storedSettings.boundaryVisible);
+  selectedMapCategories = signal<string[]>(this.storedSettings.categoryFilters);
   /** True when opened from the Post page via ?pick=1 */
   pickMode         = signal(false);
   /** True once the user has tapped the map in pick mode */
   locationPicked   = signal(false);
-  currentStyle     = signal<MapStyleKey>('streets');
+  currentStyle     = signal<MapStyleKey>(this.storedSettings.mapStyle);
   readonly zoomLevels = ZOOM_LEVELS;
   readonly MAP_STYLES: { key: MapStyleKey; label: string }[] = [
     { key: 'streets',   label: 'Streets'   },
@@ -166,6 +210,21 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   ].filter(Boolean);
   selected = signal(DEFAULT_ZOOM);
   hood     = this.store.selectSignal(selectHood);
+
+  constructor() {
+    // One effect tracks every persisted signal and rewrites the settings
+    // blob whenever any of them changes — mirrors ThemeService's pattern.
+    effect(() => {
+      writeLocalStorage(HOOD_SETTINGS_KEY, {
+        countryMode:     this.countryMode(),
+        postsVisible:    this.postsVisible(),
+        boundaryVisible: this.boundaryVisible(),
+        heatmapMode:     this.heatmapMode(),
+        mapStyle:        this.currentStyle(),
+        categoryFilters: this.selectedMapCategories(),
+      } satisfies StoredHoodSettings);
+    });
+  }
 
   async ngAfterViewInit(): Promise<void> {
     if (typeof window === 'undefined') return;
@@ -371,7 +430,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     this.map = new this.maplibre.Map({
       container:    this.mapContainer.nativeElement,
-      style:        `https://api.maptiler.com/maps/streets-v4/style.json?key=${environment.mapTilerApiKey}`,
+      // Boot with whatever style the user last picked (persisted in localStorage).
+      style:        this.getStyleUrl(this.currentStyle()),
       center:       [coords.lng, coords.lat],
       zoom:         DEFAULT_ZOOM,
       minZoom:      4,

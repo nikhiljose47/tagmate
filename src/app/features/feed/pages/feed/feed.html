@@ -132,7 +132,7 @@
 
           <a class="post-media" [routerLink]="['/posts', postKey(post)]" [style.background]="post.tag | tagGradient">
             @if (post.images[0]) {
-              <img [src]="post.images[0]" alt="Tag post image" loading="lazy" />
+              <img [src]="post.images[0]" alt="Tag post image" loading="lazy" decoding="async" />
             } @else {
               <span>{{ post.tag | tagEmoji }}</span>
             }

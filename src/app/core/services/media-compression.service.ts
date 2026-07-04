@@ -25,9 +25,13 @@ export interface CompressionResult {
   didCompress: boolean;
 }
 
+// 1920px / 0.85 keeps posts crisp on the largest on-screen slot we render at
+// (post-detail hero, ~760px wide, up to 3x device pixel ratio = ~2280px) while
+// still cutting a typical 12MP phone photo (4000x3000, ~4-6MB) down to a few
+// hundred KB. Bump maxDimension further only if a wider hero layout ships.
 const DEFAULTS: Required<CompressionOptions> = {
-  maxDimension:   1600,
-  quality:        0.8,
+  maxDimension:   1920,
+  quality:        0.85,
   mimeType:       'image/webp',
   skipUnderBytes: 80 * 1024, // 80 KB — not worth re-encoding tiny images
 };

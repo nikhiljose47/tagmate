@@ -6,7 +6,7 @@ import {
   SupabaseClient,
   createClient,
 } from '@supabase/supabase-js';
-import { BehaviorSubject, Observable, from } from 'rxjs';
+import { BehaviorSubject, Observable, from, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment.prod';
 import { AppUser } from '../models/app-user.model';
@@ -101,8 +101,21 @@ export class SupabaseService {
     return from(this.client.from(table).delete().eq('id', id));
   }
 
-  upsertRow<T extends Record<string, unknown>>(table: string, data: T) {
-    return from(this.client.from(table).upsert(data));
+  /** Composite-key delete — for tables with no single-column `id` the caller wants to target. */
+  deleteRowsWhere(table: string, matchers: Record<string, unknown>) {
+    return from(this.client.from(table).delete().match(matchers));
+  }
+
+  upsertRow<T extends Record<string, unknown>>(table: string, data: T, onConflict?: string) {
+    return from(this.client.from(table).upsert(data, onConflict ? { onConflict } : undefined));
+  }
+
+  /** Fetch rows where `field` is one of `values` (Postgres IN). Skips the network call for an empty array. */
+  getRowsIn<T>(table: string, field: string, values: unknown[]): Observable<{ data: T[] | null; error: unknown }> {
+    if (!values.length) return of({ data: [], error: null });
+    return from(
+      this.client.from(table).select('*').in(field, values as (string | number)[])
+    ) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
   // ---------- GEOSPATIAL ----------
@@ -141,18 +154,20 @@ export class SupabaseService {
     ) as Observable<{ data: TagRow[] | null; error: unknown }>;
   }
 
-  liveInserts<T>(table: string): Observable<T> {
+  /** `filter` scopes the subscription to one row/post (e.g. `post_id=eq.<id>`) instead of the whole table. */
+  liveInserts<T>(table: string, filter?: string): Observable<T> {
     return new Observable<T>((subscriber) => {
       if (!isPlatformBrowser(this.platformId)) {
         subscriber.complete();
         return undefined;
       }
 
+      const channelName = filter ? `${table}-live-inserts:${filter}` : `${table}-live-inserts`;
       const channel = this.client
-        .channel(`${table}-live-inserts`)
+        .channel(channelName)
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table },
+          { event: 'INSERT', schema: 'public', table, ...(filter ? { filter } : {}) },
           (payload) => subscriber.next(payload.new as T)
         )
         .subscribe((status) => {
@@ -200,6 +215,12 @@ export class SupabaseService {
 
     const { data } = this.client.storage.from('tag-images').getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  // ---------- SOCIAL ----------
+
+  incrementCommentUpvote(commentId: string) {
+    return from(this.client.rpc('increment_comment_upvote', { p_comment_id: commentId }));
   }
 
   // ---------- UTILITY ----------
