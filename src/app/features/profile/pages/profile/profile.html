@@ -147,9 +147,12 @@
       @if (activeTab() === 'settings') {
         <div class="settings-list">
           <div class="settings-item">
-            <div>
-              <p class="settings-title">Location-aware suggestions</p>
-              <p class="settings-sub">Show posts near your current location</p>
+            <div class="flex items-center">
+              <i class="bi bi-geo-alt-fill text-xl text-[var(--tm-primary-text)] mr-4"></i>
+              <div>
+                <p class="settings-title">Location-aware suggestions</p>
+                <p class="settings-sub">Show posts near your current location</p>
+              </div>
             </div>
             <label class="tm-toggle">
               <input class="peer sr-only" type="checkbox" checked />
@@ -157,16 +160,48 @@
             </label>
           </div>
           <div class="settings-item">
-            <div>
-              <p class="settings-title">Post activity notifications</p>
-              <p class="settings-sub">Alerts when your posts get interactions</p>
+            <div class="flex items-center">
+              <i class="bi bi-bell-fill text-xl text-[var(--tm-primary-text)] mr-4"></i>
+              <div>
+                <p class="settings-title">Post activity notifications</p>
+                <p class="settings-sub">Alerts when your posts get interactions</p>
+              </div>
             </div>
             <label class="tm-toggle">
               <input class="peer sr-only" type="checkbox" checked />
               <span class="tm-toggle-track"></span>
             </label>
           </div>
-          <button class="tm-btn tm-btn-primary mt-2 w-full" type="button" (click)="saveSettings()">
+          
+          <div class="settings-appearance-group">
+            <div class="flex items-center">
+              <i class="bi bi-palette-fill text-xl text-[var(--tm-primary-text)] mr-4"></i>
+              <div>
+                <p class="settings-title">Appearance</p>
+                <p class="settings-sub">Customize the application theme</p>
+              </div>
+            </div>
+            
+            <div class="theme-grid">
+              @for (t of availableThemes; track t.value) {
+                <button
+                  type="button"
+                  class="theme-card"
+                  [class.active]="theme.currentTheme() === t.value"
+                  [ngClass]="t.value"
+                  (click)="theme.setTheme(t.value)"
+                >
+                  <div class="theme-card-preview">
+                    <div class="preview-dot primary"></div>
+                    <div class="preview-dot surface"></div>
+                  </div>
+                  <span class="theme-card-label">{{ t.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <button class="tm-btn tm-btn-primary mt-4 w-full" type="button" (click)="saveSettings()">
             Save Settings
           </button>
         </div>

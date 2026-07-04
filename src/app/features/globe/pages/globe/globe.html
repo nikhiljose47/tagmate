@@ -10,7 +10,7 @@
         <i class="bi bi-sliders2"></i>
       </button>
       <label class="sort-select">
-        <select [(ngModel)]="sortMode" aria-label="Sort">
+        <select [ngModel]="sortMode" (ngModelChange)="onSortModeChange($event)" aria-label="Sort">
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
           <option value="nearby">Nearby</option>
@@ -87,7 +87,13 @@
   <!-- Feed -->
   @if (!isLoading) {
     @if (visibleCards.length === 0) {
-      <tm-empty-state icon="🌍" title="No posts yet" subtitle="Be the first to post something in your hood." />
+      <tm-empty-state
+        icon="○"
+        title="No posts found"
+        subtitle="Clear the active filters to bring the globe feed back."
+        actionText="Reset filters"
+        (actionClicked)="clearFilters()"
+      />
     }
 
     <div class="feed-list">

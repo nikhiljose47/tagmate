@@ -60,7 +60,7 @@
         type="search"
         placeholder="Search posts, tags, people"
         [ngModel]="searchText()"
-        (ngModelChange)="searchText.set($event)"
+        (ngModelChange)="onSearchChange($event)"
       />
     </label>
 
@@ -78,12 +78,32 @@
   </section>
 
   @if (isLoading()) {
-    <div class="feed-skeletons">
-      <div class="skeleton-box"></div>
-      <div class="skeleton-box"></div>
+    <div class="feed-skeletons" aria-label="Loading feed">
+      @for (i of [1, 2]; track i) {
+        <div class="skeleton-card tm-panel">
+          <div class="skeleton-header">
+            <div class="skeleton-avatar skeleton-pulse"></div>
+            <div class="skeleton-text-group">
+              <div class="skeleton-line title skeleton-pulse"></div>
+              <div class="skeleton-line sub skeleton-pulse"></div>
+            </div>
+          </div>
+          <div class="skeleton-media skeleton-pulse"></div>
+          <div class="skeleton-body">
+            <div class="skeleton-line body skeleton-pulse"></div>
+            <div class="skeleton-line body skeleton-pulse" style="width: 75%;"></div>
+          </div>
+        </div>
+      }
     </div>
   } @else if (visiblePosts().length === 0) {
-    <tm-empty-state icon="◎" title="No posts here yet" subtitle="Try another filter or start the neighborhood thread." />
+    <tm-empty-state
+      icon="+"
+      title="No posts here yet"
+      subtitle="Try another filter or start the neighborhood thread."
+      actionText="Create post"
+      (actionClicked)="createPost()"
+    />
   } @else {
     <section class="post-list" aria-label="Feed posts">
       @for (post of visiblePosts(); track postKey(post)) {
@@ -97,6 +117,12 @@
               <a class="post-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
                 {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
+                @if (post.expiresIn) {
+                  @let ls = post.createdAt | lifespan:post.expiresIn;
+                  <span class="lifespan-badge" [class]="'severity-' + ls.severity">
+                    <i class="bi bi-clock"></i> {{ ls.text }}
+                  </span>
+                }
               </a>
             </div>
             <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost(post)">
@@ -106,7 +132,7 @@
 
           <a class="post-media" [routerLink]="['/posts', postKey(post)]" [style.background]="post.tag | tagGradient">
             @if (post.images[0]) {
-              <img [src]="post.images[0]" alt="Tag post image" />
+              <img [src]="post.images[0]" alt="Tag post image" loading="lazy" />
             } @else {
               <span>{{ post.tag | tagEmoji }}</span>
             }
@@ -136,10 +162,48 @@
               <strong>{{ post.username || 'Anonymous' }}</strong>
               <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
             </p>
+
+            @if (post.pollOptions?.length) {
+              <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
+                @for (opt of post.pollOptions; track $index) {
+                  @let voted = hasVotedPoll(post, $index);
+                  @let pct = getPollPercentage(post, $index);
+                  <button 
+                    class="poll-option-btn relative w-full overflow-hidden rounded-md border border-[var(--tm-border)] p-2 text-left transition hover:border-indigo-300"
+                    [class.ring-2]="voted"
+                    [class.ring-indigo-500]="voted"
+                    (click)="votePoll(post, $index)"
+                  >
+                    <div 
+                      class="absolute inset-y-0 left-0 bg-indigo-500/20 transition-all duration-500" 
+                      [style.width.%]="pct"
+                    ></div>
+                    <div class="relative z-10 flex justify-between">
+                      <span class="font-medium text-sm">{{ opt }}</span>
+                      <span class="text-xs text-tm-muted font-semibold">{{ pct }}%</span>
+                    </div>
+                  </button>
+                }
+              </div>
+            }
+
             <a class="post-tag" [routerLink]="['/posts', postKey(post)]">#{{ post.tag | lowercase }}</a>
           </div>
         </article>
       }
+      
+      <div #scrollSentinel style="height: 1px; visibility: hidden;"></div>
     </section>
+  }
+
+  @if (showScrollTop()) {
+    <button
+      class="scroll-top-btn"
+      type="button"
+      (click)="scrollToTop()"
+      aria-label="Scroll to top"
+    >
+      <i class="bi bi-arrow-up" aria-hidden="true"></i>
+    </button>
   }
 </main>

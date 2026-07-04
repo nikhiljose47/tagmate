@@ -7,7 +7,7 @@
   background:
     radial-gradient(ellipse at top left, rgba(99,102,241,0.18) 0%, transparent 55%),
     radial-gradient(ellipse at bottom right, rgba(139,92,246,0.14) 0%, transparent 55%),
-    #f8fafc;
+    var(--tm-bg);
 }
 
 .login-content {
@@ -56,7 +56,8 @@
 /* ── Card ───────────────────────────────── */
 .login-card {
   width: 100%;
-  background: #fff;
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
   border-radius: 20px;
   padding: 24px;
   box-shadow:
@@ -87,7 +88,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #e2e8f0;
+  background: var(--tm-border);
 }
 
 /* ── Guest Button ───────────────────────── */
@@ -100,8 +101,8 @@
   min-height: 44px;
   padding: 10px 16px;
   border-radius: var(--tm-radius);
-  border: 1.5px solid #e2e8f0;
-  background: #f8fafc;
+  border: 1.5px solid var(--tm-border);
+  background: var(--tm-bg);
   color: var(--tm-text);
   font-size: 14px;
   font-weight: 600;
@@ -110,8 +111,8 @@
 }
 
 .guest-btn:hover:not(:disabled) {
-  background: #fff;
-  border-color: #cbd5e1;
+  background: var(--tm-surface);
+  border-color: var(--tm-primary);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
@@ -128,7 +129,7 @@
   gap: 6px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #fef2f2;
+  background: color-mix(in srgb, var(--tm-danger) 10%, transparent);
   color: var(--tm-danger);
   font-size: 13px;
   font-weight: 600;

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, retry } from 'rxjs';
 import { Tag } from '../../models/tag.model';
 import { SupabaseService } from '../../services/supabase.service';
 import { tagToRow, rowToTag, TagRow } from '../../services/tag.mapper';
@@ -13,6 +13,15 @@ export class SupabaseTagRepository implements ITagRepository {
     return this.supabase
       .getLatest<TagRow>('tags', 50)
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
+  }
+
+  getPaginated(limit: number, offset: number, search?: string): Observable<Tag[]> {
+    return this.supabase
+      .getLatestPaginated<TagRow>('tags', limit, offset, search)
+      .pipe(
+        retry({ count: 3, delay: 2000 }),
+        map(({ data }) => (data ?? []).map(rowToTag))
+      );
   }
 
   getById(id: string): Observable<Tag | null> {
@@ -40,10 +49,16 @@ export class SupabaseTagRepository implements ITagRepository {
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {
     return this.supabase
       .addRow('tags', tagToRow(tag as Tag) as Record<string, unknown>)
-      .pipe(map(({ data }) => rowToTag(data as unknown as TagRow)));
+      .pipe(
+        retry({ count: 3, delay: 2000 }),
+        map(({ data }) => rowToTag(data as unknown as TagRow))
+      );
   }
 
   delete(id: string): Observable<void> {
-    return this.supabase.deleteRow('tags', id).pipe(map(() => undefined));
+    return this.supabase.deleteRow('tags', id).pipe(
+      retry({ count: 3, delay: 2000 }),
+      map(() => undefined)
+    );
   }
 }

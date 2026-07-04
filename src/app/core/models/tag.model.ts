@@ -18,6 +18,8 @@ export interface Tag {
   eventStart?: string;
   eventEnd?: string;
   category?: string;
+  pollOptions?: string[];
+  pollVotes?: Record<string, string[]>; // optionIndex -> array of usernames
 }
 
 export interface ThreadedComment {

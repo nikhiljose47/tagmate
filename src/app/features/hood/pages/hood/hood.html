@@ -117,6 +117,11 @@
             <span>Posts</span>
           </label>
           <label class="tm-toggle">
+            <input class="peer sr-only" type="checkbox" [checked]="heatmapMode()" (change)="toggleHeatmapMode()" />
+            <span class="tm-toggle-track"></span>
+            <span>Heatmap <i class="bi bi-fire" style="color: #ff5a3d;"></i></span>
+          </label>
+          <label class="tm-toggle">
             <input class="peer sr-only" type="checkbox" [checked]="boundaryVisible()" (change)="toggleBoundaryLayer()" />
             <span class="tm-toggle-track"></span>
             <span>Boundary</span>

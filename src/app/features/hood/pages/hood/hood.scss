@@ -179,9 +179,9 @@
 .map-category-filter button,
 .clear-filter-btn {
   min-height: 30px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--tm-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--tm-surface);
   padding: 0 10px;
   color: var(--tm-text-secondary);
   font-size: 11px;
@@ -189,9 +189,9 @@
 }
 
 .map-category-filter button.active {
-  border-color: rgba(79, 70, 229, 0.28);
-  background: #eef2ff;
-  color: var(--tm-primary);
+  border-color: var(--tm-primary);
+  background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+  color: var(--tm-primary-text);
 }
 
 .clear-filter-btn {

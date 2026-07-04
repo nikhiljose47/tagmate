@@ -139,6 +139,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   showMapFilters   = signal(false);
   showLayerMenu    = signal(false);
   showStylePanel   = signal(false);
+  heatmapMode      = signal(false);
   postsVisible     = signal(true);
   boundaryVisible  = signal(true);
   selectedMapCategories = signal<string[]>([]);
@@ -238,7 +239,13 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   togglePostsLayer(): void {
     this.postsVisible.update((v) => !v);
-    this.setLayerVisibility([CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER], this.postsVisible());
+    this.setLayerVisibility([CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER, INDIVIDUAL_POSTS_LAYER + '-bg'], this.postsVisible() && !this.heatmapMode());
+  }
+
+  toggleHeatmapMode(): void {
+    this.heatmapMode.update((v) => !v);
+    this.setLayerVisibility(['posts-heatmap-layer'], this.heatmapMode());
+    this.setLayerVisibility([CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER, INDIVIDUAL_POSTS_LAYER + '-bg'], this.postsVisible() && !this.heatmapMode());
   }
 
   toggleBoundaryLayer(): void {
@@ -442,6 +449,41 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       });
     }
 
+    if (!this.map.getSource('posts-heatmap-source')) {
+      this.map.addSource('posts-heatmap-source', {
+        type: 'geojson',
+        data: this.emptyPointCollection(),
+      });
+    }
+
+    if (!this.map.getLayer('posts-heatmap-layer')) {
+      this.map.addLayer({
+        id: 'posts-heatmap-layer',
+        type: 'heatmap',
+        source: 'posts-heatmap-source',
+        layout: {
+          visibility: 'none'
+        },
+        paint: {
+          'heatmap-weight': 1,
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(33,102,172,0)',
+            0.2, 'rgb(103,169,207)',
+            0.4, 'rgb(209,229,240)',
+            0.6, 'rgb(253,219,199)',
+            0.8, 'rgb(239,138,98)',
+            1, 'rgb(178,24,43)'
+          ],
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 20],
+          'heatmap-opacity': 0.8
+        }
+      }, CLUSTERS_LAYER); // insert below clusters layer if possible, else it just appends
+    }
+
     if (!this.map.getLayer(CLUSTERS_LAYER)) {
       this.map.addLayer({
         id: CLUSTERS_LAYER,
@@ -467,20 +509,24 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         layout: {
           'text-field': ['get', 'point_count_abbreviated'],
           'text-font': ['Noto Sans Regular'],
-          'text-size': 12,
+          'text-size': 14,
         },
         paint: { 'text-color': '#ffffff' },
       });
     }
 
-    if (!this.map.getLayer(INDIVIDUAL_POSTS_LAYER)) {
+    if (!this.map.getLayer(INDIVIDUAL_POSTS_LAYER + '-bg')) {
       this.map.addLayer({
-        id: INDIVIDUAL_POSTS_LAYER,
+        id: INDIVIDUAL_POSTS_LAYER + '-bg',
         type: 'circle',
         source: POSTS_SOURCE,
         filter: ['!', ['has', 'point_count']],
         paint: {
-          'circle-color': [
+          'circle-color': '#ffffff',
+          'circle-radius': 14,
+          'circle-opacity': 1,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': [
             'match',
             ['get', 'type'],
             'alert', '#ef4444',
@@ -490,10 +536,32 @@ export class HoodPage implements AfterViewInit, OnDestroy {
             'traffic', '#f97316',
             '#ff5a3d',
           ],
-          'circle-radius': 7,
-          'circle-opacity': 0.92,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+
+    if (!this.map.getLayer(INDIVIDUAL_POSTS_LAYER)) {
+      this.map.addLayer({
+        id: INDIVIDUAL_POSTS_LAYER,
+        type: 'symbol',
+        source: POSTS_SOURCE,
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'text-field': [
+            'match',
+            ['get', 'type'],
+            'alert', '🚨',
+            'event', '🎉',
+            'sale', '🏷️',
+            'market', '🛒',
+            'traffic', '🚗',
+            'food', '🍔',
+            'question', '❓',
+            '📍',
+          ],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 14,
+          'text-allow-overlap': true,
         },
       });
     }
@@ -600,8 +668,11 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private updatePostSource(posts: MapPost[]): void {
     const source = this.map?.getSource(POSTS_SOURCE) as GeoJSONSource | undefined;
+    const heatmapSource = this.map?.getSource('posts-heatmap-source') as GeoJSONSource | undefined;
     this.currentPosts = posts.filter((post) => this.matchesActiveFilters(post));
-    source?.setData(this.convertPostsToGeoJson(this.currentPosts));
+    const geoJson = this.convertPostsToGeoJson(this.currentPosts);
+    source?.setData(geoJson);
+    heatmapSource?.setData(geoJson);
   }
 
   private convertPostsToGeoJson(posts: MapPost[]): FeatureCollection<Point, MapPostProperties> {

@@ -3,11 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { UserSessionService } from '../../../../core/services/user-session.service';
+import { ThemeService } from '../../../../core/services/theme.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './login.html',
   styleUrls: ['./login.scss'],
 })
@@ -20,7 +22,8 @@ export class LoginPage implements OnInit {
   constructor(
     private auth:    AuthService,
     private session: UserSessionService,
-    private router:  Router
+    private router:  Router,
+    public theme:    ThemeService
   ) {}
 
   ngOnInit(): void {

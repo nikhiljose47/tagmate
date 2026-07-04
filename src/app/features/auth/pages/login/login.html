@@ -1,4 +1,21 @@
-<div class="login-page">
+<div class="login-page relative">
+  <button
+    class="tm-icon-btn absolute top-4 right-4"
+    type="button"
+    (click)="theme.toggleTheme()"
+    aria-label="Toggle theme"
+  >
+    <i
+      class="bi"
+      [ngClass]="{
+        'bi-sun-fill': theme.currentTheme() === 'light',
+        'bi-moon-fill': theme.currentTheme() === 'dark',
+        'bi-moon-stars-fill': theme.currentTheme() === 'midnight',
+        'bi-tree-fill': theme.currentTheme() === 'forest',
+        'bi-cup-hot-fill': theme.currentTheme() === 'sepia'
+      }"
+    ></i>
+  </button>
   <div class="login-content">
 
     <!-- Brand -->
