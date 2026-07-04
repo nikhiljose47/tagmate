@@ -27,6 +27,20 @@
       </a>
     }
 
+    <a
+      class="nav-item"
+      [routerLink]="championRoute()"
+      [queryParams]="{ tab: 'leaderboard' }"
+      routerLinkActive="active"
+      aria-label="Hood Champion"
+      #championRla="routerLinkActive"
+    >
+      <span class="nav-icon">
+        <i class="bi" [class]="'bi ' + (championRla.isActive ? 'bi-trophy-fill' : 'bi-trophy')"></i>
+      </span>
+      <span class="nav-label">Champion</span>
+    </a>
+
   </div>
 
 </nav>

@@ -98,6 +98,11 @@ export class NeighborhoodPage implements OnInit {
   protected readonly myUid = computed(() => this.social.myUid());
 
   ngOnInit(): void {
+    const requestedTab = this.route.snapshot.queryParamMap.get('tab');
+    if (requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard') {
+      this.activeTab.set(requestedTab);
+    }
+
     this.tagRepo.getAll().subscribe({
       next: (posts) => {
         this.posts.set(posts);
