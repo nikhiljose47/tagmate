@@ -16,72 +16,279 @@
     </button>
   </header>
 
-  <section class="hood-stats" aria-label="Neighborhood stats">
-    <div class="tm-panel">
-      <strong>{{ neighborhoodPosts().length }}</strong>
-      <span>Posts</span>
-    </div>
-    <div class="tm-panel">
-      <strong>{{ contributors().length }}</strong>
-      <span>People</span>
-    </div>
-    <div class="tm-panel">
-      <strong>{{ (tagCounts()[0]?.[0] || 'None') | titlecase }}</strong>
-      <span>Top tag</span>
-    </div>
-  </section>
+  <!-- Navigation Tab Bar -->
+  <div class="mode-tabs tm-panel mb-4 p-1">
+    <button type="button" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">
+      <i class="bi bi-grid-fill" aria-hidden="true"></i>
+      Overview
+    </button>
+    <button type="button" [class.active]="activeTab() === 'ai'" (click)="setTab('ai')">
+      <i class="bi bi-cpu-fill" aria-hidden="true"></i>
+      Chatmate AI
+    </button>
+    <button type="button" [class.active]="activeTab() === 'leaderboard'" (click)="setTab('leaderboard')">
+      <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+      Hood Champion
+    </button>
+  </div>
 
-  @if (tagCounts().length) {
-    <section class="hood-section tm-panel">
-      <h2>Active Tags</h2>
-      <div class="tag-list">
-        @for (tag of tagCounts(); track tag[0]) {
-          <span class="tm-chip">#{{ tag[0] }} · {{ tag[1] }}</span>
-        }
+  <!-- OVERVIEW TAB -->
+  @if (activeTab() === 'overview') {
+    <section class="hood-stats" aria-label="Neighborhood stats">
+      <div class="tm-panel">
+        <strong>{{ neighborhoodPosts().length }}</strong>
+        <span>Posts</span>
+      </div>
+      <div class="tm-panel">
+        <strong>{{ contributors().length }}</strong>
+        <span>People</span>
+      </div>
+      <div class="tm-panel">
+        <strong>{{ (tagCounts()[0]?.[0] || 'None') | titlecase }}</strong>
+        <span>Top tag</span>
       </div>
     </section>
-  }
 
-  @if (contributors().length) {
-    <section class="hood-section tm-panel">
-      <h2>Contributors</h2>
-      <div class="people-list">
-        @for (person of contributors(); track person[0]) {
-          <div>
-            <span class="person-avatar">{{ person[0].slice(0, 1) }}</span>
-            <span>{{ person[0] }}</span>
-            <small>{{ person[1] }} posts</small>
-          </div>
-        }
-      </div>
-    </section>
-  }
-
-  <section class="hood-feed" aria-label="Neighborhood posts">
-    @if (isLoading()) {
-      <div class="skeleton-box h-24"></div>
-    } @else {
-      @for (post of neighborhoodPosts(); track social.postKey(post)) {
-        <article class="hood-post">
-          <div class="hood-post-media" [style.background]="post.tag | tagGradient">
-            @if (post.images[0]) {
-              <img [src]="post.images[0]" alt="" />
-            } @else {
-              <span>{{ post.tag | tagEmoji }}</span>
-            }
-          </div>
-          <div>
-            <a [routerLink]="['/posts', social.postKey(post)]">{{ post.highlight || 'Untitled post' }}</a>
-            <p>{{ post.username || 'Anonymous' }} · #{{ post.tag }}</p>
-            <button class="tm-btn" type="button" (click)="openMap(post)">
-              <i class="bi bi-geo-alt" aria-hidden="true"></i>
-              Map
-            </button>
-          </div>
-        </article>
-      } @empty {
-        <div class="tm-panel empty-hood">No posts in this neighborhood yet.</div>
-      }
+    @if (tagCounts().length) {
+      <section class="hood-section tm-panel">
+        <h2>Active Tags</h2>
+        <div class="tag-list">
+          @for (tag of tagCounts(); track tag[0]) {
+            <span class="tm-chip">#{{ tag[0] }} · {{ tag[1] }}</span>
+          }
+        </div>
+      </section>
     }
-  </section>
+
+    @if (contributors().length) {
+      <section class="hood-section tm-panel">
+        <h2>Top Contributors</h2>
+        <div class="people-list">
+          @for (person of contributors(); track person[0]) {
+            <div>
+              <span class="person-avatar">{{ person[0].slice(0, 1) }}</span>
+              <span>{{ person[0] }}</span>
+              <small>{{ person[1] }} posts</small>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="hood-feed" aria-label="Neighborhood posts">
+      @if (isLoading()) {
+        <div class="skeleton-box h-24"></div>
+      } @else {
+        @for (post of neighborhoodPosts(); track social.postKey(post)) {
+          <article class="hood-post">
+            <div class="hood-post-media" [style.background]="post.tag | tagGradient">
+              @if (post.images[0]) {
+                <img [src]="post.images[0]" alt="" />
+              } @else {
+                <span>{{ post.tag | tagEmoji }}</span>
+              }
+            </div>
+            <div>
+              <a [routerLink]="['/posts', social.postKey(post)]">{{ post.highlight || 'Untitled post' }}</a>
+              <p>{{ post.username || 'Anonymous' }} · #{{ post.tag }}</p>
+              <button class="tm-btn" type="button" (click)="openMap(post)">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                Map
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="tm-panel empty-hood">No posts in this neighborhood yet.</div>
+        }
+      }
+    </section>
+  }
+
+  <!-- CHATMATE AI ASSISTANT TAB -->
+  @if (activeTab() === 'ai') {
+    <section class="ai-assistant-container tm-panel" aria-label="AI Concierge Assistant">
+      <div class="ai-header">
+        <div class="ai-avatar"><i class="bi bi-cpu-fill"></i></div>
+        <div>
+          <h3>Tagmate AI Concierge</h3>
+          <p>Local guide & summary assistant for {{ name }}</p>
+        </div>
+      </div>
+
+      <!-- Chat messages log -->
+      <div class="chat-log scroll-y">
+        @for (msg of messages(); track msg.time) {
+          <div class="chat-message" [ngClass]="msg.sender === 'user' ? 'message-user' : 'message-ai'">
+            <div class="message-bubble">
+              <p class="mb-0">{{ msg.text }}</p>
+              
+              <!-- Tag attachment card recommendation -->
+              @if (msg.link; as post) {
+                <div class="ai-post-attachment mt-2 p-2 rounded">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="attachment-emoji">{{ post.tag | tagEmoji }}</span>
+                    <strong>#{{ post.tag }}</strong>
+                  </div>
+                  <p class="small mb-2 text-truncate">{{ post.highlight }}</p>
+                  <div class="d-flex gap-2">
+                    <button class="tm-btn tm-btn-sm py-1 px-2 text-xs" type="button" (click)="openMap(post)">
+                      <i class="bi bi-geo-alt"></i> Pin
+                    </button>
+                    <a [routerLink]="['/posts', social.postKey(post)]" class="tm-btn tm-btn-sm py-1 px-2 text-xs text-decoration-none">
+                      <i class="bi bi-box-arrow-up-right"></i> Open
+                    </a>
+                  </div>
+                </div>
+              }
+            </div>
+            <span class="message-time">{{ msg.time | date:'h:mm a' }}</span>
+          </div>
+        }
+
+        <!-- Typing indicator -->
+        @if (isTyping()) {
+          <div class="chat-message message-ai">
+            <div class="message-bubble typing-bubble">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- AI Presets Chips -->
+      <div class="ai-presets py-2 px-3 border-top">
+        <p class="small text-muted mb-1 font-semibold">Try asking:</p>
+        <div class="d-flex flex-wrap gap-1.5">
+          @for (preset of aiPresets; track preset.q) {
+            <button type="button" class="preset-chip" (click)="sendAiMessage(preset.q)">
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Chat input field -->
+      <form (submit)="sendAiMessage()" class="chat-input-area p-3 border-top d-flex gap-2">
+        <input
+          type="text"
+          class="tm-input flex-1"
+          placeholder="Ask about traffic, events, sales..."
+          [ngModel]="userInput()"
+          (ngModelChange)="userInput.set($event)"
+          name="chatQuery"
+          autocomplete="off"
+        />
+        <button type="submit" class="tm-btn tm-btn-primary px-4" [disabled]="!userInput().trim()">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </form>
+    </section>
+  }
+
+  <!-- HOOD CHAMPION & LEADERBOARD TAB -->
+  @if (activeTab() === 'leaderboard') {
+    <section class="quests-and-leaderboard" aria-label="Quests and Leaderboard">
+      
+      <!-- User Progression Panel -->
+      <div class="progression-panel tm-panel mb-4 p-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div>
+            <h2 class="mb-0">Your Hood Reputation</h2>
+            <p class="text-muted small">Complete quests to rise through the neighbor ranks</p>
+          </div>
+          <div class="score-badge text-center p-2 rounded">
+            <strong class="d-block">{{ social.trustScore('Guest User') }}</strong>
+            <span class="small font-semibold">Reputation</span>
+          </div>
+        </div>
+
+        <div class="my-2 d-flex align-items-center gap-2">
+          <span class="text-sm font-bold">Rank:</span>
+          <span class="rank-badge" [ngClass]="social.trustBadge('Guest User') | lowercase">
+            {{ social.trustBadge('Guest User') }}
+          </span>
+        </div>
+
+        <!-- Quest Progression Bar -->
+        <div class="mt-4">
+          <div class="d-flex justify-content-between text-xs font-semibold text-muted mb-1">
+            <span>Weekly Quest Progress</span>
+            <span>{{ completedQuestsCount() }}/{{ questsList.length }} Completed ({{ questsProgress() }}%)</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" [style.width.%]="questsProgress()"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Quests Panel -->
+      <div class="quests-panel tm-panel mb-4 p-4">
+        <h2>Weekly Hood Quests</h2>
+        <div class="quests-list">
+          @for (quest of questsList; track quest.id) {
+            <div class="quest-card" [class.completed]="social.isQuestCompleted(quest.id)">
+              <div class="quest-icon">
+                <i [class]="quest.icon"></i>
+              </div>
+              <div class="quest-details">
+                <h3>{{ quest.name }}</h3>
+                <p>{{ quest.desc }}</p>
+              </div>
+              <div class="quest-status text-center">
+                @if (social.isQuestCompleted(quest.id)) {
+                  <span class="badge bg-success-subtle text-success py-1 px-2.5 rounded-full text-xs font-bold">
+                    <i class="bi bi-patch-check-fill"></i> Done
+                  </span>
+                } @else {
+                  <span class="badge bg-light text-muted py-1 px-2.5 rounded-full text-xs font-semibold border">
+                    +{{ quest.points }} XP
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Neighborhood Leaderboard -->
+      <div class="leaderboard-panel tm-panel p-4">
+        <h2>Top Neighborhood Contributors</h2>
+        <div class="leaderboard-list">
+          @for (person of contributors(); track person[0]; let idx = $index) {
+            <div class="leaderboard-item" [class.highlighted]="person[0] === 'Guest User' || person[0] === 'You'">
+              <div class="rank-pos">
+                @if (idx === 0) { 🥇 }
+                @else if (idx === 1) { 🥈 }
+                @else if (idx === 2) { 🥉 }
+                @else { #{{ idx + 1 }} }
+              </div>
+              <span class="person-avatar">{{ person[0].slice(0, 1) }}</span>
+              <div class="user-info flex-1">
+                <h3>{{ person[0] }}</h3>
+                <p class="small text-muted">{{ person[1] }} posts contributed</p>
+              </div>
+              <div class="user-score text-end">
+                <span class="rank-badge" [ngClass]="social.trustBadge(person[0]) | lowercase">
+                  {{ social.trustBadge(person[0]) }}
+                </span>
+                <small class="d-block text-muted mt-1 font-semibold">{{ social.trustScore(person[0]) }} Rep Points</small>
+              </div>
+            </div>
+          } @empty {
+            <div class="text-center p-3 text-muted">No contributors recorded yet in this hood.</div>
+          }
+        </div>
+      </div>
+
+      <!-- Developer Reset Actions -->
+      <div class="text-center mt-4">
+        <button type="button" class="tm-btn tm-btn-danger" (click)="resetQuests()">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset Quest Progression
+        </button>
+      </div>
+
+    </section>
+  }
 </main>

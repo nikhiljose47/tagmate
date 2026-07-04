@@ -14,6 +14,7 @@ export class SocialInteractionsService {
   private readonly messagesKey = 'tagmate.messages';
   private readonly notificationsKey = 'tagmate.notifications';
   private readonly reputationKey = 'tagmate.reputation';
+  private readonly questsKey = 'tagmate.completedQuests';
 
   readonly likedPosts = signal(new Set<string>());
   readonly savedPosts = signal(new Set<string>());
@@ -25,6 +26,7 @@ export class SocialInteractionsService {
   readonly notifications = signal<LocalNotification[]>([]);
   readonly reputation = signal<Record<string, number>>({});
   readonly pollVotes = signal<Record<string, Record<string, string[]>>>({});
+  readonly completedQuests = signal(new Set<string>());
 
   constructor() {
     this.likedPosts.set(new Set(this.readJson<string[]>(this.likedKey, [])));
@@ -37,6 +39,7 @@ export class SocialInteractionsService {
     this.notifications.set(this.readJson<LocalNotification[]>(this.notificationsKey, []));
     this.reputation.set(this.readJson<Record<string, number>>(this.reputationKey, {}));
     this.pollVotes.set(this.readJson<Record<string, Record<string, string[]>>>('tagmate.pollVotes', {}));
+    this.completedQuests.set(new Set(this.readJson<string[]>(this.questsKey, [])));
   }
 
   postKey(post: Tag): string {
@@ -92,6 +95,7 @@ export class SocialInteractionsService {
     this.bumpReputation(post.username, liked ? 2 : -2);
     if (liked) {
       this.addNotification('love', 'New love', `${post.username || 'A neighbor'} got love on a post.`, this.postKey(post));
+      this.completeQuest('love');
     }
     return liked;
   }
@@ -122,6 +126,10 @@ export class SocialInteractionsService {
       this.writeJson(this.commentsKey, next);
       return next;
     });
+
+    if (author === 'You' || author === 'Guest User') {
+      this.completeQuest('comment');
+    }
 
     this.addNotification(
       parentId ? 'reply' : 'reply',
@@ -168,6 +176,10 @@ export class SocialInteractionsService {
     
     this.pollVotes.set(current);
     this.writeJson('tagmate.pollVotes', current);
+
+    if (username === 'You' || username === 'Guest User') {
+      this.completeQuest('poll');
+    }
   }
 
   hasVotedPoll(postKey: string, optionIndex: number, username: string): boolean {
@@ -219,7 +231,12 @@ export class SocialInteractionsService {
       this.writeJson(this.rsvpsKey, next);
       return next;
     });
-    if (attending) this.addNotification('rsvp', 'RSVP saved', `You are attending ${post.highlight || 'this event'}.`, key);
+    if (attending) {
+      this.addNotification('rsvp', 'RSVP saved', `You are attending ${post.highlight || 'this event'}.`, key);
+      if (user === 'You' || user === 'Guest User') {
+        this.completeQuest('rsvp');
+      }
+    }
     return attending;
   }
 
@@ -357,5 +374,48 @@ export class SocialInteractionsService {
     } catch {
       // Local social state should never block the main posting flow.
     }
+  }
+
+  completeQuest(questId: string): boolean {
+    let newlyCompleted = false;
+    this.completedQuests.update((current) => {
+      const next = new Set(current);
+      if (!next.has(questId)) {
+        next.add(questId);
+        newlyCompleted = true;
+        this.writeJson(this.questsKey, [...next]);
+        this.bumpReputation('You', 5);
+        this.bumpReputation('Guest User', 5);
+        this.addNotification('love', 'Quest Completed!', `You completed the "${this.questName(questId)}" quest! (+5 Reputation)`, undefined);
+      }
+      return next;
+    });
+    return newlyCompleted;
+  }
+
+  isQuestCompleted(questId: string): boolean {
+    return this.completedQuests().has(questId);
+  }
+
+  resetQuests(): void {
+    this.completedQuests.set(new Set());
+    this.writeJson(this.questsKey, []);
+    this.reputation.update((r) => {
+      const next = { ...r };
+      next['You'] = 0;
+      next['Guest User'] = 0;
+      this.writeJson(this.reputationKey, next);
+      return next;
+    });
+  }
+
+  private questName(id: string): string {
+    const names: Record<string, string> = {
+      love: 'Civic Love',
+      comment: 'Chatty Neighbor',
+      rsvp: 'Active Citizen',
+      poll: 'Vocal Resident',
+    };
+    return names[id] || id;
   }
 }
