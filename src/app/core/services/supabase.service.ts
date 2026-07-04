@@ -56,6 +56,17 @@ export class SupabaseService {
     return from(this.client.auth.signInWithPassword({ email, password }));
   }
 
+  signUp(email: string, password: string, metadata: Record<string, unknown>) {
+    return from(this.client.auth.signUp({ email, password, options: { data: metadata } }));
+  }
+
+  /** Best-effort check — final say is the DB write, since this can race with a concurrent signup. */
+  isUsernameTaken(username: string): Observable<boolean> {
+    return from(
+      this.client.from('users').select('uid').ilike('name', username).limit(1)
+    ).pipe(map(({ data }) => !!data && data.length > 0));
+  }
+
   signInAnonymously() {
     return from(this.client.auth.signInAnonymously());
   }

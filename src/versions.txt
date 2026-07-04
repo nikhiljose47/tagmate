@@ -6,8 +6,13 @@ Later -
 /// Version no - "Year starting from 1" : Month : Day
 
 
+V1.7.4
+Email signup
+
+
 V1.7.2
 Now post text will maintain the indenetation and spacing at the time of post.
+
 
 V1.6.28
 Feature based folder structure

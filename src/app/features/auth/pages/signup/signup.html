@@ -1,0 +1,154 @@
+<div class="login-page relative">
+  <button
+    class="tm-icon-btn absolute top-4 right-4"
+    type="button"
+    (click)="theme.toggleTheme()"
+    aria-label="Toggle theme"
+  >
+    <i
+      class="bi"
+      [ngClass]="{
+        'bi-sun-fill': theme.currentTheme() === 'light',
+        'bi-moon-fill': theme.currentTheme() === 'dark',
+        'bi-moon-stars-fill': theme.currentTheme() === 'midnight',
+        'bi-tree-fill': theme.currentTheme() === 'forest',
+        'bi-cup-hot-fill': theme.currentTheme() === 'sepia'
+      }"
+    ></i>
+  </button>
+  <div class="login-content">
+
+    <!-- Brand -->
+    <div class="brand-block">
+      <div class="brand-logo">
+        <i class="bi bi-geo-alt-fill"></i>
+      </div>
+      <h1 class="brand-name">Tagmate</h1>
+      <p class="brand-tagline">Sign up to see what's happening nearby.</p>
+    </div>
+
+    <!-- Card -->
+    <div class="login-card">
+      <div class="login-fields">
+        <input
+          type="email"
+          class="tm-input"
+          placeholder="Email address"
+          [value]="email()"
+          (input)="email.set($any($event.target).value)"
+          [disabled]="loading()"
+          autocomplete="email"
+        />
+        <div class="password-field">
+          <input
+            [type]="showPassword() ? 'text' : 'password'"
+            class="tm-input"
+            placeholder="Password"
+            [value]="password()"
+            (input)="password.set($any($event.target).value)"
+            [disabled]="loading()"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            tabindex="-1"
+          >
+            <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+          </button>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Birthday</label>
+          <div class="birthday-row">
+            <select
+              class="tm-input"
+              [value]="birthMonth()"
+              (change)="birthMonth.set($any($event.target).value)"
+              [disabled]="loading()"
+            >
+              <option value="" disabled selected>Month</option>
+              @for (m of months; track m; let i = $index) {
+                <option [value]="i + 1">{{ m }}</option>
+              }
+            </select>
+            <select
+              class="tm-input"
+              [value]="birthDay()"
+              (change)="birthDay.set($any($event.target).value)"
+              [disabled]="loading()"
+            >
+              <option value="" disabled selected>Day</option>
+              @for (d of days; track d) {
+                <option [value]="d">{{ d }}</option>
+              }
+            </select>
+            <select
+              class="tm-input"
+              [value]="birthYear()"
+              (change)="birthYear.set($any($event.target).value)"
+              [disabled]="loading()"
+            >
+              <option value="" disabled selected>Year</option>
+              @for (y of years; track y) {
+                <option [value]="y">{{ y }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <input
+          type="text"
+          class="tm-input"
+          placeholder="Full name"
+          [value]="fullName()"
+          (input)="fullName.set($any($event.target).value)"
+          [disabled]="loading()"
+          autocomplete="name"
+        />
+
+        <div class="field-group">
+          <input
+            type="text"
+            class="tm-input"
+            placeholder="Username"
+            [value]="username()"
+            (input)="onUsernameInput($any($event.target).value)"
+            [disabled]="loading()"
+            autocomplete="username"
+          />
+          @if (usernameChecking()) {
+            <span class="field-hint">Checking availability...</span>
+          } @else if (usernameTaken()) {
+            <span class="field-hint field-hint-error">That username is taken.</span>
+          }
+        </div>
+
+        <button class="tm-btn tm-btn-primary w-full" [disabled]="!canSubmit()" (click)="signup()">
+          @if (!loading()) { Sign Up }
+          @else {
+            <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+            Creating account...
+          }
+        </button>
+      </div>
+
+      @if (error()) {
+        <div class="error-msg">
+          <i class="bi bi-exclamation-circle"></i> {{ error() }}
+        </div>
+      }
+
+      <p class="legal-text">
+        By signing up, you agree to our Terms, Privacy Policy and Cookies Policy.
+      </p>
+    </div>
+
+    <p class="signup-hint">
+      Already have an account? <a routerLink="/login" class="text-tm-primary font-semibold">Log in</a>
+    </p>
+
+  </div>
+</div>

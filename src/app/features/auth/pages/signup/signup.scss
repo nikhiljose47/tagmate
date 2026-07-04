@@ -129,54 +129,43 @@
   to   { opacity: 1; transform: scale(1) rotate(0); }
 }
 
-/* ── Divider ────────────────────────────── */
-.divider {
+/* ── Birthday ───────────────────────────── */
+.field-group {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--tm-text-secondary);
-  font-size: 11px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 16px 0;
+  color: var(--tm-text-secondary);
 }
 
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--tm-border);
-}
-
-/* ── Guest Button ───────────────────────── */
-.guest-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.birthday-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
   gap: 8px;
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: var(--tm-radius);
-  border: 1.5px solid var(--tm-border);
-  background: var(--tm-bg);
-  color: var(--tm-text);
-  font-size: 14px;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--tm-text-secondary);
+  padding-left: 2px;
+}
+
+.field-hint-error {
+  color: var(--tm-danger);
   font-weight: 600;
-  cursor: pointer;
-  transition: 0.15s;
 }
 
-.guest-btn:hover:not(:disabled) {
-  background: var(--tm-surface);
-  border-color: var(--tm-primary);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.guest-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+/* ── Legal ──────────────────────────────── */
+.legal-text {
+  margin: 14px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--tm-text-secondary);
+  text-align: center;
 }
 
 /* ── Error ──────────────────────────────── */
@@ -199,6 +188,10 @@
   font-size: 13px;
   color: var(--tm-text-secondary);
   text-align: center;
+}
+
+.signup-hint a {
+  text-decoration: none;
 }
 
 @media (max-width: 420px) {

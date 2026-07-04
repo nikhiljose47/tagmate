@@ -39,15 +39,26 @@
           [disabled]="loading()"
           autocomplete="email"
         />
-        <input
-          type="password"
-          class="tm-input"
-          placeholder="Password"
-          [value]="password()"
-          (input)="password.set($any($event.target).value)"
-          [disabled]="loading()"
-          autocomplete="current-password"
-        />
+        <div class="password-field">
+          <input
+            [type]="showPassword() ? 'text' : 'password'"
+            class="tm-input"
+            placeholder="Password"
+            [value]="password()"
+            (input)="password.set($any($event.target).value)"
+            [disabled]="loading()"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            tabindex="-1"
+          >
+            <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+          </button>
+        </div>
 
         <button class="tm-btn tm-btn-primary w-full" [disabled]="loading()" (click)="login()">
           @if (!loading()) { Log In }
@@ -82,7 +93,7 @@
     </div>
 
     <p class="signup-hint">
-      Don't have an account? <span class="text-tm-primary font-semibold">Sign up soon</span>
+      Don't have an account? <a routerLink="/login/signup" class="text-tm-primary font-semibold">Sign up</a>
     </p>
 
   </div>

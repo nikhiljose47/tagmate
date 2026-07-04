@@ -66,6 +66,46 @@ export class AuthService {
     }
   }
 
+  async signup(
+    email: string,
+    password: string,
+    metadata: { username: string; fullName: string; birthday: string }
+  ): Promise<AuthResponse> {
+    try {
+      const { data, error } = await firstValueFrom(
+        this.supabase.signUp(email, password, {
+          username: metadata.username,
+          full_name: metadata.fullName,
+          birthday: metadata.birthday,
+        })
+      );
+      if (error) {
+        return {
+          ok: false,
+          code: String((error as any).status ?? 'auth/unknown'),
+          message: (error as any).message ?? 'Something went wrong',
+        };
+      }
+      const u = data.user!;
+      return {
+        ok: true,
+        uid: u.id,
+        email: u.email ?? null,
+        username: metadata.username,
+      };
+    } catch (err: any) {
+      return {
+        ok: false,
+        code: 'auth/unknown',
+        message: err?.message ?? 'Something went wrong',
+      };
+    }
+  }
+
+  isUsernameTaken(username: string): Promise<boolean> {
+    return firstValueFrom(this.supabase.isUsernameTaken(username));
+  }
+
   async logout(): Promise<void> {
     await firstValueFrom(this.supabase.signOut());
   }
