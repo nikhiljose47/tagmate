@@ -5,8 +5,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "tagmate",
-  "pages_build_output_dir": "./dist/browser",
+  "pages_build_output_dir": "./dist/cloudflare/browser",
   "compatibility_date": "2026-07-05",
+
   // "$schema": "node_modules/wrangler/config-schema.json",
   // "name": "tagmate",
   // "main": "./dist/server/server.mjs",
