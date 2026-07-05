@@ -108,6 +108,11 @@
               <span class="post-time">{{ card.createdAt | timeAgo }}</span>
             </div>
             <span class="tag-badge">{{ card.tag | tagEmoji }} {{ card.tag | titlecase }}</span>
+            <app-post-menu
+              [canDelete]="social.canDelete(card)"
+              (deletePost)="deletePost(card)"
+              (reportPost)="report(card)"
+            />
           </div>
 
           <!-- Banner: only when the post actually has media -->

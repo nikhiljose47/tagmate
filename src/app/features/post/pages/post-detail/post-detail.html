@@ -26,9 +26,11 @@
             </a>
             <span class="trust-badge">{{ social.trustBadge(post.userId) }} - {{ social.trustScore(post.userId) }} pts</span>
           </div>
-          <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost()">
-            <i class="bi bi-flag" aria-hidden="true"></i>
-          </button>
+          <app-post-menu
+            [canDelete]="social.canDelete(post)"
+            (deletePost)="deletePost()"
+            (reportPost)="reportPost()"
+          />
         </header>
 
         <div class="detail-media" [style.background]="post.tag | tagGradient">

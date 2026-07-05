@@ -224,6 +224,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         categoryFilters: this.selectedMapCategories(),
       } satisfies StoredHoodSettings);
     });
+
+    // Drop a post's marker immediately if it was deleted on this or any other page.
+    this.social.postDeleted$.pipe(takeUntil(this.destroy$)).subscribe((deletedKey) => {
+      this.postsCache.clear();
+      this.updatePostSource(this.currentPosts.filter((p) => this.social.postKey(p) !== deletedKey));
+    });
   }
 
   async ngAfterViewInit(): Promise<void> {

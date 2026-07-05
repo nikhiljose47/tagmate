@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -17,6 +18,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { PreloadService } from '../../../../core/services/preload.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
+import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 
 type DateRange = '' | '1h' | '24h' | '7d' | '30d';
 type SortMode  = 'newest' | 'oldest' | 'nearby';
@@ -24,7 +26,7 @@ type SortMode  = 'newest' | 'oldest' | 'nearby';
 @Component({
   selector: 'app-globe',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TimeAgoPipe, TagGradientPipe, TagEmojiPipe, AvatarComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TimeAgoPipe, TagGradientPipe, TagEmojiPipe, AvatarComponent, EmptyStateComponent, PostMenuComponent],
   templateUrl: './globe.html',
   styleUrl: './globe.scss',
 })
@@ -36,6 +38,7 @@ export class GlobePage implements OnInit {
   private readonly tagRepo  = inject(TAG_REPOSITORY);
   private readonly preload  = inject(PreloadService);
   private readonly store    = inject(Store);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly social = inject(SocialInteractionsService);
 
   cards: Tag[]        = [];
@@ -54,6 +57,12 @@ export class GlobePage implements OnInit {
   protected readonly hood = this.store.selectSignal(selectHood);
 
   ngOnInit(): void {
+    // Drop a post immediately if it was deleted here or on any other page.
+    // Registered unconditionally, before the preload-cache early return below.
+    this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
+      this.cards = this.cards.filter((c) => this.cardKey(c) !== deletedKey);
+    });
+
     // Use preloaded data immediately if available — avoids a network round-trip on first visit.
     const cached = this.preload.getGlobePosts();
     if (cached) {
@@ -141,6 +150,11 @@ export class GlobePage implements OnInit {
   report(card: Tag): void {
     this.social.reportPost(card);
     this.toast.show('Post hidden and flagged for review.', 'warning');
+  }
+
+  async deletePost(card: Tag): Promise<void> {
+    const deleted = await this.social.confirmAndDeletePost(card);
+    if (deleted) this.cards = this.cards.filter((c) => this.cardKey(c) !== this.cardKey(card));
   }
 
   openOnMap(card: Tag): void {

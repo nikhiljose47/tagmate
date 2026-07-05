@@ -125,9 +125,11 @@
                 }
               </a>
             </div>
-            <button class="tm-icon-btn" type="button" aria-label="Report post" (click)="reportPost(post)">
-              <i class="bi bi-three-dots" aria-hidden="true"></i>
-            </button>
+            <app-post-menu
+              [canDelete]="social.canDelete(post)"
+              (deletePost)="deletePost(post)"
+              (reportPost)="reportPost(post)"
+            />
           </header>
 
           <a class="post-media" [routerLink]="['/posts', postKey(post)]" [style.background]="post.tag | tagGradient">

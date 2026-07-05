@@ -9,6 +9,7 @@ import { NavComponent } from './layout/nav/nav';
 import { PreloadService } from './core/services/preload.service';
 import { NetworkService } from './core/services/network.service';
 import { ThemeService } from './core/services/theme.service';
+import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 
 /** Minimum time the static splash (#tm-splash in index.html) stays visible. */
 const SPLASH_SHOW_MS = 1800;
@@ -16,7 +17,7 @@ const SPLASH_FADE_MS =  450;
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, NavComponent],
+  imports: [RouterOutlet, CommonModule, NavComponent, ConfirmDialogComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

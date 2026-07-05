@@ -1,7 +1,7 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { Observable, of } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -32,6 +32,7 @@ export class ProfilePage implements OnInit {
   private readonly toast   = inject(ToastService);
   private readonly shared  = inject(SharedStateService);
   private readonly logger  = inject(LoggerService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly theme  = inject(ThemeService);
 
@@ -47,7 +48,7 @@ export class ProfilePage implements OnInit {
   readonly coverGradient  = coverGradient;
   readonly avatarBg       = avatarBg;
 
-  myTags$: Observable<Tag[]> | null = null;
+  myTags     = signal<Tag[]>([]);
   isLoading  = true;
   activeTab  = signal<ProfileTab>('posts');
   editMode   = signal(false);
@@ -62,34 +63,37 @@ export class ProfilePage implements OnInit {
 
     this.auth.user$.subscribe((user) => {
       if (user.isGuest) {
-        this.myTags$  = of([]);
+        this.myTags.set([]);
         this.isLoading = false;
         return;
       }
       this.tagRepo.getByUserId(user.uid!).subscribe({
         next: (tags) => {
-          this.myTags$   = of(tags);
+          this.myTags.set(tags);
           this.isLoading = false;
         },
         error: (err) => {
           this.logger.error('Failed to load user tags', err);
-          this.myTags$   = of([]);
+          this.myTags.set([]);
           this.isLoading = false;
         },
       });
     });
+
+    // Drop a post immediately if it was deleted here or on any other page.
+    this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
+      this.allTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== deletedKey));
+      this.myTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== deletedKey));
+    });
   }
 
-  deleteTag(id: string | undefined): void {
-    if (!id) return;
-    if (!confirm('Delete this post?')) return;
-    this.tagRepo.delete(id).subscribe({
-      next: () => this.toast.show('Post deleted.', 'success'),
-      error: (err) => {
-        this.logger.error('Delete tag failed', err);
-        this.toast.show('Could not delete post.', 'danger');
-      },
-    });
+  async deleteTag(tag: Tag): Promise<void> {
+    const deleted = await this.social.confirmAndDeletePost(tag);
+    if (deleted) {
+      const key = this.social.postKey(tag);
+      this.allTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== key));
+      this.myTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== key));
+    }
   }
 
   setTab(tab: ProfileTab): void     { this.activeTab.set(tab); }

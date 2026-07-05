@@ -17,6 +17,7 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
+import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { Subject, takeUntil } from 'rxjs';
 
 type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
@@ -34,6 +35,7 @@ type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
     TagGradientPipe,
     TimeAgoPipe,
     LifespanPipe,
+    PostMenuComponent,
   ],
   templateUrl: './feed.html',
   styleUrl: './feed.scss',
@@ -104,6 +106,11 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
           this.postKey(post)
         );
       });
+
+    // Drop a post immediately if it was deleted here or on any other page.
+    this.social.postDeleted$.pipe(takeUntil(this.destroy$)).subscribe((deletedKey) => {
+      this.posts.update((posts) => posts.filter((p) => this.postKey(p) !== deletedKey));
+    });
   }
 
   ngAfterViewInit(): void {
@@ -255,6 +262,13 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected reportPost(post: Tag): void {
     this.social.reportPost(post);
     this.toast.show('Post hidden and flagged for review.', 'warning');
+  }
+
+  protected async deletePost(post: Tag): Promise<void> {
+    const deleted = await this.social.confirmAndDeletePost(post);
+    if (deleted) {
+      this.posts.update((posts) => posts.filter((p) => this.postKey(p) !== this.postKey(post)));
+    }
   }
 
   // --- Polls ---

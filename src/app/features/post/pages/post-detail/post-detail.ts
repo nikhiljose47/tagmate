@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Tag } from '../../../../core/models/tag.model';
@@ -15,6 +16,7 @@ import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
+import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 
 @Component({
   selector: 'app-post-detail',
@@ -29,6 +31,7 @@ import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
     TagGradientPipe,
     TimeAgoPipe,
     LifespanPipe,
+    PostMenuComponent,
   ],
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
@@ -40,6 +43,7 @@ export class PostDetailPage implements OnInit {
   private readonly shared = inject(SharedStateService);
   private readonly toast = inject(ToastService);
   private readonly logger = inject(LoggerService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly social = inject(SocialInteractionsService);
 
   protected readonly post = signal<Tag | null>(null);
@@ -75,6 +79,16 @@ export class PostDetailPage implements OnInit {
         this.toast.show('Could not load this post.', 'danger');
         this.isLoading.set(false);
       },
+    });
+
+    // If this post (or one shown in "related") gets deleted anywhere, react immediately.
+    this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
+      this.relatedPosts.update((posts) => posts.filter((p) => this.social.postKey(p) !== deletedKey));
+
+      if (this.postKey() === deletedKey) {
+        this.toast.show('This post was deleted.', 'info');
+        void this.router.navigate([AppRoute.Feed]);
+      }
     });
   }
 
@@ -219,6 +233,13 @@ export class PostDetailPage implements OnInit {
     this.social.reportPost(post);
     this.toast.show('Post hidden and flagged for review.', 'warning');
     void this.router.navigate([AppRoute.Feed]);
+  }
+
+  protected async deletePost(): Promise<void> {
+    const post = this.post();
+    if (!post) return;
+    const deleted = await this.social.confirmAndDeletePost(post);
+    if (deleted) void this.router.navigate([AppRoute.Feed]);
   }
 
   private loadRelated(post: Tag): void {

@@ -1,0 +1,19 @@
+<div class="post-menu">
+  <button type="button" class="post-menu-trigger" aria-label="Post options" (click)="toggle($event)">
+    <i class="bi bi-three-dots-vertical"></i>
+  </button>
+
+  @if (open()) {
+    <div class="post-menu-panel" role="menu">
+      @if (canDelete) {
+        <button type="button" class="post-menu-item post-menu-item--danger" role="menuitem" (click)="onDelete()">
+          <i class="bi bi-trash3"></i> Delete post
+        </button>
+      } @else {
+        <button type="button" class="post-menu-item" role="menuitem" (click)="onReport()">
+          <i class="bi bi-flag"></i> Report post
+        </button>
+      }
+    </div>
+  }
+</div>

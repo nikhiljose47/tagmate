@@ -40,12 +40,10 @@
 
       <!-- Stats -->
       <div class="profile-stats">
-        @if (myTags$ | async; as tags) {
-          <div class="stat-item">
-            <span class="stat-num">{{ tags.length }}</span>
-            <span class="stat-label">Posts</span>
-          </div>
-        }
+        <div class="stat-item">
+          <span class="stat-num">{{ myTags().length }}</span>
+          <span class="stat-label">Posts</span>
+        </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
           <span class="stat-num"><i class="bi bi-geo-alt-fill text-sm"></i></span>
@@ -88,12 +86,12 @@
 
       <!-- Posts Tab -->
       @if (activeTab() === 'posts') {
-        @if (myTags$ | async; as tags) {
+        @if (myTags(); as tags) {
           @if (tags.length === 0) {
             <tm-empty-state icon="📷" title="No posts yet" subtitle="You haven't posted anything yet." />
           }
           <div class="posts-grid">
-            @for (tag of tags; track tag) {
+            @for (tag of tags; track tag.id) {
               <div class="post-card" [style.background]="tag.tag | tagGradient">
                 @if (tag.images[0]) {
                   <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
@@ -109,7 +107,7 @@
                     <button class="pca-btn" type="button" (click)="editPost(tag)" aria-label="Edit">
                       <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="pca-btn danger" type="button" (click)="deleteTag(tag.id)" aria-label="Delete">
+                    <button class="pca-btn danger" type="button" (click)="deleteTag(tag)" aria-label="Delete">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>

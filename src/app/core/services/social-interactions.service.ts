@@ -1,10 +1,12 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
-import { Observable, firstValueFrom } from 'rxjs';
+import { Observable, Subject, firstValueFrom } from 'rxjs';
 import { DirectMessage, LocalNotification, Tag, ThreadedComment } from '../models/tag.model';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { LoggerService } from './logger.service';
 import { ToastService } from './toast.service';
+import { ConfirmDialogService } from './confirm-dialog.service';
+import { TAG_REPOSITORY } from '../repositories/repository.tokens';
 import {
   PostCommentRow,
   rowToComment,
@@ -47,6 +49,13 @@ export class SocialInteractionsService {
   private readonly auth = inject(AuthService);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly tagRepo = inject(TAG_REPOSITORY);
+
+  // ---- deletion (broadcast so every page holding its own copy of a post list can react) ----
+  private readonly _postDeleted$ = new Subject<string>();
+  /** Emits the postKey of a tag right after it's confirmed deleted server-side. */
+  readonly postDeleted$ = this._postDeleted$.asObservable();
 
   // ---- identity ----
   private readonly currentUid = signal<string | null>(null);
@@ -199,6 +208,44 @@ export class SocialInteractionsService {
       this.supabase.addRow('user_hidden_posts', { user_id: uid, post_id: post.id }),
       (err) => this.logger.error('reportPost: hide insert failed', err)
     );
+  }
+
+  // ---------- DELETE ----------
+
+  /** Whether the current viewer owns this post (and can therefore delete it). */
+  canDelete(post: Tag): boolean {
+    const uid = this.currentUid();
+    return !!uid && !!post.userId && uid === post.userId;
+  }
+
+  /**
+   * Confirms with the user, deletes the post from Supabase, and broadcasts
+   * `postDeleted$` so every page holding a local copy of this post can drop it
+   * immediately — no reload required. Returns true if the post was deleted.
+   */
+  async confirmAndDeletePost(post: Tag): Promise<boolean> {
+    if (!post.id) return false;
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete this post?',
+      message: 'This can\'t be undone. Your post will be removed for everyone.',
+      confirmText: 'Delete',
+      cancelText: 'Keep it',
+      danger: true,
+    });
+    if (!confirmed) return false;
+
+    const key = this.postKey(post);
+    try {
+      await firstValueFrom(this.tagRepo.delete(post.id));
+      this._postDeleted$.next(key);
+      this.toast.show('Post deleted.', 'success');
+      return true;
+    } catch (err) {
+      this.logger.error('Failed to delete post', err);
+      this.toast.show('Could not delete post. Please try again.', 'danger');
+      return false;
+    }
   }
 
   // ---------- COMMENTS ----------
