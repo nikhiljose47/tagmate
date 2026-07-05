@@ -4,16 +4,16 @@
   background: var(--tm-bg);
   display: flex;
   justify-content: center;
-  padding: 16px 12px;
+  padding: 0 12px 16px;
 }
 
 .post-form {
   width: 100%;
   max-width: 560px;
   background: var(--tm-surface);
-  border-radius: 20px;
+  border-radius: 0 0 20px 20px;
   overflow: hidden;
-  box-shadow: var(--tm-shadow-md);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
   align-self: flex-start;
 }
 
@@ -21,13 +21,13 @@
 .post-author {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 16px 0;
+  gap: 10px;
+  padding: 12px 14px 8px;
 }
 
 .author-avatar {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -49,38 +49,53 @@
   color: var(--tm-text-secondary);
 }
 
-/* ── Headline ───────────────────────────── */
+/* ── Headline / compose box ─────────────── */
 .field-block {
   display: grid;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--tm-border);
+}
+
+/* Plain, borderless writing space — just you and the text. */
+.compose-box {
+  position: relative;
 }
 
 .headline-input {
   display: block;
   width: 100%;
-  padding: 14px 16px;
+  min-height: 148px;
+  padding: 8px 2px 18px;
   border: none;
-  border-bottom: 1px solid var(--tm-border);
   background: transparent;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--tm-text);
-  line-height: 1.5;
+  line-height: 1.55;
   resize: none;
   outline: none;
   font-family: inherit;
   box-sizing: border-box;
 
-  &::placeholder { color: var(--tm-text-secondary); }
-  &:focus { border-bottom-color: var(--tm-primary); }
+  &::placeholder {
+    color: color-mix(in srgb, var(--tm-text-secondary) 55%, transparent);
+    font-weight: 400;
+  }
 }
 
-.field-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 16px 10px;
-  border-bottom: 1px solid var(--tm-border);
+.char-count {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  color: var(--tm-text-secondary);
+  font-size: 10px;
+  font-weight: 750;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+
+  &.char-count--visible { opacity: 0.85; }
 }
 
 .field-help {
@@ -88,17 +103,18 @@
   color: var(--tm-text-secondary);
   font-size: 11px;
   font-weight: 650;
+  flex-shrink: 0;
 }
 
 .field-help--error {
   color: var(--tm-danger, #ef4444);
 }
 
-.char-count {
-  flex-shrink: 0;
+/* Friendly nudge, not a scolding */
+.field-help--soft {
   color: var(--tm-text-secondary);
-  font-size: 11px;
-  font-weight: 750;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .is-invalid {
@@ -106,23 +122,24 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--tm-danger, #ef4444) 12%, transparent);
 }
 
-/* ── Media grid ─────────────────────────── */
+/* ── Media strip (compact — compose area gets the room instead) ── */
 .media-section {
-  padding: 12px 16px;
+  padding: 6px 14px;
   border-bottom: 1px solid var(--tm-border);
 }
 
 .media-grid {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 /* Individual tile (image or video) */
 .media-tile {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 53px;
+  height: 53px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
@@ -153,10 +170,10 @@
 
 .media-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: none;
   background: rgba(0,0,0,0.55);
@@ -172,16 +189,13 @@
   &:hover { background: rgba(220,38,38,0.8); }
 }
 
-/* "Add" button */
+/* "Add" button — slim horizontal pill instead of a big square tile */
 .media-add {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  width: 88px;
-  height: 88px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
   border: 1.5px dashed var(--tm-border);
   background: var(--tm-bg);
   cursor: pointer;
@@ -197,17 +211,16 @@
 }
 
 .media-add-icon {
-  font-size: 22px;
+  font-size: 15px;
   color: var(--tm-text-secondary);
   transition: color 0.15s;
 }
 
 .media-add-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--tm-text-secondary);
-  text-align: center;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .media-add-count {
@@ -216,18 +229,60 @@
   font-weight: 500;
 }
 
-/* ── Meta row ───────────────────────────── */
-.meta-row {
+/* ── Category chips ─────────────────────── */
+.category-block {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--tm-border);
 }
 
+/* Two compact rows that scroll sideways — all categories reachable without eating vertical space. */
+.tag-chips {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  gap: 6px;
+  justify-content: start;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--tm-border);
+  background: var(--tm-bg);
+  color: var(--tm-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    border-color: var(--tm-primary);
+    color: var(--tm-primary-text);
+  }
+
+  &.tag-chip--active {
+    border-color: var(--tm-primary);
+    background: var(--tm-primary);
+    color: #fff;
+  }
+}
+
+/* ── Meta ───────────────────────────────── */
 .meta-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -239,32 +294,51 @@
   margin-top: 6px;
 }
 
-.event-row {
-  display: grid;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--tm-border);
-}
-
+/* Event toggle lives in the footer, next to preview/discard/post */
 .event-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   color: var(--tm-text);
-  font-size: 13px;
-  font-weight: 750;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .event-toggle input {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   accent-color: var(--tm-primary);
+  cursor: pointer;
+}
+
+.event-toggle--foot {
+  padding: 8px 12px;
+  border: 1px solid var(--tm-border);
+  border-radius: 20px;
+  background: var(--tm-surface);
+  color: var(--tm-text-secondary);
+  transition: 0.15s;
+  flex-shrink: 0;
+
+  &:hover { border-color: var(--tm-primary); color: var(--tm-primary-text); }
+  &:has(input:checked) {
+    border-color: var(--tm-primary);
+    color: var(--tm-primary-text);
+    background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+  }
 }
 
 .event-times {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.event-times--block {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--tm-border);
 }
 
 .event-times label {
@@ -277,11 +351,11 @@
 
 /* ── Location ───────────────────────────── */
 .location-row {
-  padding: 12px 16px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--tm-border);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .location-row--invalid .location-display {
@@ -316,7 +390,37 @@
 
 .location-btns {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+/* Expiry preset select, tucked into the location row */
+.expiry-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--tm-border);
+  background: var(--tm-surface);
+  color: var(--tm-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+
+  &:focus-within { border-color: var(--tm-primary); }
+}
+
+.expiry-select {
+  border: none;
+  background: transparent;
+  color: var(--tm-text);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+
+  option { color: initial; }
 }
 
 .loc-btn {
@@ -400,7 +504,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-top: 1px solid var(--tm-border);
 }
 
@@ -493,6 +597,5 @@
 @media (max-width: 520px) {
   .post-page { padding: 0; }
   .post-form { border-radius: 0; box-shadow: none; }
-  .meta-row,
   .event-times { grid-template-columns: 1fr; }
 }

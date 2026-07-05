@@ -110,13 +110,9 @@
             <span class="tag-badge">{{ card.tag | tagEmoji }} {{ card.tag | titlecase }}</span>
           </div>
 
-          <!-- Banner: image or gradient -->
-          <div
-            class="card-banner"
-            [routerLink]="['/posts', cardKey(card)]"
-            [style.background]="hasBanner(card) ? (card.tag | tagGradient) : 'transparent'"
-          >
-            @if (!hasBanner(card)) {
+          <!-- Banner: only when the post actually has media -->
+          @if (!hasBanner(card)) {
+            <div class="card-banner" [routerLink]="['/posts', cardKey(card)]">
               <img
                 [src]="card.images![0]"
                 class="banner-img"
@@ -125,10 +121,8 @@
                 decoding="async"
                 (error)="onImgError(card)"
               />
-            } @else {
-              <span class="banner-emoji">{{ card.tag | tagEmoji }}</span>
-            }
-          </div>
+            </div>
+          }
 
           <!-- Post Body -->
           <div class="card-body">

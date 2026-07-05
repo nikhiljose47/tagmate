@@ -1,10 +1,11 @@
 import { Component, EventEmitter, Output, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
-import { SharedStateService } from '../../../../core/services/shared-state.service';
+import { SharedStateService, PostDraft } from '../../../../core/services/shared-state.service';
 import { SupabaseService } from '../../../../core/services/supabase.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -23,10 +24,20 @@ interface MediaItem {
 
 const MAX_MEDIA = 5;
 
+/** Rotating compose prompts — a little nudge to start typing. */
+const COMPOSE_PROMPTS = [
+  "What's buzzing in your hood right now?",
+  'Spotted something? Your neighbors want to know…',
+  'Share a deal, an alert, or just say hi to the hood 👋',
+  'Traffic? Garage sale? Lost cat? Tag it here…',
+  "Something happening nearby? Don't keep it to yourself…",
+];
+
+
 @Component({
   selector: 'app-post',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TagEmojiPipe],
   templateUrl: './post.html',
   styleUrls: ['./post.scss'],
 })
@@ -44,7 +55,41 @@ export class PostPage {
     public  shared: SharedStateService,
     private router: Router,
     private toast:  ToastService
-  ) {}
+  ) {
+    // Restore the draft after the pick-location round-trip to the map —
+    // navigation destroys this component, so the draft lives in SharedStateService.
+    const draft = this.shared.postDraft();
+    if (draft) {
+      this.formData = {
+        headline:    draft.headline,
+        expiresIn:   draft.expiresIn,
+        tag:         draft.tag,
+        isEvent:     draft.isEvent,
+        eventStart:  draft.eventStart,
+        eventEnd:    draft.eventEnd,
+        pollOptions: [...draft.pollOptions],
+      };
+      this.mediaItems.set(draft.media);
+      // Old drafts may hold a value that isn't one of the presets — snap to 1 hour.
+      if (!this.expiryOptions.some((o) => o.value === this.formData.expiresIn)) {
+        this.formData.expiresIn = 60;
+      }
+    }
+  }
+
+  private saveDraft(): void {
+    const draft: PostDraft = {
+      headline:    this.formData.headline,
+      expiresIn:   this.formData.expiresIn,
+      tag:         this.formData.tag,
+      isEvent:     this.formData.isEvent,
+      eventStart:  this.formData.eventStart,
+      eventEnd:    this.formData.eventEnd,
+      pollOptions: [...this.formData.pollOptions],
+      media:       this.mediaItems(),
+    };
+    this.shared.postDraft.set(draft);
+  }
 
   // ── Signals (required for zoneless CD) ──────────────────────────────────
   isSubmitting = signal(false);
@@ -53,12 +98,24 @@ export class PostPage {
   showPreview  = signal(false);
   locationErrorVisible = signal(false);
   shakeLocation = signal(false);
+  tagErrorVisible = signal(false);
 
   readonly canAddMore = computed(() => this.mediaItems().length < MAX_MEDIA);
   readonly maxMedia   = MAX_MEDIA;
 
   // ── Form data ────────────────────────────────────────────────────────────
   readonly tags = Object.values(TagCategory);
+  readonly composePrompt = COMPOSE_PROMPTS[Math.floor(Math.random() * COMPOSE_PROMPTS.length)];
+
+  /** Post lifetime presets — `expiresIn` is minutes app-wide (see LifespanPipe). */
+  readonly expiryOptions = [
+    { label: '15 min',  value: 15 },
+    { label: '1 hour',  value: 60 },
+    { label: '6 hours', value: 360 },
+    { label: '1 day',   value: 1440 },
+    { label: '3 days',  value: 4320 },
+    { label: '1 week',  value: 10080 },
+  ];
 
   user = { name: 'Guest User', avatarUrl: 'assets/avatar/panda.png' };
 
@@ -71,6 +128,11 @@ export class PostPage {
     eventEnd:   '',
     pollOptions: ['', ''],
   };
+
+  selectTag(tag: string): void {
+    this.formData.tag = tag;
+    this.tagErrorVisible.set(false);
+  }
 
   // ── Polls ────────────────────────────────────────────────────────────────
   addPollOption(): void {
@@ -119,6 +181,7 @@ export class PostPage {
   // ── Location ─────────────────────────────────────────────────────────────
 
   onPickLocation(): void {
+    this.saveDraft();   // survive the component destroy during the map round-trip
     this.showMapHint.set(true);
     this.shared.pickModeActive.set(true);   // belt-and-suspenders alongside query param
     void this.router.navigate([AppRoute.Hood], { queryParams: { pick: '1' } });
@@ -149,6 +212,12 @@ export class PostPage {
     if (this.isSubmitting()) return;
     if (!f.valid) {
       f.form.markAllAsTouched();
+      return;
+    }
+
+    if (!this.formData.tag) {
+      this.tagErrorVisible.set(true);
+      this.toast.show('Pick a category for your post.', 'warning');
       return;
     }
 
@@ -230,10 +299,12 @@ export class PostPage {
     this.mediaItems().forEach((m) => URL.revokeObjectURL(m.previewUrl));
     this.mediaItems.set([]);
     this.formData  = { headline: '', expiresIn: 60, tag: '', isEvent: false, eventStart: '', eventEnd: '', pollOptions: ['', ''] };
+    this.shared.postDraft.set(null);
     this.showMapHint.set(false);
     this.showPreview.set(false);
     this.locationErrorVisible.set(false);
     this.shakeLocation.set(false);
+    this.tagErrorVisible.set(false);
   }
 
   private triggerLocationShake(): void {

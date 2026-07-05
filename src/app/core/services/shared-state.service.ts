@@ -2,10 +2,25 @@ import { Injectable, signal, computed } from '@angular/core';
 
 export type SelectedCoordinates = readonly [lat: number, lng: number] | null;
 
+/** In-progress post form, kept alive while the user detours to the map to pick a location. */
+export interface PostDraft {
+  headline:    string;
+  expiresIn:   number;
+  tag:         string;
+  isEvent:     boolean;
+  eventStart:  string;
+  eventEnd:    string;
+  pollOptions: string[];
+  media:       { file: File; previewUrl: string; type: 'image' | 'video' }[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class SharedStateService {
   /** Set from PostPage before navigating to Hood for pick-location flow */
   readonly pickModeActive = signal(false);
+
+  /** Survives PostPage destroy/recreate during the pick-location round-trip. */
+  readonly postDraft = signal<PostDraft | null>(null);
 
   private _text = signal<string>('');
   private _coordinates = signal<SelectedCoordinates>(null);

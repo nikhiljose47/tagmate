@@ -360,7 +360,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         this.getAddressFromCoords(lat, lng);
         this.loadVisiblePosts();
       },
-      () => this.showUserError('Unable to retrieve your location. Please check your browser permissions.'),
+      () => {
+        this.isSearching.set(false);
+        this.showUserError('Unable to retrieve your location. Please check your browser permissions.');
+      },
       { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
     );
   }
@@ -486,7 +489,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     });
 
     this.map.on('error', (event) => {
-      if (!this.mapErrorShown) {
+      // MapLibre also fires 'error' for recoverable issues (missing glyph ranges,
+      // missing sprite icons) that it falls back from on its own — those aren't
+      // style-load failures, so only alarm the user if the style never loaded at all.
+      if (!this.mapInitialized && !this.mapErrorShown) {
         this.mapErrorShown = true;
         this.showUserError('The map style could not be loaded. Please check the MapTiler API key.');
       }

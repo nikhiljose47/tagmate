@@ -16,33 +16,32 @@
       />
       <div class="author-info">
         <p class="author-name">{{ user.name }}</p>
-        <p class="author-sub">What's happening in your hood?</p>
       </div>
     </div>
 
     <!-- Headline -->
     <div class="field-block">
-      <textarea
-        #headline="ngModel"
-        class="headline-input"
+      <div
+        class="compose-box"
         [class.is-invalid]="headline.touched && headline.invalid"
-        placeholder="Write something about your tag..."
-        [(ngModel)]="formData.headline"
-        name="headline"
-        required
-        maxlength="280"
-        rows="3"
-      ></textarea>
-      <div class="field-meta">
-        <span class="field-help" [class.field-help--error]="headline.touched && headline.invalid">
-          @if (headline.touched && headline.invalid) {
-            Headline is required.
-          } @else {
-            Keep it clear and local.
-          }
+      >
+        <textarea
+          #headline="ngModel"
+          class="headline-input"
+          [placeholder]="composePrompt"
+          [(ngModel)]="formData.headline"
+          name="headline"
+          required
+          maxlength="280"
+          rows="5"
+        ></textarea>
+        <span class="char-count" [class.char-count--visible]="formData.headline.length > 0">
+          {{ formData.headline.length }}/280
         </span>
-        <span class="char-count">{{ formData.headline.length }}/280</span>
       </div>
+      @if (headline.touched && headline.invalid) {
+        <span class="field-help field-help--soft">Psst… a few words would make this shine ✨</span>
+      }
     </div>
 
     <!-- Media Grid (images + videos) -->
@@ -82,7 +81,7 @@
         @if (canAddMore()) {
           <label class="media-add" [attr.aria-label]="'Add photo or video (' + mediaItems().length + '/' + maxMedia + ')'">
             <i class="bi bi-plus-circle media-add-icon"></i>
-            <span class="media-add-label">Photo / Video</span>
+            <span class="media-add-label">Media</span>
             <span class="media-add-count">{{ mediaItems().length }}/{{ maxMedia }}</span>
             <input
               type="file"
@@ -96,44 +95,24 @@
       </div>
     </div>
 
-    <!-- Meta row -->
-    <div class="meta-row">
-      <div class="meta-field">
-        <label class="meta-label">Category</label>
-        <select
-          #tag="ngModel"
-          class="tm-select"
-          [class.is-invalid]="tag.touched && tag.invalid"
-          [(ngModel)]="formData.tag"
-          name="tag"
-          required
-        >
-          <option value="" disabled selected>Select tag</option>
-          @for (t of tags; track t) {
-            <option [value]="t">{{ t | titlecase }}</option>
-          }
-        </select>
-        @if (tag.touched && tag.invalid) {
-          <p class="field-help field-help--error">Choose a tag category.</p>
+    <!-- Category chips -->
+    <div class="category-block">
+      <label class="meta-label">Category</label>
+      <div class="tag-chips" role="radiogroup" aria-label="Post category">
+        @for (t of tags; track t) {
+          <button
+            type="button"
+            class="tag-chip"
+            [class.tag-chip--active]="formData.tag === t"
+            (click)="selectTag(t)"
+          >
+            {{ t | tagEmoji }} {{ t | titlecase }}
+          </button>
         }
       </div>
-      <div class="meta-field">
-        <label class="meta-label">Expires in (sec)</label>
-        <input
-          #expiresIn="ngModel"
-          type="number"
-          class="tm-input"
-          [class.is-invalid]="expiresIn.touched && expiresIn.invalid"
-          [(ngModel)]="formData.expiresIn"
-          name="expiresIn"
-          placeholder="3600"
-          required
-          min="1"
-        />
-        @if (expiresIn.touched && expiresIn.invalid) {
-          <p class="field-help field-help--error">Enter a positive expiry time.</p>
-        }
-      </div>
+      @if (tagErrorVisible()) {
+        <p class="field-help field-help--error">Pick a category above.</p>
+      }
     </div>
 
     <!-- Poll Options (visible only if Question tag is selected) -->
@@ -168,25 +147,6 @@
       </div>
     }
 
-    <div class="event-row">
-      <label class="event-toggle">
-        <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
-        <span>Local event with RSVP</span>
-      </label>
-      @if (formData.isEvent) {
-        <div class="event-times">
-          <label>
-            <span>Starts</span>
-            <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventStart" name="eventStart" />
-          </label>
-          <label>
-            <span>Ends</span>
-            <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventEnd" name="eventEnd" />
-          </label>
-        </div>
-      }
-    </div>
-
     <!-- Location -->
     <div class="location-row" [class.location-row--invalid]="locationErrorVisible() && !shared.coordinates()" [class.shake-error]="shakeLocation()">
       <div class="location-display" [class.location-display--set]="!!(shared.text() || shared.coordinates())">
@@ -203,6 +163,14 @@
         <button class="loc-btn" type="button" (click)="onPickLocation()">
           <i class="bi bi-map"></i> Pick on map
         </button>
+        <label class="expiry-wrap" title="Post disappears after this time">
+          <i class="bi bi-clock-history" aria-hidden="true"></i>
+          <select class="expiry-select" [(ngModel)]="formData.expiresIn" name="expiresIn" aria-label="Post lifetime">
+            @for (opt of expiryOptions; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </label>
       </div>
     </div>
 
@@ -228,8 +196,26 @@
       </div>
     }
 
+    <!-- Event times (shown when the footer toggle is on) -->
+    @if (formData.isEvent) {
+      <div class="event-times event-times--block">
+        <label>
+          <span>Starts</span>
+          <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventStart" name="eventStart" />
+        </label>
+        <label>
+          <span>Ends</span>
+          <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventEnd" name="eventEnd" />
+        </label>
+      </div>
+    }
+
     <!-- Footer actions -->
     <div class="form-foot">
+      <label class="event-toggle event-toggle--foot" title="Local event with RSVP">
+        <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
+        <span><i class="bi bi-calendar-event"></i> Event</span>
+      </label>
       <button
         type="button"
         class="foot-action"
