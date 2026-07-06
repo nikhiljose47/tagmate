@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -36,7 +36,7 @@ import { PostMenuComponent } from '../../../../shared/components/post-menu/post-
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
 })
-export class PostDetailPage implements OnInit {
+export class PostDetailPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly tagRepo = inject(TAG_REPOSITORY);
@@ -47,6 +47,8 @@ export class PostDetailPage implements OnInit {
   protected readonly social = inject(SocialInteractionsService);
 
   protected readonly post = signal<Tag | null>(null);
+  protected readonly ticker = signal(0);
+  private tickerInterval?: any;
   protected readonly relatedPosts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly commentText = signal('');
@@ -62,6 +64,10 @@ export class PostDetailPage implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tickerInterval = setInterval(() => {
+      this.ticker.update(t => t + 1);
+    }, 15000);
+
     const id = decodeURIComponent(this.route.snapshot.paramMap.get('id') ?? '');
     if (!id) {
       this.isLoading.set(false);
@@ -90,6 +96,12 @@ export class PostDetailPage implements OnInit {
         void this.router.navigate([AppRoute.Feed]);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.tickerInterval) {
+      clearInterval(this.tickerInterval);
+    }
   }
 
   protected neighborhoodSlug(post: Tag): string {

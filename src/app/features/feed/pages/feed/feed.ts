@@ -69,6 +69,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected readonly hood = this.store.selectSignal(selectHood);
   private readonly destroy$ = new Subject<void>();
 
+  protected readonly ticker = signal(0);
+  private tickerInterval?: any;
+
   protected readonly categories = computed(() => [
     'all',
     ...Array.from(new Set(this.posts().map((post) => post.tag).filter(Boolean))).sort(),
@@ -94,6 +97,10 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   });
 
   ngOnInit(): void {
+    this.tickerInterval = setInterval(() => {
+      this.ticker.update(t => t + 1);
+    }, 15000);
+
     this.loadPosts();
     this.tagRepo.liveTags()
       .pipe(takeUntil(this.destroy$))
@@ -125,6 +132,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy(): void {
+    if (this.tickerInterval) {
+      clearInterval(this.tickerInterval);
+    }
     this.observer?.disconnect();
     this.destroy$.next();
     this.destroy$.complete();

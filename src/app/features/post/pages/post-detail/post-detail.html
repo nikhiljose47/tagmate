@@ -18,7 +18,7 @@
             <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
               {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }}
               @if (post.expiresIn) {
-                @let ls = post.createdAt | lifespan:post.expiresIn;
+                @let ls = post.createdAt | lifespan:post.expiresIn:ticker();
                 <span class="lifespan-badge" [class]="'severity-' + ls.severity">
                   <i class="bi bi-clock"></i> {{ ls.text }}
                 </span>

@@ -11,7 +11,6 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
-import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
@@ -26,7 +25,7 @@ type SortMode  = 'newest' | 'oldest' | 'nearby';
 @Component({
   selector: 'app-globe',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TimeAgoPipe, TagGradientPipe, TagEmojiPipe, AvatarComponent, EmptyStateComponent, PostMenuComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TimeAgoPipe, TagEmojiPipe, AvatarComponent, EmptyStateComponent, PostMenuComponent],
   templateUrl: './globe.html',
   styleUrl: './globe.scss',
 })

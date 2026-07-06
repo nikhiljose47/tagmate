@@ -47,6 +47,15 @@ export class NeighborhoodPage implements OnInit {
     { label: 'Are there any events? 🎉', q: 'events' },
   ];
 
+  private readonly AI_KEYWORDS = {
+    summarize: ['summarize', 'summary', 'activity', 'overview', 'posts', 'update', 'status', 'recent', 'happen', 'latest', 'news'],
+    traffic: ['traffic', 'road', 'accident', 'alert', 'hazard', 'block', 'closure', 'route', 'congestion', 'delay', 'detour', 'street', 'construction', 'crash', 'police'],
+    sales: ['sale', 'deal', 'discount', 'market', 'shop', 'offer', 'price', 'buy', 'sell', 'cheap', 'bargain', 'store', 'grocery', 'opening', 'mall'],
+    events: ['event', 'meetup', 'party', 'gathering', 'calendar', 'show', 'concert', 'festival', 'meeting', 'schedule', 'sunrise', 'sunset', 'music', 'yoga', 'gig'],
+    food: ['food', 'eat', 'restaurant', 'cafe', 'diner', 'lunch', 'dinner', 'breakfast', 'snack', 'menu', 'delicious', 'stall', 'reopening', 'dosa', 'hungry', 'hotel', 'coffee'],
+    questions: ['question', 'poll', 'help', 'ask', 'inquiry', 'opinion', 'vote', 'anyone', 'know', 'where', 'lost', 'find']
+  };
+
   // Quests list
   protected readonly questsList = [
     { id: 'love', name: 'Civic Love', desc: 'React to an active neighborhood post with love.', icon: 'bi-heart-fill', points: 5 },
@@ -154,11 +163,19 @@ export class NeighborhoodPage implements OnInit {
 
   private generateAiResponse(text: string): void {
     const query = text.toLowerCase();
+    const words = query.split(/\W+/).filter(Boolean);
     const activePosts = this.neighborhoodPosts();
     let replyText = '';
     let foundPost: Tag | undefined = undefined;
 
-    if (query === 'summarize') {
+    const matchesSummarize = this.AI_KEYWORDS.summarize.some(w => query.includes(w) || words.includes(w));
+    const matchesTraffic = this.AI_KEYWORDS.traffic.some(w => query.includes(w) || words.includes(w));
+    const matchesSales = this.AI_KEYWORDS.sales.some(w => query.includes(w) || words.includes(w));
+    const matchesEvents = this.AI_KEYWORDS.events.some(w => query.includes(w) || words.includes(w));
+    const matchesFood = this.AI_KEYWORDS.food.some(w => query.includes(w) || words.includes(w));
+    const matchesQuestions = this.AI_KEYWORDS.questions.some(w => query.includes(w) || words.includes(w));
+
+    if (query === 'summarize' || (matchesSummarize && !matchesTraffic && !matchesSales && !matchesEvents && !matchesFood && !matchesQuestions)) {
       const total = activePosts.length;
       if (total === 0) {
         replyText = `There are currently no active tags in ${this.name}. Be the first neighbor to post an update!`;
@@ -173,7 +190,7 @@ export class NeighborhoodPage implements OnInit {
           foundPost = highlight;
         }
       }
-    } else if (query.includes('traffic') || query.includes('road') || query.includes('accident') || query.includes('alert') || query.includes('hazard')) {
+    } else if (matchesTraffic) {
       const matches = activePosts.filter(p => p.tag === 'traffic' || p.tag === 'alert');
       if (matches.length > 0) {
         const item = matches[0];
@@ -182,7 +199,7 @@ export class NeighborhoodPage implements OnInit {
       } else {
         replyText = `Good news! There are no active traffic alerts or road incidents reported in ${this.name} right now. Stay safe!`;
       }
-    } else if (query.includes('sale') || query.includes('deal') || query.includes('discount') || query.includes('market') || query.includes('shop')) {
+    } else if (matchesSales) {
       const matches = activePosts.filter(p => p.tag === 'sale' || p.tag === 'market');
       if (matches.length > 0) {
         const item = matches[0];
@@ -191,7 +208,7 @@ export class NeighborhoodPage implements OnInit {
       } else {
         replyText = `It looks like there are no active sales or marketplace deals posted in ${this.name} today. Let us know if you spot a good bargain!`;
       }
-    } else if (query.includes('event') || query.includes('meetup') || query.includes('party') || query.includes('gathering') || query.includes('calendar')) {
+    } else if (matchesEvents) {
       const matches = activePosts.filter(p => p.tag === 'event');
       if (matches.length > 0) {
         const item = matches[0];
@@ -200,7 +217,7 @@ export class NeighborhoodPage implements OnInit {
       } else {
         replyText = `No upcoming community events or meetups are posted in ${this.name} at the moment. Feel free to create one!`;
       }
-    } else if (query.includes('food') || query.includes('eat') || query.includes('restaurant') || query.includes('cafe')) {
+    } else if (matchesFood) {
       const matches = activePosts.filter(p => p.tag === 'food');
       if (matches.length > 0) {
         const item = matches[0];
@@ -209,7 +226,7 @@ export class NeighborhoodPage implements OnInit {
       } else {
         replyText = `No food tags or restaurant recommendations have been posted in ${this.name} recently. If you know a great place, pin it!`;
       }
-    } else if (query.includes('question') || query.includes('poll') || query.includes('help')) {
+    } else if (matchesQuestions) {
       const matches = activePosts.filter(p => p.tag === 'question');
       if (matches.length > 0) {
         const item = matches[0];
@@ -219,7 +236,7 @@ export class NeighborhoodPage implements OnInit {
         replyText = `There are no active neighborhood questions or polls open in ${this.name} right now.`;
       }
     } else {
-      const matchingPost = activePosts.find(p => p.highlight.toLowerCase().includes(query));
+      const matchingPost = activePosts.find(p => p.highlight.toLowerCase().includes(query) || words.some(w => p.highlight.toLowerCase().includes(w)));
       if (matchingPost) {
         replyText = `I found a matching post in the neighborhood: "${matchingPost.highlight}" by @${matchingPost.username}. Check the link below!`;
         foundPost = matchingPost;

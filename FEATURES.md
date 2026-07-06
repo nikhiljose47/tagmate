@@ -20,6 +20,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 ### Neighborhood AI Concierge ("Chatmate AI")
 - **Dynamic Assistant Panel**: A slide-over glassmorphic chatbot panel in the Neighborhood view.
 - **Dynamic Context Parsing**: Analyzes active neighborhood posts in real-time to answer neighbor queries about traffic alerts, sales, event schedules, and local recommendations.
+- **Smarter Synonym Phrase Mapping**: Uses conversational synonym dictionaries (e.g. road closures, dining, bargains) to route natural queries to appropriate category lookups.
 - **Quick Action Prompts**: Preset query buttons to summarize activity, check traffic status, or find local bargains in one tap.
 - **Interactive Map Highlights**: Provides recommended tag attachments in the chat flow with direct "Pin on Map" and "Details" action links.
 - **Polished UX**: Smooth typing status animations and distinct user/AI message alignment.
@@ -39,6 +40,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 ### Aesthetics & Customizations
 - **curated Theme Modes**: Instant switching across custom color schemes: `Light`, `Dark`, `Midnight` (OLED black), `Forest`, and `Sepia`.
 - **Dynamic Gradients**: Color-gradient headers mapping to different post category tags (Alert, Event, Sale, Food, Traffic, Market, Question).
+- **Live Expiration Countdowns**: Active tags display a real-time visual countdown of the remaining minutes before expiration (e.g. "Expires in 42m"), updating every 15 seconds.
 
 ---
 

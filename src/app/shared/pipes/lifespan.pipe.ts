@@ -5,7 +5,7 @@ import { Pipe, PipeTransform } from '@angular/core';
   standalone: true,
 })
 export class LifespanPipe implements PipeTransform {
-  transform(createdAt: string, expiresInMinutes: number): { text: string; severity: 'low' | 'medium' | 'high' } {
+  transform(createdAt: string, expiresInMinutes: number, ticker?: any): { text: string; severity: 'low' | 'medium' | 'high' } {
     if (!createdAt || !expiresInMinutes) return { text: 'Expired', severity: 'high' };
 
     const created = new Date(createdAt).getTime();
