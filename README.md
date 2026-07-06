@@ -2,7 +2,17 @@
 
 Tagmate is an Angular 20 location-based posting app. The hood map is rendered with MapLibre GL JS, MapTiler hosted styles, GeoJSON sources, and built-in clustering for smooth neighbourhood-level post browsing.
 
+## 📖 Subsystem Documentation
+
+Detailed architectural and feature documentation guides can be found in the [docs/](file:///d:/Coding/Web/tagmate/docs/) directory:
+* [Mapping & Geospatial](file:///d:/Coding/Web/tagmate/docs/MAPPING_AND_GEOSPATIAL.md) - MapLibre configuration, OSM Nominatim boundaries, clustering, and caching.
+* [Neighborhood AI Concierge (Chatmate AI)](file:///d:/Coding/Web/tagmate/docs/AI_CONCIERGE.md) - Glassmorphic chatbot panel, real-time context parsing, synonym mapping, map actions.
+* [Gamification & Reputation](file:///d:/Coding/Web/tagmate/docs/GAMIFICATION.md) - Quests checklist, contributor leaderboards, Supabase metadata synchronization.
+* [Social Interaction Suite](file:///d:/Coding/Web/tagmate/docs/SOCIAL_SUITE.md) - Direct messaging, real-time chatrooms, comments, event RSVPs, polls, notifications.
+* [Aesthetics & Visual System](file:///d:/Coding/Web/tagmate/docs/AESTHETICS.md) - Custom themes, category-driven gradients, and live expiration countdowns.
+
 ## Versions Used
+
 
 These are the versions currently used in this workspace:
 
