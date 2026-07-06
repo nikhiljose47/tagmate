@@ -74,3 +74,6 @@ Before deploying changes:
    - The Weekly Quest progress bar increases.
    - The user's reputation score increases by 5.
    - The Rank badge adjusts if the new reputation score crosses a badge threshold.
+5. **Post & Note Deletion**: Attempt to delete a post or sticky note. Verify that:
+   - The delete option is only visible on posts/notes authored by the logged-in user.
+   - Execution of the deletion flow is blocked if ownership checks are not satisfied.

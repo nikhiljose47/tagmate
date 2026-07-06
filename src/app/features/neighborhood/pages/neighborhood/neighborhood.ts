@@ -318,6 +318,14 @@ export class NeighborhoodPage implements OnInit {
   }
 
   protected deleteNote(id: string): void {
+    const note = this.posts().find(p => p.id === id);
+    if (!note) return;
+
+    if (note.userId !== this.myUid()) {
+      this.logger.warn('Unauthorized attempt to delete a sticky note.');
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this sticky note?')) return;
     this.tagRepo.delete(id).subscribe({
       next: () => {

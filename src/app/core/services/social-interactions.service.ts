@@ -233,6 +233,11 @@ export class SocialInteractionsService {
   async confirmAndDeletePost(post: Tag): Promise<boolean> {
     if (!post.id) return false;
 
+    if (!this.canDelete(post)) {
+      this.toast.show('You do not have permission to delete this post.', 'danger');
+      return false;
+    }
+
     const confirmed = await this.confirmDialog.confirm({
       title: 'Delete this post?',
       message: 'This can\'t be undone. Your post will be removed for everyone.',
