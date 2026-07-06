@@ -85,11 +85,11 @@ export class GlobePage implements OnInit {
 
   private setCards(tags: Tag[]): void {
     this.cards   = tags;
-    this.allTags = Array.from(new Set(tags.map((c) => c.tag).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    this.allTags = Array.from(new Set(tags.map((c) => c.tag).filter(t => t && t !== 'bulletin'))).sort((a, b) => a.localeCompare(b));
   }
 
   get visibleCards(): Tag[] {
-    const filtered = this.cards.filter((c) => !this.social.isHidden(c) && this.matchesTags(c) && this.matchesDate(c));
+    const filtered = this.cards.filter((c) => c.tag !== 'bulletin' && !this.social.isHidden(c) && this.matchesTags(c) && this.matchesDate(c));
     return [...filtered].sort((a, b) => {
       if (this.sortMode === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       if (this.sortMode === 'nearby') return this.distanceFromProximityOrigin(a) - this.distanceFromProximityOrigin(b);

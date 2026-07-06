@@ -10,11 +10,13 @@ import { SharedStateService } from '../../../../core/services/shared-state.servi
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
+import { UserSessionService } from '../../../../core/services/user-session.service';
+import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 
 @Component({
   selector: 'app-neighborhood',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe, TagGradientPipe],
+  imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe, TagGradientPipe, TimeAgoPipe],
   templateUrl: './neighborhood.html',
   styleUrl: './neighborhood.scss',
 })
@@ -25,6 +27,7 @@ export class NeighborhoodPage implements OnInit {
   private readonly shared = inject(SharedStateService);
   private readonly logger = inject(LoggerService);
   protected readonly social = inject(SocialInteractionsService);
+  private readonly sessionService = inject(UserSessionService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -32,7 +35,7 @@ export class NeighborhoodPage implements OnInit {
   protected readonly name = this.titleFromSlug(this.slug);
 
   // Tab state
-  protected readonly activeTab = signal<'overview' | 'ai' | 'leaderboard'>('overview');
+  protected readonly activeTab = signal<'overview' | 'ai' | 'leaderboard' | 'bulletin'>('overview');
 
   // AI Chat states
   protected readonly messages = signal<Array<{ sender: 'user' | 'ai'; text: string; link?: Tag; time: Date }>>([]);
@@ -46,6 +49,29 @@ export class NeighborhoodPage implements OnInit {
     { label: 'Show me sales & deals 🛒', q: 'sales' },
     { label: 'Are there any events? 🎉', q: 'events' },
   ];
+
+  // Bulletin Board states
+  protected readonly noteInput = signal('');
+  protected readonly isSticking = signal(false);
+
+  protected readonly bulletinNotes = computed(() => {
+    return this.posts()
+      .filter((post) => post.tag === 'bulletin')
+      .filter((post) => this.slugFor(post.hoodId || 'nearby') === this.slug)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  });
+
+  protected readonly bulletinColors = [
+    'bg-[#fef9c3] dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-100 border-[#fef08a] dark:border-yellow-900/60',
+    'bg-[#dbeafe] dark:bg-blue-950/40 text-blue-900 dark:text-blue-100 border-[#bfdbfe] dark:border-blue-900/60',
+    'bg-[#dcfce7] dark:bg-green-950/40 text-green-900 dark:text-green-100 border-[#bbf7d0] dark:border-green-900/60',
+    'bg-[#fce7f3] dark:bg-pink-950/40 text-pink-900 dark:text-pink-100 border-[#fbcfe8] dark:border-pink-900/60',
+    'bg-[#fef3c7] dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 border-[#fde68a] dark:border-amber-900/60'
+  ];
+
+  protected getNoteColorClass(index: number): string {
+    return this.bulletinColors[index % this.bulletinColors.length];
+  }
 
   private readonly AI_KEYWORDS = {
     summarize: ['summarize', 'summary', 'activity', 'overview', 'posts', 'update', 'status', 'recent', 'happen', 'latest', 'news'],
@@ -108,8 +134,8 @@ export class NeighborhoodPage implements OnInit {
 
   ngOnInit(): void {
     const requestedTab = this.route.snapshot.queryParamMap.get('tab');
-    if (requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard') {
-      this.activeTab.set(requestedTab);
+    if (requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard' || requestedTab === 'bulletin') {
+      this.activeTab.set(requestedTab as any);
     }
 
     this.tagRepo.getAll().subscribe({
@@ -125,7 +151,7 @@ export class NeighborhoodPage implements OnInit {
     });
   }
 
-  protected setTab(tab: 'overview' | 'ai' | 'leaderboard'): void {
+  protected setTab(tab: 'overview' | 'ai' | 'leaderboard' | 'bulletin'): void {
     this.activeTab.set(tab);
     if (tab === 'ai') {
       this.initAiChat();
@@ -251,6 +277,56 @@ export class NeighborhoodPage implements OnInit {
       link: foundPost,
       time: new Date()
     }]);
+  }
+
+  protected stickNote(): void {
+    const text = this.noteInput().trim();
+    if (!text) return;
+
+    const user = this.sessionService.user();
+    const username = user?.name || 'Guest User';
+    const userId = user?.uid || 'guest-uid';
+
+    this.isSticking.set(true);
+
+    const noteObject: Tag = {
+      username,
+      userId,
+      highlight: text,
+      lat: 0,
+      lng: 0,
+      expiresIn: 10080, // 7 days lifespan
+      tag: 'bulletin',
+      createdAt: new Date().toISOString(),
+      images: [],
+      kind: 'post',
+      category: 'bulletin'
+    };
+
+    this.tagRepo.create(noteObject).subscribe({
+      next: (createdNote) => {
+        this.posts.update(prev => [createdNote, ...prev]);
+        this.noteInput.set('');
+        this.isSticking.set(false);
+        this.social.completeQuest('comment');
+      },
+      error: (err) => {
+        this.logger.error('Failed to stick note', err);
+        this.isSticking.set(false);
+      }
+    });
+  }
+
+  protected deleteNote(id: string): void {
+    if (!confirm('Are you sure you want to delete this sticky note?')) return;
+    this.tagRepo.delete(id).subscribe({
+      next: () => {
+        this.posts.update(prev => prev.filter(p => p.id !== id));
+      },
+      error: (err) => {
+        this.logger.error('Failed to delete note', err);
+      }
+    });
   }
 
   protected resetQuests(): void {

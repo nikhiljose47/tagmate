@@ -560,6 +560,7 @@ export class SocialInteractionsService {
         'Quest Completed!',
         `You completed the "${QUEST_NAMES[questId] ?? questId}" quest!`
       );
+      this.toast.show(`🏆 Quest Completed: "${QUEST_NAMES[questId] ?? questId}"! +5 Reputation`, 'quest', 5000);
 
       const uid = this.currentUid();
       if (uid) {

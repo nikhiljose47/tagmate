@@ -617,3 +617,24 @@
     height: 480px;
   }
 }
+
+/* Sticky notes styling */
+.sticky-note-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+  
+  &:nth-child(even) {
+    transform: rotate(-1deg);
+  }
+  &:nth-child(odd) {
+    transform: rotate(1.2deg);
+  }
+  &:nth-child(3n) {
+    transform: rotate(-0.8deg);
+  }
+  &:hover {
+    transform: scale(1.04) rotate(0deg) !important;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.12), 0 6px 6px -5px rgba(0, 0, 0, 0.06);
+    z-index: 10;
+  }
+}

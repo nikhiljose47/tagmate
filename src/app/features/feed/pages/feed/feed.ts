@@ -74,7 +74,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
   protected readonly categories = computed(() => [
     'all',
-    ...Array.from(new Set(this.posts().map((post) => post.tag).filter(Boolean))).sort(),
+    ...Array.from(new Set(this.posts().map((post) => post.tag).filter(t => t && t !== 'bulletin'))).sort(),
   ]);
 
   protected readonly visiblePosts = computed(() => {
@@ -82,6 +82,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
     return [...this.posts()]
       .filter((post) => {
+        if (post.tag === 'bulletin') return false;
         if (this.social.isHidden(post)) return false;
         if (category !== 'all' && post.tag !== category) return false;
         if (this.mode() === 'saved' && !this.social.isSaved(post)) return false;

@@ -857,6 +857,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   private matchesActiveFilters(post: MapPost): boolean {
+    if (post.tag === 'bulletin') return false;
     if (!this.matchesCountryMode(post)) return false;
     const categories = this.selectedMapCategories();
     return categories.length === 0 || categories.includes(post.tag || post.category || '');

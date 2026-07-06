@@ -22,6 +22,10 @@
       <i class="bi bi-grid-fill" aria-hidden="true"></i>
       Overview
     </button>
+    <button type="button" [class.active]="activeTab() === 'bulletin'" (click)="setTab('bulletin')">
+      <i class="bi bi-pin-angle-fill" aria-hidden="true"></i>
+      Bulletin Board
+    </button>
     <button type="button" [class.active]="activeTab() === 'ai'" (click)="setTab('ai')">
       <i class="bi bi-cpu-fill" aria-hidden="true"></i>
       Chatmate AI
@@ -184,6 +188,97 @@
           <i class="bi bi-send-fill"></i>
         </button>
       </form>
+    </section>
+  }
+
+  <!-- BULLETIN BOARD TAB -->
+  @if (activeTab() === 'bulletin') {
+    <section class="bulletin-board-section flex flex-col gap-6" aria-label="Bulletin Board">
+      <!-- Composer note card -->
+      <div class="tm-panel p-4 flex flex-col gap-3">
+        <h2 class="text-lg font-bold flex items-center gap-2">
+          <i class="bi bi-pin-angle" aria-hidden="true"></i> Pin a new Sticky Note
+        </h2>
+        <div class="relative">
+          <textarea
+            class="w-full min-h-24 p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 outline-none focus:border-indigo-500 transition resize-none text-sm leading-relaxed"
+            placeholder="Write a message, recommendation, or request for your neighbors (max 160 characters)..."
+            [(ngModel)]="noteInput"
+            maxlength="160"
+            rows="3"
+          ></textarea>
+          <span class="absolute bottom-2 right-3 text-[10px] text-tm-muted font-mono">
+            {{ 160 - noteInput().length }} characters left
+          </span>
+        </div>
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="tm-btn"
+            [disabled]="!noteInput().trim() || isSticking()"
+            (click)="stickNote()"
+          >
+            @if (isSticking()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              Sticking...
+            } @else {
+              <i class="bi bi-pin-angle-fill"></i> Stick Note 📌
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Notes Grid -->
+      <div class="notes-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        @for (note of bulletinNotes(); track note.id; let idx = $index) {
+          <div
+            class="sticky-note-card p-4 flex flex-col justify-between rounded-md border shadow-sm relative transition duration-200 hover:-translate-y-1 hover:shadow-md aspect-[1/1]"
+            [ngClass]="getNoteColorClass(idx)"
+          >
+            <!-- Delete action top right -->
+            @if (note.userId === myUid()) {
+              <button
+                type="button"
+                class="absolute top-2 right-2 border-0 bg-transparent opacity-60 hover:opacity-100 text-red-600 hover:text-red-700 p-1 rounded transition"
+                (click)="deleteNote(note.id!)"
+                aria-label="Delete note"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            }
+
+            <div class="note-content flex-1 text-sm font-medium leading-relaxed pr-6 select-text overflow-y-auto">
+              {{ note.highlight }}
+            </div>
+
+            <div class="note-footer flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-3 mt-3">
+              <div class="author-details flex flex-col gap-0.5 min-w-0">
+                <span class="author-name text-[11px] font-semibold truncate">@{{ note.username }}</span>
+                <span class="note-time text-[9px] opacity-60">{{ note.createdAt | timeAgo }}</span>
+              </div>
+
+              <!-- Heart toggle -->
+              <button
+                type="button"
+                class="note-like-btn border-0 bg-transparent flex items-center gap-1 opacity-80 hover:opacity-100 transition p-1"
+                (click)="social.toggleLike(note)"
+              >
+                <i
+                  class="bi"
+                  [ngClass]="social.isLiked(note) ? 'bi-heart-fill text-red-500 animate-pulse' : 'bi-heart text-red-500'"
+                ></i>
+                <span class="text-xs font-semibold">{{ social.likeCount(note) }}</span>
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="col-span-full tm-panel p-8 text-center text-tm-muted flex flex-col items-center gap-2">
+            <i class="bi bi-pin-fill text-3xl opacity-40"></i>
+            <p class="font-semibold text-sm">No sticky notes pinned yet on this board.</p>
+            <p class="text-xs">Be the first to stick a message or announcement here!</p>
+          </div>
+        }
+      </div>
     </section>
   }
 
