@@ -57,3 +57,12 @@ export interface LocalNotification {
   createdAt: string;
   read: boolean;
 }
+
+export interface HoodMessage {
+  id?: string;
+  hoodId: string;
+  userId: string;
+  username: string;
+  text: string;
+  createdAt: string;
+}

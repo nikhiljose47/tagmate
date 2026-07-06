@@ -238,7 +238,8 @@
 }
 
 /* AI Chat Concierge panel styles */
-.ai-assistant-container {
+.ai-assistant-container,
+.chatroom-container {
   display: flex;
   flex-direction: column;
   height: 540px;
@@ -247,24 +248,23 @@
   border: 1px solid var(--tm-border);
   border-radius: var(--tm-radius);
 
-  .ai-header {
+  .ai-header,
+  .chat-header {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 16px;
     border-bottom: 1px solid var(--tm-border);
-    background: rgba(99, 102, 241, 0.03);
 
-    .ai-avatar {
+    .ai-avatar,
+    .chat-avatar {
       display: grid;
       place-items: center;
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--tm-primary), #818cf8);
       color: #ffffff;
       font-size: 18px;
-      box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
     }
 
     h3 {
@@ -282,7 +282,24 @@
     }
   }
 
-  .chat-log {
+  .ai-header {
+    background: rgba(99, 102, 241, 0.03);
+    .ai-avatar {
+      background: linear-gradient(135deg, var(--tm-primary), #818cf8);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    }
+  }
+
+  .chat-header {
+    background: rgba(16, 185, 129, 0.03);
+    .chat-avatar {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+    }
+  }
+
+  .chat-log,
+  .chat-log-container {
     flex: 1;
     padding: 16px;
     overflow-y: auto;
@@ -298,12 +315,20 @@
     max-width: 82%;
 
     .message-bubble {
-      padding: 12px 16px;
+      padding: 10px 14px;
       border-radius: 16px;
       font-size: 14px;
       line-height: 1.4;
       font-weight: 650;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+
+      .message-author {
+        display: block;
+        font-size: 11px;
+        color: var(--tm-primary);
+        font-weight: 800;
+        margin-bottom: 3px;
+      }
     }
 
     .message-time {
@@ -314,7 +339,8 @@
       font-weight: 600;
     }
 
-    &.message-ai {
+    &.message-ai,
+    &.message-other {
       align-self: flex-start;
       .message-bubble {
         background: var(--tm-bg);
@@ -375,6 +401,16 @@
       &:nth-child(1) { animation-delay: -0.32s; }
       &:nth-child(2) { animation-delay: -0.16s; }
     }
+  }
+
+  .empty-chat {
+    color: var(--tm-muted);
+    font-weight: 650;
+  }
+
+  .chat-input-area {
+    background: var(--tm-surface);
+    border-top: 1px solid var(--tm-border);
   }
 }
 
@@ -638,3 +674,5 @@
     z-index: 10;
   }
 }
+
+

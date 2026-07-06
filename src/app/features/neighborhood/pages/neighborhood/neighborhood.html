@@ -22,6 +22,10 @@
       <i class="bi bi-grid-fill" aria-hidden="true"></i>
       Overview
     </button>
+    <button type="button" [class.active]="activeTab() === 'chat'" (click)="setTab('chat')">
+      <i class="bi bi-chat-left-text-fill" aria-hidden="true"></i>
+      Chatroom
+    </button>
     <button type="button" [class.active]="activeTab() === 'bulletin'" (click)="setTab('bulletin')">
       <i class="bi bi-pin-angle-fill" aria-hidden="true"></i>
       Bulletin Board
@@ -105,6 +109,64 @@
           <div class="tm-panel empty-hood">No posts in this neighborhood yet.</div>
         }
       }
+    </section>
+  }
+
+  <!-- NEIGHBORHOOD GROUP CHATROOM TAB -->
+  @if (activeTab() === 'chat') {
+    <section class="chatroom-container tm-panel" aria-label="Neighborhood Chatroom">
+      <div class="chat-header">
+        <div class="chat-avatar"><i class="bi bi-chat-left-text-fill"></i></div>
+        <div>
+          <h3>{{ name }} Chatroom</h3>
+          <p>Real-time broad neighborhood discussion board</p>
+        </div>
+      </div>
+
+      <!-- Chat messages log -->
+      <div class="chat-log-container scroll-y">
+        @if (isChatLoading()) {
+          <div class="d-flex justify-content-center align-items-center py-12">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <span class="text-tm-muted text-sm font-semibold">Loading chat history...</span>
+          </div>
+        } @else {
+          @for (msg of social.activeChatMessages(); track msg.id || msg.createdAt) {
+            <div class="chat-message" [ngClass]="msg.userId === myUid() ? 'message-user' : 'message-other'">
+              <div class="message-bubble">
+                @if (msg.userId !== myUid()) {
+                  <span class="message-author">@{{ msg.username }}</span>
+                }
+                <p class="mb-0">{{ msg.text }}</p>
+              </div>
+              <span class="message-time">{{ msg.createdAt | date:'h:mm a' }}</span>
+            </div>
+          } @empty {
+            <div class="empty-chat py-16 text-center text-tm-muted flex flex-col items-center gap-2">
+              <i class="bi bi-chat-dots text-3xl opacity-40"></i>
+              <p class="font-semibold text-sm">No messages yet in this chatroom.</p>
+              <p class="text-xs">Say hello to your neighbors! 👋</p>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Chat input field -->
+      <form (submit)="$event.preventDefault(); sendChatMessage()" class="chat-input-area p-3 border-top d-flex gap-2">
+        <input
+          type="text"
+          class="tm-input flex-1"
+          placeholder="Type a message to the neighborhood..."
+          [ngModel]="chatInput()"
+          (ngModelChange)="chatInput.set($event)"
+          name="chatMessage"
+          autocomplete="off"
+          maxlength="500"
+        />
+        <button type="submit" class="tm-btn tm-btn-primary px-4" [disabled]="!chatInput().trim()">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </form>
     </section>
   }
 

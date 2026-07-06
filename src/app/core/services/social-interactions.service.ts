@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
-import { DirectMessage, LocalNotification, Tag, ThreadedComment } from '../models/tag.model';
+import { DirectMessage, LocalNotification, Tag, ThreadedComment, HoodMessage } from '../models/tag.model';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { LoggerService } from './logger.service';
@@ -73,6 +73,8 @@ export class SocialInteractionsService {
   readonly notifications = signal<LocalNotification[]>([]);
   readonly pollVotes = signal<Record<string, Record<string, string[]>>>({});
   readonly completedQuests = signal(new Set<string>());
+  readonly activeChatMessages = signal<HoodMessage[]>([]);
+  readonly activeChatHoodId = signal<string | null>(null);
 
   // Optimistic overlays on top of the trigger-maintained aggregate columns on
   // `tags` — keeps counts instant on click without an extra query per toggle.
@@ -725,6 +727,65 @@ export class SocialInteractionsService {
       });
   }
 
+  // ---------- NEIGHBORHOOD GROUP CHAT ----------
+
+  loadGroupMessages(hoodId: string): void {
+    this.activeChatHoodId.set(hoodId);
+    this.activeChatMessages.set([]);
+    this.supabase.getRows<any>('hood_messages', { field: 'hood_id', op: '==', value: hoodId })
+      .subscribe({
+        next: ({ data, error }) => {
+          if (error) { this.logger.warn('loadGroupMessages failed', error); return; }
+          const mapped: HoodMessage[] = (data ?? [])
+            .map((row) => ({
+              id: row.id,
+              hoodId: row.hood_id,
+              userId: row.user_id,
+              username: row.username,
+              text: row.text,
+              createdAt: row.created_at,
+            }))
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          this.activeChatMessages.set(mapped);
+        },
+        error: (err) => this.logger.warn('loadGroupMessages failed', err),
+      });
+  }
+
+  sendGroupMessage(hoodId: string, text: string): void {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const uid = this.currentUid();
+    if (!uid) { this.warnSignInRequired('chat'); return; }
+
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMessage: HoodMessage = {
+      id: optimisticId,
+      hoodId,
+      userId: uid,
+      username: this.currentUsername || 'Guest User',
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.activeChatMessages.update((msgs) => [...msgs, optimisticMessage]);
+
+    const row = {
+      hood_id: hoodId,
+      user_id: uid,
+      username: this.currentUsername || 'Guest User',
+      text: trimmed,
+    };
+
+    firstValueFrom(this.supabase.addRow('hood_messages', row))
+      .then(({ error }) => { if (error) throw error; })
+      .catch((err) => {
+        this.logger.error('sendGroupMessage failed, rolling back', err);
+        this.activeChatMessages.update((msgs) => msgs.filter((msg) => msg.id !== optimisticId));
+        this.toast.show('Could not send your chat message — please try again.', 'danger');
+      });
+  }
+
   // ---------- private: realtime ----------
 
   private registerRealtime(): void {
@@ -774,6 +835,22 @@ export class SocialInteractionsService {
     this.supabase.liveInserts<NotificationRow>('notifications').subscribe((row) => {
       // RLS scopes delivery to `user_id = auth.uid()` — already "mine only" over the wire.
       this.notifications.update((current) => [rowToNotification(row), ...current].slice(0, 25));
+    });
+
+    this.supabase.liveInserts<any>('hood_messages').subscribe((row) => {
+      if (row.hood_id === this.activeChatHoodId()) {
+        this.activeChatMessages.update((msgs) => {
+          if (msgs.some((m) => m.id === row.id)) return msgs;
+          return [...msgs, {
+            id: row.id,
+            hoodId: row.hood_id,
+            userId: row.user_id,
+            username: row.username,
+            text: row.text,
+            createdAt: row.created_at,
+          }].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        });
+      }
     });
   }
 

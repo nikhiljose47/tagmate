@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Tag } from '../../../../core/models/tag.model';
@@ -35,7 +35,11 @@ export class NeighborhoodPage implements OnInit {
   protected readonly name = this.titleFromSlug(this.slug);
 
   // Tab state
-  protected readonly activeTab = signal<'overview' | 'ai' | 'leaderboard' | 'bulletin'>('overview');
+  protected readonly activeTab = signal<'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'>('overview');
+
+  // Group Chat states
+  protected readonly chatInput = signal('');
+  protected readonly isChatLoading = signal(false);
 
   // AI Chat states
   protected readonly messages = signal<Array<{ sender: 'user' | 'ai'; text: string; link?: Tag; time: Date }>>([]);
@@ -132,10 +136,22 @@ export class NeighborhoodPage implements OnInit {
 
   protected readonly myUid = computed(() => this.social.myUid());
 
+  constructor() {
+    effect(() => {
+      const msgs = this.social.activeChatMessages();
+      if (this.activeTab() === 'chat' && msgs.length > 0) {
+        this.scrollToBottom();
+      }
+    });
+  }
+
   ngOnInit(): void {
     const requestedTab = this.route.snapshot.queryParamMap.get('tab');
-    if (requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard' || requestedTab === 'bulletin') {
+    if (requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard' || requestedTab === 'bulletin' || requestedTab === 'chat') {
       this.activeTab.set(requestedTab as any);
+      if (requestedTab === 'chat') {
+        this.loadGroupChat();
+      }
     }
 
     this.tagRepo.getAll().subscribe({
@@ -151,11 +167,39 @@ export class NeighborhoodPage implements OnInit {
     });
   }
 
-  protected setTab(tab: 'overview' | 'ai' | 'leaderboard' | 'bulletin'): void {
+  protected setTab(tab: 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'): void {
     this.activeTab.set(tab);
     if (tab === 'ai') {
       this.initAiChat();
+    } else if (tab === 'chat') {
+      this.loadGroupChat();
     }
+  }
+
+  protected loadGroupChat(): void {
+    this.isChatLoading.set(true);
+    this.social.loadGroupMessages(this.slug);
+    setTimeout(() => {
+      this.isChatLoading.set(false);
+      this.scrollToBottom();
+    }, 300);
+  }
+
+  protected sendChatMessage(): void {
+    const text = this.chatInput().trim();
+    if (!text) return;
+    this.social.sendGroupMessage(this.slug, text);
+    this.chatInput.set('');
+    this.scrollToBottom();
+  }
+
+  protected scrollToBottom(): void {
+    setTimeout(() => {
+      const container = document.querySelector('.chat-log-container');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }, 50);
   }
 
   private initAiChat(): void {

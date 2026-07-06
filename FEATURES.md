@@ -32,6 +32,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 
 ### Social Interaction Suite
 - **Direct Messaging**: Private message threads initiated from individual tags, allowing direct peer-to-peer neighborhood coordinate discussions.
+- **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post, synced via Supabase Realtime.
 - **Threaded Comments**: Interactive comment sections supporting parent-reply trees, comment liking, and user mentions.
 - **Event RSVPs**: Attending/declining status tracking for posts of kind `event`.
 - **Question Polls**: Custom question creation with up to 5 poll options, live percentage updates, and singular vote lock-in.
@@ -46,7 +47,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 
 ## 2. Proposed Future Updates
 
-- [ ] **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post.
+- [x] **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post.
 - [ ] **Virtual Sticky Bulletin Board**: A fast announcement wall for short, non-geolocated notes (e.g. "Found keys at the park").
 - [ ] **External LLM Service Integration**: Upgrade the local rules-based Chatmate AI to use remote APIs (like Gemini or Llama) for fully open-ended local inquiries.
 - [ ] **Advanced Geofencing Notifications**: Push alert notifications when a user enters a geographic bounding box containing active high-severity traffic alerts or emergencies.
@@ -77,3 +78,7 @@ Before deploying changes:
 5. **Post & Note Deletion**: Attempt to delete a post or sticky note. Verify that:
    - The delete option is only visible on posts/notes authored by the logged-in user.
    - Execution of the deletion flow is blocked if ownership checks are not satisfied.
+6. **Neighborhood Group Chatroom**: Click the "Chatroom" tab on the Neighborhood page. Verify that:
+   - Recent messages load from the database.
+   - Typing a message and clicking Send adds it instantly (optimistically) and propagates it to Supabase.
+   - Real-time updates automatically append incoming messages from other users and scroll the viewport to the bottom.
