@@ -100,6 +100,13 @@ export class SocialInteractionsService {
       if (uid && uid !== this.lastHydratedUid) {
         this.lastHydratedUid = uid;
         this.hydratePersonalData(uid);
+
+        // Sync quests from metadata if they exist
+        const metadataQuests = session?.user?.user_metadata?.['completed_quests'] as string[] | undefined;
+        if (metadataQuests) {
+          this.completedQuests.set(new Set(metadataQuests));
+          this.writeJson(QUESTS_KEY, metadataQuests);
+        }
       } else if (!uid) {
         this.lastHydratedUid = null;
         this.resetPersonalSignals();
@@ -553,6 +560,15 @@ export class SocialInteractionsService {
         'Quest Completed!',
         `You completed the "${QUEST_NAMES[questId] ?? questId}" quest!`
       );
+
+      const uid = this.currentUid();
+      if (uid) {
+        const currentQuests = Array.from(this.completedQuests());
+        void this.fireAndForget(
+          this.supabase.updateUserMetadata({ completed_quests: currentQuests }),
+          (err) => this.logger.warn('Failed to sync completed quests to Supabase', err)
+        );
+      }
     }
     return newlyCompleted;
   }
@@ -564,6 +580,13 @@ export class SocialInteractionsService {
   resetQuests(): void {
     this.completedQuests.set(new Set());
     this.writeJson(QUESTS_KEY, []);
+    const uid = this.currentUid();
+    if (uid) {
+      void this.fireAndForget(
+        this.supabase.updateUserMetadata({ completed_quests: [] }),
+        (err) => this.logger.warn('Failed to reset quest metadata in Supabase', err)
+      );
+    }
   }
 
   // ---------- private: hydration ----------
@@ -605,6 +628,9 @@ export class SocialInteractionsService {
     this.hydratingComments.clear();
     this.hydratingPoll.clear();
     this.hydratingThreads.clear();
+
+    // Reload quest progress from local storage for guests
+    this.completedQuests.set(new Set(this.readJson<string[]>(QUESTS_KEY, [])));
   }
 
   /** Coalesces isLiked/isRsvped requests across a whole render pass into one batched query per table. */

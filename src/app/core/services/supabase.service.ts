@@ -75,6 +75,11 @@ export class SupabaseService {
     return from(this.client.auth.signOut());
   }
 
+  updateUserMetadata(metadata: Record<string, unknown>) {
+    return from(this.client.auth.updateUser({ data: metadata }));
+  }
+
+
   // ---------- DATA ----------
 
   addRow<T extends Record<string, unknown>>(table: string, data: T) {

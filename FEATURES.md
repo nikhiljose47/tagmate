@@ -15,6 +15,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 - **Boundary Rendering**: Dynamic fetching and visual polygon boundary outline of neighborhoods using OpenStreetMap Nominatim API place boundaries.
 - **Draggable Location Picker**: A temporary pick marker with geocoding feedback for attaching precise coordinates to new posts.
 - **Heatmap Mode**: Visualization of high-density post areas with adjustable circle paint weights.
+- **Geospatial Query Caching**: Front-end geocoding, reverse-geocoding, and boundary polygons are persisted in `localStorage` to reduce OpenStreetMap API network requests and prevent rate-limiting.
 
 ### Neighborhood AI Concierge ("Chatmate AI")
 - **Dynamic Assistant Panel**: A slide-over glassmorphic chatbot panel in the Neighborhood view.
@@ -25,11 +26,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 
 ### Hood Champion & Gamification
 - **Reputation & Ranks**: Tracks user contribution points ("Reputation") and assigns status badges (`New`, `Rising`, `Helpful`, `Trusted`).
-- **Weekly Civic Quests**: Interactive checklists that reward contribution with reputation:
-  - *Civic Love* (Liking neighborhood posts)
-  - *Chatty Neighbor* (Adding threaded comments)
-  - *Active Citizen* (RSVPing to events)
-  - *Vocal Resident* (Voting in active polls)
+- **Weekly Civic Quests**: Interactive checklists that reward contribution with reputation (Civic Love, Chatty Neighbor, Active Citizen, Vocal Resident). Authenticated users have their quest progress synced to Supabase Auth metadata across devices, while guest users fallback to browser `localStorage`.
 - **Top Contributors Leaderboard**: Dynamic ranking of top neighbors in each neighborhood based on their post counts and trust metrics.
 
 ### Social Interaction Suite

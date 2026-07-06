@@ -173,6 +173,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
   private currentPosts: MapPost[] = [];
 
+  private readonly GEOCODE_CACHE_KEY = 'tagmate_geocode_cache';
+  private readonly BOUNDARY_CACHE_KEY = 'tagmate_boundary_cache';
+  private readonly REVERSE_CACHE_KEY = 'tagmate_reverse_cache';
+
   // Restored once at construction time — same "remember what I picked last
   // time" behaviour as the theme setting, scoped to this map's display prefs.
   private readonly storedSettings = readStoredHoodSettings();
@@ -212,6 +216,16 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   hood     = this.store.selectSignal(selectHood);
 
   constructor() {
+    // Load persisted caches from localStorage
+    const savedGeocode = readLocalStorage<[string, NominatimSearchResult[]][]>(this.GEOCODE_CACHE_KEY, []);
+    savedGeocode.forEach(([k, v]) => this.geocodeCache.set(k, v));
+
+    const savedBoundary = readLocalStorage<[string, PlaceBoundary][]>(this.BOUNDARY_CACHE_KEY, []);
+    savedBoundary.forEach(([k, v]) => this.boundaryCache.set(k, v));
+
+    const savedReverse = readLocalStorage<[string, string][]>(this.REVERSE_CACHE_KEY, []);
+    savedReverse.forEach(([k, v]) => this.reverseCache.set(k, v));
+
     // One effect tracks every persisted signal and rewrites the settings
     // blob whenever any of them changes — mirrors ThemeService's pattern.
     effect(() => {
@@ -396,7 +410,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       )
       .subscribe((res) => {
         this.isSearching.set(false);
-        if (res.length) this.geocodeCache.set(q.toLowerCase(), res);
+        if (res.length) {
+          this.geocodeCache.set(q.toLowerCase(), res);
+          writeLocalStorage(this.GEOCODE_CACHE_KEY, Array.from(this.geocodeCache.entries()));
+        }
         this.applyGeocodingResult(res, q);
       });
   }
@@ -417,6 +434,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .subscribe((res) => {
         const name = res.display_name ?? 'Unknown location';
         this.reverseCache.set(key, name);
+        writeLocalStorage(this.REVERSE_CACHE_KEY, Array.from(this.reverseCache.entries()));
         this.state.updateText(name);
       });
   }
@@ -784,7 +802,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     const cached = this.boundaryCache.get(key);
     if (cached) return cached;
     const boundary = await Utils.getPlaceBoundary(name);
-    if (boundary) this.boundaryCache.set(key, boundary);
+    if (boundary) {
+      this.boundaryCache.set(key, boundary);
+      writeLocalStorage(this.BOUNDARY_CACHE_KEY, Array.from(this.boundaryCache.entries()));
+    }
     return boundary;
   }
 
