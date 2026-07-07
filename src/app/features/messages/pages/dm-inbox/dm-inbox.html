@@ -1,0 +1,119 @@
+<div class="inbox-container">
+  <!-- Sidebar/Master List of Threads -->
+  <div class="threads-sidebar" [class.hidden-mobile]="selectedThread()">
+    <div class="sidebar-header">
+      <h1 class="sidebar-title">Inbox</h1>
+    </div>
+
+    @if (isLoading()) {
+      <div class="flex flex-col gap-3 p-4">
+        <div class="skeleton-box h-16"></div>
+        <div class="skeleton-box h-16"></div>
+        <div class="skeleton-box h-16"></div>
+      </div>
+    }
+
+    @if (!isLoading()) {
+      @if (threads().length === 0) {
+        <div class="empty-inbox">
+          <div class="empty-icon">💬</div>
+          <h3>Your inbox is empty</h3>
+          <p>Private messages about tags and deals will appear here.</p>
+        </div>
+      }
+
+      @if (threads().length > 0) {
+        <div class="threads-list">
+          @for (thread of threads(); track thread.threadId) {
+            <button
+              type="button"
+              class="thread-card"
+              [class.active]="selectedThread()?.threadId === thread.threadId"
+              [class.unread]="thread.unread"
+              (click)="selectThread(thread)"
+            >
+              <div class="thread-avatar">
+                {{ thread.otherName.slice(0, 2).toUpperCase() }}
+              </div>
+              <div class="thread-info">
+                <div class="thread-row">
+                  <span class="thread-name">{{ thread.otherName }}</span>
+                  <span class="thread-time">{{ thread.lastMessageDate | timeAgo }}</span>
+                </div>
+                <p class="thread-preview">{{ thread.lastMessage }}</p>
+              </div>
+              @if (thread.unread) {
+                <span class="unread-dot"></span>
+              }
+            </button>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Chat Detail Panel -->
+  <div class="chat-detail" [class.active-mobile]="selectedThread()">
+    @if (selectedThread(); as thread) {
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <button type="button" class="back-btn" (click)="closeThread()" aria-label="Back to inbox">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="header-user-info">
+          <div class="header-avatar">
+            {{ thread.otherName.slice(0, 2).toUpperCase() }}
+          </div>
+          <div>
+            <h2 class="header-username">{{ thread.otherName }}</h2>
+            <span class="header-status">Online</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a class="view-post-link" [routerLink]="['/posts', thread.postId]" title="View linked post">
+            <i class="bi bi-link-45deg"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Messages List -->
+      <div class="messages-list">
+        @if (activeMessages().length === 0) {
+          <div class="empty-conversation">
+            <p>Starting conversation...</p>
+          </div>
+        }
+        @for (msg of activeMessages(); track msg.id) {
+          <div class="message-bubble-wrapper" [class.outgoing]="msg.from === 'You'">
+            <div class="message-bubble">
+              <p class="message-text">{{ msg.text }}</p>
+              <span class="message-time">{{ msg.createdAt | timeAgo }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Message Composer -->
+      <form (ngSubmit)="sendMessage()" class="composer-form">
+        <input
+          type="text"
+          class="composer-input"
+          placeholder="Type a message..."
+          [value]="messageText()"
+          (input)="messageText.set($any($event.target).value)"
+          maxlength="500"
+          required
+        />
+        <button type="submit" class="send-btn" [disabled]="!messageText().trim()" aria-label="Send">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </form>
+    } @else {
+      <div class="empty-detail">
+        <div class="empty-detail-icon">✉️</div>
+        <h2>Select a conversation</h2>
+        <p>Choose a thread from the list to start messaging.</p>
+      </div>
+    }
+  </div>
+</div>

@@ -26,6 +26,7 @@ export class NavComponent {
     { route: '/hood',    icon: 'bi-geo-alt',    activeIcon: 'bi-geo-alt-fill',    label: 'Hood'    },
     { route: '/tagmate', icon: 'bi-globe',       activeIcon: 'bi-globe2',          label: 'Globe'   },
     { route: '/post',    icon: 'bi-plus-square', activeIcon: 'bi-plus-square-fill',label: 'Post'    },
+    { route: '/messages', icon: 'bi-chat-left-dots', activeIcon: 'bi-chat-left-dots-fill', label: 'Inbox' },
     { route: '/profile', icon: 'bi-person',      activeIcon: 'bi-person-fill',     label: 'Profile' },
   ];
 

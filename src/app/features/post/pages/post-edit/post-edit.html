@@ -1,0 +1,68 @@
+<div class="post-edit-page">
+  <!-- Header Bar -->
+  <div class="edit-header">
+    <a class="back-link" routerLink="/profile" aria-label="Go back to profile">
+      <i class="bi bi-chevron-left"></i>
+    </a>
+    <h1 class="header-title">Edit Post</h1>
+    <div class="header-spacer"></div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex flex-col gap-3 p-4">
+      <div class="skeleton-box h-40"></div>
+      <div class="skeleton-box h-12"></div>
+    </div>
+  }
+
+  @if (!isLoading() && post(); as p) {
+    <div class="edit-content">
+      <!-- Post Preview Card -->
+      <div class="post-preview-card" [style.background]="p.tag | tagGradient">
+        @if (p.images && p.images[0]) {
+          <img [src]="p.images[0]" class="preview-img" alt="Post media" />
+        } @else {
+          <span class="preview-emoji">{{ p.tag | tagEmoji }}</span>
+        }
+        <div class="preview-overlay">
+          <p class="preview-tag-badge">#{{ p.tag }}</p>
+        </div>
+      </div>
+
+      <!-- Edit Form -->
+      <form (ngSubmit)="onSubmit()" #editForm="ngForm" class="edit-form">
+        <div class="field-block">
+          <label class="field-label">Update Headline</label>
+          <div class="compose-box">
+            <textarea
+              name="headline"
+              class="compose-textarea"
+              rows="3"
+              [value]="headline()"
+              (input)="headline.set($any($event.target).value)"
+              placeholder="What did you want to change it to?"
+              maxlength="280"
+              required
+            ></textarea>
+            <div class="char-counter">
+              {{ headline().length }}/280
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="tm-btn tm-btn-primary submit-btn w-full"
+          [disabled]="isSubmitting() || !headline().trim()"
+        >
+          @if (isSubmitting()) {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Saving...
+          } @else {
+            Save Changes
+          }
+        </button>
+      </form>
+    </div>
+  }
+</div>

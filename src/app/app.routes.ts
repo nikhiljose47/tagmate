@@ -33,6 +33,11 @@ export const routes: Routes = [
       import('./features/post/pages/post-detail/post-detail').then((m) => m.PostDetailPage),
   },
   {
+    path: 'messages',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES),
+  },
+  {
     path: 'neighborhood/:id',
     canActivate: [authGuard],
     loadChildren: () =>

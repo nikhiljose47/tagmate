@@ -15,6 +15,20 @@ export class SupabaseTagRepository implements ITagRepository {
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
+  getFiltered(filters?: {
+    tags?: string[];
+    before?: string;
+    after?: string;
+    userId?: string;
+    search?: string;
+    excludeTag?: string;
+    hoodId?: string;
+  }, limit?: number, offset?: number): Observable<Tag[]> {
+    return this.supabase
+      .getFilteredRows<TagRow>('tags', filters || {}, limit, offset)
+      .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
+  }
+
   getPaginated(limit: number, offset: number, search?: string): Observable<Tag[]> {
     return this.supabase
       .getLatestPaginated<TagRow>('tags', limit, offset, search)
@@ -44,6 +58,30 @@ export class SupabaseTagRepository implements ITagRepository {
 
   liveTags(): Observable<Tag> {
     return this.supabase.liveInserts<TagRow>('tags').pipe(map(rowToTag));
+  }
+
+  update(id: string, partial: Partial<Omit<Tag, 'id' | 'userId' | 'createdAt'>>): Observable<Tag> {
+    const row: Partial<TagRow> = {};
+    if (partial.username !== undefined) row.username = partial.username;
+    if (partial.highlight !== undefined) row.highlight = partial.highlight;
+    if (partial.lat !== undefined) row.lat = partial.lat;
+    if (partial.lng !== undefined) row.lng = partial.lng;
+    if (partial.expiresIn !== undefined) row.expires_in = partial.expiresIn;
+    if (partial.tag !== undefined) row.tag = partial.tag;
+    if (partial.images !== undefined) row.images = partial.images;
+    if (partial.hoodId !== undefined) row.hood_id = partial.hoodId;
+    if (partial.country !== undefined) row.country = partial.country;
+    if (partial.loves !== undefined) row.loves = partial.loves;
+    if (partial.dislikes !== undefined) row.dislikes = partial.dislikes;
+    if (partial.comments !== undefined) row.comments = partial.comments;
+    if (partial.pollOptions !== undefined) row.poll_options = partial.pollOptions;
+    if (partial.pollVotes !== undefined) row.poll_votes = partial.pollVotes;
+
+    return this.supabase
+      .updateRow<TagRow>('tags', id, row)
+      .pipe(
+        map(({ data }) => rowToTag(data as unknown as TagRow))
+      );
   }
 
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {

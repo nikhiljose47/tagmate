@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth.service';
+import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 
 const MIN_AGE = 13;
@@ -58,13 +58,13 @@ export class SignupPage implements OnInit {
   });
 
   constructor(
-    private auth: AuthService,
+    private session: UserSessionService,
     private router: Router,
     public theme: ThemeService
   ) {}
 
   ngOnInit(): void {
-    this.auth.user$.subscribe((user) => {
+    this.session.user$.subscribe((user) => {
       if (!user.isGuest) this.router.navigateByUrl('/tagmate');
     });
   }
@@ -80,7 +80,7 @@ export class SignupPage implements OnInit {
     this.usernameCheckTimer = setTimeout(async () => {
       this.usernameChecking.set(true);
       try {
-        const taken = await this.auth.isUsernameTaken(candidate);
+        const taken = await this.session.isUsernameTaken(candidate);
         if (this.username().trim() === candidate) this.usernameTaken.set(taken);
       } finally {
         this.usernameChecking.set(false);
@@ -115,7 +115,7 @@ export class SignupPage implements OnInit {
 
     this.loading.set(true);
     try {
-      const taken = await this.auth.isUsernameTaken(this.username().trim());
+      const taken = await this.session.isUsernameTaken(this.username().trim());
       if (taken) {
         this.usernameTaken.set(true);
         this.error.set('That username is already taken.');
@@ -125,7 +125,7 @@ export class SignupPage implements OnInit {
       const birthday = `${this.birthYear()}-${String(this.birthMonth()).padStart(2, '0')}-${String(this.birthDay()).padStart(2, '0')}`;
 
       const res = await Promise.race([
-        this.auth.signup(this.email(), this.password(), {
+        this.session.signup(this.email(), this.password(), {
           username: this.username().trim(),
           fullName: this.fullName().trim(),
           birthday,

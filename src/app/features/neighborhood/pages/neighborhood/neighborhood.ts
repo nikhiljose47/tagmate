@@ -12,6 +12,7 @@ import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-neighborhood',
@@ -28,6 +29,7 @@ export class NeighborhoodPage implements OnInit {
   private readonly logger = inject(LoggerService);
   protected readonly social = inject(SocialInteractionsService);
   private readonly sessionService = inject(UserSessionService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -154,7 +156,8 @@ export class NeighborhoodPage implements OnInit {
       }
     }
 
-    this.tagRepo.getAll().subscribe({
+    const filter = this.slug !== 'nearby' ? { hoodId: this.name } : undefined;
+    this.tagRepo.getFiltered(filter).subscribe({
       next: (posts) => {
         this.posts.set(posts);
         this.isLoading.set(false);
@@ -328,7 +331,7 @@ export class NeighborhoodPage implements OnInit {
     if (!text) return;
 
     const user = this.sessionService.user();
-    const username = user?.name || 'Guest User';
+    const username = user?.name || 'Guest';
     const userId = user?.uid || 'guest-uid';
 
     this.isSticking.set(true);
@@ -361,7 +364,7 @@ export class NeighborhoodPage implements OnInit {
     });
   }
 
-  protected deleteNote(id: string): void {
+  protected async deleteNote(id: string): Promise<void> {
     const note = this.posts().find(p => p.id === id);
     if (!note) return;
 
@@ -370,7 +373,14 @@ export class NeighborhoodPage implements OnInit {
       return;
     }
 
-    if (!confirm('Are you sure you want to delete this sticky note?')) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Delete Note',
+      message: 'Are you sure you want to delete this sticky note?',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+
     this.tagRepo.delete(id).subscribe({
       next: () => {
         this.posts.update(prev => prev.filter(p => p.id !== id));
@@ -381,8 +391,14 @@ export class NeighborhoodPage implements OnInit {
     });
   }
 
-  protected resetQuests(): void {
-    if (confirm('Reset your reputation points and quest progress for testing?')) {
+  protected async resetQuests(): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Reset Quest Progress',
+      message: 'Reset your reputation points and quest progress for testing?',
+      confirmText: 'Reset',
+      danger: true,
+    });
+    if (ok) {
       this.social.resetQuests();
     }
   }

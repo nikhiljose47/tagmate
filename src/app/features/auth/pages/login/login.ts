@@ -1,7 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth.service';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { CommonModule } from '@angular/common';
@@ -21,7 +20,6 @@ export class LoginPage implements OnInit {
   showPassword = signal(false);
 
   constructor(
-    private auth:    AuthService,
     private session: UserSessionService,
     private router:  Router,
     public theme:    ThemeService
@@ -29,7 +27,7 @@ export class LoginPage implements OnInit {
 
   ngOnInit(): void {
     // Redirect already-authenticated users away from the login page.
-    this.auth.user$.subscribe((user) => {
+    this.session.user$.subscribe((user) => {
       if (!user.isGuest) this.router.navigateByUrl('/tagmate');
     });
   }
@@ -40,7 +38,7 @@ export class LoginPage implements OnInit {
 
     try {
       const res: any = await Promise.race([
-        this.auth.login(this.email(), this.password()),
+        this.session.login(this.email(), this.password()),
         this.timeoutPromise(),
       ]);
 

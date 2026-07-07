@@ -55,12 +55,23 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 * **Live Expiration Countdowns**: Active tags display a real-time visual countdown of the remaining minutes before expiration (e.g. "Expires in 42m"), updating every 15 seconds.
 * *Detailed Guide: [Aesthetics & Visual System](file:///d:/Coding/Web/tagmate/docs/AESTHETICS.md)*
 
+### Post Editing & DM Management
+* **Post Editing**: Allows authors to update their active post headlines via `/post/edit/:id` routing, accessible directly from their profile page.
+* **Master-Detail DM Inbox**: Live, unified direct message console under `/messages` routing featuring grouped chat threads, other-user name fetching in bulk, and real-time messaging replies.
+* **Forgot & Reset Password**: Secure self-service account recovery flows via `/login/forgot-password` and `/login/update-password` paths.
+* **Server-Side Optimized Queries**: Optimized repository querying via a `.getFiltered()` database mechanism, migrating away from slow front-end array filtering.
+* **LRU Capped Cache Limiters**: Restricts front-end Nominatim geocoding and reverse-lookup Map caches to a 50-entry maximum to prevent unbounded memory growth.
+* **Native Dialog Deprecations**: Migrates browser `confirm()` popups to the asynchronous app-wide `ConfirmDialogService` modal drawer.
+* **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
+
 ---
 
 ## 2. Proposed Future Updates
 
 - [x] **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post.
 - [x] **Virtual Sticky Bulletin Board**: A fast announcement wall for short, non-geolocated notes (e.g. "Found keys at the park").
+- [x] **Post Editing & Unified DM Inbox Console**: Integrated post modification routes and message hubs for easier interaction.
+- [x] **Account Password Recovery**: Password reset and secure recovery options.
 - [ ] **External LLM Service Integration**: Upgrade the local rules-based Chatmate AI to use remote APIs (like Gemini or Llama) for fully open-ended local inquiries.
 - [ ] **Advanced Geofencing Notifications**: Push alert notifications when a user enters a geographic bounding box containing active high-severity traffic alerts or emergencies.
 

@@ -59,6 +59,10 @@
             <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
           </button>
         </div>
+        
+        <div class="forgot-password-link text-right mt-1 mb-2">
+          <a routerLink="/login/forgot-password" class="text-xs text-tm-primary font-semibold">Forgot Password?</a>
+        </div>
 
         <button class="tm-btn tm-btn-primary w-full" [disabled]="loading()" (click)="login()">
           @if (!loading()) { Log In }

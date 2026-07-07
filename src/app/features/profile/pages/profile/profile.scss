@@ -396,3 +396,35 @@
   font-weight: 700;
   color: var(--tm-text);
 }
+
+/* ── Upgrade Guest Banner & Card ────────── */
+.upgrade-banner {
+  background: color-mix(in srgb, var(--tm-primary) 8%, var(--tm-surface));
+  border: 1px solid var(--tm-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 16px 20px;
+  text-align: left;
+}
+
+.upgrade-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tm-primary-text);
+  line-height: 1.4;
+}
+
+.convert-card {
+  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.convert-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--tm-text);
+}

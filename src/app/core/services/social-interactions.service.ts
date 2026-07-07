@@ -2,7 +2,7 @@ import { Injectable, inject, signal, WritableSignal } from '@angular/core';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
 import { DirectMessage, LocalNotification, Tag, ThreadedComment, HoodMessage } from '../models/tag.model';
 import { SupabaseService } from './supabase.service';
-import { AuthService } from './auth.service';
+import { UserSessionService } from './user-session.service';
 import { LoggerService } from './logger.service';
 import { ToastService } from './toast.service';
 import { ConfirmDialogService } from './confirm-dialog.service';
@@ -46,7 +46,7 @@ const QUEST_NAMES: Record<string, string> = {
 @Injectable({ providedIn: 'root' })
 export class SocialInteractionsService {
   private readonly supabase = inject(SupabaseService);
-  private readonly auth = inject(AuthService);
+  private readonly userSession = inject(UserSessionService);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
@@ -116,7 +116,7 @@ export class SocialInteractionsService {
     });
 
     // Cosmetic only — display-name fallback while the real session resolves.
-    this.auth.user$.subscribe((u) => { this.currentUsername = u.username; });
+    this.userSession.user$.subscribe((u) => { this.currentUsername = u.username; });
 
     this.completedQuests.set(new Set(this.readJson<string[]>(QUESTS_KEY, [])));
 
@@ -368,7 +368,7 @@ export class SocialInteractionsService {
     return this.pollVotes()[postKey] ?? {};
   }
 
-  votePoll(postKey: string, optionIndex: number, _username: string): void {
+  votePoll(postKey: string, optionIndex: number): void {
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('vote'); return; }
 
@@ -392,7 +392,7 @@ export class SocialInteractionsService {
     this.completeQuest('poll');
   }
 
-  hasVotedPoll(postKey: string, optionIndex: number, _username: string): boolean {
+  hasVotedPoll(postKey: string, optionIndex: number): boolean {
     this.ensurePollHydrated(postKey);
     const uid = this.currentUid();
     if (!uid) return false;
@@ -413,7 +413,7 @@ export class SocialInteractionsService {
     return Math.max(0, (post.rsvpCount ?? 0) + (this.rsvpDeltas()[key] ?? 0));
   }
 
-  isRsvped(post: Tag, _user = 'You'): boolean {
+  isRsvped(post: Tag): boolean {
     const key = this.postKey(post);
     this.requestViewerState(key);
     return this.rsvps().has(key);

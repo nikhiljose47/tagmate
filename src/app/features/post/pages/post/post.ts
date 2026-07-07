@@ -6,8 +6,8 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
 import { SharedStateService, PostDraft } from '../../../../core/services/shared-state.service';
-import { SupabaseService } from '../../../../core/services/supabase.service';
-import { AuthService } from '../../../../core/services/auth.service';
+import { UserSessionService } from '../../../../core/services/user-session.service';
+import { MediaService } from '../../../../core/services/media.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { MediaCompressionService } from '../../../../core/services/media-compression.service';
@@ -45,11 +45,11 @@ export class PostPage {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<Tag>();
 
-  private readonly supabase = inject(SupabaseService);
-  private readonly auth     = inject(AuthService);
-  private readonly tagRepo  = inject(TAG_REPOSITORY);
-  private readonly logger   = inject(LoggerService);
-  private readonly media    = inject(MediaCompressionService);
+  private readonly userSession = inject(UserSessionService);
+  private readonly mediaService = inject(MediaService);
+  private readonly tagRepo     = inject(TAG_REPOSITORY);
+  private readonly logger      = inject(LoggerService);
+  private readonly media       = inject(MediaCompressionService);
 
   constructor(
     public  shared: SharedStateService,
@@ -117,7 +117,13 @@ export class PostPage {
     { label: '1 week',  value: 10080 },
   ];
 
-  user = { name: 'Guest User', avatarUrl: 'assets/avatar/panda.png' };
+  readonly user = computed(() => {
+    const u = this.userSession.user();
+    return {
+      name: u?.name ?? 'Guest',
+      avatarUrl: 'assets/avatar/panda.png',
+    };
+  });
 
   formData = {
     headline:  '',
@@ -232,14 +238,13 @@ export class PostPage {
     this.isSubmitting.set(true);
 
     try {
-      const session = await firstValueFrom(this.supabase.session$);
-      if (!session?.user) {
+      const currentUser = this.userSession.user();
+      if (!currentUser) {
         this.toast.show('You must be signed in to post a tag.', 'warning');
         return;
       }
 
-      const uid         = session.user.id;
-      const currentUser = await firstValueFrom(this.auth.user$);
+      const uid         = currentUser.uid;
       const uploadedUrls: string[] = [];
 
       for (const item of this.mediaItems()) {
@@ -249,7 +254,7 @@ export class PostPage {
           const { file } = await this.media.compress(item.file);
           const ext  = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
           const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-          uploadedUrls.push(await this.supabase.uploadFile(path, file));
+          uploadedUrls.push(await this.mediaService.uploadFile(path, file));
         } catch (err) {
           this.logger.error('Media upload failed', err);
           this.toast.show('One file failed to upload — continuing without it.', 'warning');
@@ -257,7 +262,7 @@ export class PostPage {
       }
 
       const tagObject: Tag = {
-        username:  currentUser.username,
+        username:  currentUser.name,
         userId:    uid,
         highlight: this.formData.headline,
         lat:       coords[0],

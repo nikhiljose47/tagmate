@@ -19,16 +19,47 @@
           }
         </div>
         <div class="profile-actions">
-          <button class="tm-icon-btn" type="button" (click)="toggleEditProfile()" aria-label="Edit profile">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="tm-btn tm-btn-danger logout-btn" type="button" (click)="logout()">
-            <i class="bi bi-box-arrow-right"></i> Logout
-          </button>
+          @if (!user.isGuest) {
+            <button class="tm-icon-btn" type="button" (click)="toggleEditProfile()" aria-label="Edit profile">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="tm-btn tm-btn-danger logout-btn" type="button" (click)="logout()">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+          } @else {
+            <button class="tm-btn tm-btn-primary logout-btn" type="button" (click)="logout()">
+              <i class="bi bi-box-arrow-in-right"></i> Sign In
+            </button>
+          }
         </div>
       </div>
 
-      @if (editMode()) {
+      @if (user.isGuest) {
+        <div class="upgrade-banner">
+          <p class="upgrade-text">⚡ Sign in to save your progress and unlock full features!</p>
+          
+          <div class="convert-card mt-3">
+            <h4 class="convert-title">Convert Guest Account</h4>
+            @if (convertError()) {
+              <div class="tm-alert tm-alert-danger mb-3">{{ convertError() }}</div>
+            }
+            <label class="edit-label">Username</label>
+            <input class="tm-input mb-2" type="text" [value]="convertUsername()" (input)="convertUsername.set($any($event.target).value)" placeholder="Enter unique username" />
+            
+            <label class="edit-label">Email</label>
+            <input class="tm-input mb-2" type="email" [value]="convertEmail()" (input)="convertEmail.set($any($event.target).value)" placeholder="Enter your email" />
+            
+            <label class="edit-label">Password</label>
+            <input class="tm-input mb-3" type="password" [value]="convertPassword()" (input)="convertPassword.set($any($event.target).value)" placeholder="Enter password (min 6 chars)" />
+            
+            <button class="tm-btn tm-btn-primary w-full" type="button" [disabled]="convertLoading()" (click)="convertAccount()">
+              {{ convertLoading() ? 'Converting...' : 'Upgrade Account' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (editMode() && !user.isGuest) {
         <div class="edit-card">
           <label class="edit-label">Display Name</label>
           <input class="tm-input mb-3" type="text" [value]="user.username || ''" placeholder="Your name" />
@@ -75,14 +106,14 @@
   <!-- Tab Content -->
   <div class="tab-content">
 
-    @if (isLoading) {
+    @if (isLoading()) {
       <div class="flex flex-col gap-3 p-4">
         <div class="skeleton-box h-20"></div>
         <div class="skeleton-box h-20"></div>
       </div>
     }
 
-    @if (!isLoading) {
+    @if (!isLoading()) {
 
       <!-- Posts Tab -->
       @if (activeTab() === 'posts') {

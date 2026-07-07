@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
-import { AuthService } from '../../../../core/services/auth.service';
+import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SharedStateService } from '../../../../core/services/shared-state.service';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -27,7 +27,7 @@ type ProfileTab = 'posts' | 'saved' | 'settings';
 })
 export class ProfilePage implements OnInit {
   private readonly tagRepo = inject(TAG_REPOSITORY);
-  private readonly auth    = inject(AuthService);
+  private readonly sessionService = inject(UserSessionService);
   private readonly router  = inject(Router);
   private readonly toast   = inject(ToastService);
   private readonly shared  = inject(SharedStateService);
@@ -44,16 +44,23 @@ export class ProfilePage implements OnInit {
     { value: 'sepia', label: 'Sepia' },
   ];
 
-  readonly user$          = this.auth.user$;
+  readonly user$          = this.sessionService.user$;
   readonly coverGradient  = coverGradient;
   readonly avatarBg       = avatarBg;
 
   myTags     = signal<Tag[]>([]);
-  isLoading  = true;
+  isLoading  = signal(true);
   activeTab  = signal<ProfileTab>('posts');
   editMode   = signal(false);
   allTags    = signal<Tag[]>([]);
   savedTags  = computed(() => this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)));
+
+  // Account Conversion for Guest
+  convertEmail = signal('');
+  convertPassword = signal('');
+  convertUsername = signal('');
+  convertError = signal('');
+  convertLoading = signal(false);
 
   ngOnInit(): void {
     this.tagRepo.getAll().subscribe({
@@ -61,21 +68,21 @@ export class ProfilePage implements OnInit {
       error: (err) => this.logger.error('Failed to load saved posts', err),
     });
 
-    this.auth.user$.subscribe((user) => {
+    this.sessionService.user$.subscribe((user) => {
       if (user.isGuest) {
         this.myTags.set([]);
-        this.isLoading = false;
+        this.isLoading.set(false);
         return;
       }
       this.tagRepo.getByUserId(user.uid!).subscribe({
         next: (tags) => {
           this.myTags.set(tags);
-          this.isLoading = false;
+          this.isLoading.set(false);
         },
         error: (err) => {
           this.logger.error('Failed to load user tags', err);
           this.myTags.set([]);
-          this.isLoading = false;
+          this.isLoading.set(false);
         },
       });
     });
@@ -109,17 +116,46 @@ export class ProfilePage implements OnInit {
   }
 
   editPost(tag: Tag): void {
-    this.toast.show(`Editing "${tag.highlight || 'this post'}" is coming soon.`, 'info');
+    const key = this.social.postKey(tag);
+    void this.router.navigate(['/post/edit', key]);
   }
 
   async logout(): Promise<void> {
     try {
-      await this.auth.logout();
+      await this.sessionService.logout();
       this.toast.show('Logged out.', 'success');
       await this.router.navigate([AppRoute.Login]);
     } catch (err) {
       this.logger.error('Logout failed', err);
       this.toast.show('Could not log out.', 'danger');
+    }
+  }
+
+  async convertAccount(): Promise<void> {
+    if (!this.convertEmail().trim() || !this.convertPassword() || !this.convertUsername().trim()) {
+      this.convertError.set('Please fill out all fields.');
+      return;
+    }
+    this.convertError.set('');
+    this.convertLoading.set(true);
+    try {
+      const res = await this.sessionService.convertGuestToPermanent(
+        this.convertEmail().trim(),
+        this.convertPassword(),
+        this.convertUsername().trim()
+      );
+      if (res.ok) {
+        this.toast.show('Account converted successfully!', 'success');
+        this.editMode.set(false);
+      } else {
+        this.convertError.set(res.message);
+        this.toast.show(res.message, 'danger');
+      }
+    } catch (err: any) {
+      this.convertError.set(err?.message ?? 'Conversion failed');
+      this.toast.show(err?.message ?? 'Conversion failed', 'danger');
+    } finally {
+      this.convertLoading.set(false);
     }
   }
 }

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -40,82 +40,82 @@ export class GlobePage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   protected readonly social = inject(SocialInteractionsService);
 
-  cards: Tag[]        = [];
-  isLoading           = true;
-  allTags: string[]   = [];
-  selectedTags: string[] = [];
-  selectedRange: DateRange = '';
-  selectedMonth       = '';
-  tagSearch           = '';
-  sortMode: SortMode  = 'newest';
-  proximityCoords: readonly [lat: number, lng: number] | null = null;
+  cards           = signal<Tag[]>([]);
+  isLoading       = signal(true);
+  allTags         = signal<string[]>([]);
+  selectedTags    = signal<string[]>([]);
+  selectedRange   = signal<DateRange>('');
+  selectedMonth   = signal<string>('');
+  tagSearch       = signal<string>('');
+  sortMode        = signal<SortMode>('newest');
+  proximityCoords = signal<readonly [lat: number, lng: number] | null>(null);
 
   filtersOpen  = signal(false);
   savedView    = signal(false);
-  brokenImages = new Set<string>();
+  brokenImages = signal<Set<string>>(new Set<string>());
   protected readonly hood = this.store.selectSignal(selectHood);
 
   ngOnInit(): void {
     // Drop a post immediately if it was deleted here or on any other page.
     // Registered unconditionally, before the preload-cache early return below.
     this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
-      this.cards = this.cards.filter((c) => this.cardKey(c) !== deletedKey);
+      this.cards.update((curr) => curr.filter((c) => this.cardKey(c) !== deletedKey));
     });
 
     // Use preloaded data immediately if available — avoids a network round-trip on first visit.
     const cached = this.preload.getGlobePosts();
     if (cached) {
       this.setCards(cached);
-      this.isLoading = false;
+      this.isLoading.set(false);
       return;
     }
 
-    this.tagRepo.getAll().subscribe({
+    this.tagRepo.getFiltered({ excludeTag: 'bulletin' }).subscribe({
       next: (tags) => {
         this.setCards(tags);
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       error: (err) => {
         this.logger.error('Failed to load tags', err);
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.toast.show('Could not load posts. Please try again.', 'danger');
       },
     });
   }
 
   private setCards(tags: Tag[]): void {
-    this.cards   = tags;
-    this.allTags = Array.from(new Set(tags.map((c) => c.tag).filter(t => t && t !== 'bulletin'))).sort((a, b) => a.localeCompare(b));
+    this.cards.set(tags);
+    this.allTags.set(Array.from(new Set(tags.map((c) => c.tag).filter(t => t && t !== 'bulletin'))).sort((a, b) => a.localeCompare(b)));
   }
 
-  get visibleCards(): Tag[] {
-    const filtered = this.cards.filter((c) => c.tag !== 'bulletin' && !this.social.isHidden(c) && this.matchesTags(c) && this.matchesDate(c));
+  readonly visibleCards = computed<Tag[]>(() => {
+    const filtered = this.cards().filter((c) => c.tag !== 'bulletin' && !this.social.isHidden(c) && this.matchesTags(c) && this.matchesDate(c));
     return [...filtered].sort((a, b) => {
-      if (this.sortMode === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      if (this.sortMode === 'nearby') return this.distanceFromProximityOrigin(a) - this.distanceFromProximityOrigin(b);
+      if (this.sortMode() === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (this.sortMode() === 'nearby') return this.distanceFromProximityOrigin(a) - this.distanceFromProximityOrigin(b);
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }
+  });
 
   hasBanner(card: Tag): boolean {
-    return !card.images?.[0] || this.brokenImages.has(this.cardKey(card));
+    return !card.images?.[0] || this.brokenImages().has(this.cardKey(card));
   }
 
   onImgError(card: Tag): void {
-    this.brokenImages = new Set([...this.brokenImages, this.cardKey(card)]);
+    this.brokenImages.update((prev) => new Set([...prev, this.cardKey(card)]));
   }
 
   refresh(): void {
-    this.isLoading = true;
-    this.tagRepo.getAll().subscribe({
+    this.isLoading.set(true);
+    this.tagRepo.getFiltered({ excludeTag: 'bulletin' }).subscribe({
       next: (tags) => {
-        this.cards = tags;
-        this.isLoading = false;
+        this.cards.set(tags);
+        this.isLoading.set(false);
         this.toast.show('Feed refreshed.', 'success');
       },
       error: (err) => {
         this.logger.error('Refresh failed', err);
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
     });
   }
@@ -153,7 +153,7 @@ export class GlobePage implements OnInit {
 
   async deletePost(card: Tag): Promise<void> {
     const deleted = await this.social.confirmAndDeletePost(card);
-    if (deleted) this.cards = this.cards.filter((c) => this.cardKey(c) !== this.cardKey(card));
+    if (deleted) this.cards.update((curr) => curr.filter((c) => this.cardKey(c) !== this.cardKey(card)));
   }
 
   openOnMap(card: Tag): void {
@@ -163,30 +163,35 @@ export class GlobePage implements OnInit {
   }
 
   filteredTags(): string[] {
-    const q = this.tagSearch.trim().toLowerCase();
-    return this.allTags.filter((t) => t.toLowerCase().includes(q));
+    const q = this.tagSearch().trim().toLowerCase();
+    return this.allTags().filter((t) => t.toLowerCase().includes(q));
   }
 
   toggleTag(tag: string): void {
-    if (this.selectedTags.includes(tag)) { this.removeTag(tag); return; }
-    if (this.selectedTags.length < 2) { this.selectedTags = [...this.selectedTags, tag]; this.tagSearch = ''; }
+    if (this.selectedTags().includes(tag)) { this.removeTag(tag); return; }
+    if (this.selectedTags().length < 2) {
+      this.selectedTags.update((prev) => [...prev, tag]);
+      this.tagSearch.set('');
+    }
   }
 
-  removeTag(tag: string): void { this.selectedTags = this.selectedTags.filter((s) => s !== tag); }
+  removeTag(tag: string): void {
+    this.selectedTags.update((prev) => prev.filter((s) => s !== tag));
+  }
 
   clearFilters(): void {
-    this.selectedTags  = [];
-    this.selectedRange = '';
-    this.selectedMonth = '';
-    this.tagSearch     = '';
+    this.selectedTags.set([]);
+    this.selectedRange.set('');
+    this.selectedMonth.set('');
+    this.tagSearch.set('');
   }
 
   async onSortModeChange(mode: SortMode): Promise<void> {
-    this.sortMode = mode;
+    this.sortMode.set(mode);
     if (mode !== 'nearby') return;
 
     const coords = await this.shared.getDeviceCoordinates();
-    this.proximityCoords = coords ?? [this.hood().coords.lat, this.hood().coords.lng];
+    this.proximityCoords.set(coords ?? [this.hood().coords.lat, this.hood().coords.lng]);
     if (!coords) {
       this.toast.show('Sorting nearby from your current hood because location permission was unavailable.', 'info');
     }
@@ -202,8 +207,8 @@ export class GlobePage implements OnInit {
       .replace(/^-|-$/g, '') || 'nearby';
   }
 
-  onRangeChange(): void { if (this.selectedRange) this.selectedMonth = ''; }
-  onMonthChange(): void { if (this.selectedMonth) this.selectedRange = ''; }
+  onRangeChange(): void { if (this.selectedRange()) this.selectedMonth.set(''); }
+  onMonthChange(): void { if (this.selectedMonth()) this.selectedRange.set(''); }
 
   private async shareText(title: string, text: string): Promise<void> {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -217,23 +222,27 @@ export class GlobePage implements OnInit {
   }
 
   private matchesTags(card: Tag): boolean {
-    if (!this.selectedTags.length) return true;
-    return this.selectedTags.includes(card.tag);
+    const selected = this.selectedTags();
+    if (!selected.length) return true;
+    return selected.includes(card.tag);
   }
 
   private matchesDate(card: Tag): boolean {
     const created = new Date(card.createdAt);
     if (Number.isNaN(created.getTime())) return false;
-    if (this.selectedMonth) return card.createdAt.slice(0, 7) === this.selectedMonth;
-    if (!this.selectedRange) return true;
+    const month = this.selectedMonth();
+    if (month) return card.createdAt.slice(0, 7) === month;
+    const range = this.selectedRange();
+    if (!range) return true;
     const rangeMs: Record<Exclude<DateRange, ''>, number> = {
       '1h': 3_600_000, '24h': 86_400_000, '7d': 604_800_000, '30d': 2_592_000_000,
     };
-    return Date.now() - created.getTime() <= rangeMs[this.selectedRange];
+    return Date.now() - created.getTime() <= rangeMs[range];
   }
 
   private distanceFromProximityOrigin(card: Tag): number {
-    const [lat, lng] = this.proximityCoords ?? [this.hood().coords.lat, this.hood().coords.lng];
+    const coords = this.proximityCoords() ?? [this.hood().coords.lat, this.hood().coords.lng];
+    const [lat, lng] = coords;
     return Math.pow(card.lat - lat, 2) + Math.pow(card.lng - lng, 2);
   }
 }

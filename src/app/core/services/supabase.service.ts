@@ -75,6 +75,15 @@ export class SupabaseService {
     return from(this.client.auth.signOut());
   }
 
+  resetPassword(email: string) {
+    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/login/update-password` : '';
+    return from(this.client.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl }));
+  }
+
+  updatePassword(password: string) {
+    return from(this.client.auth.updateUser({ password }));
+  }
+
   updateUserMetadata(metadata: Record<string, unknown>) {
     return from(this.client.auth.updateUser({ data: metadata }));
   }
@@ -110,7 +119,7 @@ export class SupabaseService {
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {
-    return from(this.client.from(table).update(data as Record<string, unknown>).eq('id', id));
+    return from(this.client.from(table).update(data as Record<string, unknown>).eq('id', id).select().single<T>());
   }
 
   deleteRow(table: string, id: string) {
@@ -151,6 +160,58 @@ export class SupabaseService {
       query = query.or(`highlight.ilike.${searchTerm},username.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`);
     }
 
+    return from(query) as Observable<{ data: T[] | null; error: unknown }>;
+  }
+
+  getFilteredRows<T>(
+    table: string,
+    filters: {
+      tags?: string[];
+      before?: string;
+      after?: string;
+      userId?: string;
+      search?: string;
+      excludeTag?: string;
+      hoodId?: string;
+    },
+    limit?: number,
+    offset?: number
+  ): Observable<{ data: T[] | null; error: unknown }> {
+    let query = this.client.from(table).select('*');
+    
+    if (filters.userId) {
+      query = query.eq('user_id', filters.userId);
+    }
+    if (filters.hoodId) {
+      query = query.eq('hood_id', filters.hoodId);
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      query = query.in('tag', filters.tags);
+    }
+    if (filters.excludeTag) {
+      query = query.neq('tag', filters.excludeTag);
+    }
+    if (filters.before) {
+      query = query.lte('created_at', filters.before);
+    }
+    if (filters.after) {
+      query = query.gte('created_at', filters.after);
+    }
+    if (filters.search) {
+      // Strip special characters like commas and parentheses to prevent PostgREST parsing syntax hijacking
+      const sanitized = filters.search.replace(/[,()]/g, '');
+      const term = `%${sanitized}%`;
+      query = query.or(`highlight.ilike.${term},username.ilike.${term},tag.ilike.${term}`);
+    }
+    
+    query = query.order('created_at', { ascending: false });
+    
+    if (limit !== undefined && offset !== undefined) {
+      query = query.range(offset, offset + limit - 1);
+    } else if (limit !== undefined) {
+      query = query.limit(limit);
+    }
+    
     return from(query) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
@@ -234,6 +295,16 @@ export class SupabaseService {
   }
 
   // ---------- SOCIAL ----------
+
+  getDirectMessagesForUser(uid: string): Observable<{ data: any[] | null; error: unknown }> {
+    return from(
+      this.client
+        .from('direct_messages')
+        .select('*')
+        .or(`from_uid.eq.${uid},to_uid.eq.${uid}`)
+        .order('created_at', { ascending: false })
+    ) as Observable<{ data: any[] | null; error: unknown }>;
+  }
 
   incrementCommentUpvote(commentId: string) {
     return from(this.client.rpc('increment_comment_upvote', { p_comment_id: commentId }));

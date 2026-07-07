@@ -286,13 +286,12 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
   votePoll(post: Tag, optionIndex: number): void {
     const key = this.postKey(post);
-    // Since we don't have auth yet, just use a dummy username 'Guest User'
-    this.social.votePoll(key, optionIndex, 'Guest User');
+    this.social.votePoll(key, optionIndex);
     this.toast.show('Vote recorded!', 'success');
   }
 
   hasVotedPoll(post: Tag, optionIndex: number): boolean {
-    return this.social.hasVotedPoll(this.postKey(post), optionIndex, 'Guest User');
+    return this.social.hasVotedPoll(this.postKey(post), optionIndex);
   }
 
   getPollPercentage(post: Tag, optionIndex: number): number {

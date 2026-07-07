@@ -26,8 +26,6 @@ import type {
 } from 'maplibre-gl';
 
 import { environment } from '../../../../environments/environment.prod';
-import { SupabaseService } from '../../../../core/services/supabase.service';
-import { rowToTag } from '../../../../core/services/tag.mapper';
 import { Hood } from '../../../../core/models/hood.model';
 import { Tag } from '../../../../core/models/tag.model';
 import { SharedStateService } from '../../../../core/services/shared-state.service';
@@ -36,10 +34,27 @@ import { PlaceBoundary, Utils } from '../../../../core/services/utils.service';
 import { setUserPreference } from '../../../../store/user-preferences/user-preference.actions';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { PreloadService } from '../../../../core/services/preload.service';
+import { escapeHtml } from '../../../../shared/utils/string.utils';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
+
+interface CountryBounds {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
+
+const COUNTRY_BOUNDS: Record<string, CountryBounds> = {
+  india: {
+    minLat: 6.5,
+    maxLat: 37.1,
+    minLng: 68.1,
+    maxLng: 97.4,
+  },
+};
 
 // MapLibre source/layer IDs kept as module-level constants for clarity.
 const POSTS_SOURCE          = 'posts-source';
@@ -147,7 +162,6 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly state   = inject(SharedStateService);
   private readonly store   = inject(Store);
   private readonly toast   = inject(ToastService);
-  private readonly supabase = inject(SupabaseService);
   private readonly preload  = inject(PreloadService);
   private readonly tagRepo  = inject(TAG_REPOSITORY);
   private readonly social   = inject(SocialInteractionsService);
@@ -172,6 +186,16 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly reverseCache = new globalThis.Map<string, string>();
   private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
   private currentPosts: MapPost[] = [];
+
+  private setInCache<K, V>(cache: globalThis.Map<K, V>, key: K, value: V, maxSize = 50): void {
+    if (cache.size >= maxSize && !cache.has(key)) {
+      const firstKey = cache.keys().next().value;
+      if (firstKey !== undefined) {
+        cache.delete(firstKey);
+      }
+    }
+    cache.set(key, value);
+  }
 
   private readonly GEOCODE_CACHE_KEY = 'tagmate_geocode_cache';
   private readonly BOUNDARY_CACHE_KEY = 'tagmate_boundary_cache';
@@ -411,7 +435,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .subscribe((res) => {
         this.isSearching.set(false);
         if (res.length) {
-          this.geocodeCache.set(q.toLowerCase(), res);
+          this.setInCache(this.geocodeCache, q.toLowerCase(), res);
           writeLocalStorage(this.GEOCODE_CACHE_KEY, Array.from(this.geocodeCache.entries()));
         }
         this.applyGeocodingResult(res, q);
@@ -433,7 +457,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       )
       .subscribe((res) => {
         const name = res.display_name ?? 'Unknown location';
-        this.reverseCache.set(key, name);
+        this.setInCache(this.reverseCache, key, name);
         writeLocalStorage(this.REVERSE_CACHE_KEY, Array.from(this.reverseCache.entries()));
         this.state.updateText(name);
       });
@@ -502,7 +526,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
           this.updatePostSource(preloaded as MapPost[]);
           const b   = this.map!.getBounds();
           const key = `${b.getWest().toFixed(2)},${b.getSouth().toFixed(2)},${b.getEast().toFixed(2)},${b.getNorth().toFixed(2)}`;
-          this.postsCache.set(key, { posts: preloaded as MapPost[], ts: Date.now() });
+          this.setInCache(this.postsCache, key, { posts: preloaded as MapPost[], ts: Date.now() });
         }
       }
 
@@ -736,12 +760,17 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (cached && Date.now() - cached.ts < HoodPage.POSTS_CACHE_TTL) {
       return of(cached.posts.filter((p) => this.matchesCountryMode(p)));
     }
-    return this.supabase
-      .fetchTagsInBounds(query.west, query.south, query.east, query.north)
+    return this.tagRepo
+      .getInBounds({
+        minLng: query.west,
+        minLat: query.south,
+        maxLng: query.east,
+        maxLat: query.north,
+      })
       .pipe(
-        map(({ data }) => {
-          const posts = (data ?? []).map(rowToTag) as MapPost[];
-          this.postsCache.set(key, { posts, ts: Date.now() });
+        map((tags) => {
+          const posts = tags as MapPost[];
+          this.setInCache(this.postsCache, key, { posts, ts: Date.now() });
           return posts.filter((p) => this.matchesActiveFilters(p));
         })
       );
@@ -870,8 +899,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   private isInCountryBounds(lat: number, lng: number, country: string): boolean {
-    if (country.trim().toLowerCase() !== 'india') return true;
-    return lat >= 6.5 && lat <= 37.1 && lng >= 68.1 && lng <= 97.4;
+    const key = country.trim().toLowerCase();
+    const bounds = COUNTRY_BOUNDS[key];
+    if (!bounds) return true;
+    return lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng;
   }
 
   private enableLocationSelection(): void  { this.locationSelectionEnabled = true;  this.setCursorForMode(); }
@@ -986,9 +1017,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   private escapeHtml(value: string): string {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
+    return escapeHtml(value);
   }
 
   private showUserError(message: string): void {

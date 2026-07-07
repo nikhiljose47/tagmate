@@ -153,15 +153,14 @@ export class PostDetailPage implements OnInit, OnDestroy {
     const p = this.post();
     if (!p) return;
     const key = this.postKey();
-    // Since we don't have auth yet, just use a dummy username 'Guest User'
-    this.social.votePoll(key, optionIndex, 'Guest User');
+    this.social.votePoll(key, optionIndex);
     this.toast.show('Vote recorded!', 'success');
   }
 
   hasVotedPoll(optionIndex: number): boolean {
     const p = this.post();
     if (!p) return false;
-    return this.social.hasVotedPoll(this.postKey(), optionIndex, 'Guest User');
+    return this.social.hasVotedPoll(this.postKey(), optionIndex);
   }
 
   getPollPercentage(optionIndex: number): number {
@@ -255,11 +254,11 @@ export class PostDetailPage implements OnInit, OnDestroy {
   }
 
   private loadRelated(post: Tag): void {
-    this.tagRepo.getAll().subscribe({
+    this.tagRepo.getFiltered({ tags: [post.tag] }).subscribe({
       next: (posts) => {
         this.relatedPosts.set(
           posts
-            .filter((candidate) => candidate.tag === post.tag && this.social.postKey(candidate) !== this.social.postKey(post))
+            .filter((candidate) => this.social.postKey(candidate) !== this.social.postKey(post))
             .slice(0, 3)
         );
       },
