@@ -114,8 +114,19 @@ export class SupabaseService {
 
   getUserById(uid: string): Observable<AppUser | null> {
     return from(
-      this.client.from('users').select('*').eq('uid', uid).single<AppUser>()
-    ).pipe(map(({ data }) => data));
+      this.client.from('users').select('*').eq('uid', uid).single<any>()
+    ).pipe(
+      map(({ data }) => {
+        if (!data) return null;
+        return {
+          uid: data.uid,
+          name: data.name,
+          isGuest: !!data.is_guest,
+          email: data.email ?? undefined,
+          reputation: data.reputation ?? 0,
+        };
+      })
+    );
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {

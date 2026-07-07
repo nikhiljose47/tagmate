@@ -102,7 +102,20 @@ export class MediaCompressionService {
 
   /** Convenience: compress many files concurrently. Order is preserved. */
   compressAll(files: File[], options?: CompressionOptions): Promise<CompressionResult[]> {
-    return Promise.all(files.map((f) => this.compress(f, options)));
+    return Promise.all(
+      files.map((f) =>
+        this.compress(f, options).catch((err) => {
+          this.logger.warn('Media compression failed on compressAll, falling back to original.', err);
+          return {
+            file: f,
+            originalBytes:   f.size,
+            compressedBytes: f.size,
+            ratio:           1,
+            didCompress:     false,
+          };
+        })
+      )
+    );
   }
 
   // ---------- internals ----------

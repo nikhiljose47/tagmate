@@ -15,7 +15,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
-import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
+import { LifespanBadgeComponent } from '../../../../shared/components/lifespan-badge/lifespan-badge.component';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { Subject, takeUntil } from 'rxjs';
@@ -34,7 +34,7 @@ type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
     TagEmojiPipe,
     TagGradientPipe,
     TimeAgoPipe,
-    LifespanPipe,
+    LifespanBadgeComponent,
     PostMenuComponent,
   ],
   templateUrl: './feed.html',
@@ -69,9 +69,6 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected readonly hood = this.store.selectSignal(selectHood);
   private readonly destroy$ = new Subject<void>();
 
-  protected readonly ticker = signal(0);
-  private tickerInterval?: any;
-
   protected readonly categories = computed(() => [
     'all',
     ...Array.from(new Set(this.posts().map((post) => post.tag).filter(t => t && t !== 'bulletin'))).sort(),
@@ -98,10 +95,6 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   });
 
   ngOnInit(): void {
-    this.tickerInterval = setInterval(() => {
-      this.ticker.update(t => t + 1);
-    }, 15000);
-
     this.loadPosts();
     this.tagRepo.liveTags()
       .pipe(takeUntil(this.destroy$))
@@ -133,9 +126,6 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy(): void {
-    if (this.tickerInterval) {
-      clearInterval(this.tickerInterval);
-    }
     this.observer?.disconnect();
     this.destroy$.next();
     this.destroy$.complete();

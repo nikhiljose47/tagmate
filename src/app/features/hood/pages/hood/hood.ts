@@ -889,7 +889,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (post.tag === 'bulletin') return false;
     if (!this.matchesCountryMode(post)) return false;
     const categories = this.selectedMapCategories();
-    return categories.length === 0 || categories.includes(post.tag || post.category || '');
+    return categories.length === 0 || categories.includes(post.tag || '');
   }
 
   private postIsInsideViewport(post: Tag): boolean {

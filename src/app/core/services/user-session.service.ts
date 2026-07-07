@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { firstValueFrom, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { firstValueFrom, Observable, of, from } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { AppUser } from '../models/app-user.model';
 import { UserModel } from '../models/user.model';
@@ -33,35 +33,48 @@ export class UserSessionService {
   );
 
   constructor() {
-    this.supabase.session$.subscribe(async (session) => {
-      if (!session?.user) {
-        this.user.set(null);
-        return;
-      }
+    this.supabase.session$
+      .pipe(
+        switchMap((session) => {
+          if (!session?.user) {
+            return of(null);
+          }
 
-      const uid = session.user.id;
-      const appUser = await firstValueFrom(this.supabase.getUserById(uid));
+          const uid = session.user.id;
+          return this.supabase.getUserById(uid).pipe(
+            switchMap((appUser) => {
+              if (appUser) {
+                return of(appUser);
+              }
 
-      if (appUser) {
+              const name =
+                (session.user.user_metadata?.['username'] as string | undefined) ??
+                session.user.email?.split('@')[0] ??
+                'User';
+              const isGuest = session.user.is_anonymous ?? false;
+              const newAppUser: AppUser = {
+                uid,
+                name,
+                isGuest,
+                email: session.user.email ?? undefined,
+              };
+
+              return from(
+                this.supabase.upsertRow('users', {
+                  uid,
+                  name,
+                  is_guest: isGuest,
+                  email: session.user.email ?? null,
+                  created_at: new Date().toISOString(),
+                })
+              ).pipe(map(() => newAppUser));
+            })
+          );
+        })
+      )
+      .subscribe((appUser) => {
         this.user.set(appUser);
-      } else {
-        const name =
-          (session.user.user_metadata?.['username'] as string | undefined) ??
-          session.user.email?.split('@')[0] ??
-          'User';
-        const isGuest = session.user.is_anonymous ?? false;
-        await firstValueFrom(
-          this.supabase.upsertRow('users', {
-            uid,
-            name,
-            is_guest: isGuest,
-            email: session.user.email ?? null,
-            created_at: new Date().toISOString(),
-          })
-        );
-        this.user.set({ uid, name, isGuest, email: session.user.email ?? undefined });
-      }
-    });
+      });
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {

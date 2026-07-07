@@ -66,8 +66,6 @@ export function rowToTag(row: TagRow): Tag {
     comments:  row.comments,
     pollOptions: row.poll_options,
     pollVotes: row.poll_votes,
-    category:  row.tag,
-    kind:      row.tag === 'event' ? 'event' : 'post',
     likeCount:    row.like_count,
     commentCount: row.comment_count,
     rsvpCount:    row.rsvp_count,

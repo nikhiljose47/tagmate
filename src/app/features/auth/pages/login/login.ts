@@ -1,6 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { CommonModule } from '@angular/common';
@@ -13,23 +14,33 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./login.scss'],
 })
 export class LoginPage implements OnInit {
+  private readonly session = inject(UserSessionService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  public readonly theme = inject(ThemeService);
+
   email    = signal('');
   password = signal('');
   error    = signal('');
   loading  = signal(false);
   showPassword = signal(false);
 
-  constructor(
-    private session: UserSessionService,
-    private router:  Router,
-    public theme:    ThemeService
-  ) {}
+  private destroyed = false;
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
+    });
+  }
 
   ngOnInit(): void {
     // Redirect already-authenticated users away from the login page.
-    this.session.user$.subscribe((user) => {
-      if (!user.isGuest) this.router.navigateByUrl('/tagmate');
-    });
+    this.session.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (this.destroyed) return;
+        if (!user.isGuest) this.router.navigateByUrl('/tagmate');
+      });
   }
 
   async login(): Promise<void> {
@@ -42,13 +53,17 @@ export class LoginPage implements OnInit {
         this.timeoutPromise(),
       ]);
 
+      if (this.destroyed) return;
+
       if (res.ok) {
         this.router.navigateByUrl('/tagmate');
       } else {
         this.error.set(res.message ?? 'Login failed');
       }
     } finally {
-      this.loading.set(false);
+      if (!this.destroyed) {
+        this.loading.set(false);
+      }
     }
   }
 
@@ -57,12 +72,23 @@ export class LoginPage implements OnInit {
     this.loading.set(true);
 
     try {
-      await Promise.race([this.session.loginGuest(), this.timeoutPromise()]);
+      const res = await Promise.race([this.session.loginGuest(), this.timeoutPromise()]);
+      
+      if (this.destroyed) return;
+
+      if (res && (res as any).ok === false) {
+        this.error.set((res as any).message);
+        return;
+      }
       this.router.navigateByUrl('/tagmate');
     } catch (err: any) {
-      this.error.set(err?.message ?? 'Guest login failed');
+      if (!this.destroyed) {
+        this.error.set(err?.message ?? 'Guest login failed');
+      }
     } finally {
-      this.loading.set(false);
+      if (!this.destroyed) {
+        this.loading.set(false);
+      }
     }
   }
 

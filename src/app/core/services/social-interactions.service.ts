@@ -1,5 +1,6 @@
-import { Injectable, inject, signal, WritableSignal } from '@angular/core';
+import { Injectable, inject, signal, WritableSignal, OnDestroy } from '@angular/core';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { DirectMessage, LocalNotification, Tag, ThreadedComment, HoodMessage } from '../models/tag.model';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
@@ -44,7 +45,10 @@ const QUEST_NAMES: Record<string, string> = {
  * directly; they're just a checklist badge kept in this browser.
  */
 @Injectable({ providedIn: 'root' })
-export class SocialInteractionsService {
+export class SocialInteractionsService implements OnDestroy {
+  private readonly destroy$ = new Subject<void>();
+  private readonly inFlightToggles = new Map<string, { pendingCount: number; originalClientState: boolean; lastServerState: boolean }>();
+
   private readonly supabase = inject(SupabaseService);
   private readonly userSession = inject(UserSessionService);
   private readonly logger = inject(LoggerService);
@@ -95,8 +99,57 @@ export class SocialInteractionsService {
   private readonly hydratingThreads = new Set<string>();
   private readonly hydratingReputation = new Set<string>();
 
+  private runToggleWithReconciliation(
+    typeKey: string,
+    action$: Observable<any>,
+    initialClientState: boolean,
+    setClientState: (state: boolean) => void,
+    updateDelta: (finalDelta: number) => void,
+    onFailureMessage: string
+  ) {
+    let state = this.inFlightToggles.get(typeKey);
+    if (!state) {
+      state = {
+        pendingCount: 0,
+        originalClientState: initialClientState,
+        lastServerState: initialClientState
+      };
+      this.inFlightToggles.set(typeKey, state);
+    }
+
+    state.pendingCount++;
+
+    action$.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        const s = this.inFlightToggles.get(typeKey);
+        if (s) {
+          s.pendingCount--;
+          s.lastServerState = !s.lastServerState;
+          if (s.pendingCount === 0) {
+            this.inFlightToggles.delete(typeKey);
+          }
+        }
+      },
+      error: (err) => {
+        this.logger.error(`Toggle operation failed for ${typeKey}`, err);
+        const s = this.inFlightToggles.get(typeKey);
+        if (s) {
+          s.pendingCount--;
+          if (s.pendingCount === 0) {
+            const targetState = s.lastServerState;
+            setClientState(targetState);
+            const finalDelta = targetState === s.originalClientState ? 0 : (targetState ? 1 : -1);
+            updateDelta(finalDelta);
+            this.toast.show(onFailureMessage, 'danger');
+            this.inFlightToggles.delete(typeKey);
+          }
+        }
+      }
+    });
+  }
+
   constructor() {
-    this.supabase.session$.subscribe((session) => {
+    this.supabase.session$.pipe(takeUntil(this.destroy$)).subscribe((session) => {
       const uid = session?.user?.id ?? null;
       this.currentUid.set(uid);
       if (uid && uid !== this.lastHydratedUid) {
@@ -116,11 +169,16 @@ export class SocialInteractionsService {
     });
 
     // Cosmetic only — display-name fallback while the real session resolves.
-    this.userSession.user$.subscribe((u) => { this.currentUsername = u.username; });
+    this.userSession.user$.pipe(takeUntil(this.destroy$)).subscribe((u) => { this.currentUsername = u.username; });
 
     this.completedQuests.set(new Set(this.readJson<string[]>(QUESTS_KEY, [])));
 
     this.registerRealtime();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   postKey(post: Tag): string {
@@ -159,12 +217,14 @@ export class SocialInteractionsService {
       ? this.supabase.addRow('post_likes', { post_id: post.id, user_id: uid })
       : this.supabase.deleteRowsWhere('post_likes', { post_id: post.id, user_id: uid });
 
-    void this.fireAndForget(write$, (err) => {
-      this.logger.error('toggleLike failed, rolling back', err);
-      this.toggleInSet(this.likedPosts, key, wasLiked);
-      this.bumpDelta(this.likeDeltas, key, wasLiked ? 1 : -1);
-      this.toast.show('Could not update like — please try again.', 'danger');
-    });
+    this.runToggleWithReconciliation(
+      `like:${key}`,
+      write$,
+      wasLiked,
+      (state) => this.toggleInSet(this.likedPosts, key, state),
+      (delta) => this.likeDeltas.update((d) => ({ ...d, [key]: delta })),
+      'Could not update like — please try again.'
+    );
 
     if (nowLiked) this.completeQuest('love');
     return nowLiked;
@@ -193,11 +253,14 @@ export class SocialInteractionsService {
       ? this.supabase.addRow('user_saved_posts', { user_id: uid, post_id: post.id })
       : this.supabase.deleteRowsWhere('user_saved_posts', { user_id: uid, post_id: post.id });
 
-    void this.fireAndForget(write$, (err) => {
-      this.logger.error('toggleSave failed, rolling back', err);
-      this.toggleInSet(this.savedPosts, key, wasSaved);
-      this.toast.show('Could not update saved posts — please try again.', 'danger');
-    });
+    this.runToggleWithReconciliation(
+      `save:${key}`,
+      write$,
+      wasSaved,
+      (state) => this.toggleInSet(this.savedPosts, key, state),
+      () => {},
+      'Could not update saved status.'
+    );
 
     return nowSaved;
   }
@@ -315,7 +378,8 @@ export class SocialInteractionsService {
 
     firstValueFrom(this.supabase.addRow('post_comments', row))
       .then(({ data, error }) => {
-        if (error || !data) throw error ?? new Error('addComment: no row returned');
+        if (error) throw error;
+        if (!data) throw new Error('addComment: no row returned');
         const commentRow = data as PostCommentRow;
         this.comments.update((c) => ({
           ...c,
@@ -332,7 +396,7 @@ export class SocialInteractionsService {
     this.completeQuest('comment');
 
     this.pushLocalNotification(
-      parentId ? 'reply' : 'reply',
+      'reply',
       parentId ? 'New reply' : 'New comment',
       `${author} commented on ${post.highlight || 'a nearby tag'}.`,
       key
@@ -422,7 +486,7 @@ export class SocialInteractionsService {
   toggleRsvp(post: Tag, _user = 'You'): boolean {
     const key = this.postKey(post);
     const uid = this.currentUid();
-    if (!uid) { this.warnSignInRequired('RSVP'); return this.rsvps().has(key); }
+    if (!uid) { this.warnSignInRequired('rsvp'); return this.rsvps().has(key); }
 
     const wasAttending = this.rsvps().has(key);
     const nowAttending = !wasAttending;
@@ -430,15 +494,17 @@ export class SocialInteractionsService {
     this.bumpDelta(this.rsvpDeltas, key, nowAttending ? 1 : -1);
 
     const write$ = nowAttending
-      ? this.supabase.addRow('post_rsvps', { post_id: post.id, user_id: uid })
-      : this.supabase.deleteRowsWhere('post_rsvps', { post_id: post.id, user_id: uid });
+      ? this.supabase.addRow('event_rsvps', { post_id: post.id, user_id: uid })
+      : this.supabase.deleteRowsWhere('event_rsvps', { post_id: post.id, user_id: uid });
 
-    void this.fireAndForget(write$, (err) => {
-      this.logger.error('toggleRsvp failed, rolling back', err);
-      this.toggleInSet(this.rsvps, key, wasAttending);
-      this.bumpDelta(this.rsvpDeltas, key, wasAttending ? 1 : -1);
-      this.toast.show('Could not update RSVP — please try again.', 'danger');
-    });
+    this.runToggleWithReconciliation(
+      `rsvp:${key}`,
+      write$,
+      wasAttending,
+      (state) => this.toggleInSet(this.rsvps, key, state),
+      (delta) => this.rsvpDeltas.update((d) => ({ ...d, [key]: delta })),
+      'Could not update RSVP status.'
+    );
 
     if (nowAttending) {
       this.pushLocalNotification('rsvp', 'RSVP saved', `You are attending ${post.highlight || 'this event'}.`, key);
@@ -571,6 +637,7 @@ export class SocialInteractionsService {
 
       const uid = this.currentUid();
       if (uid) {
+        this.reputationCache.update((c) => ({ ...c, [uid]: (c[uid] ?? 0) + 5 }));
         const currentQuests = Array.from(this.completedQuests());
         void this.fireAndForget(
           this.supabase.updateUserMetadata({ completed_quests: currentQuests }),
@@ -586,10 +653,12 @@ export class SocialInteractionsService {
   }
 
   resetQuests(): void {
+    const prevCount = this.completedQuests().size;
     this.completedQuests.set(new Set());
     this.writeJson(QUESTS_KEY, []);
     const uid = this.currentUid();
     if (uid) {
+      this.reputationCache.update((c) => ({ ...c, [uid]: Math.max(0, (c[uid] ?? 0) - prevCount * 5) }));
       void this.fireAndForget(
         this.supabase.updateUserMetadata({ completed_quests: [] }),
         (err) => this.logger.warn('Failed to reset quest metadata in Supabase', err)

@@ -13,6 +13,7 @@ export class PreloadService {
   private readonly supabase = inject(SupabaseService);
 
   private _globePosts: Tag[] | null   = null;
+  private _globeTs    = 0;
   private _hoodPosts: Tag[] | null    = null;
   private _hoodTs     = 0;
 
@@ -30,7 +31,10 @@ export class PreloadService {
    * Calling this does NOT consume/clear them — it's safe to call many times.
    */
   getGlobePosts(): Tag[] | null {
-    return this._globePosts;
+    if (this._globePosts !== null && Date.now() - this._globeTs < CACHE_TTL) {
+      return this._globePosts;
+    }
+    return null;
   }
 
   /**
@@ -49,6 +53,7 @@ export class PreloadService {
     this.supabase.getLatest<TagRow>('tags', 50).subscribe({
       next: ({ data }) => {
         this._globePosts = (data ?? []).map(rowToTag);
+        this._globeTs    = Date.now();
         this.globeReady.set(true);
       },
       error: () => { this.globeReady.set(true); },

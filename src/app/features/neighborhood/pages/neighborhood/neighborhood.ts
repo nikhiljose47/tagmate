@@ -345,9 +345,7 @@ export class NeighborhoodPage implements OnInit {
       expiresIn: 10080, // 7 days lifespan
       tag: 'bulletin',
       createdAt: new Date().toISOString(),
-      images: [],
-      kind: 'post',
-      category: 'bulletin'
+      images: []
     };
 
     this.tagRepo.create(noteObject).subscribe({

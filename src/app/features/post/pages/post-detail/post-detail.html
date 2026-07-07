@@ -18,10 +18,7 @@
             <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
               {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }}
               @if (post.expiresIn) {
-                @let ls = post.createdAt | lifespan:post.expiresIn:ticker();
-                <span class="lifespan-badge" [class]="'severity-' + ls.severity">
-                  <i class="bi bi-clock"></i> {{ ls.text }}
-                </span>
+                <app-lifespan-badge [createdAt]="post.createdAt" [expiresIn]="post.expiresIn" />
               }
             </a>
             <span class="trust-badge">{{ social.trustBadge(post.userId) }} - {{ social.trustScore(post.userId) }} pts</span>
@@ -114,7 +111,7 @@
           }
           <span class="tm-chip">{{ post.tag | titlecase }}</span>
 
-          @if (post.kind === 'event' || post.tag === 'event') {
+          @if (post.tag === 'event') {
             <div class="event-box">
               <div>
                 <strong>Local event</strong>

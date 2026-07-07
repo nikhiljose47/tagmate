@@ -271,8 +271,6 @@ export class PostPage {
         tag:       this.formData.tag,
         createdAt: new Date().toISOString(),
         images:    uploadedUrls,
-        kind:      this.formData.isEvent || this.formData.tag === TagCategory.Event ? 'event' : 'post',
-        category:  this.formData.tag,
         eventStart: this.formData.isEvent ? this.formData.eventStart || undefined : undefined,
         eventEnd:   this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
         pollOptions: this.formData.tag === TagCategory.Question ? this.formData.pollOptions.filter(o => o.trim().length > 0) : undefined,

@@ -14,10 +14,8 @@ export interface Tag {
   loves?: number;
   dislikes?: number;
   comments?: string[];
-  kind?: 'post' | 'event';
   eventStart?: string;
   eventEnd?: string;
-  category?: string;
   pollOptions?: string[];
   pollVotes?: Record<string, string[]>; // optionIndex -> array of usernames
   /** Trigger-maintained aggregate counts — never write these from the client. */

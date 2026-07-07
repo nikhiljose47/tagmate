@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 
@@ -57,16 +58,26 @@ export class SignupPage implements OnInit {
     );
   });
 
-  constructor(
-    private session: UserSessionService,
-    private router: Router,
-    public theme: ThemeService
-  ) {}
+  private readonly session = inject(UserSessionService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  public readonly theme = inject(ThemeService);
+
+  private destroyed = false;
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
+    });
+  }
 
   ngOnInit(): void {
-    this.session.user$.subscribe((user) => {
-      if (!user.isGuest) this.router.navigateByUrl('/tagmate');
-    });
+    this.session.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (this.destroyed) return;
+        if (!user.isGuest) this.router.navigateByUrl('/tagmate');
+      });
   }
 
   onUsernameInput(value: string): void {
@@ -133,13 +144,17 @@ export class SignupPage implements OnInit {
         this.timeoutPromise(),
       ]);
 
+      if (this.destroyed) return;
+
       if (res.ok) {
         this.router.navigateByUrl('/tagmate');
       } else {
         this.error.set(res.message ?? 'Signup failed');
       }
     } finally {
-      this.loading.set(false);
+      if (!this.destroyed) {
+        this.loading.set(false);
+      }
     }
   }
 

@@ -15,7 +15,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
-import { LifespanPipe } from '../../../../shared/pipes/lifespan.pipe';
+import { LifespanBadgeComponent } from '../../../../shared/components/lifespan-badge/lifespan-badge.component';
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 
 @Component({
@@ -30,13 +30,13 @@ import { PostMenuComponent } from '../../../../shared/components/post-menu/post-
     TagEmojiPipe,
     TagGradientPipe,
     TimeAgoPipe,
-    LifespanPipe,
+    LifespanBadgeComponent,
     PostMenuComponent,
   ],
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
 })
-export class PostDetailPage implements OnInit, OnDestroy {
+export class PostDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly tagRepo = inject(TAG_REPOSITORY);
@@ -47,8 +47,6 @@ export class PostDetailPage implements OnInit, OnDestroy {
   protected readonly social = inject(SocialInteractionsService);
 
   protected readonly post = signal<Tag | null>(null);
-  protected readonly ticker = signal(0);
-  private tickerInterval?: any;
   protected readonly relatedPosts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly commentText = signal('');
@@ -64,10 +62,6 @@ export class PostDetailPage implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.tickerInterval = setInterval(() => {
-      this.ticker.update(t => t + 1);
-    }, 15000);
-
     const id = decodeURIComponent(this.route.snapshot.paramMap.get('id') ?? '');
     if (!id) {
       this.isLoading.set(false);
@@ -98,11 +92,7 @@ export class PostDetailPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.tickerInterval) {
-      clearInterval(this.tickerInterval);
-    }
-  }
+  // Removed ngOnDestroy since ticker interval is gone
 
   protected neighborhoodSlug(post: Tag): string {
     return this.slugFor(post.hoodId || 'nearby');

@@ -118,10 +118,7 @@
                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
                 {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
                 @if (post.expiresIn) {
-                  @let ls = post.createdAt | lifespan:post.expiresIn:ticker();
-                  <span class="lifespan-badge" [class]="'severity-' + ls.severity">
-                    <i class="bi bi-clock"></i> {{ ls.text }}
-                  </span>
+                  <app-lifespan-badge [createdAt]="post.createdAt" [expiresIn]="post.expiresIn" />
                 }
               </a>
             </div>
