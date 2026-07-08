@@ -1,7 +1,7 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -9,7 +9,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 @Component({
   selector: 'app-update-password',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './update-password.html',
   styleUrls: ['./update-password.scss'],
 })
