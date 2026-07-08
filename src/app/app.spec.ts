@@ -21,6 +21,6 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.app-nav')?.textContent).toContain('Globe');
+    expect(compiled.querySelector('.app-nav')?.textContent).toContain('Analytics');
   });
 });

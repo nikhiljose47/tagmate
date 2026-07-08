@@ -1,0 +1,76 @@
+<main class="ops-page">
+  <header class="ops-header">
+    <div>
+      <p class="ops-kicker">Trust operations</p>
+      <h1>Reports</h1>
+      <p>Review reported, hidden, and alert-heavy posts using the moderation data Tagmate has today.</p>
+    </div>
+    <button class="tm-btn" type="button" (click)="loadReports()">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+      Refresh
+    </button>
+  </header>
+
+  <section class="filter-row" aria-label="Report filters">
+    @for (item of filters; track item.key) {
+      <button type="button" [class.active]="filter() === item.key" (click)="setFilter(item.key)">
+        {{ item.label }}
+      </button>
+    }
+  </section>
+
+  @if (isLoading()) {
+    <section class="review-table" aria-label="Loading reports">
+      @for (item of [1, 2, 3, 4]; track item) {
+        <div class="review-row skeleton-box"></div>
+      }
+    </section>
+  } @else if (loadError()) {
+    <tm-empty-state
+      icon="!"
+      title="Reports failed to load"
+      subtitle="Reconnect to sync moderation signals and try again."
+      actionText="Retry"
+      (actionClicked)="loadReports()"
+    />
+  } @else if (queue().length === 0) {
+    <tm-empty-state
+      icon="OK"
+      title="No reports match these filters"
+      subtitle="Try another queue or refresh after new neighborhood activity arrives."
+    />
+  } @else {
+    <section class="review-table" aria-label="Reports queue">
+      <header class="review-header">
+        <span>Post</span>
+        <span>Reason</span>
+        <span>Signals</span>
+        <span>Actions</span>
+      </header>
+
+      @for (post of queue(); track postKey(post)) {
+        <article class="review-row" [class.critical]="priority(post) >= 3" [class.warning]="priority(post) === 2">
+          <div class="post-cell">
+            <strong>{{ post.highlight || 'Untitled post' }}</strong>
+            <small>{{ post.hoodId || 'Nearby' }} - {{ post.username || 'Anonymous' }} - {{ post.createdAt | timeAgo }}</small>
+          </div>
+          <div>
+            <span class="reason-pill">{{ reasonFor(post) }}</span>
+          </div>
+          <div class="signal-list">
+            <span>#{{ post.tag || 'tag' }}</span>
+            <span>{{ social.likeCount(post) }} likes</span>
+            <span>{{ social.commentCount(post) }} comments</span>
+          </div>
+          <div class="action-list">
+            <a class="tm-btn" [routerLink]="['/posts', postKey(post)]">Open</a>
+            <button class="tm-btn" type="button" (click)="reportPost(post)">Flag</button>
+            @if (social.canDelete(post)) {
+              <button class="tm-btn tm-btn-danger" type="button" (click)="deletePost(post)">Delete</button>
+            }
+          </div>
+        </article>
+      }
+    </section>
+  }
+</main>

@@ -112,9 +112,19 @@
       (actionClicked)="createPost()"
     />
   } @else {
-    <section class="post-list" aria-label="Feed posts">
+    <section class="post-list feed-workspace-list" aria-label="Feed posts">
+      <header class="workspace-pane-header">
+        <div>
+          <p>Queue</p>
+          <h2>{{ visiblePosts().length }} active posts</h2>
+        </div>
+        <a class="tm-btn tm-btn-primary" routerLink="/post">
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          New
+        </a>
+      </header>
       @for (post of visiblePosts(); track postKey(post)) {
-        <article class="post-card">
+        <article class="post-card" [class.selected]="isSelected(post)" [class.critical]="post.tag === 'alert'" (click)="selectPost(post)">
           <header class="post-card-header">
             <a class="avatar-link" routerLink="/profile" aria-label="Open profile">
               <tm-avatar [username]="post.username || 'Anonymous'" [size]="42" />
@@ -200,6 +210,63 @@
       
       <div #scrollSentinel style="height: 1px; visibility: hidden;"></div>
     </section>
+
+    <aside class="feed-context-panel" aria-label="Selected post context">
+      @if (selectedPostForPanel(); as post) {
+        <header class="context-header">
+          <div>
+            <p>Selected post</p>
+            <h2>{{ post.highlight || 'Untitled post' }}</h2>
+          </div>
+          <span class="context-status" [class.critical]="post.tag === 'alert'">#{{ post.tag | lowercase }}</span>
+        </header>
+
+        <section class="context-grid">
+          <div>
+            <span>Author</span>
+            <strong>{{ post.username || 'Anonymous' }}</strong>
+          </div>
+          <div>
+            <span>Neighborhood</span>
+            <a [routerLink]="['/neighborhood', neighborhoodSlug(post)]">{{ post.hoodId || 'Nearby' }}</a>
+          </div>
+          <div>
+            <span>Engagement</span>
+            <strong>{{ social.likeCount(post) }} likes / {{ social.commentCount(post) }} comments</strong>
+          </div>
+          <div>
+            <span>Coordinates</span>
+            <strong>{{ post.lat | number:'1.4-4' }}, {{ post.lng | number:'1.4-4' }}</strong>
+          </div>
+        </section>
+
+        <section class="ai-summary">
+          <p>Operations summary</p>
+          <span>
+            {{ post.tag === 'alert' ? 'High-priority neighborhood alert. Review location, comments, and report status.' : 'Standard neighborhood post. Use the actions below to inspect, map, save, or escalate.' }}
+          </span>
+        </section>
+
+        <section class="context-actions">
+          <a class="tm-btn tm-btn-primary" [routerLink]="['/posts', postKey(post)]">
+            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+            Open detail
+          </a>
+          <button class="tm-btn" type="button" (click)="openMap(post)">
+            <i class="bi bi-map" aria-hidden="true"></i>
+            Map
+          </button>
+          <button class="tm-btn" type="button" (click)="toggleSave(post)">
+            <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
+            {{ social.isSaved(post) ? 'Saved' : 'Save' }}
+          </button>
+          <button class="tm-btn" type="button" (click)="reportPost(post)">
+            <i class="bi bi-flag" aria-hidden="true"></i>
+            Report
+          </button>
+        </section>
+      }
+    </aside>
   }
 
   @if (showScrollTop()) {

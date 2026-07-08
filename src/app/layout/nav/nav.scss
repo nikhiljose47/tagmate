@@ -57,6 +57,10 @@
     }
   }
 
+  .nav-item:not(.mobile-primary) {
+    display: none;
+  }
+
   .nav-icon {
     display: flex;
     align-items: center;

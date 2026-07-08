@@ -1,14 +1,13 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Store } from '@ngrx/store';
 import { filter, map, startWith } from 'rxjs';
-import { selectHood } from '../../store/user-preferences/user-preference.selectors';
 interface NavItem {
   route:      string;
   icon:       string;
   activeIcon: string;
   label:      string;
+  mobile?:    boolean;
 }
 
 @Component({
@@ -20,23 +19,18 @@ interface NavItem {
 })
 export class NavComponent {
   private readonly router = inject(Router);
-  private readonly store = inject(Store);
 
   readonly navItems: NavItem[] = [
-    { route: '/hood',    icon: 'bi-geo-alt',    activeIcon: 'bi-geo-alt-fill',    label: 'Hood'    },
-    { route: '/tagmate', icon: 'bi-globe',       activeIcon: 'bi-globe2',          label: 'Globe'   },
-    { route: '/post',    icon: 'bi-plus-square', activeIcon: 'bi-plus-square-fill',label: 'Post'    },
-    { route: '/messages', icon: 'bi-chat-left-dots', activeIcon: 'bi-chat-left-dots-fill', label: 'Inbox' },
-    { route: '/profile', icon: 'bi-person',      activeIcon: 'bi-person-fill',     label: 'Profile' },
+    { route: '/feed',      icon: 'bi-list-ul',        activeIcon: 'bi-list-check',      label: 'Feed', mobile: true },
+    { route: '/hood',      icon: 'bi-map',            activeIcon: 'bi-map-fill',        label: 'Map', mobile: true },
+    { route: '/post',      icon: 'bi-plus-square',    activeIcon: 'bi-plus-square-fill', label: 'Post', mobile: true },
+    { route: '/tagmate',   icon: 'bi-buildings',      activeIcon: 'bi-buildings-fill',  label: 'Hoods'     },
+    { route: '/messages',  icon: 'bi-chat-left-dots', activeIcon: 'bi-chat-left-dots-fill', label: 'Messages', mobile: true },
+    { route: '/reports',   icon: 'bi-flag',           activeIcon: 'bi-flag-fill',       label: 'Reports'   },
+    { route: '/analytics', icon: 'bi-bar-chart',      activeIcon: 'bi-bar-chart-fill',  label: 'Analytics' },
+    { route: '/admin',     icon: 'bi-shield-check',   activeIcon: 'bi-shield-fill-check', label: 'Admin'   },
+    { route: '/profile',   icon: 'bi-person',         activeIcon: 'bi-person-fill',     label: 'Profile', mobile: true },
   ];
-
-  private readonly hood = this.store.selectSignal(selectHood);
-
-  /** Jumps straight to the Hood Champion tab for the user's current neighborhood. */
-  readonly championRoute = computed(() => [
-    '/neighborhood',
-    this.slugify(this.hood().name),
-  ]);
 
   readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -49,9 +43,5 @@ export class NavComponent {
 
   isActive(route: string): boolean {
     return this.currentUrl().startsWith(route);
-  }
-
-  private slugify(value: string): string {
-    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nearby';
   }
 }

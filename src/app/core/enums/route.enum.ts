@@ -4,5 +4,8 @@ export enum AppRoute {
   Hood    = '/hood',
   Globe   = '/tagmate',
   Post    = '/post',
+  Reports = '/reports',
+  Analytics = '/analytics',
+  Admin = '/admin',
   Profile = '/profile',
 }

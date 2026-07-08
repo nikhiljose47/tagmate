@@ -1,0 +1,207 @@
+.ops-page {
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  padding: 22px 18px 32px;
+}
+
+.ops-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.ops-kicker {
+  margin: 0 0 4px;
+  color: var(--tm-primary-text);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ops-header h1 {
+  margin: 0;
+  color: var(--tm-text);
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.ops-header p:last-child {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--tm-muted);
+  font-size: 14px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.metric-card,
+.ops-panel {
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  background: var(--tm-surface);
+  box-shadow: var(--tm-shadow-sm);
+}
+
+.metric-card {
+  min-height: 132px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 14px;
+}
+
+.metric-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+  color: var(--tm-primary-text);
+}
+
+.metric-card p {
+  margin: 3px 0 0;
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-card strong {
+  color: var(--tm-text);
+  font-size: 25px;
+  line-height: 1;
+}
+
+.metric-card small {
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
+.analytics-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ops-panel {
+  overflow: hidden;
+}
+
+.ops-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.ops-panel h2 {
+  margin: 0;
+  color: var(--tm-text);
+  font-size: 16px;
+}
+
+.ops-panel header span {
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.rank-list,
+.table-list {
+  display: grid;
+}
+
+.rank-row,
+.table-row {
+  min-height: 44px;
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--tm-border) 70%, transparent);
+}
+
+.rank-row {
+  grid-template-columns: minmax(110px, 1fr) minmax(90px, 1.4fr) auto;
+}
+
+.rank-row span,
+.table-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tm-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-row strong,
+.table-row strong {
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
+.rank-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-border) 70%, transparent);
+}
+
+.rank-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tm-primary);
+}
+
+.table-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  text-decoration: none;
+}
+
+.link-row:hover {
+  background: color-mix(in srgb, var(--tm-primary) 7%, transparent);
+}
+
+.quiet-state {
+  padding: 28px 14px;
+  color: var(--tm-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .ops-page {
+    padding: 14px 10px 22px;
+  }
+
+  .ops-header {
+    display: grid;
+  }
+
+  .metric-grid,
+  .analytics-layout {
+    grid-template-columns: 1fr;
+  }
+}

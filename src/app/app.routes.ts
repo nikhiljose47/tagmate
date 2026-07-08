@@ -38,6 +38,21 @@ export const routes: Routes = [
     loadChildren: () => import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES),
   },
   {
+    path: 'reports',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/reports/reports.routes').then((m) => m.REPORTS_ROUTES),
+  },
+  {
+    path: 'analytics',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/analytics/analytics.routes').then((m) => m.ANALYTICS_ROUTES),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+  },
+  {
     path: 'neighborhood/:id',
     canActivate: [authGuard],
     loadChildren: () =>

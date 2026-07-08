@@ -6,10 +6,12 @@ import {
   NgZone,
   OnDestroy,
   ViewChild,
+  computed,
   effect,
   inject,
   signal,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -148,7 +150,7 @@ type HoodBoundaryGeometry = Polygon | MultiPolygon;
   templateUrl: './hood.html',
   styleUrls: ['./hood.scss'],
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HoodPage implements AfterViewInit, OnDestroy {
@@ -220,6 +222,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   /** True once the user has tapped the map in pick mode */
   locationPicked   = signal(false);
   currentStyle     = signal<MapStyleKey>(this.storedSettings.mapStyle);
+  protected readonly visibleMapPosts = signal<MapPost[]>([]);
+  protected readonly recentMapPosts = computed(() =>
+    [...this.visibleMapPosts()]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 8)
+  );
   readonly zoomLevels = ZOOM_LEVELS;
   readonly MAP_STYLES: { key: MapStyleKey; label: string }[] = [
     { key: 'streets',   label: 'Streets'   },
@@ -789,6 +797,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     const source = this.map?.getSource(POSTS_SOURCE) as GeoJSONSource | undefined;
     const heatmapSource = this.map?.getSource('posts-heatmap-source') as GeoJSONSource | undefined;
     this.currentPosts = posts.filter((post) => this.matchesActiveFilters(post));
+    this.visibleMapPosts.set(this.currentPosts);
     const geoJson = this.convertPostsToGeoJson(this.currentPosts);
     source?.setData(geoJson);
     heatmapSource?.setData(geoJson);

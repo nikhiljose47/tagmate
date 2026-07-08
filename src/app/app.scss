@@ -23,6 +23,20 @@
   }
 }
 
+.main-container {
+  min-height: 100dvh;
+}
+
+.workspace-router.authenticated {
+  min-height: calc(100dvh - 68px);
+}
+
+@media (max-width: 760px) {
+  .workspace-router.authenticated {
+    min-height: calc(100dvh - 60px - 64px - env(safe-area-inset-bottom));
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    Toast — above bottom bar on mobile, centered on desktop
 ───────────────────────────────────────────────────────────── */

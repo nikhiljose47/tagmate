@@ -1,7 +1,7 @@
 <nav class="app-nav" aria-label="Main navigation">
 
   <!-- Brand — desktop sidebar only -->
-  <a class="nav-brand" routerLink="/tagmate" aria-label="Tagmate home">
+  <a class="nav-brand" routerLink="/feed" aria-label="Tagmate home">
     <span class="brand-icon">
       <i class="bi bi-geo-alt-fill"></i>
     </span>
@@ -14,6 +14,7 @@
       <a
         class="nav-item"
         [class.post-item]="item.route === '/post'"
+        [class.mobile-primary]="item.mobile"
         [routerLink]="item.route"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
@@ -26,20 +27,6 @@
         <span class="nav-label">{{ item.label }}</span>
       </a>
     }
-
-    <a
-      class="nav-item"
-      [routerLink]="championRoute()"
-      [queryParams]="{ tab: 'leaderboard' }"
-      routerLinkActive="active"
-      aria-label="Hood Champion"
-      #championRla="routerLinkActive"
-    >
-      <span class="nav-icon">
-        <i class="bi" [class]="'bi ' + (championRla.isActive ? 'bi-trophy-fill' : 'bi-trophy')"></i>
-      </span>
-      <span class="nav-label">Champion</span>
-    </a>
 
   </div>
 

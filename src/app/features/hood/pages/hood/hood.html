@@ -1,4 +1,102 @@
 <div class="map-wrapper">
+  <aside class="map-filter-drawer" aria-label="Map workspace filters">
+    <header>
+      <p>Map workspace</p>
+      <h1>{{ hood().name || 'Current hood' }}</h1>
+    </header>
+
+    <label class="tm-toggle">
+      <input
+        class="peer sr-only"
+        type="checkbox"
+        [ngModel]="countryMode()"
+        (ngModelChange)="countryMode.set($event); onCountryModeChange()"
+      />
+      <span class="tm-toggle-track"></span>
+      <span>Country mode</span>
+    </label>
+
+    <div class="drawer-section">
+      <span>Category filters</span>
+      <div class="drawer-chip-grid">
+        @for (category of CATEGORY_FILTERS; track category) {
+          <button type="button" [class.active]="selectedMapCategories().includes(category)" (click)="toggleMapCategory(category)">
+            {{ categoryLabel(category) }}
+          </button>
+        }
+      </div>
+      @if (selectedMapCategories().length) {
+        <button class="drawer-clear" type="button" (click)="clearMapCategories()">Clear filters</button>
+      }
+    </div>
+
+    <div class="drawer-section">
+      <span>Layers</span>
+      <label class="tm-toggle">
+        <input class="peer sr-only" type="checkbox" [checked]="postsVisible()" (change)="togglePostsLayer()" />
+        <span class="tm-toggle-track"></span>
+        <span>Posts</span>
+      </label>
+      <label class="tm-toggle">
+        <input class="peer sr-only" type="checkbox" [checked]="heatmapMode()" (change)="toggleHeatmapMode()" />
+        <span class="tm-toggle-track"></span>
+        <span>Heatmap</span>
+      </label>
+      <label class="tm-toggle">
+        <input class="peer sr-only" type="checkbox" [checked]="boundaryVisible()" (change)="toggleBoundaryLayer()" />
+        <span class="tm-toggle-track"></span>
+        <span>Boundary</span>
+      </label>
+    </div>
+  </aside>
+
+  <aside class="map-inspector" aria-label="Map metadata inspector">
+    <header>
+      <p>Inspector</p>
+      <h2>{{ visibleMapPosts().length }} visible posts</h2>
+    </header>
+    <div class="inspector-grid">
+      <div>
+        <span>Style</span>
+        <strong>{{ currentStyle() | titlecase }}</strong>
+      </div>
+      <div>
+        <span>Zoom</span>
+        <strong>{{ selected() }}x</strong>
+      </div>
+      <div>
+        <span>Heatmap</span>
+        <strong>{{ heatmapMode() ? 'On' : 'Off' }}</strong>
+      </div>
+      <div>
+        <span>Boundary</span>
+        <strong>{{ boundaryVisible() ? 'On' : 'Off' }}</strong>
+      </div>
+    </div>
+    <div class="inspector-actions">
+      <button class="tm-btn" type="button" (click)="recenter()">Recenter</button>
+      <button class="tm-btn" type="button" (click)="refreshMap()">Refresh</button>
+    </div>
+  </aside>
+
+  <section class="map-timeline" aria-label="Visible post timeline">
+    <header>
+      <span>Visible timeline</span>
+      <strong>{{ recentMapPosts().length }} recent</strong>
+    </header>
+    <div class="timeline-strip">
+      @for (post of recentMapPosts(); track post.id || post.createdAt) {
+        <a [href]="'/posts/' + (post.id || post.userId + '-' + post.createdAt)">
+          <span>#{{ post.tag || 'tag' }}</span>
+          <strong>{{ post.highlight || 'Untitled post' }}</strong>
+        </a>
+      }
+      @if (recentMapPosts().length === 0) {
+        <p>No posts visible in this map area.</p>
+      }
+    </div>
+  </section>
+
   <div class="topbar">
     <div class="flex items-center gap-2">
       <label class="tm-toggle country-toggle" for="countryModeSwitch">

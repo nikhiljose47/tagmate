@@ -4,29 +4,19 @@
   </div>
 }
 
-<div class="main-container" [class.with-nav]="showNav()">
-  <router-outlet></router-outlet>
-</div>
-
 @if (showNav()) {
-  <button
-    class="tm-icon-btn fixed bottom-20 right-4 md:top-4 md:right-4 md:bottom-auto z-[9999] shadow-lg"
-    type="button"
-    (click)="theme.toggleTheme()"
-    aria-label="Toggle theme"
-  >
-    <i
-      class="bi"
-      [ngClass]="{
-        'bi-sun-fill': theme.currentTheme() === 'light',
-        'bi-moon-fill': theme.currentTheme() === 'dark',
-        'bi-moon-stars-fill': theme.currentTheme() === 'midnight',
-        'bi-tree-fill': theme.currentTheme() === 'forest',
-        'bi-cup-hot-fill': theme.currentTheme() === 'sepia'
-      }"
-    ></i>
-  </button>
+  <app-nav />
 }
+
+<div class="main-container" [class.with-nav]="showNav()">
+  @if (showNav()) {
+    <app-topbar />
+  }
+
+  <main class="workspace-router" [class.authenticated]="showNav()">
+    <router-outlet></router-outlet>
+  </main>
+</div>
 
 @if (toast.message(); as message) {
   <div
@@ -50,10 +40,6 @@
       <i class="bi bi-x-lg" aria-hidden="true"></i>
     </button>
   </div>
-}
-
-@if (showNav()) {
-  <app-nav />
 }
 
 <app-confirm-dialog />

@@ -67,6 +67,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected readonly selectedCategory = signal('all');
   protected readonly searchText = signal('');
   protected readonly notificationsOpen = signal(false);
+  protected readonly selectedPost = signal<Tag | null>(null);
   protected readonly hood = this.store.selectSignal(selectHood);
   private readonly destroy$ = new Subject<void>();
 
@@ -93,6 +94,14 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
+  });
+
+  protected readonly selectedPostForPanel = computed(() => {
+    const posts = this.visiblePosts();
+    const selected = this.selectedPost();
+    if (!posts.length) return null;
+    if (!selected) return posts[0];
+    return posts.find((post) => this.postKey(post) === this.postKey(selected)) ?? posts[0];
   });
 
   ngOnInit(): void {
@@ -152,6 +161,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
             const uniqueNew = newPosts.filter(item => !existingKeys.has(this.postKey(item)));
             return [...p, ...uniqueNew];
           });
+        }
+        if (!this.selectedPost() && newPosts[0]) {
+          this.selectedPost.set(newPosts[0]);
         }
         this.hasMore.set(newPosts.length === this.PAGE_SIZE);
         this.isLoading.set(false);
@@ -219,6 +231,15 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
   protected setCategory(category: string): void {
     this.selectedCategory.set(category);
+  }
+
+  protected selectPost(post: Tag): void {
+    this.selectedPost.set(post);
+  }
+
+  protected isSelected(post: Tag): boolean {
+    const selected = this.selectedPostForPanel();
+    return !!selected && this.postKey(selected) === this.postKey(post);
   }
 
   protected requestPushPermission(): void {

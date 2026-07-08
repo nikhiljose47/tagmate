@@ -1,0 +1,258 @@
+.ops-page {
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  padding: 22px 18px 32px;
+}
+
+.ops-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.ops-kicker {
+  margin: 0 0 4px;
+  color: var(--tm-primary-text);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ops-header h1 {
+  margin: 0;
+  color: var(--tm-text);
+  font-size: 30px;
+}
+
+.ops-header p:last-child {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--tm-muted);
+  font-size: 14px;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.notice-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  border: 1px solid color-mix(in srgb, var(--tm-primary) 18%, var(--tm-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tm-primary) 8%, var(--tm-surface));
+  padding: 11px 13px;
+  color: var(--tm-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.notice-panel i {
+  color: var(--tm-primary-text);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stat-card,
+.ops-panel {
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  background: var(--tm-surface);
+  box-shadow: var(--tm-shadow-sm);
+}
+
+.stat-card {
+  min-height: 110px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 14px;
+}
+
+.stat-card p {
+  margin: 0;
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.stat-card strong {
+  color: var(--tm-text);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.stat-card small {
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 14px;
+}
+
+.ops-panel {
+  overflow: hidden;
+}
+
+.ops-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.ops-panel h2 {
+  margin: 0;
+  color: var(--tm-text);
+  font-size: 16px;
+}
+
+.ops-panel header span {
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.admin-list,
+.activity-table {
+  display: grid;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 68px;
+  padding: 11px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--tm-border) 70%, transparent);
+}
+
+.admin-row strong,
+.admin-row small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-row strong {
+  color: var(--tm-text);
+  font-size: 14px;
+}
+
+.admin-row small {
+  margin-top: 3px;
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.admin-actions .tm-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.activity-head,
+.activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 64px 92px;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--tm-border) 70%, transparent);
+}
+
+.activity-head {
+  color: var(--tm-muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.activity-row strong,
+.activity-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.activity-row strong {
+  color: var(--tm-text);
+}
+
+.activity-row span {
+  color: var(--tm-muted);
+  font-weight: 750;
+}
+
+.quiet-state {
+  padding: 30px 14px;
+  color: var(--tm-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .stat-grid,
+  .admin-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-layout {
+    display: grid;
+  }
+}
+
+@media (max-width: 760px) {
+  .ops-page {
+    padding: 14px 10px 22px;
+  }
+
+  .ops-header,
+  .admin-row,
+  .stat-grid,
+  .admin-layout {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .header-actions,
+  .admin-actions {
+    justify-content: stretch;
+  }
+
+  .header-actions .tm-btn,
+  .admin-actions .tm-btn {
+    flex: 1;
+  }
+}

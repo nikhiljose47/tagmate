@@ -1,0 +1,103 @@
+<header class="app-topbar">
+  <div class="topbar-search" [class.active]="workspace.commandOpen()">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input
+      type="search"
+      placeholder="Search posts, neighborhoods, users, alerts..."
+      [ngModel]="query()"
+      (focus)="openCommand()"
+      (ngModelChange)="onQueryChange($event)"
+      aria-label="Command search"
+    />
+    @if (isSearching()) {
+      <span class="search-spinner" aria-label="Searching"></span>
+    }
+
+    @if (workspace.commandOpen()) {
+      <section class="command-results" aria-label="Command results">
+        <div class="command-results-head">
+          <span>Command center</span>
+          <button type="button" (click)="closeCommand()" aria-label="Close command search">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        @if (results().length === 0 && query().trim().length >= 2 && !isSearching()) {
+          <div class="command-empty">
+            <strong>No matches found</strong>
+            <span>Try a neighborhood, alert, category, or author.</span>
+          </div>
+        }
+
+        @for (result of results(); track result.id) {
+          <button type="button" class="command-result" (click)="goTo(result)">
+            <span class="command-icon"><i class="bi" [class]="result.icon" aria-hidden="true"></i></span>
+            <span>
+              <strong>{{ result.title }}</strong>
+              <small>{{ result.subtitle }}</small>
+            </span>
+          </button>
+        }
+      </section>
+    }
+  </div>
+
+  <div class="topbar-actions">
+    <a class="topbar-icon-btn" routerLink="/messages" aria-label="Open messages">
+      <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
+    </a>
+
+    <button class="topbar-icon-btn" type="button" aria-label="Notifications">
+      <i class="bi bi-bell" aria-hidden="true"></i>
+      @if (social.unreadNotifications()) {
+        <span class="notification-badge">{{ social.unreadNotifications() }}</span>
+      }
+    </button>
+
+    <div class="user-menu-wrap">
+      <button
+        class="user-menu-trigger"
+        type="button"
+        (click)="userMenuOpen.update(v => !v)"
+        aria-haspopup="menu"
+        [attr.aria-expanded]="userMenuOpen()"
+      >
+        <span class="user-avatar">{{ (session.user()?.name || 'TM').slice(0, 2).toUpperCase() }}</span>
+        <span class="user-meta">
+          <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
+          <small>{{ session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace' }}</small>
+        </span>
+        <i class="bi bi-chevron-down" aria-hidden="true"></i>
+      </button>
+
+      @if (userMenuOpen()) {
+        <section class="user-menu" role="menu">
+          <a routerLink="/profile" role="menuitem" (click)="userMenuOpen.set(false)">
+            <i class="bi bi-person" aria-hidden="true"></i>
+            Profile
+          </a>
+
+          <div class="theme-section" aria-label="Theme options">
+            <p>Theme</p>
+            @for (item of themes; track item.key) {
+              <button
+                type="button"
+                role="menuitem"
+                [class.active]="theme.currentTheme() === item.key"
+                (click)="setTheme(item.key)"
+              >
+                <i class="bi" [class]="item.icon" aria-hidden="true"></i>
+                {{ item.label }}
+              </button>
+            }
+          </div>
+
+          <button type="button" role="menuitem" class="danger" (click)="logout()">
+            <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+            Sign out
+          </button>
+        </section>
+      }
+    </div>
+  </div>
+</header>

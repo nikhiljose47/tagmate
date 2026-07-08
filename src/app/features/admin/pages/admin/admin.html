@@ -1,0 +1,109 @@
+<main class="ops-page">
+  <header class="ops-header">
+    <div>
+      <p class="ops-kicker">Workspace control</p>
+      <h1>Admin</h1>
+      <p>Monitor trust signals, user activity, and moderation actions available with the current Tagmate backend.</p>
+    </div>
+    <div class="header-actions">
+      <a class="tm-btn" routerLink="/reports">
+        <i class="bi bi-flag" aria-hidden="true"></i>
+        Reports
+      </a>
+      <button class="tm-btn" type="button" (click)="loadAdmin()">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <section class="notice-panel">
+    <i class="bi bi-info-circle" aria-hidden="true"></i>
+    <span>V1 uses current viewer permissions and existing post/report data. Durable admin roles and global moderation queues need backend support.</span>
+  </section>
+
+  @if (isLoading()) {
+    <section class="stat-grid" aria-label="Loading admin workspace">
+      @for (item of [1, 2, 3, 4]; track item) {
+        <div class="stat-card skeleton-box"></div>
+      }
+    </section>
+  } @else if (loadError()) {
+    <tm-empty-state
+      icon="!"
+      title="Admin workspace failed to load"
+      subtitle="Reconnect to sync trust controls and try again."
+      actionText="Retry"
+      (actionClicked)="loadAdmin()"
+    />
+  } @else {
+    <section class="stat-grid" aria-label="Admin summary">
+      @for (stat of adminStats(); track stat.label) {
+        <article class="stat-card">
+          <p>{{ stat.label }}</p>
+          <strong>{{ stat.value }}</strong>
+          <small>{{ stat.note }}</small>
+        </article>
+      }
+    </section>
+
+    <section class="admin-layout">
+      <article class="ops-panel">
+        <header>
+          <h2>Moderation Queue</h2>
+          <span>{{ moderationRows().length }} items</span>
+        </header>
+
+        @if (moderationRows().length === 0) {
+          <div class="quiet-state">No moderation items are available in the current sample.</div>
+        } @else {
+          <div class="admin-list">
+            @for (post of moderationRows(); track postKey(post)) {
+              <div class="admin-row">
+                <div>
+                  <strong>{{ post.highlight || 'Untitled post' }}</strong>
+                  <small>{{ post.hoodId || 'Nearby' }} - #{{ post.tag || 'tag' }} - {{ post.createdAt | timeAgo }}</small>
+                </div>
+                <div class="admin-actions">
+                  <a class="tm-btn" [routerLink]="['/posts', postKey(post)]">Open</a>
+                  <button class="tm-btn" type="button" (click)="reportPost(post)">Flag</button>
+                  @if (social.canDelete(post)) {
+                    <button class="tm-btn tm-btn-danger" type="button" (click)="deletePost(post)">Delete</button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+
+      <article class="ops-panel">
+        <header>
+          <h2>User Activity</h2>
+          <span>Top contributors</span>
+        </header>
+
+        @if (activityRows().length === 0) {
+          <div class="quiet-state">No user activity available.</div>
+        } @else {
+          <div class="activity-table">
+            <div class="activity-head">
+              <span>User</span>
+              <span>Posts</span>
+              <span>Alerts</span>
+              <span>Engagement</span>
+            </div>
+            @for (row of activityRows(); track row.user) {
+              <div class="activity-row">
+                <strong>{{ row.user }}</strong>
+                <span>{{ row.posts }}</span>
+                <span>{{ row.alerts }}</span>
+                <span>{{ row.engagement }}</span>
+              </div>
+            }
+          </div>
+        }
+      </article>
+    </section>
+  }
+</main>
