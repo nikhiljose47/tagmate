@@ -50,7 +50,6 @@
     <div class="mode-tabs" role="tablist" aria-label="Feed modes">
       <button type="button" [class.active]="mode() === 'forYou'" (click)="setMode('forYou')">For you</button>
       <button type="button" [class.active]="mode() === 'nearby'" (click)="setMode('nearby')">Nearby</button>
-      <button type="button" [class.active]="mode() === 'following'" (click)="setMode('following')">Following</button>
       <button type="button" [class.active]="mode() === 'saved'" (click)="setMode('saved')">Saved</button>
     </div>
 
@@ -96,6 +95,14 @@
         </div>
       }
     </div>
+  } @else if (loadError()) {
+    <tm-empty-state
+      icon="!"
+      title="Could not load feed"
+      subtitle="Check your connection and try again."
+      actionText="Retry"
+      (actionClicked)="retryFeed()"
+    />
   } @else if (visiblePosts().length === 0) {
     <tm-empty-state
       icon="+"

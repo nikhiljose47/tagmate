@@ -66,7 +66,7 @@ import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from 
   `],
 })
 export class EmptyStateComponent {
-  @Input() icon = '📭';
+  @Input() icon = '!';
   @Input() title = 'Nothing here yet';
   @Input() subtitle = '';
   @Input() actionText = '';

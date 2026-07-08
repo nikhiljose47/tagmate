@@ -2,6 +2,7 @@ import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { of, switchMap } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { UserSessionService } from '../../../../core/services/user-session.service';
@@ -15,8 +16,27 @@ import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { coverGradient, avatarBg } from '../../../../shared/utils/color.utils';
 import { ThemeService, AppTheme } from '../../../../core/services/theme.service';
+import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
 
 type ProfileTab = 'posts' | 'saved' | 'settings';
+
+interface ProfileSettings {
+  locationSuggestions: boolean;
+  postActivityNotifications: boolean;
+}
+
+const PROFILE_SETTINGS_KEY = 'tagmate.profileSettings';
+const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
+  locationSuggestions: true,
+  postActivityNotifications: true,
+};
+
+function readProfileSettings(): ProfileSettings {
+  return {
+    ...DEFAULT_PROFILE_SETTINGS,
+    ...readLocalStorage<Partial<ProfileSettings>>(PROFILE_SETTINGS_KEY, {}),
+  };
+}
 
 @Component({
   selector: 'app-profile',
@@ -53,6 +73,7 @@ export class ProfilePage implements OnInit {
   activeTab  = signal<ProfileTab>('posts');
   editMode   = signal(false);
   allTags    = signal<Tag[]>([]);
+  settings   = signal<ProfileSettings>(readProfileSettings());
   savedTags  = computed(() => this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)));
 
   // Account Conversion for Guest
@@ -63,18 +84,23 @@ export class ProfilePage implements OnInit {
   convertLoading = signal(false);
 
   ngOnInit(): void {
-    this.tagRepo.getAll().subscribe({
+    this.tagRepo.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (tags) => this.allTags.set(tags),
       error: (err) => this.logger.error('Failed to load saved posts', err),
     });
 
-    this.sessionService.user$.subscribe((user) => {
-      if (user.isGuest) {
-        this.myTags.set([]);
-        this.isLoading.set(false);
-        return;
-      }
-      this.tagRepo.getByUserId(user.uid!).subscribe({
+    this.sessionService.user$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((user) => {
+          if (user.isGuest) {
+            return of<Tag[]>([]);
+          }
+          this.isLoading.set(true);
+          return this.tagRepo.getByUserId(user.uid!);
+        })
+      )
+      .subscribe({
         next: (tags) => {
           this.myTags.set(tags);
           this.isLoading.set(false);
@@ -85,7 +111,6 @@ export class ProfilePage implements OnInit {
           this.isLoading.set(false);
         },
       });
-    });
 
     // Drop a post immediately if it was deleted here or on any other page.
     this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
@@ -106,8 +131,19 @@ export class ProfilePage implements OnInit {
   setTab(tab: ProfileTab): void     { this.activeTab.set(tab); }
   toggleEditProfile(): void         { this.editMode.update((v) => !v); }
   saveProfile(): void               { this.editMode.set(false); this.toast.show('Profile saved.', 'success'); }
-  saveSettings(): void              { this.toast.show('Settings saved.', 'success'); }
+  saveSettings(): void              {
+    writeLocalStorage(PROFILE_SETTINGS_KEY, this.settings());
+    this.toast.show('Settings saved.', 'success');
+  }
   savedCount(): number              { return this.savedTags().length; }
+
+  updateSetting<K extends keyof ProfileSettings>(key: K, value: ProfileSettings[K]): void {
+    this.settings.update((settings) => {
+      const next = { ...settings, [key]: value };
+      writeLocalStorage(PROFILE_SETTINGS_KEY, next);
+      return next;
+    });
+  }
 
   viewOnMap(tag: Tag): void {
     this.shared.updateCoordinates(tag.lat, tag.lng);

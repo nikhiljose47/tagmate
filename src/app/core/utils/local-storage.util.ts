@@ -1,5 +1,5 @@
 /**
- * SSR-safe localStorage helpers. Reads/writes never throw — private-mode
+ * SSR-safe localStorage helpers. Reads/writes never throw - private-mode
  * browsers or quota errors just fall back to the default in-memory value.
  */
 
@@ -18,6 +18,6 @@ export function writeLocalStorage(key: string, value: unknown): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Quota exceeded or storage disabled — non-fatal, setting just won't persist.
+    // Quota exceeded or storage disabled - non-fatal, setting just won't persist.
   }
 }

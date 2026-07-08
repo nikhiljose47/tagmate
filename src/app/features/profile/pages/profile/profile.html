@@ -36,7 +36,7 @@
 
       @if (user.isGuest) {
         <div class="upgrade-banner">
-          <p class="upgrade-text">⚡ Sign in to save your progress and unlock full features!</p>
+          <p class="upgrade-text">Sign in to save your progress and unlock full features.</p>
           
           <div class="convert-card mt-3">
             <h4 class="convert-title">Convert Guest Account</h4>
@@ -50,7 +50,7 @@
             <input class="tm-input mb-2" type="email" [value]="convertEmail()" (input)="convertEmail.set($any($event.target).value)" placeholder="Enter your email" />
             
             <label class="edit-label">Password</label>
-            <input class="tm-input mb-3" type="password" [value]="convertPassword()" (input)="convertPassword.set($any($event.target).value)" placeholder="Enter password (min 6 chars)" />
+            <input class="tm-input mb-3" type="password" [value]="convertPassword()" (input)="convertPassword.set($any($event.target).value)" placeholder="Enter password (min 8 chars)" />
             
             <button class="tm-btn tm-btn-primary w-full" type="button" [disabled]="convertLoading()" (click)="convertAccount()">
               {{ convertLoading() ? 'Converting...' : 'Upgrade Account' }}
@@ -119,7 +119,7 @@
       @if (activeTab() === 'posts') {
         @if (myTags(); as tags) {
           @if (tags.length === 0) {
-            <tm-empty-state icon="📷" title="No posts yet" subtitle="You haven't posted anything yet." />
+            <tm-empty-state icon="+" title="No posts yet" subtitle="You haven't posted anything yet." />
           }
           <div class="posts-grid">
             @for (tag of tags; track tag.id) {
@@ -151,7 +151,7 @@
 
       <!-- Saved Tab -->
       @if (activeTab() === 'saved' && savedTags().length === 0) {
-        <tm-empty-state icon="🔖" title="Nothing saved yet" subtitle="Your saved posts will appear here." />
+        <tm-empty-state icon="*" title="Nothing saved yet" subtitle="Your saved posts will appear here." />
       }
 
       @if (activeTab() === 'saved' && savedTags().length > 0) {
@@ -184,7 +184,12 @@
               </div>
             </div>
             <label class="tm-toggle">
-              <input class="peer sr-only" type="checkbox" checked />
+              <input
+                class="peer sr-only"
+                type="checkbox"
+                [checked]="settings().locationSuggestions"
+                (change)="updateSetting('locationSuggestions', $any($event.target).checked)"
+              />
               <span class="tm-toggle-track"></span>
             </label>
           </div>
@@ -197,7 +202,12 @@
               </div>
             </div>
             <label class="tm-toggle">
-              <input class="peer sr-only" type="checkbox" checked />
+              <input
+                class="peer sr-only"
+                type="checkbox"
+                [checked]="settings().postActivityNotifications"
+                (change)="updateSetting('postActivityNotifications', $any($event.target).checked)"
+              />
               <span class="tm-toggle-track"></span>
             </label>
           </div>

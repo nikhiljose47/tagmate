@@ -20,7 +20,7 @@ import { selectHood } from '../../../../store/user-preferences/user-preference.s
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { Subject, takeUntil } from 'rxjs';
 
-type FeedMode = 'forYou' | 'nearby' | 'following' | 'saved';
+type FeedMode = 'forYou' | 'nearby' | 'saved';
 
 @Component({
   selector: 'app-feed',
@@ -52,6 +52,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly isLoadingMore = signal(false);
+  protected readonly loadError = signal(false);
   protected readonly hasMore = signal(true);
   protected readonly showScrollTop = signal(false);
   private offset = 0;
@@ -138,6 +139,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     } else {
       this.isLoadingMore.set(true);
     }
+    this.loadError.set(false);
     
     this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset, this.searchText().trim()).subscribe({
       next: (newPosts) => {
@@ -157,6 +159,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       },
       error: (err) => {
         this.logger.error('Failed to load feed', err);
+        this.loadError.set(true);
         this.toast.show('Could not load the feed.', 'danger');
         this.isLoading.set(false);
         this.isLoadingMore.set(false);
@@ -167,6 +170,12 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected loadMore(): void {
     this.offset += this.PAGE_SIZE;
     this.loadPosts();
+  }
+
+  protected retryFeed(): void {
+    this.offset = 0;
+    this.hasMore.set(true);
+    this.loadPosts(true);
   }
 
   protected onSearchChange(text: string): void {

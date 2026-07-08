@@ -8,6 +8,7 @@ import { LoggerService } from './logger.service';
 import { ToastService } from './toast.service';
 import { ConfirmDialogService } from './confirm-dialog.service';
 import { TAG_REPOSITORY } from '../repositories/repository.tokens';
+import { NetworkService } from './network.service';
 import {
   PostCommentRow,
   rowToComment,
@@ -55,6 +56,7 @@ export class SocialInteractionsService implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly tagRepo = inject(TAG_REPOSITORY);
+  private readonly network = inject(NetworkService);
 
   // ---- deletion (broadcast so every page holding its own copy of a post list can react) ----
   private readonly _postDeleted$ = new Subject<string>();
@@ -207,6 +209,7 @@ export class SocialInteractionsService implements OnDestroy {
     const key = this.postKey(post);
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('like'); return this.likedPosts().has(key); }
+    if (this.isOffline('like')) return this.likedPosts().has(key);
 
     const wasLiked = this.likedPosts().has(key);
     const nowLiked = !wasLiked;
@@ -244,6 +247,7 @@ export class SocialInteractionsService implements OnDestroy {
     const key = this.postKey(post);
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('save'); return this.savedPosts().has(key); }
+    if (this.isOffline('save')) return this.savedPosts().has(key);
 
     const wasSaved = this.savedPosts().has(key);
     const nowSaved = !wasSaved;
@@ -268,6 +272,7 @@ export class SocialInteractionsService implements OnDestroy {
   reportPost(post: Tag): void {
     const key = this.postKey(post);
     const uid = this.currentUid();
+    if (this.isOffline('report')) return;
     this.addToSetLocal(this.hiddenPosts, key);
     this.addToSetLocal(this.reportedPosts, key);
     if (!uid) return;
@@ -297,6 +302,7 @@ export class SocialInteractionsService implements OnDestroy {
    */
   async confirmAndDeletePost(post: Tag): Promise<boolean> {
     if (!post.id) return false;
+    if (this.isOffline('delete')) return false;
 
     if (!this.canDelete(post)) {
       this.toast.show('You do not have permission to delete this post.', 'danger');
@@ -350,6 +356,7 @@ export class SocialInteractionsService implements OnDestroy {
     if (!trimmed) return;
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('comment'); return; }
+    if (this.isOffline('comment')) return;
 
     const key = this.postKey(post);
     const mentions = Array.from(trimmed.matchAll(/@([a-z0-9_.-]+)/gi)).map((m) => m[1]);
@@ -435,6 +442,7 @@ export class SocialInteractionsService implements OnDestroy {
   votePoll(postKey: string, optionIndex: number): void {
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('vote'); return; }
+    if (this.isOffline('vote')) return;
 
     const prevForPost = this.pollVotes()[postKey] ?? {};
     const nextForPost = this.applyVoteOptimistically(prevForPost, optionIndex, uid);
@@ -487,6 +495,7 @@ export class SocialInteractionsService implements OnDestroy {
     const key = this.postKey(post);
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('rsvp'); return this.rsvps().has(key); }
+    if (this.isOffline('rsvp')) return this.rsvps().has(key);
 
     const wasAttending = this.rsvps().has(key);
     const nowAttending = !wasAttending;
@@ -520,6 +529,7 @@ export class SocialInteractionsService implements OnDestroy {
     if (!trimmed) return;
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('message'); return; }
+    if (this.isOffline('message')) return;
     if (!post.userId) { this.logger.warn('sendMessage: post has no userId, cannot address recipient'); return; }
 
     const postId = this.postKey(post);
@@ -633,7 +643,7 @@ export class SocialInteractionsService implements OnDestroy {
         'Quest Completed!',
         `You completed the "${QUEST_NAMES[questId] ?? questId}" quest!`
       );
-      this.toast.show(`🏆 Quest Completed: "${QUEST_NAMES[questId] ?? questId}"! +5 Reputation`, 'quest', 5000);
+      this.toast.show(`Quest Completed: "${QUEST_NAMES[questId] ?? questId}"! +5 Reputation`, 'quest', 5000);
 
       const uid = this.currentUid();
       if (uid) {
@@ -737,7 +747,7 @@ export class SocialInteractionsService implements OnDestroy {
       if (mine.length) this.likedPosts.update((s) => new Set([...s, ...mine]));
     });
 
-    this.supabase.getRowsIn<RsvpRow>('post_rsvps', 'post_id', ids).subscribe(({ data, error }) => {
+    this.supabase.getRowsIn<RsvpRow>('event_rsvps', 'post_id', ids).subscribe(({ data, error }) => {
       if (error) { this.logger.warn('rsvp batch hydrate failed', error); return; }
       const mine = (data ?? []).filter((r) => r.user_id === uid).map((r) => r.post_id);
       if (mine.length) this.rsvps.update((s) => new Set([...s, ...mine]));
@@ -826,6 +836,7 @@ export class SocialInteractionsService implements OnDestroy {
     if (!trimmed) return;
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('chat'); return; }
+    if (this.isOffline('chat')) return;
 
     const optimisticId = `optimistic-${Date.now()}`;
     const optimisticMessage: HoodMessage = {
@@ -858,19 +869,19 @@ export class SocialInteractionsService implements OnDestroy {
   // ---------- private: realtime ----------
 
   private registerRealtime(): void {
-    this.supabase.liveInserts<LikeRow>('post_likes').subscribe((row) => {
+    this.supabase.liveInserts<LikeRow>('post_likes').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       if (row.user_id === this.currentUid() && this.hydratedLikeRsvp.has(row.post_id)) {
         this.likedPosts.update((s) => new Set([...s, row.post_id]));
       }
     });
 
-    this.supabase.liveInserts<RsvpRow>('post_rsvps').subscribe((row) => {
+    this.supabase.liveInserts<RsvpRow>('event_rsvps').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       if (row.user_id === this.currentUid() && this.hydratedLikeRsvp.has(row.post_id)) {
         this.rsvps.update((s) => new Set([...s, row.post_id]));
       }
     });
 
-    this.supabase.liveInserts<PostCommentRow>('post_comments').subscribe((row) => {
+    this.supabase.liveInserts<PostCommentRow>('post_comments').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       if (!this.hydratingComments.has(row.post_id)) return;
       this.comments.update((c) => ({
         ...c,
@@ -879,7 +890,7 @@ export class SocialInteractionsService implements OnDestroy {
       }));
     });
 
-    this.supabase.liveInserts<PollVoteRow>('post_poll_votes').subscribe((row) => {
+    this.supabase.liveInserts<PollVoteRow>('post_poll_votes').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       if (!this.hydratingPoll.has(row.post_id)) return;
       this.pollVotes.update((v) => {
         const forPost = { ...(v[row.post_id] ?? {}) };
@@ -890,7 +901,7 @@ export class SocialInteractionsService implements OnDestroy {
       });
     });
 
-    this.supabase.liveInserts<DirectMessageRow>('direct_messages').subscribe((row) => {
+    this.supabase.liveInserts<DirectMessageRow>('direct_messages').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       // RLS scopes delivery to thread participants only — no client-side filtering needed for privacy.
       if (!this.hydratingThreads.has(row.thread_id)) return;
       const uid = this.currentUid();
@@ -901,12 +912,12 @@ export class SocialInteractionsService implements OnDestroy {
       }));
     });
 
-    this.supabase.liveInserts<NotificationRow>('notifications').subscribe((row) => {
+    this.supabase.liveInserts<NotificationRow>('notifications').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       // RLS scopes delivery to `user_id = auth.uid()` — already "mine only" over the wire.
       this.notifications.update((current) => [rowToNotification(row), ...current].slice(0, 25));
     });
 
-    this.supabase.liveInserts<any>('hood_messages').subscribe((row) => {
+    this.supabase.liveInserts<any>('hood_messages').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       if (row.hood_id === this.activeChatHoodId()) {
         this.activeChatMessages.update((msgs) => {
           if (msgs.some((m) => m.id === row.id)) return msgs;
@@ -977,7 +988,13 @@ export class SocialInteractionsService implements OnDestroy {
   }
 
   private warnSignInRequired(action: string): void {
-    this.logger.warn(`Tried to ${action} before a session was ready — ignored.`);
+    this.logger.warn(`Tried to ${action} before a session was ready - ignored.`);
+  }
+
+  private isOffline(action: string): boolean {
+    if (this.network.isOnline()) return false;
+    this.toast.show(`You are offline. Connect to the internet to ${action}.`, 'warning');
+    return true;
   }
 
   /** Awaits a Supabase write, treating a resolved `{error}` field as a rejection too. */

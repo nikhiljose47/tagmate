@@ -18,7 +18,7 @@ export interface Tag {
   eventEnd?: string;
   pollOptions?: string[];
   pollVotes?: Record<string, string[]>; // optionIndex -> array of usernames
-  /** Trigger-maintained aggregate counts — never write these from the client. */
+  /** Trigger-maintained aggregate counts - never write these from the client. */
   likeCount?: number;
   commentCount?: number;
   rsvpCount?: number;

@@ -14,6 +14,7 @@ import { MediaCompressionService } from '../../../../core/services/media-compres
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
+import { NetworkService } from '../../../../core/services/network.service';
 
 /** A locally-selected file + instant Object URL preview. */
 interface MediaItem {
@@ -50,6 +51,7 @@ export class PostPage {
   private readonly tagRepo     = inject(TAG_REPOSITORY);
   private readonly logger      = inject(LoggerService);
   private readonly media       = inject(MediaCompressionService);
+  private readonly network     = inject(NetworkService);
 
   constructor(
     public  shared: SharedStateService,
@@ -216,6 +218,10 @@ export class PostPage {
 
   async onSubmit(f: NgForm): Promise<void> {
     if (this.isSubmitting()) return;
+    if (!this.network.isOnline()) {
+      this.toast.show('You are offline. Connect to the internet before posting.', 'warning');
+      return;
+    }
     if (!f.valid) {
       f.form.markAllAsTouched();
       return;
