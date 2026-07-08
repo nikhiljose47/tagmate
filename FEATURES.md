@@ -63,6 +63,12 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 * **LRU Capped Cache Limiters**: Restricts front-end Nominatim geocoding and reverse-lookup Map caches to a 50-entry maximum to prevent unbounded memory growth.
 * **Native Dialog Deprecations**: Migrates browser `confirm()` popups to the asynchronous app-wide `ConfirmDialogService` modal drawer.
 * **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
+### Production Optimizations & Telemetry
+* **Service Worker Caching**: Configures dynamic cache rules using `dataGroups` for Supabase API requests, utilizing a freshness strategy with cache fallbacks to support offline scenarios.
+* **Dynamic Telemetry Integration**: Implements lightweight error capturing inside `GlobalErrorHandler` that safely forwards uncaught exceptions to Sentry and LogRocket if loaded globally, bypassing local bundle bloat.
+* **HTTP Security Headers**: Configures and returns standard security headers (`CSP`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security`, `Referrer-Policy`) on all static and proxy responses inside the request handler.
+* **Geocoding API Rate Limiting**: Implements IP-based token-bucket rate limiting (15 requests/min) on `/api/nominatim/*` proxy routes.
+* **Password Validation Hardening**: Enforces minimum length (8 characters), uppercase, lowercase, and numeric complexity constraints on account sign-up and update password forms.
 
 ---
 

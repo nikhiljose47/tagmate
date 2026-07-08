@@ -44,10 +44,14 @@ export class SignupPage implements OnInit {
     return Array.from({ length: 100 }, (_, i) => currentYear - i);
   })();
 
+  isPasswordStrong(pw: string): boolean {
+    return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
+  }
+
   readonly canSubmit = computed(() => {
     return (
       !!this.email() &&
-      this.password().length >= 6 &&
+      this.isPasswordStrong(this.password()) &&
       !!this.fullName().trim() &&
       this.username().trim().length >= 3 &&
       !!this.birthMonth() &&

@@ -23,10 +23,14 @@ export class UpdatePasswordComponent {
   error = signal('');
   loading = signal(false);
 
+  isPasswordStrong(pw: string): boolean {
+    return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
+  }
+
   async onSubmit(): Promise<void> {
     const pass = this.password().trim();
-    if (pass.length < 6) {
-      this.error.set('Password must be at least 6 characters long.');
+    if (!this.isPasswordStrong(pass)) {
+      this.error.set('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.');
       return;
     }
 

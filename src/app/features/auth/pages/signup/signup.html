@@ -59,6 +59,9 @@
             <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
           </button>
         </div>
+        @if (password() && !isPasswordStrong(password())) {
+          <span class="field-hint field-hint-error">Must be at least 8 characters with an uppercase letter, lowercase letter, and a number.</span>
+        }
 
         <div class="field-group">
           <label class="field-label">Birthday</label>
