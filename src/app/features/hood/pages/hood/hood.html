@@ -97,188 +97,153 @@
     </div>
   </section>
 
-  <div class="topbar">
-    <div class="flex items-center gap-2">
-      <label class="tm-toggle country-toggle" for="countryModeSwitch">
-        <input
-          class="peer sr-only"
-          type="checkbox"
-          id="countryModeSwitch"
-          [ngModel]="countryMode()"
-          (ngModelChange)="countryMode.set($event); onCountryModeChange()"
-          />
-          <span class="tm-toggle-track"></span>
-          <span>Country Mode</span>
-        </label>
-      </div>
-
-      <div class="news-bar flex items-center">
-        <div class="ticker-wrap">
-          <div class="ticker">
-            <span class="ticker-item">New: Street music vibes tonight</span>
-            <span class="ticker-item">Rain near Indiranagar</span>
-            <span class="ticker-item">Yoga at sunrise</span>
-            <span class="ticker-item">Orion Mall sale</span>
-          </div>
-        </div>
-        <button
-          class="info-btn ml-1"
-          type="button"
-          aria-label="Show country mode details"
-          (click)="toggleInfo()"
-          >
-          <i class="bi bi-info-circle" aria-hidden="true"></i>
+  <!-- Speed-dial FAB — tools above MapLibre +/- -->
+  <div class="map-fab" aria-label="Map tools">
+    @if (showToolFab()) {
+      <div class="fab-tools" role="toolbar">
+        <button class="tool-btn" [class.tool-btn--active]="countryMode()" type="button" title="Country mode" aria-label="Toggle country mode" (click)="countryMode.set(!countryMode()); onCountryModeChange()">
+          <i class="bi bi-globe2" aria-hidden="true"></i>
         </button>
-      </div>
-    </div>
-
-    <div class="multi-box" role="radiogroup" aria-label="Map zoom level">
-      @for (zoom of zoomLevels; track zoom) {
-        <button
-          type="button"
-          class="switch-btn"
-          (click)="select(zoom)"
-          [class.active]="selected() === zoom"
-          [attr.aria-checked]="selected() === zoom"
-          role="radio"
-          >
-          {{ zoom }}x
+        <button class="tool-btn" type="button" title="Recenter" aria-label="Recenter map" (click)="recenter()">
+          <i class="bi bi-crosshair" aria-hidden="true"></i>
         </button>
-      }
-    </div>
-
-    @if (showInfo()) {
-      <div class="info-popup">
-        Country mode filters tags by nation borders. Toggle off for global view.
+        <button class="tool-btn" type="button" title="Filters" aria-label="Map filters" (click)="toggleMapFilters()">
+          <i class="bi bi-sliders" aria-hidden="true"></i>
+        </button>
+        <button class="tool-btn" type="button" title="Layers" aria-label="Map layers" (click)="toggleLayerMenu()">
+          <i class="bi bi-layers" aria-hidden="true"></i>
+        </button>
+        <button class="tool-btn" [class.tool-btn--active]="showStylePanel()" type="button" title="Map style" aria-label="Map style" (click)="toggleStylePanel()">
+          <i class="bi bi-map" aria-hidden="true"></i>
+        </button>
+        <button class="tool-btn" type="button" title="Refresh" aria-label="Refresh map" (click)="refreshMap()">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+        </button>
       </div>
     }
-
-    <div class="map-toolbox" aria-label="Map tools">
-      <button class="tool-btn" type="button" title="Recenter" aria-label="Recenter map" (click)="recenter()">
-        <i class="bi bi-crosshair" aria-hidden="true"></i>
-      </button>
-      <button class="tool-btn" type="button" title="Filters" aria-label="Map filters" (click)="toggleMapFilters()">
-        <i class="bi bi-sliders" aria-hidden="true"></i>
-      </button>
-      <button class="tool-btn" type="button" title="Layers" aria-label="Map layers" (click)="toggleLayerMenu()">
-        <i class="bi bi-layers" aria-hidden="true"></i>
-      </button>
-      <button class="tool-btn" [class.tool-btn--active]="showStylePanel()" type="button" title="Map style" aria-label="Map style" (click)="toggleStylePanel()">
-        <i class="bi bi-map" aria-hidden="true"></i>
-      </button>
-      <button class="tool-btn" type="button" title="Refresh" aria-label="Refresh map" (click)="refreshMap()">
-        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-      </button>
-      <button class="tool-btn" type="button" title="Clear selection" aria-label="Clear map selection" (click)="clearSelection()">
-        <i class="bi bi-x-lg" aria-hidden="true"></i>
-      </button>
-    </div>
+    <button
+      class="fab-toggle"
+      [class.fab-toggle--open]="showToolFab()"
+      type="button"
+      [attr.aria-expanded]="showToolFab()"
+      aria-label="Toggle map tools"
+      (click)="toggleToolFab()"
+    >
+      <i class="bi" [class]="showToolFab() ? 'bi-x-lg' : 'bi-tools'" aria-hidden="true"></i>
+    </button>
+  </div>
 
     @if (showMapFilters()) {
-      <div class="map-panel tm-panel">
-          <label class="tm-toggle">
-            <input
-              class="peer sr-only"
+      <div class="map-panel fab-panel tm-panel">
+        <label class="tm-toggle">
+          <input
+            class="peer sr-only"
             type="checkbox"
             id="countryModePanelSwitch"
             [ngModel]="countryMode()"
             (ngModelChange)="countryMode.set($event); onCountryModeChange()"
-            />
-            <span class="tm-toggle-track"></span>
-            <span>Country Mode</span>
-          </label>
-          <div class="map-category-filter" aria-label="Map category filters">
-            @for (category of CATEGORY_FILTERS; track category) {
-              <button
-                type="button"
-                [class.active]="selectedMapCategories().includes(category)"
-                (click)="toggleMapCategory(category)"
-              >
-                {{ categoryLabel(category) }}
-              </button>
-            }
-          </div>
-          @if (selectedMapCategories().length) {
-            <button class="clear-filter-btn" type="button" (click)="clearMapCategories()">Clear categories</button>
-          }
-          <button class="tm-btn tm-btn-primary mt-3 w-full" type="button" (click)="refreshMap()">
-            Apply filters
-          </button>
-        </div>
-      }
-
-      @if (showLayerMenu()) {
-        <div class="map-panel tm-panel layer-panel">
-          <label class="tm-toggle">
-            <input class="peer sr-only" type="checkbox" [checked]="postsVisible()" (change)="togglePostsLayer()" />
-            <span class="tm-toggle-track"></span>
-            <span>Posts</span>
-          </label>
-          <label class="tm-toggle">
-            <input class="peer sr-only" type="checkbox" [checked]="heatmapMode()" (change)="toggleHeatmapMode()" />
-            <span class="tm-toggle-track"></span>
-            <span>Heatmap <i class="bi bi-fire" style="color: #ff5a3d;"></i></span>
-          </label>
-          <label class="tm-toggle">
-            <input class="peer sr-only" type="checkbox" [checked]="boundaryVisible()" (change)="toggleBoundaryLayer()" />
-            <span class="tm-toggle-track"></span>
-            <span>Boundary</span>
-          </label>
-        </div>
-      }
-
-      @if (showStylePanel()) {
-        <div class="map-panel tm-panel style-panel">
-          <p class="style-panel-title">Map Style</p>
-          @for (style of MAP_STYLES; track style.key) {
+          />
+          <span class="tm-toggle-track"></span>
+          <span>Country Mode</span>
+        </label>
+        <div class="map-category-filter" aria-label="Map category filters">
+          @for (category of CATEGORY_FILTERS; track category) {
             <button
-              class="style-btn"
               type="button"
-              [class.style-btn--active]="currentStyle() === style.key"
-              (click)="setMapStyle(style.key)"
+              [class.active]="selectedMapCategories().includes(category)"
+              (click)="toggleMapCategory(category)"
             >
-              {{ style.label }}
+              {{ categoryLabel(category) }}
             </button>
           }
         </div>
-      }
-
-      <div class="search-box flex items-center gap-2">
-        <button
-          class="btn-icon"
-          type="button"
-          (click)="locateMe()"
-          title="Locate me"
-          aria-label="Locate me"
-          [disabled]="isSearching()"
-          >
-          <i class="bi bi-geo-fill text-tm-primary" aria-hidden="true"></i>
+        @if (selectedMapCategories().length) {
+          <button class="clear-filter-btn" type="button" (click)="clearMapCategories()">Clear categories</button>
+        }
+        <button class="tm-btn tm-btn-primary mt-3 w-full" type="button" (click)="refreshMap()">
+          Apply filters
         </button>
-        <input
-          #q
-          type="text"
-          class="search-input"
-          [placeholder]="'Current hood: ' + (hood().name || '')"
-          aria-label="Search hood or location"
-          />
+      </div>
+    }
 
+    @if (showLayerMenu()) {
+      <div class="map-panel fab-panel tm-panel layer-panel">
+        <label class="tm-toggle">
+          <input class="peer sr-only" type="checkbox" [checked]="postsVisible()" (change)="togglePostsLayer()" />
+          <span class="tm-toggle-track"></span>
+          <span>Posts</span>
+        </label>
+        <label class="tm-toggle">
+          <input class="peer sr-only" type="checkbox" [checked]="heatmapMode()" (change)="toggleHeatmapMode()" />
+          <span class="tm-toggle-track"></span>
+          <span>Heatmap <i class="bi bi-fire" style="color: #ff5a3d;"></i></span>
+        </label>
+        <label class="tm-toggle">
+          <input class="peer sr-only" type="checkbox" [checked]="boundaryVisible()" (change)="toggleBoundaryLayer()" />
+          <span class="tm-toggle-track"></span>
+          <span>Boundary</span>
+        </label>
+      </div>
+    }
+
+    @if (showStylePanel()) {
+      <div class="map-panel fab-panel tm-panel style-panel">
+        <p class="style-panel-title">Map Style</p>
+        @for (style of MAP_STYLES; track style.key) {
           <button
-            class="search-action-btn"
+            class="style-btn"
             type="button"
-            (click)="search(q.value)"
-            aria-label="Search location"
-            [disabled]="isSearching()"
-            >
-            @if (!isSearching()) {
-              <i class="bi bi-search" aria-hidden="true"></i>
-            }
-            @if (isSearching()) {
-              <div class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" role="status">
-                <span class="sr-only">Loading...</span>
-              </div>
-            }
+            [class.style-btn--active]="currentStyle() === style.key"
+            (click)="setMapStyle(style.key)"
+          >
+            {{ style.label }}
           </button>
-        </div>
+        }
+      </div>
+    }
+
+      <!-- Hood card: compact 30% top-right pill; morphs into full search bar -->
+      <div class="hood-card" [class.hood-card--open]="showSearch()">
+        @if (showSearch()) {
+          <div class="hood-card-search-row">
+            <button class="hood-card-back" type="button" (click)="closeSearch()" aria-label="Close search">
+              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+            <button class="hood-card-locate" type="button" (click)="locateMe()" title="Locate me" aria-label="Locate me" [disabled]="isSearching()">
+              <i class="bi bi-geo-fill" aria-hidden="true"></i>
+            </button>
+            <input
+              #cardQ
+              class="hood-card-input"
+              type="text"
+              placeholder="Search location…"
+              aria-label="Search location"
+              (keyup.enter)="searchFromCard(cardQ.value)"
+            />
+            @if (isSearching()) {
+              <div class="hood-card-spinner" role="status"><span class="sr-only">Searching…</span></div>
+            } @else {
+              <button class="hood-card-go" type="button" (click)="searchFromCard(cardQ.value)" aria-label="Search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+        } @else {
+          <button class="hood-card-hood" type="button" (click)="openSearch()" title="Tap to search">
+            <span class="hood-card-eyebrow">Hood</span>
+            <span class="hood-card-name">{{ hood().name || 'Locating…' }}</span>
+          </button>
+          <div class="hood-card-rule"></div>
+          <div class="hood-card-tabs">
+            <button class="hood-card-tab hood-card-tab--active" type="button" title="Map view" aria-label="Map view">
+              <i class="bi bi-map-fill" aria-hidden="true"></i>
+            </button>
+            <button class="hood-card-tab" type="button" title="Posts view" aria-label="Posts view" (click)="router.navigateByUrl('/tagmate')">
+              <i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i>
+            </button>
+          </div>
+        }
+      </div>
 
         <!-- Pick-location banner (shown when opened from Post with ?pick=1) -->
         @if (pickMode()) {

@@ -616,6 +616,24 @@
   }
 }
 
+/* Map tab */
+.hood-map-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.hood-mini-map {
+  width: 100%;
+  height: 62vh;
+  min-height: 360px;
+  border-radius: var(--tm-radius);
+  overflow: hidden;
+  border: 1px solid var(--tm-border);
+}
+
+/* .hood-map-pin and .hood-map-popup are in global styles.scss (MapLibre injects them outside Angular templates) */
+
 @media (max-width: 520px) {
   .neighborhood-page {
     padding: 12px 10px 16px;
@@ -640,13 +658,28 @@
     height: 82px;
   }
 
+  /* 6 tabs — make them scrollable on small screens */
   .mode-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar { display: none; }
+
     button {
+      flex: 0 0 auto;
       font-size: 12px;
-      padding: 8px 6px;
+      padding: 8px 10px;
       gap: 4px;
+      white-space: nowrap;
       i { font-size: 13px; }
     }
+  }
+
+  .hood-mini-map {
+    height: 56vh;
+    min-height: 300px;
   }
 
   .ai-assistant-container {

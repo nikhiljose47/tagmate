@@ -18,27 +18,42 @@
 
   <!-- Navigation Tab Bar -->
   <div class="mode-tabs tm-panel mb-4 p-1">
+    <button type="button" [class.active]="activeTab() === 'map'" (click)="setTab('map')">
+      <i class="bi bi-map-fill" aria-hidden="true"></i>
+      Map
+    </button>
     <button type="button" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">
       <i class="bi bi-grid-fill" aria-hidden="true"></i>
       Overview
     </button>
     <button type="button" [class.active]="activeTab() === 'chat'" (click)="setTab('chat')">
       <i class="bi bi-chat-left-text-fill" aria-hidden="true"></i>
-      Chatroom
+      Chat
     </button>
     <button type="button" [class.active]="activeTab() === 'bulletin'" (click)="setTab('bulletin')">
       <i class="bi bi-pin-angle-fill" aria-hidden="true"></i>
-      Bulletin Board
+      Board
     </button>
     <button type="button" [class.active]="activeTab() === 'ai'" (click)="setTab('ai')">
       <i class="bi bi-cpu-fill" aria-hidden="true"></i>
-      Chatmate AI
+      AI
     </button>
     <button type="button" [class.active]="activeTab() === 'leaderboard'" (click)="setTab('leaderboard')">
       <i class="bi bi-trophy-fill" aria-hidden="true"></i>
-      Hood Champion
+      Champion
     </button>
   </div>
+
+  <!-- MAP TAB — kept in DOM via [hidden] so MapLibre canvas stays alive across tab switches -->
+  <section class="hood-map-section" [hidden]="activeTab() !== 'map'" aria-label="Neighborhood Map">
+    <div #hoodMapEl class="hood-mini-map"></div>
+    @if (!isLoading() && !neighborhoodPosts().length) {
+      <div class="tm-panel text-center py-8" style="color:var(--tm-muted)">
+        <i class="bi bi-geo-alt" style="font-size:2rem;opacity:.4"></i>
+        <p style="margin:.5rem 0 0;font-weight:700;font-size:.875rem">No pinned posts in {{ name }} yet.</p>
+      </div>
+    }
+  </section>
 
   <!-- OVERVIEW TAB -->
   @if (activeTab() === 'overview') {

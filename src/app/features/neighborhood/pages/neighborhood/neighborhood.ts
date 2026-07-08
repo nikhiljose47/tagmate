@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
+import { environment } from '../../../../environments/environment.prod';
 import { Tag } from '../../../../core/models/tag.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
@@ -21,9 +23,12 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
   templateUrl: './neighborhood.html',
   styleUrl: './neighborhood.scss',
 })
-export class NeighborhoodPage implements OnInit {
+export class NeighborhoodPage implements OnInit, OnDestroy {
+  @ViewChild('hoodMapEl', { static: true }) private hoodMapEl?: ElementRef<HTMLDivElement>;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly shared = inject(SharedStateService);
   private readonly logger = inject(LoggerService);
@@ -31,13 +36,20 @@ export class NeighborhoodPage implements OnInit {
   private readonly sessionService = inject(UserSessionService);
   private readonly confirmDialog = inject(ConfirmDialogService);
 
+  private static readonly _mlPromise = import('maplibre-gl');
+  private hoodMaplib?: typeof import('maplibre-gl');
+  private hoodMap?: MapLibreMap;
+  private hoodMapMarkers: MapLibreMarker[] = [];
+  private hoodMapInitialized = false;
+  private hoodResizeObs?: ResizeObserver;
+
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly slug = this.route.snapshot.paramMap.get('id') || 'nearby';
   protected readonly name = this.titleFromSlug(this.slug);
 
-  // Tab state
-  protected readonly activeTab = signal<'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'>('overview');
+  // Tab state — map is the default landing tab
+  protected readonly activeTab = signal<'map' | 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'>('map');
 
   // Group Chat states
   protected readonly chatInput = signal('');
@@ -145,11 +157,21 @@ export class NeighborhoodPage implements OnInit {
         this.scrollToBottom();
       }
     });
+
+    effect(() => {
+      if (this.activeTab() !== 'map') return;
+      const hasPosts = this.neighborhoodPosts().some(p => p.lat && p.lng);
+      if (this.hoodMapInitialized) {
+        setTimeout(() => { this.hoodMap?.resize(); if (hasPosts) this.updateHoodMarkers(); }, 50);
+      } else if (hasPosts) {
+        setTimeout(() => void this.initHoodMap(), 50);
+      }
+    });
   }
 
   ngOnInit(): void {
     const requestedTab = this.route.snapshot.queryParamMap.get('tab');
-    if (requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard' || requestedTab === 'bulletin' || requestedTab === 'chat') {
+    if (requestedTab === 'map' || requestedTab === 'overview' || requestedTab === 'ai' || requestedTab === 'leaderboard' || requestedTab === 'bulletin' || requestedTab === 'chat') {
       this.activeTab.set(requestedTab as any);
       if (requestedTab === 'chat') {
         this.loadGroupChat();
@@ -170,7 +192,13 @@ export class NeighborhoodPage implements OnInit {
     });
   }
 
-  protected setTab(tab: 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'): void {
+  ngOnDestroy(): void {
+    this.hoodResizeObs?.disconnect();
+    this.hoodMapMarkers.forEach(m => m.remove());
+    this.hoodMap?.remove();
+  }
+
+  protected setTab(tab: 'map' | 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'): void {
     this.activeTab.set(tab);
     if (tab === 'ai') {
       this.initAiChat();
@@ -420,5 +448,98 @@ export class NeighborhoodPage implements OnInit {
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ') || 'Nearby';
+  }
+
+  // ---------- map tab ----------
+
+  private async initHoodMap(): Promise<void> {
+    if (this.hoodMapInitialized) { this.updateHoodMarkers(); return; }
+    const el = this.hoodMapEl?.nativeElement;
+    if (!el) return;
+
+    const posts = this.neighborhoodPosts().filter(p => p.lat && p.lng);
+    if (!posts.length) return;
+
+    const mod = await NeighborhoodPage._mlPromise;
+    this.hoodMaplib = (mod.default ?? mod) as typeof import('maplibre-gl');
+    const ml = this.hoodMaplib;
+    const key = environment.mapTilerApiKey;
+    const centerLat = posts.reduce((s, p) => s + p.lat, 0) / posts.length;
+    const centerLng = posts.reduce((s, p) => s + p.lng, 0) / posts.length;
+
+    this.ngZone.runOutsideAngular(() => {
+      this.hoodMap = new ml.Map({
+        container: el,
+        style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${key}`,
+        center: [centerLng, centerLat],
+        zoom: 14,
+        minZoom: 5,
+        maxZoom: 19,
+        attributionControl: { compact: true },
+        dragRotate: false,
+        pitchWithRotate: false,
+      });
+      this.hoodMap.addControl(new ml.NavigationControl({ showCompass: false }), 'bottom-right');
+      this.hoodMap.on('load', () => {
+        this.hoodMapInitialized = true;
+        this.ngZone.run(() => {
+          this.updateHoodMarkers();
+          if (posts.length > 1) this.fitHoodBounds(posts);
+        });
+      });
+      this.hoodResizeObs = new ResizeObserver(() => this.hoodMap?.resize());
+      this.hoodResizeObs.observe(el);
+    });
+  }
+
+  private updateHoodMarkers(): void {
+    if (!this.hoodMap || !this.hoodMaplib) return;
+    const ml = this.hoodMaplib;
+    this.hoodMapMarkers.forEach(m => m.remove());
+    this.hoodMapMarkers = [];
+
+    for (const post of this.neighborhoodPosts().filter(p => p.lat && p.lng)) {
+      const el = document.createElement('div');
+      el.className = 'hood-map-pin';
+      el.textContent = this.tagEmojiChar(post.tag);
+      el.title = post.highlight || post.tag;
+
+      const popup = new ml.Popup({ offset: 28, closeButton: true, maxWidth: '220px' })
+        .setHTML(
+          `<div class="hood-map-popup">` +
+          `<strong>${this.esc(post.highlight || 'Untitled')}</strong>` +
+          `<p>@${this.esc(post.username || 'Anonymous')} · #${this.esc(post.tag)}</p>` +
+          `<a href="/posts/${encodeURIComponent(this.social.postKey(post))}">View post →</a>` +
+          `</div>`
+        );
+
+      const marker = new ml.Marker({ element: el })
+        .setLngLat([post.lng, post.lat])
+        .setPopup(popup)
+        .addTo(this.hoodMap!);
+      this.hoodMapMarkers.push(marker);
+    }
+  }
+
+  private fitHoodBounds(posts: Tag[]): void {
+    if (!this.hoodMap || posts.length < 2) return;
+    const lngs = posts.map(p => p.lng);
+    const lats = posts.map(p => p.lat);
+    this.hoodMap.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 56, maxZoom: 16, duration: 300 }
+    );
+  }
+
+  private tagEmojiChar(tag: string): string {
+    const map: Record<string, string> = {
+      event: '🎉', sale: '🛒', traffic: '🚗', alert: '⚠️',
+      food: '🍽️', market: '🏪', question: '❓', bulletin: '📌',
+    };
+    return map[tag] ?? '📍';
+  }
+
+  private esc(s: string): string {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 }

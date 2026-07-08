@@ -159,7 +159,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private readonly http    = inject(HttpClient);
   private readonly ngZone  = inject(NgZone);
-  private readonly router  = inject(Router);
+  readonly router  = inject(Router);
   private readonly route   = inject(ActivatedRoute);
   private readonly state   = inject(SharedStateService);
   private readonly store   = inject(Store);
@@ -210,6 +210,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   isSearching      = signal(false);
   countryMode      = signal(this.storedSettings.countryMode);
   showInfo         = signal(false);
+  showToolFab      = signal(false);
+  showSearch       = signal(false);
   showMapFilters   = signal(false);
   showLayerMenu    = signal(false);
   showStylePanel   = signal(false);
@@ -228,7 +230,6 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 8)
   );
-  readonly zoomLevels = ZOOM_LEVELS;
   readonly MAP_STYLES: { key: MapStyleKey; label: string }[] = [
     { key: 'streets',   label: 'Streets'   },
     { key: 'satellite', label: 'Satellite' },
@@ -302,11 +303,6 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => this.initializeMap());
   }
 
-  select(value: number): void {
-    this.selected.set(value);
-    this.map?.easeTo({ zoom: value, duration: 250 });
-  }
-
   onCountryModeChange(): void { this.loadVisiblePosts(); }
   toggleInfo(): void          { this.showInfo.update((v) => !v); }
 
@@ -320,6 +316,32 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     this.loadVisiblePosts();
     void this.setBoundary(this.hood().name, false);
     this.toast.show('Map refreshed.', 'success');
+  }
+
+  toggleToolFab(): void {
+    const next = !this.showToolFab();
+    this.showToolFab.set(next);
+    if (!next) {
+      this.showMapFilters.set(false);
+      this.showLayerMenu.set(false);
+      this.showStylePanel.set(false);
+    }
+  }
+
+  openSearch(): void  { this.showSearch.set(true); }
+  closeSearch(): void { this.showSearch.set(false); }
+
+  searchFromCard(value: string): void {
+    const q = value?.trim();
+    if (!q) return;
+    this.search(q);
+    const check = setInterval(() => {
+      if (!this.isSearching()) {
+        clearInterval(check);
+        this.showSearch.set(false);
+      }
+    }, 150);
+    setTimeout(() => { clearInterval(check); this.showSearch.set(false); }, 9000);
   }
 
   toggleMapFilters(): void {

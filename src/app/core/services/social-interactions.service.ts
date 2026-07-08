@@ -503,8 +503,8 @@ export class SocialInteractionsService implements OnDestroy {
     this.bumpDelta(this.rsvpDeltas, key, nowAttending ? 1 : -1);
 
     const write$ = nowAttending
-      ? this.supabase.addRow('event_rsvps', { post_id: post.id, user_id: uid })
-      : this.supabase.deleteRowsWhere('event_rsvps', { post_id: post.id, user_id: uid });
+      ? this.supabase.addRow('post_rsvps', { post_id: post.id, user_id: uid })
+      : this.supabase.deleteRowsWhere('post_rsvps', { post_id: post.id, user_id: uid });
 
     this.runToggleWithReconciliation(
       `rsvp:${key}`,
@@ -747,7 +747,7 @@ export class SocialInteractionsService implements OnDestroy {
       if (mine.length) this.likedPosts.update((s) => new Set([...s, ...mine]));
     });
 
-    this.supabase.getRowsIn<RsvpRow>('event_rsvps', 'post_id', ids).subscribe(({ data, error }) => {
+    this.supabase.getRowsIn<RsvpRow>('post_rsvps', 'post_id', ids).subscribe(({ data, error }) => {
       if (error) { this.logger.warn('rsvp batch hydrate failed', error); return; }
       const mine = (data ?? []).filter((r) => r.user_id === uid).map((r) => r.post_id);
       if (mine.length) this.rsvps.update((s) => new Set([...s, ...mine]));
@@ -875,7 +875,7 @@ export class SocialInteractionsService implements OnDestroy {
       }
     });
 
-    this.supabase.liveInserts<RsvpRow>('event_rsvps').pipe(takeUntil(this.destroy$)).subscribe((row) => {
+    this.supabase.liveInserts<RsvpRow>('post_rsvps').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       if (row.user_id === this.currentUid() && this.hydratedLikeRsvp.has(row.post_id)) {
         this.rsvps.update((s) => new Set([...s, row.post_id]));
       }

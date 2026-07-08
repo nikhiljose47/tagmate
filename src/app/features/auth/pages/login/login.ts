@@ -39,7 +39,7 @@ export class LoginPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((user) => {
         if (this.destroyed) return;
-        if (!user.isGuest) this.router.navigateByUrl('/tagmate');
+        if (!user.isGuest) this.router.navigateByUrl('/hood');
       });
   }
 
@@ -56,7 +56,7 @@ export class LoginPage implements OnInit {
       if (this.destroyed) return;
 
       if (res.ok) {
-        this.router.navigateByUrl('/tagmate');
+        this.router.navigateByUrl('/hood');
       } else {
         this.error.set(res.message ?? 'Login failed');
       }
@@ -80,7 +80,7 @@ export class LoginPage implements OnInit {
         this.error.set((res as any).message);
         return;
       }
-      this.router.navigateByUrl('/tagmate');
+      this.router.navigateByUrl('/hood');
     } catch (err: any) {
       if (!this.destroyed) {
         this.error.set(err?.message ?? 'Guest login failed');

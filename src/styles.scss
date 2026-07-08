@@ -3,6 +3,54 @@
 @tailwind utilities source('./app');
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
+/* Neighborhood page — inline map markers and popups (injected by MapLibre outside Angular templates) */
+.hood-map-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: #fff;
+  border: 2px solid rgba(99, 102, 241, 0.45);
+  border-radius: 50%;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  }
+}
+
+.hood-map-popup {
+  padding: 2px 0;
+
+  strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 3px;
+    color: #1e1e2e;
+  }
+
+  p {
+    margin: 0 0 6px;
+    font-size: 11px;
+    color: #888;
+  }
+
+  a {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6366f1;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --color-tm-primary: var(--tm-primary);
