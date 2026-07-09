@@ -2,10 +2,9 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import {
   ApplicationConfig,
   ErrorHandler,
-  provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection, isDevMode,
 } from '@angular/core';
-import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideStore } from '@ngrx/store';
 
@@ -27,9 +26,8 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
       withInterceptors([loggingInterceptor, errorInterceptor])
     ),
-    provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideRouter(routes),
     provideClientHydration(withEventReplay()),
     provideStore(
       { toggle: toggleReducer, userPref: userPrefReducer },

@@ -19,6 +19,7 @@ import { LifespanBadgeComponent } from '../../../../shared/components/lifespan-b
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { Subject, takeUntil } from 'rxjs';
+import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
 
 type FeedMode = 'forYou' | 'nearby' | 'saved';
 
@@ -48,6 +49,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   private readonly logger = inject(LoggerService);
   private readonly store = inject(Store);
   protected readonly social = inject(SocialInteractionsService);
+  protected readonly workspace = inject(WorkspaceStateService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -67,10 +69,8 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected readonly selectedCategory = signal('all');
   protected readonly searchText = signal('');
   protected readonly notificationsOpen = signal(false);
-  protected readonly selectedPost = signal<Tag | null>(null);
   protected readonly hood = this.store.selectSignal(selectHood);
   private readonly destroy$ = new Subject<void>();
-
   protected readonly categories = computed(() => [
     'all',
     ...Array.from(new Set(this.posts().map((post) => post.tag).filter(t => t && t !== 'bulletin'))).sort(),
@@ -98,12 +98,11 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
   protected readonly selectedPostForPanel = computed(() => {
     const posts = this.visiblePosts();
-    const selected = this.selectedPost();
+    const selected = this.workspace.selectedPost();
     if (!posts.length) return null;
     if (!selected) return posts[0];
     return posts.find((post) => this.postKey(post) === this.postKey(selected)) ?? posts[0];
   });
-
   ngOnInit(): void {
     this.loadPosts();
     this.tagRepo.liveTags()
@@ -162,8 +161,8 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
             return [...p, ...uniqueNew];
           });
         }
-        if (!this.selectedPost() && newPosts[0]) {
-          this.selectedPost.set(newPosts[0]);
+        if (!this.workspace.selectedPost() && newPosts[0]) {
+          this.workspace.selectPost(newPosts[0]);
         }
         this.hasMore.set(newPosts.length === this.PAGE_SIZE);
         this.isLoading.set(false);
@@ -234,7 +233,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   protected selectPost(post: Tag): void {
-    this.selectedPost.set(post);
+    this.workspace.selectPost(post);
   }
 
   protected isSelected(post: Tag): boolean {

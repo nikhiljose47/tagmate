@@ -51,32 +51,61 @@
   </aside>
 
   <aside class="map-inspector" aria-label="Map metadata inspector">
-    <header>
-      <p>Inspector</p>
-      <h2>{{ visibleMapPosts().length }} visible posts</h2>
-    </header>
-    <div class="inspector-grid">
-      <div>
-        <span>Style</span>
-        <strong>{{ currentStyle() | titlecase }}</strong>
+    @if (workspace.selectedPost(); as selectedPost) {
+      <header>
+        <p>Post Inspector</p>
+        <h2>{{ selectedPost.highlight || 'Untitled post' }}</h2>
+      </header>
+      <div class="inspector-grid">
+        <div>
+          <span>Category</span>
+          <strong>#{{ selectedPost.tag || 'tag' }}</strong>
+        </div>
+        <div>
+          <span>Author</span>
+          <strong>{{ selectedPost.username || 'Anonymous' }}</strong>
+        </div>
+        <div>
+          <span>Loves</span>
+          <strong>{{ social.likeCount(selectedPost) }} loves</strong>
+        </div>
+        <div>
+          <span>Comments</span>
+          <strong>{{ social.commentCount(selectedPost) }} comments</strong>
+        </div>
       </div>
-      <div>
-        <span>Zoom</span>
-        <strong>{{ selected() }}x</strong>
+      <div class="inspector-actions">
+        <a class="tm-btn tm-btn-primary flex items-center justify-center text-center text-xs font-semibold leading-normal" [routerLink]="['/posts', selectedPost.id || selectedPost.userId + '-' + selectedPost.createdAt]">Details</a>
+        <button class="tm-btn" type="button" (click)="workspace.selectPost(null)">Close</button>
       </div>
-      <div>
-        <span>Heatmap</span>
-        <strong>{{ heatmapMode() ? 'On' : 'Off' }}</strong>
+    } @else {
+      <header>
+        <p>Inspector</p>
+        <h2>{{ visibleMapPosts().length }} visible posts</h2>
+      </header>
+      <div class="inspector-grid">
+        <div>
+          <span>Style</span>
+          <strong>{{ currentStyle() | titlecase }}</strong>
+        </div>
+        <div>
+          <span>Zoom</span>
+          <strong>{{ selected() }}x</strong>
+        </div>
+        <div>
+          <span>Heatmap</span>
+          <strong>{{ heatmapMode() ? 'On' : 'Off' }}</strong>
+        </div>
+        <div>
+          <span>Boundary</span>
+          <strong>{{ boundaryVisible() ? 'On' : 'Off' }}</strong>
+        </div>
       </div>
-      <div>
-        <span>Boundary</span>
-        <strong>{{ boundaryVisible() ? 'On' : 'Off' }}</strong>
+      <div class="inspector-actions">
+        <button class="tm-btn" type="button" (click)="recenter()">Recenter</button>
+        <button class="tm-btn" type="button" (click)="refreshMap()">Refresh</button>
       </div>
-    </div>
-    <div class="inspector-actions">
-      <button class="tm-btn" type="button" (click)="recenter()">Recenter</button>
-      <button class="tm-btn" type="button" (click)="refreshMap()">Refresh</button>
-    </div>
+    }
   </aside>
 
   <section class="map-timeline" aria-label="Visible post timeline">

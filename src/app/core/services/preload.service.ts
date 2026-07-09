@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Hood } from '../models/hood.model';
 import { Tag } from '../models/tag.model';
-import { SupabaseService } from './supabase.service';
+import { TagDataService } from './tag-data.service';
 import { rowToTag, TagRow } from './tag.mapper';
 
 const HOOD_KEY   = 'tagmate_hood';
@@ -10,7 +10,7 @@ const DELTA      = 0.12; // ~13 km radius around hood centre
 
 @Injectable({ providedIn: 'root' })
 export class PreloadService {
-  private readonly supabase = inject(SupabaseService);
+  private readonly tagData = inject(TagDataService);
 
   private _globePosts: Tag[] | null   = null;
   private _globeTs    = 0;
@@ -50,7 +50,7 @@ export class PreloadService {
   // ── private ──────────────────────────────────────────────────────────────
 
   private prefetchGlobe(): void {
-    this.supabase.getLatest<TagRow>('tags', 50).subscribe({
+    this.tagData.getLatest<TagRow>('tags', 50).subscribe({
       next: ({ data }) => {
         this._globePosts = (data ?? []).map(rowToTag);
         this._globeTs    = Date.now();
@@ -62,7 +62,7 @@ export class PreloadService {
 
   private prefetchHood(): void {
     const { lat, lng } = this.readStoredHood().coords;
-    this.supabase
+    this.tagData
       .fetchTagsInBounds(lng - DELTA, lat - DELTA, lng + DELTA, lat + DELTA)
       .subscribe({
         next: ({ data }) => {

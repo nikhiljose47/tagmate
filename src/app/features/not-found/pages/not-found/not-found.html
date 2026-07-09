@@ -1,0 +1,46 @@
+<div class="not-found-container">
+  <!-- Interactive animated background blobs -->
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+
+  <div class="not-found-card">
+    <div class="card-glow"></div>
+    
+    <div class="icon-wrapper">
+      <i class="bi bi-geo-fill animated-icon"></i>
+      <span class="badge">404</span>
+    </div>
+
+    <h1>Lost in the Neighborhood?</h1>
+    
+    <p class="description">
+      The street or page you are looking for has been relocated, renamed, or is currently off-grid.
+    </p>
+
+    <div class="meta-section">
+      <div class="meta-item">
+        <i class="bi bi-map"></i>
+        <span>Coordinates: <strong>Unresolved</strong></span>
+      </div>
+      <div class="meta-item">
+        <i class="bi bi-shield-exclamation"></i>
+        <span>Status: <strong>Not Found</strong></span>
+      </div>
+    </div>
+
+    <div class="actions">
+      @if (isLoggedIn) {
+        <button class="action-btn primary" (click)="goBack()">
+          <i class="bi bi-grid-fill"></i>
+          Back to Feed
+        </button>
+      } @else {
+        <button class="action-btn primary" (click)="goBack()">
+          <i class="bi bi-box-arrow-in-right"></i>
+          Sign In
+        </button>
+      }
+    </div>
+  </div>
+</div>

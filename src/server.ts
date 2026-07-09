@@ -20,6 +20,14 @@ function isRateLimited(ip: string): boolean {
   const limit = 15; // Max 15 requests
   const windowMs = 60000; // Refill rate: 1 minute
   const now = Date.now();
+
+  // Evict client entries older than 2 minutes to prevent unbounded growth
+  const ttl = 120000;
+  for (const [key, val] of rateLimitMap.entries()) {
+    if (now - val.lastRefill > ttl) {
+      rateLimitMap.delete(key);
+    }
+  }
   
   let client = rateLimitMap.get(ip);
   if (!client) {

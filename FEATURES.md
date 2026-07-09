@@ -78,6 +78,9 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 - [x] **Virtual Sticky Bulletin Board**: A fast announcement wall for short, non-geolocated notes (e.g. "Found keys at the park").
 - [x] **Post Editing & Unified DM Inbox Console**: Integrated post modification routes and message hubs for easier interaction.
 - [x] **Account Password Recovery**: Password reset and secure recovery options.
+- [x] **Workspace Three-Zone Shell Redesign**: Connected WorkspaceStateService reactive signals for Feed & Map layouts.
+- [x] **Specialized Supabase Architecture**: Decoupled monolithic backend service into focused AuthService, TagDataService, StorageService, RealtimeService, and SocialDataService.
+- [x] **Rate Limiter TTL Eviction**: Hardened server rate limit maps with active-access sliding evictions.
 - [ ] **External LLM Service Integration**: Upgrade the local rules-based Chatmate AI to use remote APIs (like Gemini or Llama) for fully open-ended local inquiries.
 - [ ] **Advanced Geofencing Notifications**: Push alert notifications when a user enters a geographic bounding box containing active high-severity traffic alerts or emergencies.
 
@@ -92,7 +95,7 @@ Run the unit test suite headless from the root workspace:
 ```bash
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
-Ensure all tests compile and pass successfully.
+Ensure all tests compile and pass successfully. The suite now includes 54 tests covering nav, app-topbar, map-hood, post-detail, and inbox components.
 
 ### Manual UI Verification Checklist
 Before deploying changes:
@@ -111,3 +114,10 @@ Before deploying changes:
    - Recent messages load from the database.
    - Typing a message and clicking Send adds it instantly (optimistically) and propagates it to Supabase.
    - Real-time updates automatically append incoming messages from other users and scroll the viewport to the bottom.
+7. **Workspace Three-Zone Shell (Feed/Map selection)**:
+   - Click a post on the Feed, verify that the right-hand details context panel expands dynamically on desktop.
+   - Click a marker pin on the Map, verify that the inspector sidebar shows the clicked post's specific details and a "Details" routerLink button.
+8. **NotFound (404) Redirects**:
+   - Navigate to `/some-invalid-path` and confirm the glassmorphic "Lost in the Neighborhood? (404)" page is displayed.
+   - Confirm clicking the CTA button routes back to `/feed` if logged in, or `/login` if logged out.
+

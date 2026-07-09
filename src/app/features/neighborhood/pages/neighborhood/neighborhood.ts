@@ -3,7 +3,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone, computed, 
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
-import { environment } from '../../../../environments/environment.prod';
+import { environment } from '../../../../environments/environment';
 import { Tag } from '../../../../core/models/tag.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';

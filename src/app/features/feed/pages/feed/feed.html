@@ -211,8 +211,8 @@
       <div #scrollSentinel style="height: 1px; visibility: hidden;"></div>
     </section>
 
-    <aside class="feed-context-panel" aria-label="Selected post context">
-      @if (selectedPostForPanel(); as post) {
+    <aside class="feed-context-panel" [class.hidden]="!workspace.rightPanelOpen()" aria-label="Selected post context">
+      @if (workspace.rightPanelOpen() && selectedPostForPanel(); as post) {
         <header class="context-header">
           <div>
             <p>Selected post</p>

@@ -1,19 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { AppUser } from '../../models/app-user.model';
-import { SupabaseService } from '../../services/supabase.service';
+import { TagDataService } from '../../services/tag-data.service';
 import { CreateUserDto, IUserRepository } from '../interfaces/user.repository';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseUserRepository implements IUserRepository {
-  private readonly supabase = inject(SupabaseService);
+  private readonly tagData = inject(TagDataService);
 
   getById(uid: string): Observable<AppUser | null> {
-    return this.supabase.getUserById(uid);
+    return this.tagData.getUserById(uid);
   }
 
   upsert(user: CreateUserDto): Observable<void> {
-    return this.supabase
+    return this.tagData
       .upsertRow('users', {
         uid:        user.uid,
         name:       user.name,

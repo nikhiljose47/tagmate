@@ -14,7 +14,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { catchError, debounceTime, map, of, Subject, switchMap, take, takeUntil } from 'rxjs';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
@@ -27,7 +27,7 @@ import type {
   Marker,
 } from 'maplibre-gl';
 
-import { environment } from '../../../../environments/environment.prod';
+import { environment } from '../../../../environments/environment';
 import { Hood } from '../../../../core/models/hood.model';
 import { Tag } from '../../../../core/models/tag.model';
 import { SharedStateService } from '../../../../core/services/shared-state.service';
@@ -41,6 +41,7 @@ import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens'
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
+import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
 
 interface CountryBounds {
   minLat: number;
@@ -150,7 +151,7 @@ type HoodBoundaryGeometry = Polygon | MultiPolygon;
   templateUrl: './hood.html',
   styleUrls: ['./hood.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HoodPage implements AfterViewInit, OnDestroy {
@@ -166,7 +167,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly toast   = inject(ToastService);
   private readonly preload  = inject(PreloadService);
   private readonly tagRepo  = inject(TAG_REPOSITORY);
-  private readonly social   = inject(SocialInteractionsService);
+  protected readonly social   = inject(SocialInteractionsService);
+  protected readonly workspace = inject(WorkspaceStateService);
 
   private readonly destroy$        = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -973,6 +975,14 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     const feature = event.features?.[0] as Feature<Point, MapPostProperties> | undefined;
     if (!feature) return;
     this.ngZone.run(() => {
+      const id = feature.properties.id;
+      if (id) {
+        const post = this.currentPosts.find((p) => (p.id ?? `${p.userId}-${p.createdAt}`) === id);
+        if (post) {
+          this.workspace.selectPost(post);
+        }
+      }
+
       const [lng, lat] = feature.geometry.coordinates;
       if (lng === undefined || lat === undefined) return;
       const title    = feature.properties.title || 'Tag post';

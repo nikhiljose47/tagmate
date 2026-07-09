@@ -1,16 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, retry } from 'rxjs';
 import { Tag } from '../../models/tag.model';
-import { SupabaseService } from '../../services/supabase.service';
+import { TagDataService } from '../../services/tag-data.service';
+import { RealtimeService } from '../../services/realtime.service';
 import { tagToRow, rowToTag, TagRow } from '../../services/tag.mapper';
 import { BoundingBox, ITagRepository } from '../interfaces/tag.repository';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseTagRepository implements ITagRepository {
-  private readonly supabase = inject(SupabaseService);
+  private readonly tagData = inject(TagDataService);
+  private readonly realtime = inject(RealtimeService);
 
   getAll(): Observable<Tag[]> {
-    return this.supabase
+    return this.tagData
       .getLatest<TagRow>('tags', 50)
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
@@ -24,13 +26,13 @@ export class SupabaseTagRepository implements ITagRepository {
     excludeTag?: string;
     hoodId?: string;
   }, limit?: number, offset?: number): Observable<Tag[]> {
-    return this.supabase
+    return this.tagData
       .getFilteredRows<TagRow>('tags', filters || {}, limit, offset)
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
   getPaginated(limit: number, offset: number, search?: string): Observable<Tag[]> {
-    return this.supabase
+    return this.tagData
       .getLatestPaginated<TagRow>('tags', limit, offset, search)
       .pipe(
         retry({ count: 3, delay: 2000 }),
@@ -39,25 +41,25 @@ export class SupabaseTagRepository implements ITagRepository {
   }
 
   getById(id: string): Observable<Tag | null> {
-    return this.supabase
+    return this.tagData
       .getRow<TagRow>('tags', id)
       .pipe(map(({ data }) => (data ? rowToTag(data) : null)));
   }
 
   getByUserId(userId: string): Observable<Tag[]> {
-    return this.supabase
+    return this.tagData
       .getRows<TagRow>('tags', { field: 'user_id', op: '==', value: userId })
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
   getInBounds(box: BoundingBox): Observable<Tag[]> {
-    return this.supabase
+    return this.tagData
       .fetchTagsInBounds(box.minLng, box.minLat, box.maxLng, box.maxLat)
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
   liveTags(): Observable<Tag> {
-    return this.supabase.liveInserts<TagRow>('tags').pipe(map(rowToTag));
+    return this.realtime.liveInserts<TagRow>('tags').pipe(map(rowToTag));
   }
 
   update(id: string, partial: Partial<Omit<Tag, 'id' | 'userId' | 'createdAt'>>): Observable<Tag> {
@@ -77,7 +79,7 @@ export class SupabaseTagRepository implements ITagRepository {
     if (partial.pollOptions !== undefined) row.poll_options = partial.pollOptions;
     if (partial.pollVotes !== undefined) row.poll_votes = partial.pollVotes;
 
-    return this.supabase
+    return this.tagData
       .updateRow<TagRow>('tags', id, row)
       .pipe(
         map(({ data }) => rowToTag(data as unknown as TagRow))
@@ -85,7 +87,7 @@ export class SupabaseTagRepository implements ITagRepository {
   }
 
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {
-    return this.supabase
+    return this.tagData
       .addRow('tags', tagToRow(tag as Tag) as Record<string, unknown>)
       .pipe(
         retry({ count: 3, delay: 2000 }),
@@ -94,7 +96,7 @@ export class SupabaseTagRepository implements ITagRepository {
   }
 
   delete(id: string): Observable<void> {
-    return this.supabase.deleteRow('tags', id).pipe(
+    return this.tagData.deleteRow('tags', id).pipe(
       retry({ count: 3, delay: 2000 }),
       map(() => undefined)
     );

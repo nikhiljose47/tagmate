@@ -1,5 +1,24 @@
-import { Routes } from '@angular/router';
+import { CanActivateFn, Router, Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { take, map } from 'rxjs';
 import { authGuard } from './core/guards/auth.guard';
+import { AuthService } from './core/services/auth.service';
+
+export const rootRedirectGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.session$.pipe(
+    take(1),
+    map((session) => {
+      if (session) {
+        return router.createUrlTree(['/feed']);
+      } else {
+        return router.createUrlTree(['/login']);
+      }
+    })
+  );
+};
 
 export const routes: Routes = [
   {
@@ -63,6 +82,15 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
   },
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: '**', redirectTo: 'login' },
+  {
+    path: 'not-found',
+    loadComponent: () => import('./features/not-found/pages/not-found/not-found').then((m) => m.NotFoundPage),
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    canActivate: [rootRedirectGuard],
+    children: [],
+  },
+  { path: '**', redirectTo: 'not-found' },
 ];

@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { UserSessionService } from '../../../../core/services/user-session.service';
-import { SupabaseService } from '../../../../core/services/supabase.service';
+import { SocialDataService } from '../../../../core/services/social-data.service';
+import { TagDataService } from '../../../../core/services/tag-data.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { DirectMessage, Tag } from '../../../../core/models/tag.model';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -30,7 +31,8 @@ interface ChatThread {
 })
 export class DmInboxComponent implements OnInit {
   private readonly session = inject(UserSessionService);
-  private readonly supabase = inject(SupabaseService);
+  private readonly socialData = inject(SocialDataService);
+  private readonly tagData = inject(TagDataService);
   protected readonly social = inject(SocialInteractionsService);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
@@ -76,7 +78,7 @@ export class DmInboxComponent implements OnInit {
 
   private async loadInbox(uid: string): Promise<void> {
     try {
-      const { data, error } = await firstValueFrom(this.supabase.getDirectMessagesForUser(uid));
+      const { data, error } = await firstValueFrom(this.socialData.getDirectMessagesForUser(uid));
       if (error) throw error;
 
       if (!data || data.length === 0) {
@@ -100,7 +102,7 @@ export class DmInboxComponent implements OnInit {
       const userProfiles = new Map<string, string>();
       if (otherUids.size > 0) {
         const { data: users, error: userError } = await firstValueFrom(
-          this.supabase.getRowsIn<{ uid: string; name: string }>('users', 'uid', Array.from(otherUids))
+          this.tagData.getRowsIn<{ uid: string; name: string }>('users', 'uid', Array.from(otherUids))
         );
         if (!userError && users) {
           for (const u of users) {
