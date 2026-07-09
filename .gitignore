@@ -48,3 +48,4 @@ Thumbs.db
 !.dev.vars.example
 .env*
 !.env.example
+.angular-dev-server.log
