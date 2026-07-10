@@ -65,6 +65,7 @@ export class SocialInteractionsService implements OnDestroy {
 
   // ---- identity ----
   private readonly currentUid = signal<string | null>(null);
+  private readonly currentIsAdmin = signal(false);
   private currentUsername = 'Guest';
   private lastHydratedUid: string | null = null;
 
@@ -154,6 +155,7 @@ export class SocialInteractionsService implements OnDestroy {
     this.supabase.session$.pipe(takeUntil(this.destroy$)).subscribe((session) => {
       const uid = session?.user?.id ?? null;
       this.currentUid.set(uid);
+      this.currentIsAdmin.set(session?.user?.app_metadata?.['role'] === 'admin');
       if (uid && uid !== this.lastHydratedUid) {
         this.lastHydratedUid = uid;
         this.hydratePersonalData(uid);
@@ -292,7 +294,7 @@ export class SocialInteractionsService implements OnDestroy {
   /** Whether the current viewer owns this post (and can therefore delete it). */
   canDelete(post: Tag): boolean {
     const uid = this.currentUid();
-    return !!uid && !!post.userId && uid === post.userId;
+    return !!uid && (this.currentIsAdmin() || (!!post.userId && uid === post.userId));
   }
 
   /**

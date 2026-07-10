@@ -1,7 +1,7 @@
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { take, map } from 'rxjs';
-import { authGuard } from './core/guards/auth.guard';
+import { adminGuard, authGuard } from './core/guards/auth.guard';
 import { AuthService } from './core/services/auth.service';
 
 export const rootRedirectGuard: CanActivateFn = () => {
@@ -68,7 +68,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    canActivate: [authGuard],
+    canActivate: [authGuard, adminGuard],
     loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
   },
   {

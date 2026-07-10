@@ -10,8 +10,15 @@ export class TagDataService {
   private readonly clientService = inject(SupabaseClientService);
   private readonly client = this.clientService.client;
 
+  private requireSuccess<T extends { error: unknown }>(result: T): T {
+    if (result.error) throw result.error;
+    return result;
+  }
+
   addRow<T extends Record<string, unknown>>(table: string, data: T) {
-    return from(this.client.from(table).insert(data).select().single<T>());
+    return from(this.client.from(table).insert(data).select().single<T>()).pipe(
+      map((result) => this.requireSuccess(result))
+    );
   }
 
   getRows<T>(
@@ -22,26 +29,28 @@ export class TagDataService {
     if (condition) {
       query = query.eq(condition.field, condition.value as string);
     }
-    return from(query) as Observable<{ data: T[] | null; error: unknown }>;
+    return from(query).pipe(
+      map((result) => this.requireSuccess(result))
+    ) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
   getRow<T>(table: string, id: string): Observable<{ data: T | null; error: unknown }> {
     return from(
       this.client.from(table).select('*').eq('id', id).single<T>()
-    ) as Observable<{ data: T | null; error: unknown }>;
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T | null; error: unknown }>;
   }
 
   getUserById(uid: string): Observable<AppUser | null> {
     return from(
-      this.client.from('users').select('*').eq('uid', uid).single<any>()
+      this.client.from('users').select('uid,name,is_guest,reputation').eq('uid', uid).single<any>()
     ).pipe(
-      map(({ data }) => {
+      map((result) => {
+        const { data } = this.requireSuccess(result);
         if (!data) return null;
         return {
           uid: data.uid,
           name: data.name,
           isGuest: !!data.is_guest,
-          email: data.email ?? undefined,
           reputation: data.reputation ?? 0,
         };
       })
@@ -49,32 +58,40 @@ export class TagDataService {
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {
-    return from(this.client.from(table).update(data as Record<string, unknown>).eq('id', id).select().single<T>());
+    return from(this.client.from(table).update(data as Record<string, unknown>).eq('id', id).select().single<T>()).pipe(
+      map((result) => this.requireSuccess(result))
+    );
   }
 
   deleteRow(table: string, id: string) {
-    return from(this.client.from(table).delete().eq('id', id));
+    return from(this.client.from(table).delete().eq('id', id)).pipe(
+      map((result) => this.requireSuccess(result))
+    );
   }
 
   deleteRowsWhere(table: string, matchers: Record<string, unknown>) {
-    return from(this.client.from(table).delete().match(matchers));
+    return from(this.client.from(table).delete().match(matchers)).pipe(
+      map((result) => this.requireSuccess(result))
+    );
   }
 
   upsertRow<T extends Record<string, unknown>>(table: string, data: T, onConflict?: string) {
-    return from(this.client.from(table).upsert(data, onConflict ? { onConflict } : undefined));
+    return from(this.client.from(table).upsert(data, onConflict ? { onConflict } : undefined)).pipe(
+      map((result) => this.requireSuccess(result))
+    );
   }
 
   getRowsIn<T>(table: string, field: string, values: unknown[]): Observable<{ data: T[] | null; error: unknown }> {
     if (!values.length) return of({ data: [], error: null });
     return from(
       this.client.from(table).select('*').in(field, values as (string | number)[])
-    ) as Observable<{ data: T[] | null; error: unknown }>;
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
   getLatest<T>(table: string, limit: number): Observable<{ data: T[] | null; error: unknown }> {
     return from(
       this.client.from(table).select('*').order('created_at', { ascending: false }).limit(limit)
-    ) as Observable<{ data: T[] | null; error: unknown }>;
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
   getLatestPaginated<T>(table: string, limit: number, offset: number, search?: string): Observable<{ data: T[] | null; error: unknown }> {
@@ -85,7 +102,7 @@ export class TagDataService {
       query = query.or(`highlight.ilike.${searchTerm},username.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`);
     }
 
-    return from(query) as Observable<{ data: T[] | null; error: unknown }>;
+    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
   getFilteredRows<T>(
@@ -136,7 +153,7 @@ export class TagDataService {
       query = query.limit(limit);
     }
     
-    return from(query) as Observable<{ data: T[] | null; error: unknown }>;
+    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
   }
 
   fetchTagsInBounds(
@@ -152,10 +169,12 @@ export class TagDataService {
         max_lng: maxLng,
         max_lat: maxLat,
       })
-    ) as Observable<{ data: TagRow[] | null; error: unknown }>;
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: TagRow[] | null; error: unknown }>;
   }
 
   setUserActive() {
-    return from(this.client.rpc('set_user_active'));
+    return from(this.client.rpc('set_user_active')).pipe(
+      map((result) => this.requireSuccess(result))
+    );
   }
 }

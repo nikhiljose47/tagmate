@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
 import { SupabaseClientService } from './supabase-client.service';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -60,5 +60,47 @@ describe('AuthService', () => {
       password: 'password123',
       options: { data: { username: 'testuser' } }
     });
+  });
+
+  it('should emit the restored session instead of a placeholder null', async () => {
+    const restored = { user: { id: 'returning-user' } } as any;
+    TestBed.resetTestingModule();
+    const freshAuth = {
+      ...authMock,
+      getSession: jasmine.createSpy('getSession').and.returnValue(
+        Promise.resolve({ data: { session: restored }, error: null })
+      ),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        AuthService,
+        { provide: SupabaseClientService, useValue: { client: { auth: freshAuth } } },
+      ],
+    });
+
+    const restoredService = TestBed.inject(AuthService);
+    await expectAsync(firstValueFrom(restoredService.session$)).toBeResolvedTo(restored);
+  });
+
+  it('should unsubscribe from auth changes when destroyed', () => {
+    const unsubscribe = jasmine.createSpy('unsubscribe');
+    TestBed.resetTestingModule();
+    const freshAuth = {
+      ...authMock,
+      onAuthStateChange: jasmine.createSpy('onAuthStateChange').and.returnValue({
+        data: { subscription: { unsubscribe } },
+      }),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        AuthService,
+        { provide: SupabaseClientService, useValue: { client: { auth: freshAuth } } },
+      ],
+    });
+    const isolated = TestBed.inject(AuthService);
+
+    isolated.ngOnDestroy();
+
+    expect(unsubscribe).toHaveBeenCalled();
   });
 });

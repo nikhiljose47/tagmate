@@ -89,15 +89,11 @@ export class SupabaseTagRepository implements ITagRepository {
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {
     return this.tagData
       .addRow('tags', tagToRow(tag as Tag) as Record<string, unknown>)
-      .pipe(
-        retry({ count: 3, delay: 2000 }),
-        map(({ data }) => rowToTag(data as unknown as TagRow))
-      );
+      .pipe(map(({ data }) => rowToTag(data as unknown as TagRow)));
   }
 
   delete(id: string): Observable<void> {
     return this.tagData.deleteRow('tags', id).pipe(
-      retry({ count: 3, delay: 2000 }),
       map(() => undefined)
     );
   }

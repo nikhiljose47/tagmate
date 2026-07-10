@@ -44,7 +44,9 @@ export class UserSessionService {
           return this.supabase.getUserById(uid).pipe(
             switchMap((appUser) => {
               if (appUser) {
-                return of(appUser);
+                // Email is sourced from the authenticated session, never from
+                // the public profile row returned for arbitrary users.
+                return of({ ...appUser, email: session.user.email ?? undefined });
               }
 
               const name =

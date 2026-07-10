@@ -8,12 +8,12 @@ interface RateLimitData {
   lastRefill: number;
 }
 const rateLimitMap = new Map<string, RateLimitData>();
+let lastRateLimitSweep = 0;
 
 function getClientIp(req: Request): string {
-  return req.headers.get('CF-Connecting-IP') || 
-         req.headers.get('x-real-ip') || 
-         req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
-         '127.0.0.1';
+  // CF-Connecting-IP is written by Cloudflare. Forwarded headers can be
+  // supplied by an attacker and must not be trusted for rate-limit identity.
+  return req.headers.get('CF-Connecting-IP') || 'unknown';
 }
 
 function isRateLimited(ip: string): boolean {
@@ -23,9 +23,12 @@ function isRateLimited(ip: string): boolean {
 
   // Evict client entries older than 2 minutes to prevent unbounded growth
   const ttl = 120000;
-  for (const [key, val] of rateLimitMap.entries()) {
-    if (now - val.lastRefill > ttl) {
-      rateLimitMap.delete(key);
+  if (now - lastRateLimitSweep > ttl) {
+    lastRateLimitSweep = now;
+    for (const [key, val] of rateLimitMap.entries()) {
+      if (now - val.lastRefill > ttl) {
+        rateLimitMap.delete(key);
+      }
     }
   }
   
@@ -62,7 +65,7 @@ function applySecurityHeaders(res: Response): Response {
   
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://*.maptiler.com",
+    "script-src 'self' https://*.supabase.co https://*.maptiler.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
     "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://*.maptiler.com https://nominatim.openstreetmap.org",

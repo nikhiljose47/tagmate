@@ -59,4 +59,19 @@ describe('TagDataService', () => {
     expect(clientServiceMock.client.from).toHaveBeenCalledWith('tags');
     expect(fromMock.delete).toHaveBeenCalled();
   });
+
+  it('should surface resolved Supabase errors through the observable error channel', (done) => {
+    const databaseError = new Error('permission denied');
+    fromMock.insert.and.returnValue({
+      select: () => ({ single: () => of({ data: null, error: databaseError }) })
+    });
+
+    service.addRow('tags', { highlight: 'blocked' }).subscribe({
+      next: () => done.fail('expected an observable error'),
+      error: (error) => {
+        expect(error).toBe(databaseError);
+        done();
+      }
+    });
+  });
 });

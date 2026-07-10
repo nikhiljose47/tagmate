@@ -69,6 +69,8 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 * **HTTP Security Headers**: Configures and returns standard security headers (`CSP`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security`, `Referrer-Policy`) on all static and proxy responses inside the request handler.
 * **Geocoding API Rate Limiting**: Implements IP-based token-bucket rate limiting (15 requests/min) on `/api/nominatim/*` proxy routes.
 * **Password Validation Hardening**: Enforces minimum length (8 characters), uppercase, lowercase, and numeric complexity constraints on account sign-up and update password forms.
+* **Authorization & Data-Layer Hardening**: Session-aware route guards wait for persisted auth restoration, admin routes require trusted Supabase `app_metadata`, database errors propagate to callers, and non-idempotent post writes are no longer automatically retried.
+* **Deployment Security Contract**: Adds a Supabase migration for case-insensitive username uniqueness and trusted-admin deletion, plus an operational checklist in `docs/SECURITY_DEPLOYMENT.md` for RLS, storage, Cloudflare rate limiting, and browser-key restrictions.
 
 ---
 
@@ -95,7 +97,7 @@ Run the unit test suite headless from the root workspace:
 ```bash
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
-Ensure all tests compile and pass successfully. The suite now includes 54 tests covering nav, app-topbar, map-hood, post-detail, and inbox components.
+Ensure all tests compile and pass successfully. The suite now includes 59 tests covering auth restoration, trusted admin authorization, Supabase error propagation, nav, app-topbar, map-hood, post-detail, and inbox components.
 
 ### Manual UI Verification Checklist
 Before deploying changes:
@@ -120,4 +122,8 @@ Before deploying changes:
 8. **NotFound (404) Redirects**:
    - Navigate to `/some-invalid-path` and confirm the glassmorphic "Lost in the Neighborhood? (404)" page is displayed.
    - Confirm clicking the CTA button routes back to `/feed` if logged in, or `/login` if logged out.
+9. **Authorization hardening**:
+   - Refresh a protected route with a valid persisted session and confirm it does not flash or redirect to `/login`.
+   - Confirm a normal account and an account with only `user_metadata.role = "admin"` are redirected away from `/admin`.
+   - Confirm an account with trusted `app_metadata.role = "admin"` can enter `/admin` and moderate a post under the deployed RLS policy.
 
