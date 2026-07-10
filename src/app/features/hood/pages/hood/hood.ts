@@ -138,6 +138,8 @@ interface NominatimSearchResult {
   lat: string;
   lon: string;
   display_name?: string;
+  geojson?: { type: string; coordinates: unknown };
+  boundingbox?: [string, string, string, string];
 }
 
 interface ClusterFeatureProperties {
@@ -452,10 +454,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (cachedGeo?.length) { this.applyGeocodingResult(cachedGeo, q); return; }
 
     this.isSearching.set(true);
-    this.setBoundary(q, true);
 
     this.http
-      .get<NominatimSearchResult[]>(`/api/nominatim/search?q=${encodeURIComponent(q)}`)
+      .get<NominatimSearchResult[]>(`/api/nominatim/boundary?q=${encodeURIComponent(q)}`)
       .pipe(
         takeUntil(this.destroy$),
         catchError((err: unknown) => {
@@ -903,6 +904,29 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     this.state.updateCoordinates(lat, lng);
     this.state.updateText(first.display_name ?? q);
     this.loadVisiblePosts();
+
+    // Extract boundary from the same search result — no extra API call needed.
+    this.setBoundaryFromResult(first, q);
+  }
+
+  private setBoundaryFromResult(place: NominatimSearchResult, name: string): void {
+    const bounds = Utils.getBoundsFromBoundingBox(place.boundingbox);
+    if (!bounds) return;
+
+    let geometry: HoodBoundaryGeometry;
+    if (place.geojson && (place.geojson.type === 'Polygon' || place.geojson.type === 'MultiPolygon')) {
+      geometry = place.geojson as HoodBoundaryGeometry;
+    } else {
+      geometry = Utils.createRectangleGeometry(place.boundingbox);
+    }
+
+    this.updateBoundarySource(geometry, name);
+    this.fitBoundary(bounds);
+
+    // Also store in the dedicated boundary cache so style.load / refresh can reuse it.
+    const key = name.trim().toLowerCase();
+    this.boundaryCache.set(key, { geometry, bounds });
+    writeLocalStorage(this.BOUNDARY_CACHE_KEY, Array.from(this.boundaryCache.entries()));
   }
 
   private syncSelectedZoom(): void {

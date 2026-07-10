@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { NgClass } from '@angular/common';
 import { filter, map, startWith } from 'rxjs';
 interface NavItem {
   route:      string;
@@ -13,7 +14,7 @@ interface NavItem {
 @Component({
   selector: 'app-nav',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, NgClass],
   templateUrl: './nav.html',
   styleUrls: ['./nav.scss'],
 })
@@ -32,6 +33,12 @@ export class NavComponent {
     { route: '/profile',   icon: 'bi-person',         activeIcon: 'bi-person-fill',     label: 'Profile', mobile: true },
   ];
 
+  readonly moreMenuOpen = signal(false);
+
+  readonly moreMenuItems = computed(() =>
+    this.navItems.filter((item) => !item.mobile)
+  );
+
   readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -43,5 +50,18 @@ export class NavComponent {
 
   isActive(route: string): boolean {
     return this.currentUrl().startsWith(route);
+  }
+
+  toggleMore(): void {
+    this.moreMenuOpen.update((v) => !v);
+  }
+
+  closeMore(): void {
+    this.moreMenuOpen.set(false);
+  }
+
+  goTo(route: string): void {
+    this.closeMore();
+    void this.router.navigateByUrl(route);
   }
 }

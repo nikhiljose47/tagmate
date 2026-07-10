@@ -1,7 +1,7 @@
 <nav class="app-nav" aria-label="Main navigation">
 
   <!-- Brand — desktop sidebar only -->
-  <a class="nav-brand" routerLink="/feed" aria-label="Tagmate home">
+  <a class="nav-brand" routerLink="/feed" aria-label="Tagmate home" (click)="closeMore()">
     <span class="brand-icon">
       <i class="bi bi-geo-alt-fill"></i>
     </span>
@@ -11,23 +11,78 @@
   <!-- Nav items -->
   <div class="nav-items">
     @for (item of navItems; track item.route) {
-      <a
-        class="nav-item"
-        [class.post-item]="item.route === '/post'"
-        [class.mobile-primary]="item.mobile"
-        [routerLink]="item.route"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
-        [attr.aria-label]="item.label"
-        #rla="routerLinkActive"
-      >
-        <span class="nav-icon">
-          <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
-        </span>
-        <span class="nav-label">{{ item.label }}</span>
-      </a>
+      @if (!item.mobile) {
+        <!-- Desktop-only items (hidden on mobile) -->
+        <a
+          class="nav-item nav-item--desktop"
+          [class.post-item]="item.route === '/post'"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
+          [attr.aria-label]="item.label"
+          #rla="routerLinkActive"
+        >
+          <span class="nav-icon">
+            <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+          </span>
+          <span class="nav-label">{{ item.label }}</span>
+        </a>
+      } @else {
+        <!-- Mobile primary items -->
+        <a
+          class="nav-item mobile-primary"
+          [class.post-item]="item.route === '/post'"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
+          [attr.aria-label]="item.label"
+          (click)="closeMore()"
+          #rla="routerLinkActive"
+        >
+          <span class="nav-icon">
+            <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+          </span>
+          <span class="nav-label">{{ item.label }}</span>
+        </a>
+      }
     }
 
+    <!-- Mobile "More" button -->
+    <button
+      class="nav-item mobile-primary nav-item--more"
+      type="button"
+      [class.active]="moreMenuOpen()"
+      aria-label="More options"
+      (click)="toggleMore()"
+    >
+      <span class="nav-icon">
+        <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
+      </span>
+      <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
+    </button>
+
+    @if (moreMenuOpen()) {
+      <!-- Backdrop -->
+      <div class="more-backdrop" (click)="closeMore()" (keydown)="closeMore()" tabindex="-1"></div>
+
+      <!-- More menu popup -->
+      <div class="more-menu" role="menu" aria-label="More navigation options">
+        @for (item of moreMenuItems(); track item.route) {
+          <button
+            type="button"
+            class="more-menu-item"
+            [class.active]="isActive(item.route)"
+            role="menuitem"
+            (click)="goTo(item.route)"
+          >
+            <span class="more-menu-icon">
+              <i class="bi" [class]="isActive(item.route) ? item.activeIcon : item.icon"></i>
+            </span>
+            <span class="more-menu-label">{{ item.label }}</span>
+          </button>
+        }
+      </div>
+    }
   </div>
 
 </nav>

@@ -96,6 +96,113 @@
   .nav-item.post-item {
     color: var(--tm-primary);
   }
+
+  /* Desktop-only items hidden on mobile */
+  .nav-item--desktop {
+    display: none;
+  }
+
+  /* More button */
+  .nav-item--more {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--tm-primary);
+    }
+
+    &.active {
+      color: var(--tm-primary);
+    }
+  }
+
+  /* Backdrop */
+  .more-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+  }
+
+  /* More menu popup */
+  .more-menu {
+    position: fixed;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    left: 8px;
+    right: 8px;
+    z-index: 10000;
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 16px;
+    background: var(--tm-surface);
+    border: 1px solid var(--tm-border);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.25s ease;
+  }
+
+  .more-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--tm-text);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover,
+    &:focus-visible {
+      background: color-mix(in srgb, var(--tm-primary) 8%, transparent);
+      color: var(--tm-primary);
+    }
+
+    &.active {
+      background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+      color: var(--tm-primary);
+    }
+  }
+
+  .more-menu-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--tm-muted) 10%, transparent);
+
+    i {
+      font-size: 18px;
+      line-height: 1;
+    }
+  }
+
+  .more-menu-label {
+    font-size: 15px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -112,6 +219,17 @@
     border-right: 1px solid #e2e8f0;
     padding: 20px 0 24px;
     overflow: hidden;
+  }
+
+  /* Show all items on desktop; hide the More button */
+  .nav-item--desktop {
+    display: flex;
+  }
+
+  .nav-item--more,
+  .more-backdrop,
+  .more-menu {
+    display: none;
   }
 
   /* ── Narrow desktop: 72px icon-only sidebar ── */

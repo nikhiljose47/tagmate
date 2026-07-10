@@ -92,7 +92,7 @@ export class Utils implements OnDestroy {
     return geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon';
   }
 
-  private static getBoundsFromBoundingBox(
+  static getBoundsFromBoundingBox(
     box: NominatimPlace['boundingbox']
   ): LngLatBoundsLike | null {
     if (!box) return null;
@@ -101,7 +101,7 @@ export class Utils implements OnDestroy {
     return [[w, s], [e, n]];
   }
 
-  private static createRectangleGeometry(box: NominatimPlace['boundingbox']): Polygon {
+  static createRectangleGeometry(box: NominatimPlace['boundingbox']): Polygon {
     if (!box) return { type: 'Polygon', coordinates: [[]] };
     const [s, n, w, e] = box.map(Number.parseFloat);
     return {
