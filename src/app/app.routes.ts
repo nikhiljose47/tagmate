@@ -36,11 +36,6 @@ export const routes: Routes = [
     loadChildren: () => import('./features/hood/hood.routes').then((m) => m.HOOD_ROUTES),
   },
   {
-    path: 'tagmate',
-    canActivate: [authGuard],
-    loadChildren: () => import('./features/globe/globe.routes').then((m) => m.GLOBE_ROUTES),
-  },
-  {
     path: 'post',
     canActivate: [authGuard],
     loadChildren: () => import('./features/post/post.routes').then((m) => m.POST_ROUTES),

@@ -10,7 +10,7 @@
 
   <!-- Nav items -->
   <div class="nav-items">
-    @for (item of navItems; track item.route) {
+    @for (item of visibleNavItems(); track item.route) {
       @if (!item.mobile) {
         <!-- Desktop-only items (hidden on mobile) -->
         <a

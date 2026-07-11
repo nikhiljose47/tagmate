@@ -42,7 +42,7 @@ export class UpdatePasswordComponent {
         this.error.set(error.message || 'Update failed');
       } else {
         this.toast.show('Password updated successfully!', 'success');
-        void this.router.navigate(['/tagmate']);
+        void this.router.navigate(['/feed']);
       }
     } catch (err: any) {
       this.error.set(err?.message ?? 'Something went wrong');

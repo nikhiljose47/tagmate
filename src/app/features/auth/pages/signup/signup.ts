@@ -80,7 +80,7 @@ export class SignupPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((user) => {
         if (this.destroyed) return;
-        if (!user.isGuest) this.router.navigateByUrl('/tagmate');
+        if (!user.isGuest) this.router.navigateByUrl('/feed');
       });
   }
 
@@ -151,7 +151,7 @@ export class SignupPage implements OnInit {
       if (this.destroyed) return;
 
       if (res.ok) {
-        this.router.navigateByUrl('/tagmate');
+        this.router.navigateByUrl('/feed');
       } else {
         this.error.set(res.message ?? 'Signup failed');
       }

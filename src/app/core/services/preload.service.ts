@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Hood } from '../models/hood.model';
 import { Tag } from '../models/tag.model';
 import { TagDataService } from './tag-data.service';
@@ -12,34 +12,15 @@ const DELTA      = 0.12; // ~13 km radius around hood centre
 export class PreloadService {
   private readonly tagData = inject(TagDataService);
 
-  private _globePosts: Tag[] | null   = null;
-  private _globeTs    = 0;
   private _hoodPosts: Tag[] | null    = null;
   private _hoodTs     = 0;
 
-  /** Emits true once the globe feed batch has arrived (or errored). */
-  readonly globeReady = signal(false);
-
-  /** Call once on app start. Runs all prefetches in parallel. */
+  /** Call once on app start. */
   prefetch(): void {
-    this.prefetchGlobe();
     this.prefetchHood();
   }
 
-  /**
-   * Returns the pre-fetched globe posts, if available.
-   * Calling this does NOT consume/clear them — it's safe to call many times.
-   */
-  getGlobePosts(): Tag[] | null {
-    if (this._globePosts !== null && Date.now() - this._globeTs < CACHE_TTL) {
-      return this._globePosts;
-    }
-    return null;
-  }
-
-  /**
-   * Returns the pre-fetched hood posts if still within TTL, null otherwise.
-   */
+  /** Returns the pre-fetched hood posts if still within TTL, null otherwise. */
   getHoodPosts(): Tag[] | null {
     if (this._hoodPosts !== null && Date.now() - this._hoodTs < CACHE_TTL) {
       return this._hoodPosts;
@@ -48,17 +29,6 @@ export class PreloadService {
   }
 
   // ── private ──────────────────────────────────────────────────────────────
-
-  private prefetchGlobe(): void {
-    this.tagData.getLatest<TagRow>('tags', 50).subscribe({
-      next: ({ data }) => {
-        this._globePosts = (data ?? []).map(rowToTag);
-        this._globeTs    = Date.now();
-        this.globeReady.set(true);
-      },
-      error: () => { this.globeReady.set(true); },
-    });
-  }
 
   private prefetchHood(): void {
     const { lat, lng } = this.readStoredHood().coords;
