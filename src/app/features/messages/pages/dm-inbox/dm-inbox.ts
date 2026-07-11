@@ -1,8 +1,9 @@
 import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, filter } from 'rxjs';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { SocialDataService } from '../../../../core/services/social-data.service';
 import { TagDataService } from '../../../../core/services/tag-data.service';
@@ -65,15 +66,18 @@ export class DmInboxComponent implements OnInit {
     return this.social.threadFor(mockPost);
   });
 
-  ngOnInit(): void {
-    const currentUser = this.session.user();
-    if (!currentUser) {
-      this.toast.show('Please log in to view messages.', 'warning');
-      void this.router.navigate(['/login']);
-      return;
-    }
+  constructor() {
+    toObservable(this.session.user)
+      .pipe(
+        filter((user): user is NonNullable<typeof user> => !!user),
+        takeUntilDestroyed()
+      )
+      .subscribe((user) => {
+        this.loadInbox(user.uid);
+      });
+  }
 
-    this.loadInbox(currentUser.uid);
+  ngOnInit(): void {
   }
 
   private async loadInbox(uid: string): Promise<void> {
