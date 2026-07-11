@@ -177,7 +177,7 @@ export class UserSessionService {
   ): Promise<AuthResponse> {
     try {
       const { data, error } = await firstValueFrom(
-        this.supabase.signUp(email, password, { username })
+        this.supabase.updateUser({ email, password, data: { username } })
       );
       if (error) {
         return {

@@ -68,7 +68,7 @@ export class PostDetailPage implements OnInit {
       return;
     }
 
-    this.tagRepo.getById(id).subscribe({
+    this.tagRepo.getById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (post) => {
         this.post.set(post);
         this.isLoading.set(false);
@@ -244,7 +244,7 @@ export class PostDetailPage implements OnInit {
   }
 
   private loadRelated(post: Tag): void {
-    this.tagRepo.getFiltered({ tags: [post.tag] }).subscribe({
+    this.tagRepo.getFiltered({ tags: [post.tag] }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (posts) => {
         this.relatedPosts.set(
           posts

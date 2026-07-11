@@ -311,14 +311,21 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   toggleInfo(): void          { this.showInfo.update((v) => !v); }
 
   recenter(): void {
-    const coords = this.hood().coords;
-    this.map?.flyTo({ center: [coords.lng, coords.lat], zoom: this.selected(), essential: true });
-    this.toast.show('Map recentered to your current hood.', 'success');
+    const coords = this.hood()?.coords;
+    if (coords && coords.lat !== undefined && coords.lng !== undefined) {
+      this.map?.flyTo({ center: [coords.lng, coords.lat], zoom: this.selected(), essential: true });
+      this.toast.show('Map recentered to your current hood.', 'success');
+    } else {
+      this.toast.show('Could not find active coordinates for your current hood.', 'warning');
+    }
   }
 
   refreshMap(): void {
     this.loadVisiblePosts();
-    void this.setBoundary(this.hood().name, false);
+    const hoodName = this.hood()?.name;
+    if (hoodName) {
+      void this.setBoundary(hoodName, false);
+    }
     this.toast.show('Map refreshed.', 'success');
   }
 

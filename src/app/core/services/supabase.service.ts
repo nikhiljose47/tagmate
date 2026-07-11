@@ -48,6 +48,10 @@ export class SupabaseService {
     return this.auth.updatePassword(password);
   }
 
+  updateUser(attributes: { email?: string; password?: string; data?: Record<string, unknown> }) {
+    return this.auth.updateUser(attributes);
+  }
+
   updateUserMetadata(metadata: Record<string, unknown>) {
     return this.auth.updateUserMetadata(metadata);
   }

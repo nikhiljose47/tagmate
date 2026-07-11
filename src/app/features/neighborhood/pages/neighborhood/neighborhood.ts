@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone, computed, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, NgZone, computed, inject, signal, effect, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
@@ -35,6 +36,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   protected readonly social = inject(SocialInteractionsService);
   private readonly sessionService = inject(UserSessionService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private static readonly _mlPromise = import('maplibre-gl');
   private hoodMaplib?: typeof import('maplibre-gl');
@@ -179,7 +181,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     }
 
     const filter = this.slug !== 'nearby' ? { hoodId: this.name } : undefined;
-    this.tagRepo.getFiltered(filter).subscribe({
+    this.tagRepo.getFiltered(filter).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (posts) => {
         this.posts.set(posts);
         this.isLoading.set(false);

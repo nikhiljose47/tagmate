@@ -74,6 +74,10 @@ export class AuthService implements OnDestroy {
     return from(this.client.auth.updateUser({ password }));
   }
 
+  updateUser(attributes: { email?: string; password?: string; data?: Record<string, unknown> }) {
+    return from(this.client.auth.updateUser(attributes));
+  }
+
   updateUserMetadata(metadata: Record<string, unknown>) {
     return from(this.client.auth.updateUser({ data: metadata }));
   }

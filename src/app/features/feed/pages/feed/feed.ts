@@ -218,7 +218,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     if (mode !== 'nearby') return;
 
     const coords = await this.shared.getDeviceCoordinates();
-    this.proximityCoords.set(coords ?? [this.hood().coords.lat, this.hood().coords.lng]);
+    const fallbackLat = this.hood()?.coords?.lat ?? 0;
+    const fallbackLng = this.hood()?.coords?.lng ?? 0;
+    this.proximityCoords.set(coords ?? [fallbackLat, fallbackLng]);
     if (!coords) {
       this.toast.show('Sorting nearby from your current hood because location permission was unavailable.', 'info');
     }
@@ -327,7 +329,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private distanceFromProximityOrigin(post: Tag): number {
-    const [lat, lng] = this.proximityCoords() ?? [this.hood().coords.lat, this.hood().coords.lng];
+    const fallbackLat = this.hood()?.coords?.lat ?? 0;
+    const fallbackLng = this.hood()?.coords?.lng ?? 0;
+    const [lat, lng] = this.proximityCoords() ?? [fallbackLat, fallbackLng];
     return Math.pow(post.lat - lat, 2) + Math.pow(post.lng - lng, 2);
   }
 }

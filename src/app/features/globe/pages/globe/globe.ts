@@ -54,8 +54,21 @@ export class GlobePage implements OnInit {
   savedView    = signal(false);
   brokenImages = signal<Set<string>>(new Set<string>());
   protected readonly hood = this.store.selectSignal(selectHood);
+  readonly currentTimestamp = signal<number>(Date.now());
+  private timeUpdateInterval?: any;
 
   ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      this.timeUpdateInterval = setInterval(() => {
+        this.currentTimestamp.set(Date.now());
+      }, 30000);
+    }
+    this.destroyRef.onDestroy(() => {
+      if (this.timeUpdateInterval) {
+        clearInterval(this.timeUpdateInterval);
+      }
+    });
+
     // Drop a post immediately if it was deleted here or on any other page.
     // Registered unconditionally, before the preload-cache early return below.
     this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
@@ -107,6 +120,7 @@ export class GlobePage implements OnInit {
 
   refresh(): void {
     this.isLoading.set(true);
+    this.brokenImages.set(new Set());
     this.tagRepo.getFiltered({ excludeTag: 'bulletin' }).subscribe({
       next: (tags) => {
         this.cards.set(tags);
@@ -191,7 +205,9 @@ export class GlobePage implements OnInit {
     if (mode !== 'nearby') return;
 
     const coords = await this.shared.getDeviceCoordinates();
-    this.proximityCoords.set(coords ?? [this.hood().coords.lat, this.hood().coords.lng]);
+    const fallbackLat = this.hood()?.coords?.lat ?? 0;
+    const fallbackLng = this.hood()?.coords?.lng ?? 0;
+    this.proximityCoords.set(coords ?? [fallbackLat, fallbackLng]);
     if (!coords) {
       this.toast.show('Sorting nearby from your current hood because location permission was unavailable.', 'info');
     }
@@ -237,7 +253,7 @@ export class GlobePage implements OnInit {
     const rangeMs: Record<Exclude<DateRange, ''>, number> = {
       '1h': 3_600_000, '24h': 86_400_000, '7d': 604_800_000, '30d': 2_592_000_000,
     };
-    return Date.now() - created.getTime() <= rangeMs[range];
+    return this.currentTimestamp() - created.getTime() <= rangeMs[range];
   }
 
   private distanceFromProximityOrigin(card: Tag): number {

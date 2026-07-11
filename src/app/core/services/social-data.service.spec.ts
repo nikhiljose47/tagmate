@@ -38,7 +38,7 @@ describe('SocialDataService', () => {
   });
 
   it('should query DMs for a user', () => {
-    service.getDirectMessagesForUser('user123').subscribe();
+    service.getDirectMessagesForUser('12345678-1234-1234-1234-1234567890ab').subscribe();
     expect(clientServiceMock.client.from).toHaveBeenCalledWith('direct_messages');
   });
 

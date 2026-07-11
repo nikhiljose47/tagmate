@@ -82,7 +82,11 @@ export class SupabaseTagRepository implements ITagRepository {
     return this.tagData
       .updateRow<TagRow>('tags', id, row)
       .pipe(
-        map(({ data }) => rowToTag(data as unknown as TagRow))
+        map(({ data, error }) => {
+          if (error) throw error;
+          if (!data) throw new Error('Update failed: no data returned');
+          return rowToTag(data);
+        })
       );
   }
 
