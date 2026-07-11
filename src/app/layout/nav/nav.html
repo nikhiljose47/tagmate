@@ -15,8 +15,7 @@
         <!-- Desktop-only items (hidden on mobile) -->
         <a
           class="nav-item nav-item--desktop"
-          [class.post-item]="item.route === '/post'"
-          [routerLink]="item.route"
+                    [routerLink]="item.route"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
           [attr.aria-label]="item.label"
@@ -31,8 +30,7 @@
         <!-- Mobile primary items -->
         <a
           class="nav-item mobile-primary"
-          [class.post-item]="item.route === '/post'"
-          [routerLink]="item.route"
+                    [routerLink]="item.route"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
           [attr.aria-label]="item.label"

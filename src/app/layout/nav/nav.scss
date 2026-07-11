@@ -85,18 +85,6 @@
     letter-spacing: 0.01em;
   }
 
-  /* Post tab: subtle accent */
-  .nav-item.post-item .nav-icon i {
-    font-size: 24px;
-    color: var(--tm-primary);
-  }
-  .nav-item.post-item .nav-label {
-    color: var(--tm-primary);
-  }
-  .nav-item.post-item {
-    color: var(--tm-primary);
-  }
-
   /* Desktop-only items hidden on mobile */
   .nav-item--desktop {
     display: none;
@@ -298,21 +286,6 @@
       display: none;
     }
 
-    /* Post button: filled style */
-    .nav-item.post-item {
-      background: var(--tm-primary);
-      color: #fff;
-
-      &:hover {
-        background: var(--tm-primary-hover);
-        color: #fff;
-      }
-
-      &.active {
-        background: var(--tm-primary);
-        color: #fff;
-      }
-    }
   }
 
   /* ── Wide desktop: 245px full sidebar ── */
@@ -407,22 +380,5 @@
       font-size: 15px;
     }
 
-    /* Post: full-width button style */
-    .nav-item.post-item {
-      background: var(--tm-primary);
-      color: #fff;
-      font-weight: 700;
-      margin-top: 8px;
-
-      &:hover {
-        background: var(--tm-primary-hover);
-        color: #fff;
-      }
-
-      &.active {
-        background: var(--tm-primary);
-        color: #fff;
-      }
-    }
   }
 }
