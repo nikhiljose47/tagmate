@@ -36,6 +36,10 @@ export const routes: Routes = [
     loadChildren: () => import('./features/hood/hood.routes').then((m) => m.HOOD_ROUTES),
   },
   {
+    path: 'island',
+    loadChildren: () => import('./features/hood-island/hood-island.routes').then((m) => m.HOOD_ISLAND_ROUTES),
+  },
+  {
     path: 'post',
     canActivate: [authGuard],
     loadChildren: () => import('./features/post/post.routes').then((m) => m.POST_ROUTES),

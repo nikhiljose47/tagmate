@@ -29,6 +29,7 @@ export class NavComponent {
   readonly navItems: NavItem[] = [
     { route: '/feed',      icon: 'bi-list-ul',        activeIcon: 'bi-list-check',      label: 'Feed', mobile: true },
     { route: '/hood',      icon: 'bi-map',            activeIcon: 'bi-map-fill',        label: 'Map', mobile: true },
+    { route: '/island',    icon: 'bi-geo-alt',        activeIcon: 'bi-geo-alt-fill',    label: 'Hood', mobile: true },
     { route: '/post',      icon: 'bi-plus-square',    activeIcon: 'bi-plus-square-fill', label: 'Post', mobile: true },
     { route: '/messages',  icon: 'bi-chat-left-dots', activeIcon: 'bi-chat-left-dots-fill', label: 'Messages', mobile: true },
     { route: '/reports',   icon: 'bi-flag',           activeIcon: 'bi-flag-fill',       label: 'Reports'   },

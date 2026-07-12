@@ -39,7 +39,10 @@ export class App {
     { initialValue: this.router.url }
   );
 
-  protected readonly showNav = computed(() => !this.currentUrl().startsWith('/login'));
+  protected readonly showNav    = computed(() => !this.currentUrl().startsWith('/login'));
+  protected readonly showTopbar = computed(() =>
+    this.showNav() && !this.currentUrl().startsWith('/island')
+  );
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {

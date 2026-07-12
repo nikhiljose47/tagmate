@@ -1,0 +1,353 @@
+<div class="island-wrapper" [style.background]="currentModeConfig().bg">
+
+  <!-- Full-screen map canvas -->
+  <div #mapEl class="island-map" [style.filter]="mapFilter()"></div>
+
+  <!-- ── Top-left: search bar ─────────────────────────────────────────────── -->
+  <div class="island-search-wrap">
+
+    <label class="island-search-bar" [class.active]="searchOpen()">
+      <i class="bi bi-search" aria-hidden="true"></i>
+
+      <div class="island-search-fields">
+        <input
+          type="search"
+          [value]="searchQuery()"
+          (input)="onSearchInput($any($event.target).value)"
+          (focus)="searchResults().length ? searchOpen.set(true) : null"
+          (keydown.Escape)="searchOpen.set(false)"
+          (blur)="onSearchBlur()"
+          placeholder="Search neighborhoods…"
+          aria-label="Search neighborhoods"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <span class="island-search-hood">{{ hoodName() }}</span>
+      </div>
+
+      @if (searching()) {
+        <div class="island-search-spinner"></div>
+      }
+    </label>
+
+    @if (searchOpen() && searchResults().length > 0) {
+      <div class="island-search-results" role="listbox" (mousedown)="$event.preventDefault()">
+        @for (r of searchResults(); track r.displayName) {
+          <button type="button" class="island-search-result" role="option" (click)="pickSearchResult(r)">
+            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+            <span class="island-result-text">
+              <strong>{{ r.shortName }}</strong>
+              <small>{{ r.type }}</small>
+            </span>
+          </button>
+        }
+      </div>
+    }
+
+  </div>
+
+  <!-- ── Top-right: quick settings + advanced config buttons ──────────────── -->
+  <div class="island-settings-wrap">
+
+    <!-- Quick settings toggle -->
+    <button
+      class="island-settings-btn"
+      type="button"
+      [class.active]="settingsOpen()"
+      (click)="settingsOpen.update(v => !v); advancedOpen.set(false)"
+      aria-label="Quick visual settings"
+    >
+      <i class="bi bi-sliders2" aria-hidden="true"></i>
+    </button>
+
+    <!-- Advanced config button -->
+    <button
+      class="island-settings-btn"
+      type="button"
+      [class.active]="advancedOpen()"
+      (click)="advancedOpen.update(v => !v); settingsOpen.set(false)"
+      aria-label="Advanced map configuration"
+    >
+      <i class="bi bi-gear-fill" aria-hidden="true"></i>
+    </button>
+
+    <!-- Quick settings panel -->
+    @if (settingsOpen()) {
+      <div class="island-settings-panel">
+
+        <span class="island-settings-title">Map Style</span>
+        <div class="island-mode-grid cols-3">
+          @for (s of baseStyles; track s.key) {
+            <button type="button" class="island-mode-btn compact"
+              [class.active]="baseStyle() === s.key"
+              (click)="setBaseStyle(s.key)">{{ s.label }}</button>
+          }
+        </div>
+
+        <span class="island-settings-title">Ocean Style</span>
+        <div class="island-mode-grid">
+          @for (mode of oceanModes; track mode.key) {
+            <button type="button" class="island-mode-btn"
+              [class.active]="currentMode() === mode.key"
+              (click)="applyMode(mode.key)">
+              <span class="island-mode-swatch" [style.background]="mode.swatch"></span>
+              <span>{{ mode.label }}</span>
+            </button>
+          }
+        </div>
+
+        <span class="island-settings-title">Camera Tilt</span>
+        <div class="island-mode-grid cols-4">
+          @for (t of tiltOptions; track t.pitch) {
+            <button type="button" class="island-mode-btn compact"
+              [class.active]="tilt() === t.pitch"
+              (click)="setTilt(t.pitch)">{{ t.label }}</button>
+          }
+        </div>
+
+        <button type="button" class="island-toggle-row" (click)="toggleBuildings3d()" [attr.aria-pressed]="buildings3d()">
+          <span>3D Buildings</span>
+          <span class="island-switch" [class.on]="buildings3d()"></span>
+        </button>
+
+      </div>
+    }
+
+  </div>
+
+  <!-- ── Advanced config drawer ────────────────────────────────────────────── -->
+  @if (advancedOpen()) {
+    <div class="island-drawer-backdrop" (click)="advancedOpen.set(false)" aria-hidden="true"></div>
+
+    <aside class="island-drawer" role="dialog" aria-label="Advanced map configuration">
+
+      <div class="island-drawer-header">
+        <span>Map Configuration</span>
+        <button type="button" class="island-drawer-close" (click)="advancedOpen.set(false)" aria-label="Close">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="island-drawer-body">
+
+        <!-- Presets -->
+        <section class="island-section">
+          <h4 class="island-section-title">Visual Presets</h4>
+          <div class="island-presets-grid">
+            @for (p of presets; track p.key) {
+              <button type="button" class="island-preset-card"
+                [class.active]="currentPreset() === p.key"
+                (click)="applyPreset(p.key)">
+                <i class="bi {{ p.icon }}" aria-hidden="true"></i>
+                <strong>{{ p.label }}</strong>
+                <small>{{ p.desc }}</small>
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Saved templates -->
+        <section class="island-section">
+          <h4 class="island-section-title">
+            My Templates
+            <span class="island-tpl-io">
+              <button type="button" class="island-reset-btn" (click)="exportTemplates()"
+                [disabled]="!templates().length" title="Export templates as JSON">
+                <i class="bi bi-download" aria-hidden="true"></i>
+              </button>
+              <label class="island-reset-btn" title="Import templates from JSON">
+                <i class="bi bi-upload" aria-hidden="true"></i>
+                <input type="file" accept=".json,application/json"
+                  (change)="onImportTemplates($event)" hidden />
+              </label>
+            </span>
+          </h4>
+
+          <div class="island-tpl-save-row">
+            <input type="text"
+              [value]="newTemplateName()"
+              (input)="newTemplateName.set($any($event.target).value)"
+              (keydown.enter)="saveCurrentTemplate()"
+              placeholder="Name the current look…"
+              aria-label="New template name"
+              maxlength="40" />
+            <button type="button" (click)="saveCurrentTemplate()"
+              [disabled]="!newTemplateName().trim()">Save</button>
+          </div>
+
+          @if (!templates().length) {
+            <p class="island-tpl-empty">
+              Tune the map below, then save the look here as a reusable template.
+              Saving never changes the map — only Apply does.
+            </p>
+          }
+
+          @for (t of sortedTemplates(); track t.id) {
+            <div class="island-tpl-row">
+              <button type="button" class="island-tpl-fav" [class.on]="t.favorite"
+                (click)="toggleTemplateFavorite(t.id)" title="Favorite"
+                [attr.aria-pressed]="t.favorite">
+                <i class="bi" [class.bi-star-fill]="t.favorite" [class.bi-star]="!t.favorite"
+                  aria-hidden="true"></i>
+              </button>
+
+              @if (editingTemplateId() === t.id) {
+                <input type="text" class="island-tpl-rename" [value]="t.name" maxlength="40"
+                  (keydown.enter)="commitRenameTemplate(t.id, $any($event.target).value)"
+                  (blur)="commitRenameTemplate(t.id, $any($event.target).value)" />
+              } @else {
+                <span class="island-tpl-name">{{ t.name }}</span>
+              }
+
+              <span class="island-tpl-btns">
+                <button type="button" class="apply" (click)="applyTemplate(t)">Apply</button>
+                <button type="button" (click)="editingTemplateId.set(t.id)" title="Rename">
+                  <i class="bi bi-pencil" aria-hidden="true"></i>
+                </button>
+                <button type="button" (click)="duplicateTemplate(t)" title="Duplicate">
+                  <i class="bi bi-copy" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="danger" (click)="deleteTemplate(t.id)" title="Delete">
+                  <i class="bi bi-trash" aria-hidden="true"></i>
+                </button>
+              </span>
+            </div>
+          }
+        </section>
+
+        <!-- Base style -->
+        <section class="island-section">
+          <h4 class="island-section-title">Map Style</h4>
+          <div class="island-adv-grid cols-3">
+            @for (s of baseStyles; track s.key) {
+              <button type="button" class="island-adv-btn"
+                [class.active]="baseStyle() === s.key"
+                (click)="setBaseStyle(s.key)">{{ s.label }}</button>
+            }
+          </div>
+        </section>
+
+        <!-- Ocean style -->
+        <section class="island-section">
+          <h4 class="island-section-title">Ocean Style</h4>
+          <div class="island-adv-grid cols-4">
+            @for (mode of oceanModes; track mode.key) {
+              <button type="button" class="island-adv-btn ocean-btn"
+                [class.active]="currentMode() === mode.key"
+                (click)="applyMode(mode.key)">
+                <span class="island-mode-swatch" [style.background]="mode.swatch"></span>
+                {{ mode.label }}
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- Camera -->
+        <section class="island-section">
+          <h4 class="island-section-title">
+            Camera Tilt
+            <button type="button" class="island-reset-btn" (click)="resetBearing()" title="Reset north">
+              <i class="bi bi-compass" aria-hidden="true"></i> N↑
+            </button>
+          </h4>
+          <div class="island-slider-row">
+            <input type="range" class="island-range" min="0" max="60" step="5"
+              [value]="tilt()"
+              (input)="setTilt(+$any($event.target).value)" />
+            <span class="island-slider-val">{{ tilt() }}°</span>
+          </div>
+          <div class="island-adv-grid cols-4">
+            @for (t of tiltOptions; track t.pitch) {
+              <button type="button" class="island-adv-btn compact"
+                [class.active]="tilt() === t.pitch"
+                (click)="setTilt(t.pitch)">{{ t.label }}</button>
+            }
+          </div>
+        </section>
+
+        <!-- Appearance -->
+        <section class="island-section">
+          <h4 class="island-section-title">Appearance</h4>
+
+          <div class="island-slider-group">
+            <div class="island-slider-row">
+              <span class="island-slider-label">Brightness</span>
+              <input type="range" class="island-range" min="50" max="150" step="1"
+                [value]="brightness()"
+                (input)="brightness.set(+$any($event.target).value)" />
+              <span class="island-slider-val">{{ brightness() }}%</span>
+            </div>
+            <div class="island-slider-row">
+              <span class="island-slider-label">Contrast</span>
+              <input type="range" class="island-range" min="50" max="150" step="1"
+                [value]="contrast()"
+                (input)="contrast.set(+$any($event.target).value)" />
+              <span class="island-slider-val">{{ contrast() }}%</span>
+            </div>
+            <div class="island-slider-row">
+              <span class="island-slider-label">Saturation</span>
+              <input type="range" class="island-range" min="0" max="200" step="1"
+                [value]="saturation()"
+                (input)="saturation.set(+$any($event.target).value)" />
+              <span class="island-slider-val">{{ saturation() }}%</span>
+            </div>
+            <div class="island-slider-row">
+              <span class="island-slider-label">Hue</span>
+              <input type="range" class="island-range" min="0" max="360" step="5"
+                [value]="hueRotate()"
+                (input)="hueRotate.set(+$any($event.target).value)" />
+              <span class="island-slider-val">{{ hueRotate() }}°</span>
+            </div>
+          </div>
+
+          <button type="button" class="island-reset-all-btn"
+            (click)="brightness.set(100); contrast.set(100); saturation.set(100); hueRotate.set(0)">
+            Reset Appearance
+          </button>
+        </section>
+
+        <!-- Layer visibility -->
+        <section class="island-section">
+          <h4 class="island-section-title">Layer Visibility</h4>
+          <div class="island-layers-grid">
+            @for (g of layerGroups; track g.key) {
+              <button type="button" class="island-layer-btn"
+                [class.hidden]="!layerVisibility()[g.key]"
+                (click)="toggleLayerGroup(g.key)">
+                <i class="bi {{ g.icon }}" aria-hidden="true"></i>
+                <span>{{ g.label }}</span>
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- 3D buildings -->
+        <section class="island-section">
+          <button type="button" class="island-toggle-row" (click)="toggleBuildings3d()" [attr.aria-pressed]="buildings3d()">
+            <span>3D Buildings</span>
+            <span class="island-switch" [class.on]="buildings3d()"></span>
+          </button>
+        </section>
+
+      </div>
+    </aside>
+  }
+
+  <!-- Loading overlay -->
+  @if (loading()) {
+    <div class="island-loading" aria-live="polite">
+      <div class="island-spinner"></div>
+      <span>Loading district…</span>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (errorMsg()) {
+    <div class="island-error" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errorMsg() }}</span>
+      <button type="button" (click)="router.navigateByUrl('/hood')">Go to Map</button>
+    </div>
+  }
+
+</div>

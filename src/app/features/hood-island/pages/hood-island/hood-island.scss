@@ -1,0 +1,925 @@
+// ── Wrapper — covers the full viewport, below the nav ────────────────────────
+// position: fixed escapes the sidebar's margin-left in app.scss and lets the
+// island fill the whole screen. The nav (sidebar + bottom bar) is fixed at a
+// higher z-index and sits on top naturally.
+
+.island-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  min-height: 500px;
+  background: #0b2740;
+  overflow: hidden;
+}
+
+// On mobile leave room for the bottom nav (64px + safe-area-inset-bottom).
+@media (max-width: 1023px) {
+  .island-wrapper {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+}
+
+.island-map {
+  width: 100%;
+  height: 100%;
+}
+
+// ── Loading overlay ──────────────────────────────────────────────────────────
+
+.island-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(6, 13, 26, 0.82);
+  backdrop-filter: blur(6px);
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.island-spinner {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(99, 102, 241, 0.25);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: island-spin 0.75s linear infinite;
+}
+
+@keyframes island-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Error state ───────────────────────────────────────────────────────────────
+
+.island-error {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(6, 13, 26, 0.96);
+  color: #f87171;
+  font-size: 13px;
+  text-align: center;
+  padding: 32px;
+
+  i {
+    font-size: 30px;
+    margin-bottom: 4px;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 8px 22px;
+    border-radius: 20px;
+    border: 1px solid rgba(99, 102, 241, 0.45);
+    background: transparent;
+    color: #818cf8;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.7);
+    }
+  }
+}
+
+// ── Shared frosted-glass mixin ────────────────────────────────────────────────
+
+%glass {
+  background: rgba(6, 13, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(18px) saturate(1.8);
+  -webkit-backdrop-filter: blur(18px) saturate(1.8);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+// ── Search bar — top left ────────────────────────────────────────────────────
+
+.island-search-wrap {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  width: min(280px, calc(100vw - 80px));
+}
+
+// The wrapper is fixed full-viewport, so the left sidebar (72px icon rail /
+// 245px full sidebar — see app.scss) overlaps left: 16px. Clear it on desktop.
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .island-search-wrap { left: calc(72px + 16px); }
+}
+@media (min-width: 1280px) {
+  .island-search-wrap { left: calc(245px + 16px); }
+}
+
+.island-search-bar {
+  @extend %glass;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  cursor: text;
+  transition: border-color 0.2s;
+
+  &.active {
+    border-color: rgba(99, 102, 241, 0.55);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  > .bi-search {
+    color: #64748b;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+}
+
+.island-search-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.island-search-fields input[type="search"] {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  padding: 0;
+  caret-color: #6366f1;
+
+  &::placeholder {
+    color: #475569;
+  }
+
+  &::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+}
+
+.island-search-hood {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6366f1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.island-search-spinner {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(99, 102, 241, 0.25);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: island-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+// ── Search dropdown ───────────────────────────────────────────────────────────
+
+.island-search-results {
+  @extend %glass;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  overflow: hidden;
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.island-search-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.10);
+  }
+
+  .bi-geo-alt {
+    color: #6366f1;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+}
+
+.island-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+
+  strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  small {
+    font-size: 10px;
+    color: #64748b;
+    text-transform: capitalize;
+  }
+}
+
+// ── Settings button + panel — top right ──────────────────────────────────────
+
+.island-settings-wrap {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.island-settings-btn {
+  @extend %glass;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover,
+  &.active {
+    color: #e2e8f0;
+    border-color: rgba(99, 102, 241, 0.55);
+    background: rgba(99, 102, 241, 0.10);
+  }
+}
+
+.island-settings-panel {
+  @extend %glass;
+  border-radius: 14px;
+  padding: 12px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.island-settings-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.island-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+
+  &.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.island-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+  }
+
+  &.active {
+    border-color: rgba(99, 102, 241, 0.60);
+    background: rgba(99, 102, 241, 0.12);
+    color: #c7d2fe;
+  }
+}
+
+.island-mode-btn.compact {
+  justify-content: center;
+  padding: 7px 4px;
+}
+
+.island-mode-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+// ── 3D buildings toggle row ───────────────────────────────────────────────────
+
+.island-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+  }
+}
+
+.island-switch {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.14);
+  flex-shrink: 0;
+  transition: background 0.18s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #94a3b8;
+    transition: transform 0.18s, background 0.18s;
+  }
+
+  &.on {
+    background: rgba(99, 102, 241, 0.55);
+
+    &::after {
+      transform: translateX(13px);
+      background: #e0e7ff;
+    }
+  }
+}
+
+// ── Advanced config drawer ────────────────────────────────────────────────────
+
+.island-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.island-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  width: min(400px, 100vw);
+  background: rgba(8, 14, 26, 0.92);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+  animation: drawerSlideIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to   { transform: translateX(0);    opacity: 1;   }
+}
+
+.island-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+
+  span {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e2e8f0;
+    letter-spacing: 0.02em;
+  }
+}
+
+.island-drawer-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover { background: rgba(99, 102, 241, 0.15); color: #e2e8f0; }
+}
+
+.island-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 24px;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+  }
+}
+
+.island-section {
+  padding: 14px 16px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+  &:last-child { border-bottom: none; }
+}
+
+.island-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 10px;
+}
+
+// ── Visual preset cards ───────────────────────────────────────────────────────
+
+.island-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+
+  @media (max-width: 440px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.island-preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+
+  .bi {
+    font-size: 18px;
+    color: #64748b;
+    transition: color 0.15s;
+  }
+
+  strong {
+    font-size: 10px;
+    font-weight: 700;
+    color: #cbd5e1;
+    white-space: nowrap;
+  }
+
+  small {
+    font-size: 9px;
+    color: #475569;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.10);
+    border-color: rgba(99, 102, 241, 0.30);
+    .bi { color: #818cf8; }
+  }
+
+  &.active {
+    background: rgba(99, 102, 241, 0.16);
+    border-color: rgba(99, 102, 241, 0.55);
+    .bi { color: #a5b4fc; }
+    strong { color: #e0e7ff; }
+  }
+}
+
+// ── Advanced grid buttons ─────────────────────────────────────────────────────
+
+.island-adv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 8px;
+
+  &.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  &.cols-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+.island-adv-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+
+  &:hover { background: rgba(255, 255, 255, 0.08); color: #e2e8f0; }
+  &.active {
+    border-color: rgba(99, 102, 241, 0.60);
+    background: rgba(99, 102, 241, 0.14);
+    color: #c7d2fe;
+  }
+  &.compact { padding: 6px 4px; }
+
+  &.ocean-btn {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 4px;
+    font-size: 10px;
+  }
+}
+
+// ── Sliders ───────────────────────────────────────────────────────────────────
+
+.island-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.island-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.island-slider-label {
+  font-size: 11px;
+  color: #64748b;
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.island-slider-val {
+  font-size: 11px;
+  color: #94a3b8;
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.island-range {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.10);
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #6366f1;
+    border: 2px solid #e0e7ff;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  &::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #6366f1;
+    border: 2px solid #e0e7ff;
+    cursor: pointer;
+  }
+}
+
+.island-reset-btn {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  -webkit-tap-highlight-color: transparent;
+  &:hover { background: rgba(99, 102, 241, 0.12); }
+}
+
+.island-reset-all-btn {
+  display: block;
+  width: 100%;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: transparent;
+  color: #818cf8;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  &:hover { background: rgba(99, 102, 241, 0.10); }
+}
+
+// ── Layer visibility grid ─────────────────────────────────────────────────────
+
+.island-layers-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.island-layer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 4px 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
+  -webkit-tap-highlight-color: transparent;
+
+  .bi { font-size: 16px; }
+
+  &:hover { background: rgba(255, 255, 255, 0.10); }
+
+  &.hidden {
+    opacity: 0.38;
+    border-color: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.02);
+    text-decoration: line-through;
+    text-decoration-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+// ── Quick-settings extra grid col ─────────────────────────────────────────────
+
+.island-mode-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+// ── MapLibre attribution tweak for dark bg ────────────────────────────────────
+
+:host ::ng-deep .maplibregl-ctrl-attrib {
+  background: rgba(6, 13, 26, 0.7) !important;
+  color: #64748b !important;
+
+  a { color: #6366f1 !important; }
+}
+
+:host ::ng-deep .maplibregl-ctrl-zoom-in,
+:host ::ng-deep .maplibregl-ctrl-zoom-out {
+  background-color: rgba(6, 13, 26, 0.85) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+
+  &:hover {
+    background-color: rgba(99, 102, 241, 0.15) !important;
+    color: #e2e8f0 !important;
+  }
+}
+
+// ── Saved visualization templates ─────────────────────────────────────────────
+
+.island-tpl-io {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  .island-reset-btn { font-size: 12px; }
+  button:disabled { opacity: 0.35; cursor: default; }
+}
+
+.island-tpl-save-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    font-size: 12px;
+    outline: none;
+
+    &::placeholder { color: #64748b; }
+    &:focus { border-color: rgba(99, 102, 241, 0.5); }
+  }
+
+  button {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    background: rgba(99, 102, 241, 0.18);
+    color: #c7d2fe;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover:not(:disabled) { background: rgba(99, 102, 241, 0.3); }
+    &:disabled { opacity: 0.4; cursor: default; }
+  }
+}
+
+.island-tpl-empty {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.island-tpl-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.island-tpl-fav {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px;
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover { color: #cbd5e1; }
+  &.on { color: #fbbf24; }
+}
+
+.island-tpl-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.island-tpl-rename {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 12px;
+  outline: none;
+}
+
+.island-tpl-btns {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+
+  button {
+    display: grid;
+    place-items: center;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover { background: rgba(255, 255, 255, 0.09); color: #e2e8f0; }
+
+    &.apply {
+      padding: 4px 10px;
+      font-weight: 600;
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      background: rgba(99, 102, 241, 0.14);
+
+      &:hover { background: rgba(99, 102, 241, 0.3); }
+    }
+
+    &.danger:hover { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+  }
+}
