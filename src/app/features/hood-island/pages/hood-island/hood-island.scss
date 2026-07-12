@@ -926,66 +926,59 @@
 
 :host ::ng-deep .game-featured-marker {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   border: 0;
   padding: 0;
   background: transparent;
   cursor: pointer;
-  transform: translateY(3px);
-  filter: drop-shadow(0 7px 12px rgba(2, 6, 23, 0.42));
   overflow: visible;
   z-index: 2;
 }
 
-:host ::ng-deep .game-featured-marker__halo {
-  position: absolute;
-  inset: 2px 0 auto;
-  width: 28px;
-  height: 28px;
+:host ::ng-deep .game-featured-marker__stem {
+  width: 1.5px;
+  height: 10px;
+  flex-shrink: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    currentColor 0,
+    currentColor 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  opacity: 0.45;
+}
+
+:host ::ng-deep .game-featured-marker__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.26);
-  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.13), 0 0 22px currentColor;
-  animation: islandFeaturedHalo 2.4s ease-in-out infinite;
-}
-
-:host ::ng-deep .game-featured-marker__core {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(15, 23, 42, 0.72);
-  border-radius: 50% 50% 50% 0;
   background: currentColor;
-  transform: rotate(-45deg);
-  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.62);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
 }
 
-:host ::ng-deep .game-featured-marker--alert { color: #fb7185; }
+:host ::ng-deep .game-featured-marker--alert  { color: #fb7185; }
 :host ::ng-deep .game-featured-marker--connect { color: #22d3ee; }
 :host ::ng-deep .game-featured-marker--opening { color: #f59e0b; }
-
-@keyframes islandFeaturedHalo {
-  0%, 100% { transform: scale(0.94); opacity: 0.72; }
-  50% { transform: scale(1.12); opacity: 1; }
-}
 
 :host ::ng-deep .game-marker-card-wrap {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 7px);
-  width: clamp(82px, 11vw, 112px);
-  max-width: min(112px, calc(100vw - 28px));
-  max-height: min(150px, calc(100vh - 120px));
-  aspect-ratio: 3 / 4;
+  bottom: calc(100% + 6px);
+  width: clamp(50px, 6vw, 66px);
+  max-width: min(66px, calc(100vw - 28px));
   overflow: hidden;
   transform: translateX(-50%);
-  border: 1px solid rgba(255, 255, 255, 0.88);
-  border-radius: 9px;
-  background: linear-gradient(145deg, #f8fafc 0%, #cfd6df 42%, #f8fafc 58%, #929bab 100%);
-  box-shadow: 0 10px 18px rgba(2, 6, 23, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.13), 0 1px 2px rgba(0, 0, 0, 0.06);
   pointer-events: auto;
+  transition: left 0.22s ease, right 0.22s ease, transform 0.22s ease;
 }
 
 :host ::ng-deep .game-featured-marker--left .game-marker-card-wrap {
@@ -1005,100 +998,132 @@
 }
 
 :host ::ng-deep .game-marker-card {
-  position: relative;
-  display: grid;
-  grid-template-rows: 1fr 34%;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  height: 100%;
   isolation: isolate;
-  color: #111827;
 }
 
 :host ::ng-deep .game-marker-card__shine {
   position: absolute;
-  inset: -42%;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.52) 48%, transparent 60%);
-  transform: translateX(-55%) translateY(-20%) rotate(6deg);
-  animation: islandMarkerCardShine 5s ease-in-out infinite;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.72) 46%, transparent 58%);
+  animation: islandMarkerCardShine 14s linear infinite;
 }
 
 :host ::ng-deep .game-marker-card__content {
   position: relative;
   z-index: 1;
-  display: grid;
-  align-content: start;
-  gap: 3px;
-  padding: 7px 7px 5px;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
-}
-
-:host ::ng-deep .game-marker-card__badge {
-  width: fit-content;
-  border: 1px solid rgba(15, 23, 42, 0.24);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.58);
-  padding: 1px 5px;
-  color: #334155;
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  padding: 5px 5px 4px;
+  overflow: hidden;
 }
 
 :host ::ng-deep .game-marker-card__title {
+  position: relative;
+  z-index: 1;
   margin: 0;
   color: #0f172a;
-  font-size: clamp(9.5px, 0.85vw, 11.5px);
-  font-weight: 950;
-  line-height: 1.06;
+  font-size: clamp(7.5px, 0.66vw, 9px);
+  font-weight: 700;
+  line-height: 1.15;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 :host ::ng-deep .game-marker-card__description {
+  position: relative;
+  z-index: 1;
   margin: 0;
   display: -webkit-box;
   overflow: hidden;
-  color: #334155;
-  font-size: clamp(7.5px, 0.65vw, 9px);
-  font-weight: 650;
-  line-height: 1.25;
+  color: #64748b;
+  font-size: clamp(6px, 0.52vw, 7px);
+  font-weight: 400;
+  line-height: 1.2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 :host ::ng-deep .game-marker-card__image {
-  position: relative;
-  z-index: 1;
+  display: block;
   width: 100%;
-  height: 100%;
+  height: 34px;
   object-fit: cover;
-  border-top: 1px solid rgba(255, 255, 255, 0.62);
+  flex-shrink: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 @keyframes islandMarkerCardShine {
-  0% { transform: translateX(-58%) translateY(-20%) rotate(6deg); opacity: 0; }
-  18% { opacity: 1; }
-  58% { transform: translateX(48%) translateY(8%) rotate(6deg); opacity: 1; }
-  100% { transform: translateX(58%) translateY(12%) rotate(6deg); opacity: 0; }
+  0%   { transform: translateX(-120%); opacity: 0; }
+  4%   { opacity: 1; }
+  14%  { transform: translateX(120%); opacity: 1; }
+  18%  { opacity: 0; }
+  100% { transform: translateX(120%); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :host ::ng-deep .game-marker-card__shine,
-  :host ::ng-deep .game-featured-marker__halo {
+  :host ::ng-deep .game-marker-card__shine {
     animation: none;
   }
 }
 
 @media (max-width: 768px) {
   :host ::ng-deep .game-marker-card-wrap {
-    width: clamp(76px, 24vw, 96px);
-    max-width: min(96px, calc(100vw - 22px));
-    border-radius: 8px;
+    width: clamp(46px, 15vw, 60px);
+    max-width: min(60px, calc(100vw - 22px));
+    border-radius: 7px;
   }
 
   :host ::ng-deep .game-marker-card__content {
-    padding: 6px 6px 4px;
-    gap: 2px;
+    padding: 4px 4px 3px;
+    gap: 1px;
   }
+
+  :host ::ng-deep .game-marker-card__image {
+    height: 28px;
+  }
+}
+
+// ── Marker legend ─────────────────────────────────────────────────────────────
+
+.island-legend {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(6, 13, 26, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.island-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.island-legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }

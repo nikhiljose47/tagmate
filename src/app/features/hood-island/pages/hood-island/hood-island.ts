@@ -74,7 +74,7 @@ type DistrictGeometry = Polygon | MultiPolygon;
 type GameMarkerType = 'alert' | 'connect' | 'opening';
 type LayerFilter = NonNullable<Parameters<MapLibreMap['setFilter']>[1]>;
 
-const GAME_MARKER_COUNT = 100;
+const GAME_MARKER_COUNT = 70;
 const FEATURED_MARKER_COUNT = 3;
 const FEATURED_ROTATION_MS = 15_000;
 const FALLBACK_MARKER_IMAGE =
@@ -480,19 +480,19 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // Map style / camera
   readonly baseStyles    = BASE_STYLES;
   readonly tiltOptions   = TILT_OPTIONS;
-  readonly baseStyle     = signal('bright');  // default: Bright
-  readonly buildings3d   = signal(true);      // default: ON
-  readonly tilt          = signal(25);         // default: slight 3D perspective
+  readonly baseStyle     = signal('outdoor'); // default: Outdoor
+  readonly buildings3d   = signal(false);     // default: OFF
+  readonly tilt          = signal(10);         // default: slight 3D perspective
 
   // Advanced config panel
   readonly advancedOpen  = signal(false);
   readonly presets       = MAP_PRESETS;
   readonly layerGroups   = LAYER_GROUPS;
-  readonly currentPreset = signal('smooth-city');
+  readonly currentPreset = signal('outdoor');
 
   // Layer visibility (true = visible)
   readonly layerVisibility = signal<Record<string, boolean>>({
-    buildings: true, roads: true, water: true,
+    buildings: false, roads: true, water: true,
     parks: true, labels: true, railways: true, pois: true,
   });
 
@@ -630,7 +630,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       void this.loadDistrict();
 
       if (firstLoad) {
-        this.startFeaturedRotation();
+        // Cards are intentionally static per visit — no rotation timer.
       }
 
       if (this.enableMapDataInspector) inspectMapStyle(this.map!);
@@ -871,15 +871,15 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
           ['linear'],
           ['zoom'],
           11,
-          5,
+          3,
           16,
-          9,
+          5.5,
         ],
         'circle-color': color,
-        'circle-opacity': 0.88,
-        'circle-stroke-color': 'rgba(255, 255, 255, 0.86)',
-        'circle-stroke-width': 1.5,
-        'circle-blur': type === 'alert' ? 0.18 : 0,
+        'circle-opacity': 0.82,
+        'circle-stroke-color': 'rgba(255, 255, 255, 0.75)',
+        'circle-stroke-width': 1,
+        'circle-blur': type === 'alert' ? 0.15 : 0,
       },
     });
   }
@@ -960,16 +960,19 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     };
     const images: Record<GameMarkerType, string[]> = {
       alert: [
-        'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=520&q=78',
-        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=520&q=78',
+        '/assets/test-img.jpg',
+        'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=320&q=72',
+        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=320&q=72',
       ],
       connect: [
-        'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=520&q=78',
-        'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=520&q=78',
+        '/assets/test-img.jpg',
+        'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=320&q=72',
+        'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=320&q=72',
       ],
       opening: [
-        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=520&q=78',
-        'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=520&q=78',
+        '/assets/test-img.jpg',
+        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=320&q=72',
+        'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=320&q=72',
       ],
     };
     const types: GameMarkerType[] = ['alert', 'connect', 'opening'];
@@ -988,11 +991,12 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       const titlePool = titles[type];
       const descPool = descriptions[type];
       const imagePool = images[type];
+      const hasImage = index % 5 !== 2; // ~80% have images, every 3rd of 5 has none
       markers.push({
         id: `island-marker-${index + 1}`,
         title: `${titlePool[index % titlePool.length]} ${index + 1}`,
         description: descPool[index % descPool.length],
-        imageUrl: imagePool[index % imagePool.length],
+        imageUrl: hasImage ? imagePool[index % imagePool.length] : '',
         longitude,
         latitude,
         type,
@@ -1114,15 +1118,15 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     element.setAttribute('aria-label', marker.title);
     element.innerHTML = `
       <span class="game-marker-card-wrap">${this.createPopupHtml(marker)}</span>
-      <span class="game-featured-marker__halo"></span>
-      <span class="game-featured-marker__core"></span>
+      <span class="game-featured-marker__stem"></span>
+      <span class="game-featured-marker__dot"></span>
     `;
     element.querySelector('img')?.addEventListener('error', (event) => {
       const image = event.currentTarget as HTMLImageElement;
       image.src = FALLBACK_MARKER_IMAGE;
     });
 
-    const featuredMarker = new maptilersdk.Marker({ element, anchor: 'bottom', offset: [0, -4] })
+    const featuredMarker = new maptilersdk.Marker({ element, anchor: 'bottom' })
       .setLngLat([marker.longitude, marker.latitude])
       .addTo(this.map as unknown as maptilersdk.Map);
 
@@ -1134,20 +1138,20 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private createPopupHtml(marker: CityMarker): string {
-    const type = this.markerTypeLabel(marker.type);
     const title = this.escapeHtml(marker.title);
     const description = this.escapeHtml(marker.description);
-    const imageUrl = this.escapeHtml(marker.imageUrl || FALLBACK_MARKER_IMAGE);
+    const shineDelay = (Math.floor(Math.random() * 9) + 1).toFixed(1);
+    const hasImage = !!marker.imageUrl;
+    const imageUrl = hasImage ? this.escapeHtml(marker.imageUrl) : '';
 
     return `
       <div class="game-marker-card">
-        <div class="game-marker-card__shine"></div>
         <div class="game-marker-card__content">
-          <span class="game-marker-card__badge">${this.escapeHtml(type)}</span>
+          <div class="game-marker-card__shine" style="animation-delay:${shineDelay}s"></div>
           <h3 class="game-marker-card__title">${title}</h3>
           <p class="game-marker-card__description">${description}</p>
         </div>
-        <img class="game-marker-card__image" src="${imageUrl}" alt="${title}" loading="lazy" />
+        ${hasImage ? `<img class="game-marker-card__image" src="${imageUrl}" alt="${title}" loading="lazy" />` : ''}
       </div>
     `;
   }
@@ -1328,6 +1332,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     // the switch appear to do nothing.
     this.syncMarkersToGeometry(smoothed, label);
     this.map.setMaxBounds(null);
+    this.map.setMinZoom(0); // reset previous hood's minZoom so fitBounds can zoom out freely
 
     // Fit the camera to the district.
     this.map.fitBounds(rawBounds as LngLatBoundsLike, {
