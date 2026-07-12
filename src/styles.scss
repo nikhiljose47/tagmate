@@ -74,7 +74,7 @@
 }
 @import 'tailwindcss/theme.css' layer(theme);
 @tailwind utilities source('./app');
-@import 'maplibre-gl/dist/maplibre-gl.css';
+@import '../node_modules/@maptiler/sdk/dist/maptiler-sdk.css';
 
 /* Neighborhood page — inline map markers and popups (injected by MapLibre outside Angular templates) */
 .hood-map-pin {

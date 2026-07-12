@@ -43,7 +43,8 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "allowedCommonJsDependencies": [
-              "maplibre-gl"
+              "maplibre-gl",
+              "events"
             ],
             "ssr": {
               "entry": "src/server.ts",
@@ -70,7 +71,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "16kB",
+                  "maximumWarning": "19kB",
                   "maximumError": "20kB"
                 }
               ],

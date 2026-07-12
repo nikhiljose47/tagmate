@@ -17,6 +17,7 @@ import type {
   Feature,
   FeatureCollection,
   MultiPolygon,
+  Point,
   Polygon,
   Position,
 } from 'geojson';
@@ -26,6 +27,7 @@ import type {
   Map as MapLibreMap,
   MapMouseEvent,
 } from 'maplibre-gl';
+import * as maptilersdk from '@maptiler/sdk';
 
 import {
   addClassificationLayers,
@@ -60,8 +62,26 @@ const SHALLOW_LAYER = 'hi-shallow'; // wide shallow-water band hugging the coast
 const FOAM_LAYER    = 'hi-foam';    // pale surf/foam line at the waterline
 const SAND_LAYER    = 'hi-sand';    // sandy beach strip just inside the coast
 const BUILDINGS_3D_LAYER = 'hi-3d-buildings'; // optional fill-extrusion layer
+const GAME_MARKERS_SRC = 'hi-game-markers-src';
+const GAME_CLUSTERS_LAYER = 'hi-game-marker-clusters';
+const GAME_CLUSTER_COUNT_LAYER = 'hi-game-marker-cluster-count';
+const GAME_ALERT_LAYER = 'hi-game-alert-markers';
+const GAME_CONNECT_LAYER = 'hi-game-connect-markers';
+const GAME_OPENING_LAYER = 'hi-game-opening-markers';
+const GAME_INTERACTIVE_LAYER = 'hi-game-interactive-markers';
 
 type DistrictGeometry = Polygon | MultiPolygon;
+type GameMarkerType = 'alert' | 'connect' | 'opening';
+type LayerFilter = NonNullable<Parameters<MapLibreMap['setFilter']>[1]>;
+
+const GAME_MARKER_COUNT = 100;
+const FEATURED_MARKER_COUNT = 3;
+const FEATURED_ROTATION_MS = 15_000;
+const FALLBACK_MARKER_IMAGE =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#8b95a7"/></linearGradient></defs><rect width="320" height="240" rx="28" fill="url(#g)"/><circle cx="160" cy="100" r="36" fill="#fff" opacity=".75"/><path d="M80 190c25-40 52-60 80-60s55 20 80 60" fill="#fff" opacity=".55"/></svg>',
+  );
 
 // ── Base map styles (MapTiler) ────────────────────────────────────────────────
 
@@ -240,6 +260,31 @@ interface HoodSearchResult {
   osmId:       number;
 }
 
+interface CityMarker {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  longitude: number;
+  latitude: number;
+  type: GameMarkerType;
+  priority: number;
+}
+
+interface CityMarkerProperties {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  type: GameMarkerType;
+  priority: number;
+  featured: boolean;
+}
+
+type MarkerLayerEvent = MapMouseEvent & {
+  features?: unknown[];
+};
+
 // ── Pure geometry helpers (no Angular deps) ────────────────────────────────────
 
 /**
@@ -393,12 +438,17 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   // Pre-load MapLibre at chunk-parse time so it is ready before ngAfterViewInit.
   // Identical pattern to HoodPage — avoids a network round-trip on first render.
-  private static readonly _maplibrePromise = import('maplibre-gl');
-
-  private maplibre?: typeof import('maplibre-gl');
   private map?: MapLibreMap;
   private mapReady = false;
   private resizeObserver?: ResizeObserver;
+  private cityMarkers: CityMarker[] = [];
+  private currentMarkerAreaKey = '';
+  private featuredMarkerIds: string[] = [];
+  private featuredMarkerQueue: string[] = [];
+  private featuredMarkerCursor = 0;
+  private featuredRotationTimer?: number;
+  private featuredHoverCount = 0;
+  private readonly featuredMarkers = new Map<string, maptilersdk.Marker>();
 
   // ── Map data inspector / adaptive classification ─────────────────────────────
   // When true: clicking the map logs every rendered feature at that point, the
@@ -497,9 +547,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const mod = await HoodIslandPage._maplibrePromise;
-    this.maplibre = (mod.default ?? mod) as typeof import('maplibre-gl');
-
     // All MapLibre work runs outside Angular's zone to avoid unnecessary
     // change-detection cycles from map events.
     this.ngZone.runOutsideAngular(() => this.initMap());
@@ -509,8 +556,11 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
+    this.stopFeaturedRotation();
+    this.clearFeaturedMarkers();
     this.resizeObserver?.disconnect();
     this.resizeObserver = undefined;
+    this.unregisterMarkerEvents();
     this.map?.off('click', this.onInspectClick);
     this.map?.remove();
     this.map = undefined;
@@ -519,7 +569,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // ── private ──────────────────────────────────────────────────────────────────
 
   private initMap(): void {
-    if (!this.maplibre || !this.mapEl?.nativeElement) return;
+    if (!this.mapEl?.nativeElement) return;
 
     const key = environment.mapTilerApiKey;
 
@@ -531,7 +581,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.map = new this.maplibre.Map({
+    maptilersdk.config.apiKey = key;
+
+    this.map = new maptilersdk.Map({
       container:   this.mapEl.nativeElement,
       style:       this.styleUrl(this.baseStyle()),
       center:      HOOD_CENTER,
@@ -544,7 +596,12 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       dragRotate:        true,   // allow rotation for 3D feel
       pitchWithRotate:   true,
       attributionControl: { compact: true },
-    });
+    }) as unknown as MapLibreMap;
+
+    (this.map as unknown as maptilersdk.Map).addControl(
+      new maptilersdk.NavigationControl({ showCompass: false }),
+    );
+    this.registerMarkerEvents();
 
     // Some MapTiler styles reference sprite icons that fail to resolve (e.g.
     // "road_" shields). MapLibre logs a console error for each unless we supply
@@ -558,17 +615,23 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     // rendering needed) and re-fires on every setStyle() call — same contract
     // as HoodPage. Re-add all sources/layers here so style switches survive.
     this.map.on('style.load', () => {
-      if (!this.mapReady) {
+      const firstLoad = !this.mapReady;
+      if (firstLoad) {
         this.mapReady = true;
         this.resizeObserver = new ResizeObserver(() => this.map?.resize());
         this.resizeObserver.observe(this.mapEl!.nativeElement);
       }
       this.addSources();
       this.addLayers();
+      this.updateMarkerSource();
       this.applyModeToMap(this.currentMode());
       this.syncBuildings3d();
       this.reapplyLayerVisibility();
       void this.loadDistrict();
+
+      if (firstLoad) {
+        this.startFeaturedRotation();
+      }
 
       if (this.enableMapDataInspector) inspectMapStyle(this.map!);
       // Classification needs rendered tiles — wait for the first idle after
@@ -618,6 +681,17 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       this.map.addSource(DISTRICT_SRC, {
         type: 'geojson',
         data: this.emptyFeatureCollection(),
+      });
+    }
+
+    if (!this.map.getSource(GAME_MARKERS_SRC)) {
+      this.map.addSource(GAME_MARKERS_SRC, {
+        type: 'geojson',
+        data: this.createMarkersGeoJson(this.cityMarkers),
+        cluster: true,
+        clusterMaxZoom: 16,
+        clusterRadius: 24,
+        clusterMinPoints: 4,
       });
     }
   }
@@ -723,6 +797,448 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         },
       });
     }
+
+    if (!this.map.getLayer(GAME_CLUSTERS_LAYER)) {
+      this.map.addLayer({
+        id: GAME_CLUSTERS_LAYER,
+        type: 'circle',
+        source: GAME_MARKERS_SRC,
+        filter: ['has', 'point_count'] as LayerFilter,
+        paint: {
+          'circle-color': [
+            'step',
+            ['get', 'point_count'],
+            '#94a3b8',
+            12,
+            '#38bdf8',
+            28,
+            '#f59e0b',
+          ],
+          'circle-radius': ['step', ['get', 'point_count'], 16, 12, 20, 28, 25],
+          'circle-opacity': 0.84,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.88)',
+          'circle-stroke-width': 2,
+        },
+      });
+    }
+
+    if (!this.map.getLayer(GAME_CLUSTER_COUNT_LAYER)) {
+      this.map.addLayer({
+        id: GAME_CLUSTER_COUNT_LAYER,
+        type: 'symbol',
+        source: GAME_MARKERS_SRC,
+        filter: ['has', 'point_count'] as LayerFilter,
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-size': 11,
+          'text-font': ['Noto Sans Bold'],
+        },
+        paint: {
+          'text-color': '#0f172a',
+        },
+      });
+    }
+
+    this.addGameMarkerLayer(GAME_ALERT_LAYER, 'alert', '#fb7185');
+    this.addGameMarkerLayer(GAME_CONNECT_LAYER, 'connect', '#22d3ee');
+    this.addGameMarkerLayer(GAME_OPENING_LAYER, 'opening', '#f59e0b');
+
+    if (!this.map.getLayer(GAME_INTERACTIVE_LAYER)) {
+      this.map.addLayer({
+        id: GAME_INTERACTIVE_LAYER,
+        type: 'circle',
+        source: GAME_MARKERS_SRC,
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'featured'], false]] as LayerFilter,
+        paint: {
+          'circle-radius': 16,
+          'circle-color': '#ffffff',
+          'circle-opacity': 0,
+        },
+      });
+    }
+  }
+
+  private addGameMarkerLayer(id: string, type: GameMarkerType, color: string): void {
+    if (!this.map || this.map.getLayer(id)) return;
+    this.map.addLayer({
+      id,
+      type: 'circle',
+      source: GAME_MARKERS_SRC,
+      filter: this.markerLayerFilter(type),
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          11,
+          5,
+          16,
+          9,
+        ],
+        'circle-color': color,
+        'circle-opacity': 0.88,
+        'circle-stroke-color': 'rgba(255, 255, 255, 0.86)',
+        'circle-stroke-width': 1.5,
+        'circle-blur': type === 'alert' ? 0.18 : 0,
+      },
+    });
+  }
+
+  private registerMarkerEvents(): void {
+    if (!this.map) return;
+    this.map.on('click', GAME_CLUSTERS_LAYER, this.onClusterClick);
+    this.map.on('click', GAME_INTERACTIVE_LAYER, this.onCityMarkerClick);
+    this.map.on('mouseenter', GAME_INTERACTIVE_LAYER, this.onMarkerPointerEnter);
+    this.map.on('mouseleave', GAME_INTERACTIVE_LAYER, this.onMarkerPointerLeave);
+    this.map.on('moveend', this.onFeaturedMoveEnd);
+  }
+
+  private unregisterMarkerEvents(): void {
+    if (!this.map) return;
+    this.map.off('click', GAME_CLUSTERS_LAYER, this.onClusterClick);
+    this.map.off('click', GAME_INTERACTIVE_LAYER, this.onCityMarkerClick);
+    this.map.off('mouseenter', GAME_INTERACTIVE_LAYER, this.onMarkerPointerEnter);
+    this.map.off('mouseleave', GAME_INTERACTIVE_LAYER, this.onMarkerPointerLeave);
+    this.map.off('moveend', this.onFeaturedMoveEnd);
+  }
+
+  private readonly onClusterClick = async (event: MarkerLayerEvent): Promise<void> => {
+    if (!this.map) return;
+    const feature = event.features?.[0] as Feature<Point, { cluster_id?: number }> | undefined;
+    const clusterId = feature?.properties?.cluster_id;
+    const [lng, lat] = feature?.geometry.coordinates ?? [];
+    if (clusterId === undefined || lng === undefined || lat === undefined) return;
+
+    const source = this.map.getSource(GAME_MARKERS_SRC) as GeoJSONSource | undefined;
+    if (!source) return;
+    const zoom = await source.getClusterExpansionZoom(clusterId);
+    this.map.easeTo({ center: [lng, lat], zoom, duration: 520 });
+  };
+
+  private readonly onCityMarkerClick = (event: MarkerLayerEvent): void => {
+    const feature = event.features?.[0] as Feature<Point, CityMarkerProperties> | undefined;
+    const id = feature?.properties?.id;
+    const marker = id ? this.cityMarkers.find((item) => item.id === id) : undefined;
+    if (!marker) return;
+    this.replaceFeaturedMarker(marker);
+  };
+
+  private readonly onMarkerPointerEnter = (): void => {
+    if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+  };
+
+  private readonly onMarkerPointerLeave = (): void => {
+    if (this.map) this.map.getCanvas().style.cursor = '';
+  };
+
+  private readonly onFeaturedMoveEnd = (): void => {
+    this.updateFeaturedMarkerScreenClasses();
+  };
+
+  private generateDummyMarkers(count: number, geometry: DistrictGeometry): CityMarker[] {
+    const titles: Record<GameMarkerType, string[]> = {
+      alert: ['Signal Jam Spotted', 'Road Patch Watch', 'Late Night Noise', 'Power Dip Alert', 'Water Line Check', 'Crowd Surge'],
+      connect: ['Coffee Crew Meetup', 'Runner Squad', 'Book Swap Circle', 'Pet Parent Ping', 'Study Buddy Call', 'Weekend Ride Plan'],
+      opening: ['New Dosa Counter', 'Rooftop Yoga Slot', 'Pop-up Dessert Bar', 'Maker Studio Launch', 'Fresh Mart Opening', 'Indie Gig Door'],
+    };
+    const descriptions: Record<GameMarkerType, string[]> = {
+      alert: [
+        'Local players flagged this spot for a quick look before you pass through.',
+        'A useful neighbourhood warning is active around this block.',
+        'Nearby residents are reporting a short-lived disruption here.',
+      ],
+      connect: [
+        'A friendly local group is forming nearby. Drop in if the vibe fits.',
+        'People around this lane are coordinating a quick neighbourhood activity.',
+        'A low-pressure social ping from someone close to this marker.',
+      ],
+      opening: [
+        'Something new just unlocked nearby. Early visitors may catch the best bits.',
+        'A fresh local spot is opening its doors around this marker.',
+        'New neighbourhood activity is starting here with a limited first wave.',
+      ],
+    };
+    const images: Record<GameMarkerType, string[]> = {
+      alert: [
+        'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=520&q=78',
+        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=520&q=78',
+      ],
+      connect: [
+        'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=520&q=78',
+        'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=520&q=78',
+      ],
+      opening: [
+        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=520&q=78',
+        'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=520&q=78',
+      ],
+    };
+    const types: GameMarkerType[] = ['alert', 'connect', 'opening'];
+    const [west, south, east, north] = getGeometryBounds(geometry);
+    const markers: CityMarker[] = [];
+    let attempts = 0;
+
+    while (markers.length < count && attempts < count * 250) {
+      attempts++;
+      const index = markers.length;
+      const type = types[index % types.length];
+      const longitude = Number((west + Math.random() * (east - west)).toFixed(6));
+      const latitude = Number((south + Math.random() * (north - south)).toFixed(6));
+      if (!this.pointInDistrict([longitude, latitude], geometry)) continue;
+
+      const titlePool = titles[type];
+      const descPool = descriptions[type];
+      const imagePool = images[type];
+      markers.push({
+        id: `island-marker-${index + 1}`,
+        title: `${titlePool[index % titlePool.length]} ${index + 1}`,
+        description: descPool[index % descPool.length],
+        imageUrl: imagePool[index % imagePool.length],
+        longitude,
+        latitude,
+        type,
+        priority: 1 + Math.floor(Math.random() * 10),
+      });
+    }
+
+    return markers;
+  }
+
+  private createMarkersGeoJson(markers: CityMarker[]): FeatureCollection<Point, CityMarkerProperties> {
+    const featured = new Set(this.featuredMarkerIds);
+    return {
+      type: 'FeatureCollection',
+      features: markers.map((marker) => ({
+        type: 'Feature',
+        properties: {
+          id: marker.id,
+          title: marker.title,
+          description: marker.description,
+          imageUrl: marker.imageUrl,
+          type: marker.type,
+          priority: marker.priority,
+          featured: featured.has(marker.id),
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [marker.longitude, marker.latitude],
+        },
+      })),
+    };
+  }
+
+  private updateMarkerSource(): void {
+    const source = this.map?.getSource(GAME_MARKERS_SRC) as GeoJSONSource | undefined;
+    source?.setData(this.createMarkersGeoJson(this.cityMarkers));
+  }
+
+  private syncMarkersToGeometry(geometry: DistrictGeometry, label: string): void {
+    const bounds = getGeometryBounds(geometry).map((value) => value.toFixed(5)).join(',');
+    const areaKey = `${label}:${bounds}`;
+
+    if (this.currentMarkerAreaKey !== areaKey || !this.cityMarkers.length) {
+      this.currentMarkerAreaKey = areaKey;
+      this.cityMarkers = this.generateDummyMarkers(GAME_MARKER_COUNT, geometry);
+      this.featuredMarkerQueue = [];
+      this.featuredMarkerCursor = 0;
+      this.featuredMarkerIds = [];
+      this.selectRandomFeaturedMarkers(FEATURED_MARKER_COUNT);
+    }
+
+    this.showFeaturedMarkers();
+  }
+
+  private pointInDistrict(point: [number, number], geometry: DistrictGeometry): boolean {
+    if (geometry.type === 'Polygon') return this.pointInPolygon(point, geometry.coordinates);
+    return geometry.coordinates.some((polygon) => this.pointInPolygon(point, polygon));
+  }
+
+  private pointInPolygon(point: [number, number], rings: Position[][]): boolean {
+    if (!rings.length || !this.pointInRing(point, rings[0])) return false;
+    return !rings.slice(1).some((ring) => this.pointInRing(point, ring));
+  }
+
+  private pointInRing([lng, lat]: [number, number], ring: Position[]): boolean {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      const intersects = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  }
+
+  private selectRandomFeaturedMarkers(count: number): void {
+    if (!this.featuredMarkerQueue.length) {
+      this.featuredMarkerQueue = this.shuffleMarkerIds();
+      this.featuredMarkerCursor = 0;
+    }
+    this.featuredMarkerIds = this.nextFeaturedIds(count);
+  }
+
+  private shuffleMarkerIds(): string[] {
+    const ids = this.cityMarkers.map((marker) => marker.id);
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    return ids;
+  }
+
+  private nextFeaturedIds(count: number): string[] {
+    if (!this.featuredMarkerQueue.length) return [];
+    const ids: string[] = [];
+    while (ids.length < count && ids.length < this.featuredMarkerQueue.length) {
+      const id = this.featuredMarkerQueue[this.featuredMarkerCursor % this.featuredMarkerQueue.length];
+      this.featuredMarkerCursor++;
+      if (!ids.includes(id)) ids.push(id);
+    }
+    return ids;
+  }
+
+  private showFeaturedMarkers(): void {
+    this.clearFeaturedMarkers();
+    this.featuredMarkerIds
+      .map((id) => this.cityMarkers.find((marker) => marker.id === id))
+      .filter((marker): marker is CityMarker => !!marker)
+      .forEach((marker) => this.createFeaturedMarker(marker));
+    this.updateMarkerSource();
+  }
+
+  private createFeaturedMarker(marker: CityMarker): void {
+    if (!this.map) return;
+
+    const element = document.createElement('button');
+    element.type = 'button';
+    element.className = `game-featured-marker game-featured-marker--${marker.type} ${this.getMarkerScreenClass(marker)}`;
+    element.setAttribute('aria-label', marker.title);
+    element.innerHTML = `
+      <span class="game-marker-card-wrap">${this.createPopupHtml(marker)}</span>
+      <span class="game-featured-marker__halo"></span>
+      <span class="game-featured-marker__core"></span>
+    `;
+    element.querySelector('img')?.addEventListener('error', (event) => {
+      const image = event.currentTarget as HTMLImageElement;
+      image.src = FALLBACK_MARKER_IMAGE;
+    });
+
+    const featuredMarker = new maptilersdk.Marker({ element, anchor: 'bottom', offset: [0, -4] })
+      .setLngLat([marker.longitude, marker.latitude])
+      .addTo(this.map as unknown as maptilersdk.Map);
+
+    element.addEventListener('mouseenter', () => this.pauseFeaturedRotation());
+    element.addEventListener('mouseleave', () => this.resumeFeaturedRotation());
+    element.addEventListener('click', () => this.replaceFeaturedMarker(marker));
+
+    this.featuredMarkers.set(marker.id, featuredMarker);
+  }
+
+  private createPopupHtml(marker: CityMarker): string {
+    const type = this.markerTypeLabel(marker.type);
+    const title = this.escapeHtml(marker.title);
+    const description = this.escapeHtml(marker.description);
+    const imageUrl = this.escapeHtml(marker.imageUrl || FALLBACK_MARKER_IMAGE);
+
+    return `
+      <div class="game-marker-card">
+        <div class="game-marker-card__shine"></div>
+        <div class="game-marker-card__content">
+          <span class="game-marker-card__badge">${this.escapeHtml(type)}</span>
+          <h3 class="game-marker-card__title">${title}</h3>
+          <p class="game-marker-card__description">${description}</p>
+        </div>
+        <img class="game-marker-card__image" src="${imageUrl}" alt="${title}" loading="lazy" />
+      </div>
+    `;
+  }
+
+  private replaceFeaturedMarker(marker: CityMarker): void {
+    if (!this.map) return;
+    if (this.featuredMarkerIds.includes(marker.id)) {
+      this.showFeaturedMarkers();
+      return;
+    }
+
+    const nextIds = this.featuredMarkerIds.slice(0, FEATURED_MARKER_COUNT);
+    if (nextIds.length >= FEATURED_MARKER_COUNT) nextIds.shift();
+    nextIds.push(marker.id);
+    this.featuredMarkerIds = nextIds;
+    this.showFeaturedMarkers();
+  }
+
+  private startFeaturedRotation(): void {
+    this.stopFeaturedRotation();
+    if (typeof window === 'undefined') return;
+    this.featuredRotationTimer = window.setInterval(() => {
+      if (this.featuredHoverCount > 0) return;
+      this.featuredMarkerIds = this.nextFeaturedIds(FEATURED_MARKER_COUNT);
+      this.showFeaturedMarkers();
+    }, FEATURED_ROTATION_MS);
+  }
+
+  private stopFeaturedRotation(): void {
+    if (this.featuredRotationTimer !== undefined) {
+      window.clearInterval(this.featuredRotationTimer);
+      this.featuredRotationTimer = undefined;
+    }
+  }
+
+  private clearFeaturedMarkers(): void {
+    this.featuredMarkers.forEach((marker) => marker.remove());
+    this.featuredMarkers.clear();
+  }
+
+  private pauseFeaturedRotation(): void {
+    this.featuredHoverCount++;
+  }
+
+  private resumeFeaturedRotation(): void {
+    this.featuredHoverCount = Math.max(0, this.featuredHoverCount - 1);
+  }
+
+  private markerLayerFilter(type: GameMarkerType): LayerFilter {
+    return ['all', ['!', ['has', 'point_count']], ['==', ['get', 'type'], type], ['==', ['get', 'featured'], false]] as LayerFilter;
+  }
+
+  private markerTypeLabel(type: GameMarkerType): string {
+    return ({ alert: 'Alert', connect: 'Connect', opening: 'Opening' } satisfies Record<GameMarkerType, string>)[type];
+  }
+
+  private updateFeaturedMarkerScreenClasses(): void {
+    for (const id of this.featuredMarkerIds) {
+      const markerData = this.cityMarkers.find((marker) => marker.id === id);
+      const marker = this.featuredMarkers.get(id);
+      if (!markerData || !marker) continue;
+      const element = marker.getElement();
+      element.classList.remove(
+        'game-featured-marker--left',
+        'game-featured-marker--right',
+        'game-featured-marker--center',
+        'game-featured-marker--top',
+        'game-featured-marker--middle',
+      );
+      element.classList.add(...this.getMarkerScreenClass(markerData).split(' '));
+    }
+  }
+
+  private getMarkerScreenClass(marker: CityMarker): string {
+    if (!this.map) return 'game-featured-marker--center game-featured-marker--middle';
+    const point = this.map.project([marker.longitude, marker.latitude]);
+    const canvas = this.map.getCanvas();
+    const horizontal =
+      point.x < canvas.clientWidth * 0.28
+        ? 'game-featured-marker--left'
+        : point.x > canvas.clientWidth * 0.72
+          ? 'game-featured-marker--right'
+          : 'game-featured-marker--center';
+    const vertical = point.y < 145 ? 'game-featured-marker--top' : 'game-featured-marker--middle';
+    return `${horizontal} ${vertical}`;
+  }
+
+  private escapeHtml(value: string): string {
+    const div = document.createElement('div');
+    div.textContent = value;
+    return div.innerHTML;
   }
 
   /**
@@ -810,6 +1326,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     // IMPORTANT: clear any previous bounds constraint BEFORE fitting/flying —
     // setMaxBounds from a prior district silently clamps the camera and makes
     // the switch appear to do nothing.
+    this.syncMarkersToGeometry(smoothed, label);
     this.map.setMaxBounds(null);
 
     // Fit the camera to the district.

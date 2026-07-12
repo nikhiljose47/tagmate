@@ -1,34 +1,38 @@
 # Tagmate
 
-Tagmate is an Angular 20 location-based posting app. The hood map is rendered with MapLibre GL JS, MapTiler hosted styles, GeoJSON sources, and built-in clustering for smooth neighbourhood-level post browsing.
+Tagmate is an Angular location-based posting app. The island map uses MapTiler SDK, MapTiler hosted map styles, GeoJSON sources, clustering, responsive overlays, and a gamified featured-marker layer for smooth desktop and mobile browsing.
 
-## 📖 Subsystem Documentation
+## Documentation
 
-Detailed architectural and feature documentation guides can be found in the [docs/](file:///d:/Coding/Web/tagmate/docs/) directory:
-* [Mapping & Geospatial](file:///d:/Coding/Web/tagmate/docs/MAPPING_AND_GEOSPATIAL.md) - MapLibre configuration, OSM Nominatim boundaries, clustering, and caching.
-* [Neighborhood AI Concierge (Chatmate AI)](file:///d:/Coding/Web/tagmate/docs/AI_CONCIERGE.md) - Glassmorphic chatbot panel, real-time context parsing, synonym mapping, map actions.
-* [Gamification & Reputation](file:///d:/Coding/Web/tagmate/docs/GAMIFICATION.md) - Quests checklist, contributor leaderboards, Supabase metadata synchronization.
-* [Social Interaction Suite](file:///d:/Coding/Web/tagmate/docs/SOCIAL_SUITE.md) - Direct messaging, real-time chatrooms, comments, event RSVPs, polls, notifications.
-* [Aesthetics & Visual System](file:///d:/Coding/Web/tagmate/docs/AESTHETICS.md) - Custom themes, category-driven gradients, and live expiration countdowns.
+More project notes live in `docs/`:
+
+- `docs/MAPPING_AND_GEOSPATIAL.md` - map setup, boundaries, clustering, and caching.
+- `docs/AI_CONCIERGE.md` - Chatmate AI behavior and map actions.
+- `docs/GAMIFICATION.md` - quests, reputation, and contributor features.
+- `docs/SOCIAL_SUITE.md` - messaging, comments, RSVPs, polls, and notifications.
+- `docs/AESTHETICS.md` - visual themes and UI treatment.
 
 ## Versions Used
 
-
-These are the versions currently used in this workspace:
+These are the versions currently installed in this workspace:
 
 | Tool or package | Version |
 | --- | --- |
 | Node.js | 22.22.3 |
-| npm | 10.9.8 |
-| Angular CLI | 20.3.8 |
-| Angular | 20.3.9 |
+| npm | 11.4.2 |
+| Angular CLI | 21.2.17 |
+| Angular | 21.2.17 |
 | TypeScript | 5.9.3 |
 | RxJS | 7.8.2 |
+| MapTiler SDK | 4.0.2 |
 | MapLibre GL JS | 5.24.0 |
-| Bootstrap | 5.3.8 |
+| NgRx | 21.1.1 |
+| Supabase JS | 2.110.0 |
+| Bootstrap Icons | 1.13.1 |
+| Tailwind CSS | 4.3.1 |
 | Wrangler | 4.45.3 |
 
-The declared dependency ranges live in `package.json`; the exact installed tree is locked in `package-lock.json`.
+The declared dependency ranges are in `package.json`. The exact installed dependency tree is locked in `package-lock.json`.
 
 ## Install
 
@@ -38,17 +42,19 @@ Install dependencies from the project root:
 npm install
 ```
 
-On Windows PowerShell, if script execution blocks `npm`, use:
+On Windows PowerShell, you can also use:
 
 ```bash
 npm.cmd install
 ```
 
-## Required Setup
+## Environment Setup
 
-Configure the Angular environment in:
+Configure the Angular environment files in:
 
 ```text
+src/app/environments/environment.ts
+src/app/environments/environment.staging.ts
 src/app/environments/environment.prod.ts
 ```
 
@@ -56,24 +62,17 @@ Required values:
 
 ```ts
 export const environment = {
+  production: false,
   mapTilerApiKey: 'YOUR_MAPTILER_API_KEY',
-  firebase: {
-    apiKey: '...',
-    authDomain: '...',
-    databaseURL: '...',
-    projectId: '...',
-    storageBucket: '...',
-    messagingSenderId: '...',
-    appId: '...',
-    measurementId: '...',
-  },
+  supabaseUrl: 'YOUR_SUPABASE_URL',
+  supabaseAnonKey: 'YOUR_SUPABASE_ANON_KEY',
 };
 ```
 
-MapTiler is used for the MapLibre style URL:
+MapTiler styles are loaded through the SDK and style URLs such as:
 
-```ts
-https://api.maptiler.com/maps/streets-v4/style.json?key=...
+```text
+https://api.maptiler.com/maps/streets-v4/style.json?key=YOUR_MAPTILER_API_KEY
 ```
 
 ## Development
@@ -88,6 +87,12 @@ Open:
 
 ```text
 http://localhost:4200/
+```
+
+The island map page is available at:
+
+```text
+http://localhost:4200/island
 ```
 
 You can also run the configured watch build:
@@ -110,22 +115,6 @@ The output is written to:
 dist/
 ```
 
-## Cloudflare Worker Preview
-
-This project includes Wrangler configuration for the SSR build.
-
-```bash
-npm run start
-```
-
-That command builds the app and starts `wrangler dev`.
-
-Deploy:
-
-```bash
-npm run deploy
-```
-
 ## Tests
 
 Run unit tests:
@@ -137,40 +126,57 @@ npm test
 For a single headless run:
 
 ```bash
-npm test -- --watch=false --browsers=ChromeHeadless
+npm test -- --watch=false --browsers=ChromeHeadlessNoGpu
 ```
 
-If ChromeHeadless fails on Windows because the GPU process cannot start, run tests in a regular Chrome browser or configure a no-GPU custom launcher in Karma.
+## Cloudflare Worker Preview
 
-## Map Feature Notes
+This project includes Wrangler configuration for the built app.
 
-The main map component is:
+Preview locally:
+
+```bash
+npm run start
+```
+
+Deploy:
+
+```bash
+npm run deploy
+```
+
+## Island Map
+
+The main island map files are:
 
 ```text
-src/app/components/tagmate/tagmate.ts
+src/app/features/hood-island/pages/hood-island/hood-island.ts
+src/app/features/hood-island/pages/hood-island/hood-island.html
+src/app/features/hood-island/pages/hood-island/hood-island.scss
 ```
 
 Current map behavior:
 
-- MapLibre GL JS renders the map using a MapTiler hosted style.
-- Posts from `src/app/data/tags.json` are converted to a small GeoJSON `FeatureCollection<Point>`.
-- One clustered GeoJSON source is used for post markers.
-- Clusters and individual posts are rendered with MapLibre WebGL layers.
-- Cluster clicks use `getClusterExpansionZoom()`.
-- Hood boundaries are loaded as GeoJSON Polygon or MultiPolygon data.
-- The selected create-post location uses one temporary draggable marker.
-- Map move events are debounced before visible posts are refreshed.
+- MapTiler SDK creates the map with `import * as maptilersdk from '@maptiler/sdk'`.
+- The default island center is Marathahalli, Bengaluru: `[77.7011, 12.9569]`.
+- The map camera fits the active island boundary and then keeps panning constrained nearby.
+- A single clustered GeoJSON source renders the normal city markers.
+- Dummy marker data is generated locally for alerts, connects, and openings.
+- Three featured animated HTML markers are shown at a time.
+- Featured markers rotate every 15 seconds from an init-time shuffled queue and pause while hovered.
+- Marker randomness happens only when the island page initializes, such as after a refresh.
+- Clicking a normal marker promotes it into the featured set.
+- Map resize handling keeps the layout stable across desktop and mobile screens.
 
-Default map zoom is `12`, matching the active zoom button on page load.
+## Responsive Notes
 
-## Responsive Layout
+The island map layout is tuned for desktop and mobile:
 
-The map shell is responsive for desktop and mobile:
-
-- `100dvh` based map height with mobile fallbacks.
-- Overlays are constrained and wrap on small screens.
-- Search controls stack on narrow phones.
-- `ResizeObserver` calls `map.resize()` after container changes.
+- Map height uses modern viewport units with mobile fallbacks.
+- Controls wrap or stack on narrow screens.
+- Popups have constrained widths and responsive media sizing.
+- Marker rendering uses WebGL layers for normal markers instead of many DOM nodes.
+- Map resize calls run after container changes so the map canvas does not load with stale dimensions.
 
 ## Useful Commands
 
@@ -178,7 +184,7 @@ The map shell is responsive for desktop and mobile:
 npm install
 npx ng serve
 npm run build
-npm test
+npm test -- --watch=false --browsers=ChromeHeadlessNoGpu
 npm run start
 npm run deploy
 ```
