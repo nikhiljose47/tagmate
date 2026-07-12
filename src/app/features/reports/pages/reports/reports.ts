@@ -8,8 +8,11 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { Tag } from '../../../../core/models/tag.model';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { SupabaseService } from '../../../../core/services/supabase.service';
+import { firstValueFrom } from 'rxjs';
 
 type ReportFilter = 'all' | 'reported' | 'hidden' | 'alerts';
+interface SocialReport { id: string; type: 'comment' | 'message' | 'user'; createdAt: string; subjectId: string; }
 
 @Component({
   selector: 'app-reports',
@@ -22,12 +25,14 @@ export class ReportsPage implements OnInit {
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
+  private readonly supabase = inject(SupabaseService);
   protected readonly social = inject(SocialInteractionsService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly loadError = signal(false);
   protected readonly filter = signal<ReportFilter>('all');
+  protected readonly socialReports = signal<SocialReport[]>([]);
 
   protected readonly queue = computed(() => {
     const filter = this.filter();
@@ -50,6 +55,7 @@ export class ReportsPage implements OnInit {
 
   ngOnInit(): void {
     this.loadReports();
+    void this.loadSocialReports();
   }
 
   protected loadReports(): void {
@@ -68,6 +74,23 @@ export class ReportsPage implements OnInit {
         this.isLoading.set(false);
       },
     });
+  }
+
+  private async loadSocialReports(): Promise<void> {
+    try {
+      const [comments, messages, users] = await Promise.all([
+        firstValueFrom(this.supabase.getRows<{ id: string; comment_id: string; created_at: string }>('comment_reports')),
+        firstValueFrom(this.supabase.getRows<{ id: string; message_id: string; created_at: string }>('message_reports')),
+        firstValueFrom(this.supabase.getRows<{ id: string; reported_user_id: string; created_at: string }>('user_reports')),
+      ]);
+      this.socialReports.set([
+        ...(comments?.data ?? []).map((row) => ({ id: row.id, type: 'comment' as const, subjectId: row.comment_id, createdAt: row.created_at })),
+        ...(messages?.data ?? []).map((row) => ({ id: row.id, type: 'message' as const, subjectId: row.message_id, createdAt: row.created_at })),
+        ...(users?.data ?? []).map((row) => ({ id: row.id, type: 'user' as const, subjectId: row.reported_user_id, createdAt: row.created_at })),
+      ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    } catch (error) {
+      this.logger.warn('Could not load social report queue', error);
+    }
   }
 
   protected setFilter(filter: ReportFilter): void {

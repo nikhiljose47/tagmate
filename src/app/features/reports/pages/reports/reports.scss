@@ -41,6 +41,12 @@
   margin-bottom: 14px;
 }
 
+.social-report-summary { display: grid; gap: 9px; margin-bottom: 18px; padding: 16px; }
+.social-report-summary h2 { margin: 0 0 2px; font-size: 15px; }
+.social-report-summary > div { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: center; font-size: 12px; }
+.social-report-summary code { overflow: hidden; color: var(--tm-muted); text-overflow: ellipsis; white-space: nowrap; }
+.social-report-summary small { color: var(--tm-muted); }
+
 .filter-row button {
   min-height: 36px;
   border: 1px solid var(--tm-border);

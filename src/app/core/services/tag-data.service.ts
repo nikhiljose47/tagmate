@@ -42,7 +42,7 @@ export class TagDataService {
 
   getUserById(uid: string): Observable<AppUser | null> {
     return from(
-      this.client.from('users').select('uid,name,is_guest,reputation').eq('uid', uid).single<any>()
+      this.client.from('users').select('uid,name,is_guest,reputation,bio,created_at,updated_at').eq('uid', uid).single<any>()
     ).pipe(
       map((result) => {
         const { data } = this.requireSuccess(result);
@@ -52,6 +52,9 @@ export class TagDataService {
           name: data.name,
           isGuest: !!data.is_guest,
           reputation: data.reputation ?? 0,
+          bio: data.bio ?? '',
+          createdAt: data.created_at ?? undefined,
+          updatedAt: data.updated_at ?? undefined,
         };
       })
     );
@@ -73,6 +76,31 @@ export class TagDataService {
     return from(this.client.from(table).delete().match(matchers)).pipe(
       map((result) => this.requireSuccess(result))
     );
+  }
+
+  updateRowsWhere<T>(table: string, matchers: Record<string, unknown>, data: Partial<T>) {
+    return from(
+      this.client.from(table).update(data as Record<string, unknown>).match(matchers).select()
+    ).pipe(map((result) => this.requireSuccess(result)));
+  }
+
+  searchUsers(query: string, limit = 8): Observable<{ data: any[] | null; error: unknown }> {
+    const sanitized = query.replace(/[,()%]/g, '').trim();
+    if (!sanitized) return of({ data: [], error: null });
+    return from(
+      this.client
+        .from('users')
+        .select('uid,name,bio,reputation,created_at,updated_at')
+        .ilike('name', `%${sanitized}%`)
+        .eq('is_guest', false)
+        .limit(limit)
+    ).pipe(map((result) => this.requireSuccess(result)));
+  }
+
+  callRpc<T>(name: string, params: Record<string, unknown>): Observable<{ data: T | null; error: unknown }> {
+    return from(this.client.rpc(name, params)).pipe(
+      map((result) => this.requireSuccess(result))
+    ) as Observable<{ data: T | null; error: unknown }>;
   }
 
   upsertRow<T extends Record<string, unknown>>(table: string, data: T, onConflict?: string) {

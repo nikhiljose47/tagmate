@@ -22,17 +22,25 @@ export interface Tag {
   likeCount?: number;
   commentCount?: number;
   rsvpCount?: number;
+  currentStatus?: PostStatus;
+  statusUpdatedAt?: string;
+  verificationCount?: number;
 }
+
+export type PostStatus = 'active' | 'resolved' | 'cancelled' | 'closed';
 
 export interface ThreadedComment {
   id: string;
   postId: string;
   author: string;
+  authorUid: string;
   text: string;
   createdAt: string;
   upvotes: number;
   mentions: string[];
   parentId?: string;
+  updatedAt?: string;
+  deletedAt?: string;
 }
 
 export interface DirectMessage {
@@ -41,19 +49,26 @@ export interface DirectMessage {
   postId: string;
   from: string;
   to: string;
+  fromUid: string;
+  toUid: string;
   text: string;
   createdAt: string;
   read: boolean;
+  readAt?: string;
 }
 
 export interface LocalNotification {
   id: string;
-  type: 'reply' | 'love' | 'alert' | 'rsvp' | 'message';
+  type: 'reply' | 'mention' | 'love' | 'follow' | 'alert' | 'rsvp' | 'message' | 'verification' | 'status';
   title: string;
   body: string;
   postId?: string;
+  actorId?: string;
+  targetType?: 'post' | 'comment' | 'user' | 'thread';
+  targetId?: string;
   createdAt: string;
   read: boolean;
+  readAt?: string;
 }
 
 export interface HoodMessage {

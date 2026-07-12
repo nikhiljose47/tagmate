@@ -24,6 +24,7 @@ export interface ITagRepository {
   getByUserId(userId: string): Observable<Tag[]>;
   getInBounds(box: BoundingBox): Observable<Tag[]>;
   liveTags(): Observable<Tag>;
+  liveTagUpdates(): Observable<Tag>;
   update(id: string, partial: Partial<Omit<Tag, 'id' | 'userId' | 'createdAt'>>): Observable<Tag>;
   create(tag: Omit<Tag, 'id'>): Observable<Tag>;
   delete(id: string): Observable<void>;

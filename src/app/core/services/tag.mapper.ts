@@ -22,6 +22,9 @@ export interface TagRow {
   like_count?: number;
   comment_count?: number;
   rsvp_count?: number;
+  current_status?: 'active' | 'resolved' | 'cancelled' | 'closed';
+  status_updated_at?: string | null;
+  verification_count?: number;
 }
 
 /** Converts a domain Tag into a Supabase row for insert/update. */
@@ -69,5 +72,8 @@ export function rowToTag(row: TagRow): Tag {
     likeCount:    row.like_count,
     commentCount: row.comment_count,
     rsvpCount:    row.rsvp_count,
+    currentStatus: row.current_status ?? 'active',
+    statusUpdatedAt: row.status_updated_at ?? undefined,
+    verificationCount: row.verification_count ?? 0,
   };
 }

@@ -62,10 +62,11 @@
       @if (editMode() && !user.isGuest) {
         <div class="edit-card">
           <label class="edit-label">Display Name</label>
-          <input class="tm-input mb-3" type="text" [value]="user.username || ''" placeholder="Your name" />
+          <input class="tm-input mb-3" type="text" [value]="editName()" (input)="editName.set($any($event.target).value)" maxlength="40" placeholder="Your name" />
           <label class="edit-label">Bio</label>
-          <textarea class="tm-input mb-3" rows="2" placeholder="Tell your hood about yourself..."></textarea>
-          <button class="tm-btn tm-btn-primary w-full" type="button" (click)="saveProfile()">Save</button>
+          <textarea class="tm-input mb-3" rows="3" [value]="editBio()" (input)="editBio.set($any($event.target).value)" maxlength="280" placeholder="Tell your hood about yourself..."></textarea>
+          <small class="edit-count">{{ editBio().length }}/280</small>
+          <button class="tm-btn tm-btn-primary w-full" type="button" [disabled]="profileSaving()" (click)="saveProfile()">{{ profileSaving() ? 'Saving…' : 'Save' }}</button>
         </div>
       }
 

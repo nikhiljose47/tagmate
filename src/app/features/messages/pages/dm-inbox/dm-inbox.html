@@ -4,6 +4,7 @@
     <div class="sidebar-header">
       <h1 class="sidebar-title">Inbox</h1>
     </div>
+    <label class="inbox-search"><i class="bi bi-search"></i><input type="search" placeholder="Search conversations" [value]="searchText()" (input)="searchText.set($any($event.target).value)" /></label>
 
     @if (isLoading()) {
       <div class="flex flex-col gap-3 p-4">
@@ -24,7 +25,7 @@
 
       @if (threads().length > 0) {
         <div class="threads-list">
-          @for (thread of threads(); track thread.threadId) {
+          @for (thread of filteredThreads(); track thread.threadId) {
             <button
               type="button"
               class="thread-card"
@@ -60,21 +61,26 @@
         <button type="button" class="back-btn" (click)="closeThread()" aria-label="Back to inbox">
           <i class="bi bi-chevron-left"></i>
         </button>
-        <div class="header-user-info">
+        <a class="header-user-info" [routerLink]="['/users', thread.otherUid]">
           <div class="header-avatar">
             {{ thread.otherName.slice(0, 2).toUpperCase() }}
           </div>
           <div>
             <h2 class="header-username">{{ thread.otherName }}</h2>
-            <span class="header-status">Online</span>
+            <span class="header-status">{{ thread.postPreview || 'Direct neighbor conversation' }}</span>
           </div>
-        </div>
+        </a>
         <div class="header-actions">
-          <a class="view-post-link" [routerLink]="['/posts', thread.postId]" title="View linked post">
-            <i class="bi bi-link-45deg"></i>
-          </a>
+          @if (thread.postId) { <a class="view-post-link" [routerLink]="['/posts', thread.postId]" title="View linked post"><i class="bi bi-link-45deg"></i></a> }
+          <button type="button" (click)="toggleMute()" [attr.aria-label]="platform.isThreadMuted(thread.threadId) ? 'Unmute conversation' : 'Mute conversation'"><i class="bi" [ngClass]="platform.isThreadMuted(thread.threadId) ? 'bi-bell-fill' : 'bi-bell-slash'"></i></button>
+          <button type="button" (click)="reportConversation()" aria-label="Report conversation"><i class="bi bi-flag"></i></button>
+          <button type="button" class="danger" (click)="blockParticipant()" aria-label="Block participant"><i class="bi bi-slash-circle"></i></button>
         </div>
       </div>
+
+      @if (thread.postId) {
+        <a class="linked-post-preview" [routerLink]="['/posts', thread.postId]"><i class="bi bi-link-45deg"></i><span><small>Linked post</small><strong>{{ thread.postPreview || 'View original post' }}</strong></span></a>
+      }
 
       <!-- Messages List -->
       <div class="messages-list">
@@ -87,7 +93,7 @@
           <div class="message-bubble-wrapper" [class.outgoing]="msg.from === 'You'">
             <div class="message-bubble">
               <p class="message-text">{{ msg.text }}</p>
-              <span class="message-time">{{ msg.createdAt | timeAgo }}</span>
+              <span class="message-time">{{ msg.createdAt | timeAgo }} @if (msg.fromUid === platform.myUid()) { · {{ msg.readAt ? 'Read' : 'Sent' }} }</span>
             </div>
           </div>
         }

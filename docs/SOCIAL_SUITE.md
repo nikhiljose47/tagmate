@@ -50,3 +50,27 @@ A local notification dashboard that displays real-time badges and alerts when:
 * You receive a new Direct Message.
 * Someone likes your post.
 * A user registers an RSVP to your event.
+
+---
+
+## Social Graph And Public Profiles
+
+Authenticated residents have limited public profiles at `/users/:uid`. They expose a display name, bio, reputation, and public posts—never email or account metadata. Residents can follow people, neighborhoods, and topics; the Feed provides transparent **Latest**, **Nearby**, and chronological **Following** modes.
+
+Blocking is enforced by Supabase row-level policies as well as the UI. It hides the blocked resident's content and prevents future follows, mentions, discovery, and direct messages. Conversation mute is intentionally narrower: it only suppresses unread-message alerts.
+
+---
+
+## Durable Activity And Messaging
+
+The global notification drawer replaces feed-only activity UI. Notifications have explicit actor, target, and read timestamps; opening an item marks it read and deep-links to the post, comment, profile, or DM thread.
+
+DMs persist read timestamps, support inbox search, linked-post context, mute, report, and block actions. The UI deliberately does not claim online presence or typing status.
+
+---
+
+## Verified Local Updates
+
+Actionable updates (`alert`, `traffic`, `weather`, `utility`, `event`, `sale`, `market`, `shopping`, `business`, `health`, and `question`) support one confirmation per non-author resident. Feed, map, neighborhood, and detail views show current status and confirmation count.
+
+Authors (and administrators) can add chronological status entries. Questions use `active`/`closed`; other actionable updates use `active`/`resolved`/`cancelled`. Confirming names are visible only from the post-detail view.

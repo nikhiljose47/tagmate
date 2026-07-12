@@ -10,6 +10,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { SharedStateService } from '../../../../core/services/shared-state.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
+import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
@@ -54,6 +55,7 @@ export class ProfilePage implements OnInit {
   private readonly logger  = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly social = inject(SocialInteractionsService);
+  protected readonly platform = inject(SocialPlatformService);
   protected readonly theme  = inject(ThemeService);
 
   readonly availableThemes: { value: AppTheme; label: string }[] = [
@@ -72,6 +74,9 @@ export class ProfilePage implements OnInit {
   isLoading  = signal(true);
   activeTab  = signal<ProfileTab>('posts');
   editMode   = signal(false);
+  editName   = signal('');
+  editBio    = signal('');
+  profileSaving = signal(false);
   allTags    = signal<Tag[]>([]);
   settings   = signal<ProfileSettings>(readProfileSettings());
   savedTags  = computed(() => this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)));
@@ -129,8 +134,25 @@ export class ProfilePage implements OnInit {
   }
 
   setTab(tab: ProfileTab): void     { this.activeTab.set(tab); }
-  toggleEditProfile(): void         { this.editMode.update((v) => !v); }
-  saveProfile(): void               { this.editMode.set(false); this.toast.show('Profile saved.', 'success'); }
+  toggleEditProfile(): void {
+    const opening = !this.editMode();
+    if (opening) {
+      const user = this.sessionService.user();
+      this.editName.set(user?.name ?? '');
+      this.editBio.set(user?.bio ?? '');
+    }
+    this.editMode.set(opening);
+  }
+  async saveProfile(): Promise<void> {
+    if (!this.editName().trim()) { this.toast.show('Display name is required.', 'warning'); return; }
+    this.profileSaving.set(true);
+    const saved = await this.platform.updateOwnProfile(this.editName(), this.editBio());
+    this.profileSaving.set(false);
+    if (saved) {
+      this.editMode.set(false);
+      this.toast.show('Profile saved.', 'success');
+    }
+  }
   saveSettings(): void              {
     writeLocalStorage(PROFILE_SETTINGS_KEY, this.settings());
     this.toast.show('Settings saved.', 'success');

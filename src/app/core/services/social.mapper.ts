@@ -11,6 +11,8 @@ export interface PostCommentRow {
   mentions: string[];
   upvotes: number;
   created_at: string;
+  updated_at?: string | null;
+  deleted_at?: string | null;
 }
 
 export function rowToComment(row: PostCommentRow): ThreadedComment {
@@ -18,11 +20,14 @@ export function rowToComment(row: PostCommentRow): ThreadedComment {
     id:        row.id,
     postId:    row.post_id,
     author:    row.author_name,
+    authorUid: row.author_uid,
     text:      row.text,
     createdAt: row.created_at,
     upvotes:   row.upvotes,
     mentions:  row.mentions ?? [],
     parentId:  row.parent_id ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
+    deletedAt: row.deleted_at ?? undefined,
   };
 }
 
@@ -36,6 +41,7 @@ export interface DirectMessageRow {
   to_name: string;
   text: string;
   read: boolean;
+  read_at?: string | null;
   created_at: string;
 }
 
@@ -52,9 +58,12 @@ export function rowToDirectMessage(row: DirectMessageRow, viewerUid: string | nu
     postId:    row.post_id ?? '',
     from:      row.from_uid === viewerUid ? 'You' : row.to_name,
     to:        row.to_name,
+    fromUid:   row.from_uid,
+    toUid:     row.to_uid,
     text:      row.text,
     createdAt: row.created_at,
     read:      row.read,
+    readAt:    row.read_at ?? undefined,
   };
 }
 
@@ -68,6 +77,10 @@ export interface NotificationRow {
   post_id: string | null;
   read: boolean;
   created_at: string;
+  actor_id?: string | null;
+  target_type?: LocalNotification['targetType'] | null;
+  target_id?: string | null;
+  read_at?: string | null;
 }
 
 export function rowToNotification(row: NotificationRow): LocalNotification {
@@ -77,8 +90,12 @@ export function rowToNotification(row: NotificationRow): LocalNotification {
     title:     row.title,
     body:      row.body,
     postId:    row.post_id ?? undefined,
+    actorId:   row.actor_id ?? undefined,
+    targetType: row.target_type ?? undefined,
+    targetId:  row.target_id ?? undefined,
     createdAt: row.created_at,
     read:      row.read,
+    readAt:    row.read_at ?? undefined,
   };
 }
 
@@ -94,5 +111,9 @@ export function notificationToRow(
     post_id: notification.postId ?? null,
     read:    notification.read,
     created_at: notification.createdAt,
+    actor_id: notification.actorId ?? null,
+    target_type: notification.targetType ?? null,
+    target_id: notification.targetId ?? null,
+    read_at: notification.readAt ?? null,
   };
 }

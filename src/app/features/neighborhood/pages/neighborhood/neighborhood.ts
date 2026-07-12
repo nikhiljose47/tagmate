@@ -16,6 +16,8 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { SocialPlatformService } from '../../../../core/services/social-platform.service';
+import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-neighborhood',
@@ -36,6 +38,8 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   protected readonly social = inject(SocialInteractionsService);
   private readonly sessionService = inject(UserSessionService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  protected readonly platform = inject(SocialPlatformService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   private static readonly _mlPromise = import('maplibre-gl');
@@ -123,9 +127,11 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   protected readonly neighborhoodPosts = computed(() =>
     this.posts()
       .filter((post) => !this.social.isHidden(post))
+      .filter((post) => !this.platform.isBlocked(post.userId))
       .filter((post) => this.slugFor(post.hoodId || 'nearby') === this.slug)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   );
+  protected readonly followHoodId = computed(() => this.neighborhoodPosts()[0]?.hoodId || this.name);
 
   protected readonly tagCounts = computed(() => {
     const counts = new Map<string, number>();
@@ -192,6 +198,9 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
         this.isLoading.set(false);
       },
     });
+
+    this.tagRepo.liveTags().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((post) => this.mergeLivePost(post));
+    this.tagRepo.liveTagUpdates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((post) => this.mergeLivePost(post));
   }
 
   ngOnDestroy(): void {
@@ -207,6 +216,17 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     } else if (tab === 'chat') {
       this.loadGroupChat();
     }
+  }
+
+  protected async toggleHoodFollow(): Promise<void> {
+    const hoodId = this.followHoodId();
+    const enabled = await this.platform.toggleFollowHood(hoodId);
+    this.toast.show(enabled ? `Following ${this.name}.` : `Unfollowed ${this.name}.`, 'success');
+  }
+
+  private mergeLivePost(post: Tag): void {
+    if (this.slugFor(post.hoodId || 'nearby') !== this.slug) return;
+    this.posts.update((items) => [post, ...items.filter((item) => this.social.postKey(item) !== this.social.postKey(post))]);
   }
 
   protected loadGroupChat(): void {
@@ -510,7 +530,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
         .setHTML(
           `<div class="hood-map-popup">` +
           `<strong>${this.esc(post.highlight || 'Untitled')}</strong>` +
-          `<p>@${this.esc(post.username || 'Anonymous')} · #${this.esc(post.tag)}</p>` +
+          `<p><a href="/users/${encodeURIComponent(post.userId)}">@${this.esc(post.username || 'Anonymous')}</a> · #${this.esc(post.tag)}</p>` +
           `<a href="/posts/${encodeURIComponent(this.social.postKey(post))}">View post →</a>` +
           `</div>`
         );

@@ -104,12 +104,16 @@
   gap: 10px;
 }
 
-.people-list div {
+.people-list .person-row {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  color: inherit;
+  text-decoration: none;
 }
+
+.hood-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .person-avatar {
   display: grid;
@@ -615,6 +619,8 @@
     }
   }
 }
+
+a.leaderboard-item { color: inherit; text-decoration: none; }
 
 /* Map tab */
 .hood-map-section {

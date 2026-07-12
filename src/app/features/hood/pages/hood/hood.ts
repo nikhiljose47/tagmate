@@ -42,6 +42,7 @@ import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
 import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
+import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 
 interface CountryBounds {
   minLat: number;
@@ -171,6 +172,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly tagRepo  = inject(TAG_REPOSITORY);
   protected readonly social   = inject(SocialInteractionsService);
   protected readonly workspace = inject(WorkspaceStateService);
+  protected readonly platform = inject(SocialPlatformService);
 
   private readonly destroy$        = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -787,10 +789,14 @@ export class HoodPage implements AfterViewInit, OnDestroy {
           this.postsCache.clear();
           this.updatePostSource([post as MapPost, ...this.currentPosts]);
           this.toast.show('New nearby tag just landed.', 'success');
-          if (post.tag === TagCategory.Alert) {
-            this.social.addNotification('alert', 'Nearby alert', post.highlight || 'An alert was posted nearby.', this.social.postKey(post));
-          }
         },
+      });
+    this.tagRepo.liveTagUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((post) => {
+        if (!this.map || !this.postIsInsideViewport(post) || !this.matchesActiveFilters(post as MapPost)) return;
+        this.postsCache.clear();
+        this.updatePostSource([post as MapPost, ...this.currentPosts.filter((item) => this.social.postKey(item) !== this.social.postKey(post))]);
       });
   }
 
@@ -951,6 +957,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private matchesActiveFilters(post: MapPost): boolean {
     if (post.tag === 'bulletin') return false;
+    if (this.platform.isBlocked(post.userId)) return false;
     if (!this.matchesCountryMode(post)) return false;
     const categories = this.selectedMapCategories();
     return categories.length === 0 || categories.includes(post.tag || '');

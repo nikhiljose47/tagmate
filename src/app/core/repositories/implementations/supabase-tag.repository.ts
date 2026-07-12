@@ -62,6 +62,10 @@ export class SupabaseTagRepository implements ITagRepository {
     return this.realtime.liveInserts<TagRow>('tags').pipe(map(rowToTag));
   }
 
+  liveTagUpdates(): Observable<Tag> {
+    return this.realtime.liveUpdates<TagRow>('tags').pipe(map(rowToTag));
+  }
+
   update(id: string, partial: Partial<Omit<Tag, 'id' | 'userId' | 'createdAt'>>): Observable<Tag> {
     const row: Partial<TagRow> = {};
     if (partial.username !== undefined) row.username = partial.username;

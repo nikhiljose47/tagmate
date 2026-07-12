@@ -8,6 +8,8 @@ import { TAG_REPOSITORY } from '../../core/repositories/repository.tokens';
 import { Tag } from '../../core/models/tag.model';
 import { CommandResult, WorkspaceStateService } from '../workspace/workspace-state.service';
 import { SocialInteractionsService } from '../../core/services/social-interactions.service';
+import { SocialPlatformService } from '../../core/services/social-platform.service';
+import { SocialProfile } from '../../core/models/social.model';
 
 @Component({
   selector: 'app-topbar',
@@ -22,6 +24,7 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly theme = inject(ThemeService);
   protected readonly session = inject(UserSessionService);
   protected readonly social = inject(SocialInteractionsService);
+  private readonly platform = inject(SocialPlatformService);
   protected readonly workspace = inject(WorkspaceStateService);
 
   protected readonly query = signal('');
@@ -71,7 +74,8 @@ export class AppTopbarComponent implements OnDestroy {
     this.closeCommand();
     this.query.set('');
     this.results.set([]);
-    await this.router.navigate(result.route);
+    if (result.id.startsWith('topic-')) await this.router.navigate(['/feed'], { queryParams: { topic: result.title.slice(1) } });
+    else await this.router.navigate(result.route);
   }
 
   protected setTheme(theme: AppTheme): void {
@@ -94,8 +98,18 @@ export class AppTopbarComponent implements OnDestroy {
 
     this.tagRepo.getPaginated(6, 0, query).subscribe({
       next: (posts) => {
-        this.results.set([...this.quickActions(query), ...posts.map((post) => this.toCommandResult(post))]);
-        this.isSearching.set(false);
+        void this.platform.searchProfiles(query, 5).then((profiles) => {
+          const hoods = Array.from(new Set(posts.map((post) => post.hoodId).filter((hood): hood is string => !!hood))).slice(0, 3);
+          const topics = Array.from(new Set(posts.map((post) => post.tag).filter(Boolean))).slice(0, 3);
+          this.results.set([
+            ...this.quickActions(query),
+            ...profiles.map((profile) => this.toProfileResult(profile)),
+            ...hoods.map((hood) => ({ id: `hood-${hood}`, title: hood, subtitle: 'Neighborhood', route: ['/neighborhood', this.slug(hood)], icon: 'bi-geo-alt' })),
+            ...topics.map((tag) => ({ id: `topic-${tag}`, title: `#${tag}`, subtitle: 'Topic', route: ['/feed'], icon: 'bi-hash' })),
+            ...posts.map((post) => this.toCommandResult(post)),
+          ]);
+          this.isSearching.set(false);
+        });
       },
       error: () => {
         this.results.set(this.quickActions(query));
@@ -140,5 +154,19 @@ export class AppTopbarComponent implements OnDestroy {
       route: ['/posts', id],
       icon: post.tag === 'alert' ? 'bi-exclamation-triangle' : 'bi-geo-alt',
     };
+  }
+
+  private toProfileResult(profile: SocialProfile): CommandResult {
+    return {
+      id: `user-${profile.uid}`,
+      title: profile.name,
+      subtitle: `${profile.reputation} reputation · Neighbor profile`,
+      route: ['/users', profile.uid],
+      icon: 'bi-person',
+    };
+  }
+
+  private slug(value: string): string {
+    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nearby';
   }
 }

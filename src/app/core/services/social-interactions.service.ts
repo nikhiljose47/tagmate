@@ -9,6 +9,7 @@ import { ToastService } from './toast.service';
 import { ConfirmDialogService } from './confirm-dialog.service';
 import { TAG_REPOSITORY } from '../repositories/repository.tokens';
 import { NetworkService } from './network.service';
+import { SocialPlatformService } from './social-platform.service';
 import {
   PostCommentRow,
   rowToComment,
@@ -57,6 +58,7 @@ export class SocialInteractionsService implements OnDestroy {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly network = inject(NetworkService);
+  private readonly platform = inject(SocialPlatformService);
 
   // ---- deletion (broadcast so every page holding its own copy of a post list can react) ----
   private readonly _postDeleted$ = new Subject<string>();
@@ -78,6 +80,7 @@ export class SocialInteractionsService implements OnDestroy {
   readonly comments = signal<Record<string, LocalComment[]>>({});
   readonly messages = signal<Record<string, DirectMessage[]>>({});
   readonly notifications = signal<LocalNotification[]>([]);
+  readonly notificationsOpen = signal(false);
   readonly pollVotes = signal<Record<string, Record<string, string[]>>>({});
   readonly completedQuests = signal(new Set<string>());
   readonly activeChatMessages = signal<HoodMessage[]>([]);
@@ -367,6 +370,7 @@ export class SocialInteractionsService implements OnDestroy {
       id: optimisticId,
       postId: key,
       author,
+      authorUid: uid,
       text: trimmed,
       createdAt: new Date().toISOString(),
       upvotes: 0,
@@ -404,30 +408,68 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.completeQuest('comment');
 
-    this.pushLocalNotification(
-      'reply',
-      parentId ? 'New reply' : 'New comment',
-      `${author} commented on ${post.highlight || 'a nearby tag'}.`,
-      key
-    );
   }
 
   upvoteComment(post: Tag, commentId: string): void {
     const key = this.postKey(post);
-    this.bumpCommentUpvote(key, commentId, 1);
-    void this.fireAndForget(this.supabase.incrementCommentUpvote(commentId), (err) => {
-      this.logger.error('upvoteComment failed, rolling back', err);
-      this.bumpCommentUpvote(key, commentId, -1);
+    const wasReacted = this.platform.isCommentReacted(commentId);
+    this.bumpCommentUpvote(key, commentId, wasReacted ? -1 : 1);
+    void this.platform.toggleCommentReaction(commentId).then((reacted) => {
+      if (reacted === wasReacted) this.bumpCommentUpvote(key, commentId, wasReacted ? 1 : -1);
     });
+  }
+
+  canEditComment(comment: LocalComment): boolean {
+    return !!this.currentUid() && comment.authorUid === this.currentUid() && !comment.deletedAt;
+  }
+
+  async editComment(post: Tag, comment: LocalComment, text: string): Promise<boolean> {
+    const trimmed = text.trim();
+    if (!trimmed || !this.canEditComment(comment)) return false;
+    const key = this.postKey(post);
+    const previous = comment.text;
+    this.comments.update((state) => ({
+      ...state,
+      [key]: (state[key] ?? []).map((item) => item.id === comment.id ? { ...item, text: trimmed, updatedAt: new Date().toISOString() } : item),
+    }));
+    try {
+      await firstValueFrom(this.supabase.updateRow('post_comments', comment.id, { text: trimmed, updated_at: new Date().toISOString() }));
+      return true;
+    } catch (error) {
+      this.comments.update((state) => ({ ...state, [key]: (state[key] ?? []).map((item) => item.id === comment.id ? { ...item, text: previous } : item) }));
+      this.logger.error('Comment edit failed', error);
+      this.toast.show('Could not edit comment.', 'danger');
+      return false;
+    }
+  }
+
+  async deleteComment(post: Tag, comment: LocalComment): Promise<boolean> {
+    if (!this.canEditComment(comment)) return false;
+    const key = this.postKey(post);
+    const existing = this.comments()[key] ?? [];
+    const deletedAt = new Date().toISOString();
+    this.comments.update((state) => ({
+      ...state,
+      [key]: (state[key] ?? []).map((item) => item.id === comment.id ? { ...item, text: '', deletedAt, updatedAt: deletedAt } : item),
+    }));
+    try {
+      await firstValueFrom(this.supabase.updateRow('post_comments', comment.id, { text: '', deleted_at: deletedAt, updated_at: deletedAt }));
+      return true;
+    } catch (error) {
+      this.comments.update((state) => ({ ...state, [key]: existing }));
+      this.logger.error('Comment removal failed', error);
+      this.toast.show('Could not delete comment.', 'danger');
+      return false;
+    }
   }
 
   /** Known limitation carried over unchanged: no per-user dedup, same as before ("just increment"). */
   toggleLoveComment(postKey: string, commentId: string): void {
-    this.bumpCommentUpvote(postKey, commentId, 1);
-    void this.fireAndForget(
-      this.supabase.incrementCommentUpvote(commentId),
-      (err) => this.logger.error('toggleLoveComment failed', err)
-    );
+    const wasReacted = this.platform.isCommentReacted(commentId);
+    this.bumpCommentUpvote(postKey, commentId, wasReacted ? -1 : 1);
+    void this.platform.toggleCommentReaction(commentId).then((reacted) => {
+      if (reacted === wasReacted) this.bumpCommentUpvote(postKey, commentId, wasReacted ? 1 : -1);
+    });
   }
 
   // ---------- POLLS ----------
@@ -518,7 +560,6 @@ export class SocialInteractionsService implements OnDestroy {
     );
 
     if (nowAttending) {
-      this.pushLocalNotification('rsvp', 'RSVP saved', `You are attending ${post.highlight || 'this event'}.`, key);
       this.completeQuest('rsvp');
     }
     return nowAttending;
@@ -527,23 +568,28 @@ export class SocialInteractionsService implements OnDestroy {
   // ---------- DIRECT MESSAGES ----------
 
   sendMessage(post: Tag, text: string, from = 'You'): void {
+    this.sendMessageToUser(post.userId, post.username || 'Neighbor', text, post.id, from);
+  }
+
+  sendMessageToUser(toUid: string, toName: string, text: string, postId?: string, from = 'You', threadIdOverride?: string): void {
     const trimmed = text.trim();
     if (!trimmed) return;
     const uid = this.currentUid();
     if (!uid) { this.warnSignInRequired('message'); return; }
     if (this.isOffline('message')) return;
-    if (!post.userId) { this.logger.warn('sendMessage: post has no userId, cannot address recipient'); return; }
+    if (!toUid) { this.logger.warn('sendMessage: recipient is missing'); return; }
+    if (uid === toUid || this.platform.isBlocked(toUid)) { this.toast.show('Messaging is unavailable for this user.', 'warning'); return; }
 
-    const postId = this.postKey(post);
-    const threadId = `${postId}:${post.userId}`;
-    const toName = post.username || 'Neighbor';
+    const threadId = threadIdOverride ?? (postId ? `${postId}:${toUid}` : `profile:${[uid, toUid].sort().join(':')}`);
     const optimisticId = `optimistic-${Date.now()}`;
     const optimisticMessage: DirectMessage = {
       id: optimisticId,
       threadId,
-      postId,
+      postId: postId ?? '',
       from,
       to: toName,
+      fromUid: uid,
+      toUid,
       text: trimmed,
       createdAt: new Date().toISOString(),
       read: false,
@@ -552,9 +598,9 @@ export class SocialInteractionsService implements OnDestroy {
 
     const row = {
       thread_id: threadId,
-      post_id: post.id ?? null,
+      post_id: postId ?? null,
       from_uid: uid,
-      to_uid: post.userId,
+      to_uid: toUid,
       to_name: toName,
       text: trimmed,
       read: false,
@@ -570,8 +616,6 @@ export class SocialInteractionsService implements OnDestroy {
         }));
         this.toast.show('Could not send your message — please try again.', 'danger');
       });
-
-    this.pushLocalNotification('message', 'Message sent', `Private message sent to ${toName}.`, postId);
   }
 
   threadFor(post: Tag): DirectMessage[] {
@@ -580,10 +624,56 @@ export class SocialInteractionsService implements OnDestroy {
     return this.messages()[threadId] ?? [];
   }
 
+  threadById(threadId: string): DirectMessage[] {
+    this.ensureThreadHydrated(threadId);
+    return this.messages()[threadId] ?? [];
+  }
+
+  markThreadReadLocal(threadId: string): void {
+    const uid = this.currentUid();
+    const readAt = new Date().toISOString();
+    this.messages.update((state) => ({
+      ...state,
+      [threadId]: (state[threadId] ?? []).map((message) => message.toUid === uid ? { ...message, read: true, readAt } : message),
+    }));
+  }
+
   // ---------- NOTIFICATIONS ----------
 
   unreadNotifications(): number {
     return this.notifications().filter((notification) => !notification.read).length;
+  }
+
+  async markNotificationRead(notificationId: string): Promise<void> {
+    const item = this.notifications().find((notification) => notification.id === notificationId);
+    if (!item || item.read) return;
+    const readAt = new Date().toISOString();
+    this.notifications.update((current) => current.map((notification) =>
+      notification.id === notificationId ? { ...notification, read: true, readAt } : notification
+    ));
+    try {
+      await firstValueFrom(this.supabase.updateRow('notifications', notificationId, { read: true, read_at: readAt }));
+    } catch (error) {
+      this.notifications.update((current) => current.map((notification) =>
+        notification.id === notificationId ? { ...notification, read: false, readAt: undefined } : notification
+      ));
+      this.logger.error('Could not mark notification read', error);
+    }
+  }
+
+  async markAllNotificationsRead(): Promise<void> {
+    const uid = this.currentUid();
+    if (!uid || !this.unreadNotifications()) return;
+    const previous = this.notifications();
+    const readAt = new Date().toISOString();
+    this.notifications.set(previous.map((notification) => ({ ...notification, read: true, readAt })));
+    try {
+      await firstValueFrom(this.supabase.updateRowsWhere('notifications', { user_id: uid }, { read: true, read_at: readAt }));
+    } catch (error) {
+      this.notifications.set(previous);
+      this.logger.error('Could not mark all notifications read', error);
+      this.toast.show('Could not update notifications.', 'danger');
+    }
   }
 
   addNotification(
@@ -917,6 +1007,29 @@ export class SocialInteractionsService implements OnDestroy {
     this.supabase.liveInserts<NotificationRow>('notifications').pipe(takeUntil(this.destroy$)).subscribe((row) => {
       // RLS scopes delivery to `user_id = auth.uid()` — already "mine only" over the wire.
       this.notifications.update((current) => [rowToNotification(row), ...current].slice(0, 25));
+    });
+
+    this.supabase.liveUpdates<PostCommentRow>('post_comments').pipe(takeUntil(this.destroy$)).subscribe((row) => {
+      const current = this.comments()[row.post_id];
+      if (!current) return;
+      this.comments.update((state) => ({ ...state, [row.post_id]: current.map((item) => item.id === row.id ? rowToComment(row) : item) }));
+    });
+
+    this.supabase.liveDeletes<{ id: string; post_id: string }>('post_comments').pipe(takeUntil(this.destroy$)).subscribe((row) => {
+      const current = this.comments()[row.post_id];
+      if (!current) return;
+      this.comments.update((state) => ({ ...state, [row.post_id]: current.filter((item) => item.id !== row.id && item.parentId !== row.id) }));
+    });
+
+    this.supabase.liveUpdates<DirectMessageRow>('direct_messages').pipe(takeUntil(this.destroy$)).subscribe((row) => {
+      const current = this.messages()[row.thread_id];
+      if (!current) return;
+      const mapped = rowToDirectMessage(row, this.currentUid());
+      this.messages.update((state) => ({ ...state, [row.thread_id]: current.map((item) => item.id === row.id ? mapped : item) }));
+    });
+
+    this.supabase.liveUpdates<NotificationRow>('notifications').pipe(takeUntil(this.destroy$)).subscribe((row) => {
+      this.notifications.update((current) => current.map((item) => item.id === row.id ? rowToNotification(row) : item));
     });
 
     this.supabase.liveInserts<any>('hood_messages').pipe(takeUntil(this.destroy$)).subscribe((row) => {

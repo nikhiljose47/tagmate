@@ -29,6 +29,7 @@ export const testProviders = [
       getByUserId: () => of([]),
       getInBounds: () => of([]),
       liveTags: () => of(),
+      liveTagUpdates: () => of(),
       update: () => of({}),
       create: () => of({}),
       delete: () => of(undefined),

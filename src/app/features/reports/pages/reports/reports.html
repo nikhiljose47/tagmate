@@ -19,6 +19,15 @@
     }
   </section>
 
+  @if (socialReports().length) {
+    <section class="social-report-summary tm-panel">
+      <h2>Social safety reports</h2>
+      @for (report of socialReports(); track report.id) {
+        <div><span class="reason-pill">{{ report.type | titlecase }}</span><code>{{ report.subjectId }}</code><small>{{ report.createdAt | timeAgo }}</small></div>
+      }
+    </section>
+  }
+
   @if (isLoading()) {
     <section class="review-table" aria-label="Loading reports">
       @for (item of [1, 2, 3, 4]; track item) {

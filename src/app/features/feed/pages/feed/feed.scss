@@ -150,6 +150,30 @@
   scrollbar-width: none;
 }
 
+.category-strip .topic-follow {
+  border-style: dashed;
+  color: var(--tm-primary-text);
+}
+
+.post-status-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 7px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
+  color: var(--tm-primary-text);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .05em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.post-status-badge[data-status='resolved'],
+.post-status-badge[data-status='closed'] { background: rgba(16, 185, 129, .14); color: #047857; }
+.post-status-badge[data-status='cancelled'] { background: rgba(239, 68, 68, .12); color: #b91c1c; }
+
 .mode-tabs::-webkit-scrollbar,
 .category-strip::-webkit-scrollbar {
   display: none;

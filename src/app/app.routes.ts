@@ -82,6 +82,13 @@ export const routes: Routes = [
     loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
   },
   {
+    path: 'users/:uid',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/profile/pages/public-profile/public-profile').then((m) => m.PublicProfilePage),
+    title: 'Neighbor Profile',
+  },
+  {
     path: 'not-found',
     loadComponent: () => import('./features/not-found/pages/not-found/not-found').then((m) => m.NotFoundPage),
   },

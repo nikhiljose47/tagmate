@@ -89,6 +89,18 @@ export class SupabaseService {
     return this.tagData.deleteRowsWhere(table, matchers);
   }
 
+  updateRowsWhere<T>(table: string, matchers: Record<string, unknown>, data: Partial<T>) {
+    return this.tagData.updateRowsWhere<T>(table, matchers, data);
+  }
+
+  searchUsers(query: string, limit = 8) {
+    return this.tagData.searchUsers(query, limit);
+  }
+
+  callRpc<T>(name: string, params: Record<string, unknown>) {
+    return this.tagData.callRpc<T>(name, params);
+  }
+
   upsertRow<T extends Record<string, unknown>>(table: string, data: T, onConflict?: string) {
     return this.tagData.upsertRow(table, data, onConflict);
   }
@@ -139,6 +151,14 @@ export class SupabaseService {
     return this.realtime.liveInserts<T>(table, filter);
   }
 
+  liveUpdates<T>(table: string, filter?: string): Observable<T> {
+    return this.realtime.liveUpdates<T>(table, filter);
+  }
+
+  liveDeletes<T>(table: string, filter?: string): Observable<T> {
+    return this.realtime.liveDeletes<T>(table, filter);
+  }
+
   // ---------- STORAGE ----------
 
   uploadFile(path: string, file: File): Promise<string> {
@@ -153,10 +173,6 @@ export class SupabaseService {
 
   getDirectMessagesForUser(uid: string): Observable<{ data: any[] | null; error: unknown }> {
     return this.socialData.getDirectMessagesForUser(uid);
-  }
-
-  incrementCommentUpvote(commentId: string) {
-    return this.socialData.incrementCommentUpvote(commentId);
   }
 
   // ---------- UTILITY ----------

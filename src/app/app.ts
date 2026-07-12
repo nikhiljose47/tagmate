@@ -10,6 +10,7 @@ import { AppTopbarComponent } from './layout/app-topbar/app-topbar';
 import { PreloadService } from './core/services/preload.service';
 import { NetworkService } from './core/services/network.service';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
+import { NotificationDrawerComponent } from './shared/components/notification-drawer/notification-drawer.component';
 
 /** Minimum time the static splash (#tm-splash in index.html) stays visible. */
 const SPLASH_SHOW_MS = 1800;
@@ -17,7 +18,7 @@ const SPLASH_FADE_MS =  450;
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, NavComponent, AppTopbarComponent, ConfirmDialogComponent],
+  imports: [RouterOutlet, CommonModule, NavComponent, AppTopbarComponent, ConfirmDialogComponent, NotificationDrawerComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

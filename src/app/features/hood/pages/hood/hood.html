@@ -73,6 +73,9 @@
           <span>Comments</span>
           <strong>{{ social.commentCount(selectedPost) }} comments</strong>
         </div>
+        @if (platform.isActionable(selectedPost)) {
+          <div><span>Status</span><strong>{{ selectedPost.currentStatus || 'active' }} · {{ selectedPost.verificationCount || 0 }} confirmed</strong></div>
+        }
       </div>
       <div class="inspector-actions">
         <a class="tm-btn tm-btn-primary flex items-center justify-center text-center text-xs font-semibold leading-normal" [routerLink]="['/posts', selectedPost.id || selectedPost.userId + '-' + selectedPost.createdAt]">Details</a>

@@ -10,10 +10,13 @@
       <h1>{{ name }}</h1>
       <span>{{ neighborhoodPosts().length }} posts · {{ tagCounts().length }} active tags</span>
     </div>
-    <button class="tm-btn tm-btn-primary" type="button" (click)="openMap()">
-      <i class="bi bi-map" aria-hidden="true"></i>
-      Map
-    </button>
+    <div class="hood-header-actions">
+      <button class="tm-btn" type="button" (click)="toggleHoodFollow()">
+        <i class="bi" [ngClass]="platform.isFollowingHood(followHoodId()) ? 'bi-check-lg' : 'bi-plus-lg'"></i>
+        {{ platform.isFollowingHood(followHoodId()) ? 'Following' : 'Follow' }}
+      </button>
+      <button class="tm-btn tm-btn-primary" type="button" (click)="openMap()"><i class="bi bi-map"></i> Map</button>
+    </div>
   </header>
 
   <!-- Navigation Tab Bar -->
@@ -88,11 +91,11 @@
         <h2>Top Contributors</h2>
         <div class="people-list">
           @for (person of contributors(); track person.uid) {
-            <div>
+            <a class="person-row" [routerLink]="person.uid === platform.myUid() ? ['/profile'] : ['/users', person.uid]">
               <span class="person-avatar">{{ person.name.slice(0, 1) }}</span>
               <span>{{ person.name }}</span>
               <small>{{ person.count }} posts</small>
-            </div>
+            </a>
           }
         </div>
       </section>
@@ -113,7 +116,8 @@
             </div>
             <div>
               <a [routerLink]="['/posts', social.postKey(post)]">{{ post.highlight || 'Untitled post' }}</a>
-              <p>{{ post.username || 'Anonymous' }} · #{{ post.tag }}</p>
+              <p><a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]">{{ post.username || 'Anonymous' }}</a> · #{{ post.tag }}</p>
+              @if (platform.isActionable(post)) { <small class="hood-status">{{ post.currentStatus || 'active' }} · {{ post.verificationCount || 0 }} confirmed</small> }
               <button class="tm-btn" type="button" (click)="openMap(post)">
                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
                 Map
@@ -429,7 +433,7 @@
         <h2>Top Neighborhood Contributors</h2>
         <div class="leaderboard-list">
           @for (person of contributors(); track person.uid; let idx = $index) {
-            <div class="leaderboard-item" [class.highlighted]="person.uid === myUid()">
+            <a class="leaderboard-item" [class.highlighted]="person.uid === myUid()" [routerLink]="person.uid === platform.myUid() ? ['/profile'] : ['/users', person.uid]">
               <div class="rank-pos">
                 @if (idx === 0) { 🥇 }
                 @else if (idx === 1) { 🥈 }
@@ -447,7 +451,7 @@
                 </span>
                 <small class="d-block text-muted mt-1 font-semibold">{{ social.trustScore(person.uid) }} Rep Points</small>
               </div>
-            </div>
+            </a>
           } @empty {
             <div class="text-center p-3 text-muted">No contributors recorded yet in this hood.</div>
           }

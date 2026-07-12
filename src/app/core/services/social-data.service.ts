@@ -20,8 +20,4 @@ export class SocialDataService {
         .order('created_at', { ascending: false })
     ) as Observable<{ data: any[] | null; error: unknown }>;
   }
-
-  incrementCommentUpvote(commentId: string) {
-    return from(this.client.rpc('increment_comment_upvote', { p_comment_id: commentId }));
-  }
 }

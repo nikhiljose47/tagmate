@@ -42,10 +42,4 @@ describe('SocialDataService', () => {
     expect(clientServiceMock.client.from).toHaveBeenCalledWith('direct_messages');
   });
 
-  it('should call incrementCommentUpvote RPC', () => {
-    service.incrementCommentUpvote('comment123').subscribe();
-    expect(clientServiceMock.client.rpc).toHaveBeenCalledWith('increment_comment_upvote', {
-      p_comment_id: 'comment123'
-    });
-  });
 });

@@ -33,4 +33,14 @@ describe('RealtimeService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  it('creates a distinct channel for each live subscription', () => {
+    const first = service.liveInserts('direct_messages').subscribe();
+    const second = service.liveUpdates('direct_messages').subscribe();
+
+    expect(clientServiceMock.client.channel.calls.count()).toBe(2);
+    expect(clientServiceMock.client.channel.calls.argsFor(0)[0]).not.toBe(clientServiceMock.client.channel.calls.argsFor(1)[0]);
+    first.unsubscribe();
+    second.unsubscribe();
+  });
 });

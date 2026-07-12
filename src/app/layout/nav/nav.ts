@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/ro
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { SocialPlatformService } from '../../core/services/social-platform.service';
 interface NavItem {
   route:      string;
   icon:       string;
@@ -22,6 +23,7 @@ interface NavItem {
 export class NavComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  protected readonly platform = inject(SocialPlatformService);
 
   private readonly session = toSignal(this.auth.session$, { initialValue: null });
   readonly isAdmin = computed(() => this.session()?.user?.app_metadata?.['role'] === 'admin');

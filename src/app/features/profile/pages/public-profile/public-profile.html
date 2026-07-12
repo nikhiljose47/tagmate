@@ -1,0 +1,48 @@
+<main class="public-profile-page">
+  <a class="back-link" routerLink="/feed"><i class="bi bi-arrow-left"></i> Back to feed</a>
+
+  @if (loading()) {
+    <section class="profile-hero tm-panel skeleton-box" aria-label="Loading profile"></section>
+  } @else if (profile(); as user) {
+    <section class="profile-hero tm-panel">
+      <tm-avatar [username]="user.name" [size]="72" />
+      <div class="profile-copy">
+        <p class="eyebrow">Public neighbor profile</p>
+        <h1>{{ user.name }}</h1>
+        <p class="bio">{{ user.bio || 'This neighbor has not added a bio yet.' }}</p>
+        <div class="trust-row">
+          <span><i class="bi bi-shield-check"></i> {{ user.reputation }} reputation</span>
+          @if (user.createdAt) { <span>Joined {{ user.createdAt | date:'mediumDate' }}</span> }
+        </div>
+      </div>
+      <div class="profile-actions">
+        <button class="tm-btn tm-btn-primary" type="button" (click)="toggleFollow()">
+          <i class="bi" [ngClass]="social.isFollowingUser(user.uid) ? 'bi-person-check-fill' : 'bi-person-plus'"></i>
+          {{ social.isFollowingUser(user.uid) ? 'Following' : 'Follow' }}
+        </button>
+        <button class="tm-btn" type="button" (click)="message()"><i class="bi bi-chat-left-text"></i> Message</button>
+        <button class="tm-icon-btn" type="button" (click)="report()" aria-label="Report profile"><i class="bi bi-flag"></i></button>
+        <button class="tm-icon-btn danger" type="button" (click)="block()" aria-label="Block profile"><i class="bi bi-slash-circle"></i></button>
+      </div>
+    </section>
+
+    <section class="profile-posts">
+      <div class="section-heading"><h2>Public posts</h2><span>{{ posts().length }}</span></div>
+      @if (!posts().length) {
+        <tm-empty-state icon="bi-grid" title="No public posts" subtitle="This neighbor has not posted yet." />
+      } @else {
+        <div class="post-grid">
+          @for (post of posts(); track post.id) {
+            <a class="profile-post-card" [routerLink]="['/posts', post.id]" [style.background]="post.tag | tagGradient">
+              <span class="post-tag">#{{ post.tag }}</span>
+              <strong>{{ post.highlight || 'Untitled post' }}</strong>
+              <small>{{ post.createdAt | timeAgo }} · {{ post.hoodId || 'Nearby' }}</small>
+            </a>
+          }
+        </div>
+      }
+    </section>
+  } @else if (missing()) {
+    <tm-empty-state icon="bi-person-x" title="Profile unavailable" subtitle="This profile does not exist or is unavailable to you." actionText="Back to feed" />
+  }
+</main>

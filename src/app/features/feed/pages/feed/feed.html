@@ -5,36 +5,12 @@
       <h1>Tagmate</h1>
     </div>
     <div class="feed-header-actions">
-      <button class="tm-icon-btn notify-btn" type="button" aria-label="Notifications" (click)="notificationsOpen.update(v => !v)">
-        <i class="bi bi-bell" aria-hidden="true"></i>
-        @if (social.unreadNotifications()) {
-          <span>{{ social.unreadNotifications() }}</span>
-        }
-      </button>
       <a class="tm-btn tm-btn-primary" routerLink="/post" aria-label="Create post">
         <i class="bi bi-plus-lg" aria-hidden="true"></i>
         Post
       </a>
     </div>
   </header>
-
-  @if (notificationsOpen()) {
-    <section class="notifications-panel tm-panel">
-      <div class="notifications-head">
-        <strong>Alerts</strong>
-        <button type="button" (click)="requestPushPermission()">Enable push</button>
-      </div>
-      @if (social.notifications().length === 0) {
-        <p>No notifications yet.</p>
-      }
-      @for (notification of social.notifications(); track notification.id) {
-        <a [routerLink]="notification.postId ? ['/posts', notification.postId] : []">
-          <strong>{{ notification.title }}</strong>
-          <span>{{ notification.body }}</span>
-        </a>
-      }
-    </section>
-  }
 
   <section class="composer tm-panel">
     <a class="composer-avatar" routerLink="/profile" aria-label="Open profile">
@@ -48,9 +24,9 @@
 
   <section class="feed-controls tm-panel" aria-label="Feed controls">
     <div class="mode-tabs" role="tablist" aria-label="Feed modes">
-      <button type="button" [class.active]="mode() === 'forYou'" (click)="setMode('forYou')">For you</button>
+      <button type="button" [class.active]="mode() === 'latest'" (click)="setMode('latest')">Latest</button>
       <button type="button" [class.active]="mode() === 'nearby'" (click)="setMode('nearby')">Nearby</button>
-      <button type="button" [class.active]="mode() === 'saved'" (click)="setMode('saved')">Saved</button>
+      <button type="button" [class.active]="mode() === 'following'" (click)="setMode('following')">Following</button>
     </div>
 
     <label class="feed-search">
@@ -71,6 +47,12 @@
           (click)="setCategory(category)"
         >
           {{ category === 'all' ? 'All' : (category | titlecase) }}
+        </button>
+      }
+      @if (selectedCategory() !== 'all') {
+        <button type="button" class="topic-follow" [class.active]="platform.isFollowingTopic(selectedCategory())" (click)="toggleTopicFollow()">
+          <i class="bi" [ngClass]="platform.isFollowingTopic(selectedCategory()) ? 'bi-check-lg' : 'bi-plus-lg'"></i>
+          {{ platform.isFollowingTopic(selectedCategory()) ? 'Following' : 'Follow' }} #{{ selectedCategory() }}
         </button>
       }
     </div>
@@ -126,11 +108,11 @@
       @for (post of visiblePosts(); track postKey(post)) {
         <article class="post-card" [class.selected]="isSelected(post)" [class.critical]="post.tag === 'alert'" (click)="selectPost(post)">
           <header class="post-card-header">
-            <a class="avatar-link" routerLink="/profile" aria-label="Open profile">
+            <a class="avatar-link" [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]" aria-label="Open profile">
               <tm-avatar [username]="post.username || 'Anonymous'" [size]="42" />
             </a>
             <div class="post-author">
-              <a [routerLink]="['/posts', postKey(post)]">{{ post.username || 'Anonymous' }}</a>
+              <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]">{{ post.username || 'Anonymous' }}</a>
               <a class="post-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
                 {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
@@ -173,9 +155,17 @@
               </button>
             </div>
 
-            <p class="post-counts">{{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments</p>
+            <p class="post-counts">
+              {{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments
+              @if (platform.isActionable(post)) { · {{ post.verificationCount || 0 }} confirmations }
+            </p>
+            @if (platform.isActionable(post)) {
+              <a class="post-status-badge" [routerLink]="['/posts', postKey(post)]" [attr.data-status]="post.currentStatus || 'active'">
+                {{ post.currentStatus || 'active' }}
+              </a>
+            }
             <p class="post-caption">
-              <strong>{{ post.username || 'Anonymous' }}</strong>
+              <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]"><strong>{{ post.username || 'Anonymous' }}</strong></a>
               <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
             </p>
 

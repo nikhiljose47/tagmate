@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, AfterViewInit, computed, inject, signal, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Tag } from '../../../../core/models/tag.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
@@ -20,8 +20,9 @@ import { selectHood } from '../../../../store/user-preferences/user-preference.s
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { Subject, takeUntil } from 'rxjs';
 import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
+import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 
-type FeedMode = 'forYou' | 'nearby' | 'saved';
+type FeedMode = 'latest' | 'nearby' | 'following';
 
 @Component({
   selector: 'app-feed',
@@ -43,6 +44,7 @@ type FeedMode = 'forYou' | 'nearby' | 'saved';
 })
 export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly shared = inject(SharedStateService);
   private readonly toast = inject(ToastService);
@@ -50,6 +52,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   private readonly store = inject(Store);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly workspace = inject(WorkspaceStateService);
+  protected readonly platform = inject(SocialPlatformService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -64,11 +67,10 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('scrollSentinel') sentinel?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
 
-  protected readonly mode = signal<FeedMode>('forYou');
+  protected readonly mode = signal<FeedMode>('latest');
   protected readonly proximityCoords = signal<readonly [lat: number, lng: number] | null>(null);
   protected readonly selectedCategory = signal('all');
   protected readonly searchText = signal('');
-  protected readonly notificationsOpen = signal(false);
   protected readonly hood = this.store.selectSignal(selectHood);
   private readonly destroy$ = new Subject<void>();
   protected readonly categories = computed(() => [
@@ -83,8 +85,8 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       .filter((post) => {
         if (post.tag === 'bulletin') return false;
         if (this.social.isHidden(post)) return false;
+        if (this.platform.isBlocked(post.userId)) return false;
         if (category !== 'all' && post.tag !== category) return false;
-        if (this.mode() === 'saved' && !this.social.isSaved(post)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -104,18 +106,17 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     return posts.find((post) => this.postKey(post) === this.postKey(selected)) ?? posts[0];
   });
   ngOnInit(): void {
+    const topic = this.route.snapshot.queryParamMap.get('topic');
+    if (topic) this.selectedCategory.set(topic.toLowerCase());
     this.loadPosts();
     this.tagRepo.liveTags()
       .pipe(takeUntil(this.destroy$))
       .subscribe((post) => {
         this.posts.update((posts) => [post, ...posts.filter((item) => this.postKey(item) !== this.postKey(post))]);
-        this.social.addNotification(
-          post.tag === 'alert' ? 'alert' : 'reply',
-          post.tag === 'alert' ? 'Nearby alert' : 'New nearby post',
-          post.highlight || 'A neighbor posted a new tag.',
-          this.postKey(post)
-        );
       });
+    this.tagRepo.liveTagUpdates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((post) => this.posts.update((posts) => posts.map((item) => this.postKey(item) === this.postKey(post) ? post : item)));
 
     // Drop a post immediately if it was deleted here or on any other page.
     this.social.postDeleted$.pipe(takeUntil(this.destroy$)).subscribe((deletedKey) => {
@@ -149,32 +150,16 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     }
     this.loadError.set(false);
     
+    if (this.mode() === 'following') {
+      void this.platform.followingFeed(this.PAGE_SIZE, this.offset, this.searchText().trim())
+        .then((posts) => this.handleLoadedPosts(posts, reset))
+        .catch((err) => this.handleLoadError(err));
+      return;
+    }
+
     this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset, this.searchText().trim()).subscribe({
-      next: (newPosts) => {
-        if (reset) {
-          this.posts.set(newPosts);
-        } else {
-          this.posts.update(p => {
-            // filter out duplicates just in case
-            const existingKeys = new Set(p.map(item => this.postKey(item)));
-            const uniqueNew = newPosts.filter(item => !existingKeys.has(this.postKey(item)));
-            return [...p, ...uniqueNew];
-          });
-        }
-        if (!this.workspace.selectedPost() && newPosts[0]) {
-          this.workspace.selectPost(newPosts[0]);
-        }
-        this.hasMore.set(newPosts.length === this.PAGE_SIZE);
-        this.isLoading.set(false);
-        this.isLoadingMore.set(false);
-      },
-      error: (err) => {
-        this.logger.error('Failed to load feed', err);
-        this.loadError.set(true);
-        this.toast.show('Could not load the feed.', 'danger');
-        this.isLoading.set(false);
-        this.isLoadingMore.set(false);
-      },
+      next: (newPosts) => this.handleLoadedPosts(newPosts, reset),
+      error: (err) => this.handleLoadError(err),
     });
   }
 
@@ -215,7 +200,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
   protected async setMode(mode: FeedMode): Promise<void> {
     this.mode.set(mode);
-    if (mode !== 'nearby') return;
+    this.offset = 0;
+    this.hasMore.set(true);
+    if (mode !== 'nearby') { this.loadPosts(true); return; }
 
     const coords = await this.shared.getDeviceCoordinates();
     const fallbackLat = this.hood()?.coords?.lat ?? 0;
@@ -224,6 +211,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     if (!coords) {
       this.toast.show('Sorting nearby from your current hood because location permission was unavailable.', 'info');
     }
+    this.loadPosts(true);
   }
 
   protected createPost(): void {
@@ -234,6 +222,13 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     this.selectedCategory.set(category);
   }
 
+  protected async toggleTopicFollow(): Promise<void> {
+    const tag = this.selectedCategory();
+    if (tag === 'all') return;
+    const enabled = await this.platform.toggleFollowTopic(tag);
+    this.toast.show(enabled ? `Following #${tag}.` : `Unfollowed #${tag}.`, 'success');
+  }
+
   protected selectPost(post: Tag): void {
     this.workspace.selectPost(post);
   }
@@ -241,11 +236,6 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected isSelected(post: Tag): boolean {
     const selected = this.selectedPostForPanel();
     return !!selected && this.postKey(selected) === this.postKey(post);
-  }
-
-  protected requestPushPermission(): void {
-    this.social.requestPushPermission();
-    this.toast.show('Notification preference updated.', 'success');
   }
 
   protected postKey(post: Tag): string {
@@ -333,5 +323,27 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     const fallbackLng = this.hood()?.coords?.lng ?? 0;
     const [lat, lng] = this.proximityCoords() ?? [fallbackLat, fallbackLng];
     return Math.pow(post.lat - lat, 2) + Math.pow(post.lng - lng, 2);
+  }
+
+  private handleLoadedPosts(newPosts: Tag[], reset: boolean): void {
+    if (reset) this.posts.set(newPosts);
+    else {
+      this.posts.update((current) => {
+        const existingKeys = new Set(current.map((item) => this.postKey(item)));
+        return [...current, ...newPosts.filter((item) => !existingKeys.has(this.postKey(item)))];
+      });
+    }
+    if (!this.workspace.selectedPost() && newPosts[0]) this.workspace.selectPost(newPosts[0]);
+    this.hasMore.set(newPosts.length === this.PAGE_SIZE);
+    this.isLoading.set(false);
+    this.isLoadingMore.set(false);
+  }
+
+  private handleLoadError(err: unknown): void {
+    this.logger.error('Failed to load feed', err);
+    this.loadError.set(true);
+    this.toast.show('Could not load the feed.', 'danger');
+    this.isLoading.set(false);
+    this.isLoadingMore.set(false);
   }
 }

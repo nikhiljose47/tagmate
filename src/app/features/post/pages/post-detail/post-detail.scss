@@ -267,6 +267,45 @@
   font-weight: 850;
 }
 
+.verification-panel { display: grid; gap: 16px; padding: 20px; }
+.verification-panel > header, .comments-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.verification-panel header p, .verification-panel header h2 { margin: 0; }
+.verification-panel header p { color: var(--tm-muted); font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.verification-panel header h2 { margin-top: 3px; font-size: 18px; }
+.status-pill { padding: 5px 9px; border-radius: 999px; background: rgba(59,130,246,.12); color: #2563eb; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.status-pill[data-status='resolved'], .status-pill[data-status='closed'] { background: rgba(16,185,129,.14); color: #047857; }
+.status-pill[data-status='cancelled'] { background: rgba(239,68,68,.12); color: #b91c1c; }
+.confirmers summary { color: var(--tm-primary-text); cursor: pointer; font-size: 12px; font-weight: 800; }
+.confirmers > div { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.confirmers a { padding: 6px 9px; border-radius: 999px; background: var(--tm-bg); color: var(--tm-text); font-size: 12px; font-weight: 750; text-decoration: none; }
+.confirmers small { color: var(--tm-muted); }
+.status-editor { display: grid; gap: 9px; padding: 13px; border: 1px solid var(--tm-border); border-radius: 12px; background: var(--tm-bg); }
+.status-editor label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; }
+.status-editor label span { color: var(--tm-muted); }
+.status-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.status-history { display: grid; gap: 9px; }
+.status-history h3 { margin: 0; font-size: 13px; }
+.status-history > div { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: start; }
+.status-history p { display: grid; gap: 2px; margin: 0; font-size: 12px; }
+.status-history small, .status-history em { color: var(--tm-muted); font-size: 11px; }
+.status-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--tm-primary); }
+.comments-heading select { width: auto; min-width: 140px; }
+.comment-author-line { display: flex; align-items: center; gap: 6px; }
+.comment-author-line a { color: var(--tm-text); text-decoration: none; }
+.op-badge { padding: 2px 5px; border-radius: 999px; background: color-mix(in srgb, var(--tm-primary) 14%, transparent); color: var(--tm-primary-text); font-size: 9px; font-weight: 900; }
+.comment-actions button.active { color: var(--tm-primary-text); }
+.comment-edit { display: flex; flex-wrap: wrap; gap: 6px; }
+.comment-edit .tm-input { flex: 1 1 220px; }
+.comment-mentions { display: flex; flex-wrap: wrap; gap: 5px; }
+.deleted-comment { color: var(--tm-muted); font-size: 12px; font-style: italic; }
+.comment-mentions a, .comment-mentions span { color: var(--tm-primary-text); font-size: 11px; font-weight: 750; text-decoration: none; }
+.thread-toggle { margin: 5px 0 0 34px; border: 0; background: transparent; color: var(--tm-primary-text); font-size: 11px; font-weight: 800; }
+.mention-wrap { position: relative; }
+.mention-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 5px); z-index: 5; display: grid; overflow: hidden; border: 1px solid var(--tm-border); border-radius: 10px; background: var(--tm-surface); box-shadow: var(--tm-shadow-lg); }
+.mention-menu button { display: flex; justify-content: space-between; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--tm-border); background: transparent; color: var(--tm-text); text-align: left; }
+.mention-menu button:hover { background: var(--tm-bg); }
+.mention-menu span { color: var(--tm-muted); font-size: 11px; }
+
 .comment-row {
   display: grid;
   gap: 2px;

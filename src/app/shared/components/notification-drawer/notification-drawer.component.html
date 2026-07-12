@@ -1,0 +1,39 @@
+@if (social.notificationsOpen()) {
+  <div class="notification-backdrop" (click)="close()"></div>
+  <aside class="notification-drawer" role="dialog" aria-modal="true" aria-label="Notifications">
+    <header>
+      <div><p>Activity</p><h2>Notifications</h2></div>
+      <button class="tm-icon-btn" type="button" (click)="close()" aria-label="Close notifications"><i class="bi bi-x-lg"></i></button>
+    </header>
+    <div class="drawer-actions">
+      <button type="button" (click)="social.markAllNotificationsRead()" [disabled]="!social.unreadNotifications()">Mark all read</button>
+      <button type="button" (click)="social.requestPushPermission()">Enable browser alerts</button>
+    </div>
+
+    <div class="notification-scroll">
+      @if (!social.notifications().length) {
+        <div class="notification-empty"><i class="bi bi-bell-slash"></i><strong>Nothing new</strong><span>Your local activity will appear here.</span></div>
+      }
+      @if (today().length) {
+        <h3>Today</h3>
+        @for (item of today(); track item.id) {
+          <button class="notification-item" [class.unread]="!item.read" type="button" (click)="open(item)">
+            <span class="notification-icon"><i class="bi" [ngClass]="item.type === 'message' ? 'bi-chat-left-text' : item.type === 'follow' ? 'bi-person-plus' : item.type === 'verification' ? 'bi-patch-check' : 'bi-bell'"></i></span>
+            <span class="notification-copy"><strong>{{ item.title }}</strong><span>{{ item.body }}</span><small>{{ item.createdAt | timeAgo }}</small></span>
+            @if (!item.read) { <span class="unread-dot" aria-label="Unread"></span> }
+          </button>
+        }
+      }
+      @if (earlier().length) {
+        <h3>Earlier</h3>
+        @for (item of earlier(); track item.id) {
+          <button class="notification-item" [class.unread]="!item.read" type="button" (click)="open(item)">
+            <span class="notification-icon"><i class="bi bi-bell"></i></span>
+            <span class="notification-copy"><strong>{{ item.title }}</strong><span>{{ item.body }}</span><small>{{ item.createdAt | timeAgo }}</small></span>
+            @if (!item.read) { <span class="unread-dot" aria-label="Unread"></span> }
+          </button>
+        }
+      }
+    </div>
+  </aside>
+}

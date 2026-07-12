@@ -23,6 +23,7 @@
         >
           <span class="nav-icon">
             <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+            @if (item.route === '/messages' && platform.unreadMessages()) { <span class="nav-unread">{{ platform.unreadMessages() }}</span> }
           </span>
           <span class="nav-label">{{ item.label }}</span>
         </a>
@@ -39,6 +40,7 @@
         >
           <span class="nav-icon">
             <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+            @if (item.route === '/messages' && platform.unreadMessages()) { <span class="nav-unread">{{ platform.unreadMessages() }}</span> }
           </span>
           <span class="nav-label">{{ item.label }}</span>
         </a>

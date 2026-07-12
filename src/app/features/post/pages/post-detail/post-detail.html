@@ -10,11 +10,11 @@
     <section class="detail-shell">
       <article class="detail-card">
         <header class="detail-header">
-          <a class="avatar-link" routerLink="/profile" aria-label="Open profile">
+          <a class="avatar-link" [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]" aria-label="Open profile">
             <tm-avatar [username]="post.username || 'Anonymous'" [size]="44" />
           </a>
           <div>
-            <a routerLink="/profile">{{ post.username || 'Anonymous' }}</a>
+            <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]">{{ post.username || 'Anonymous' }}</a>
             <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
               {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }}
               @if (post.expiresIn) {
@@ -72,9 +72,9 @@
             <button type="button" class="push-right" (click)="openMap()" aria-label="Open on map">
               <i class="bi bi-map" aria-hidden="true"></i>
             </button>
-            <button type="button" (click)="showMessageBox.update(v => !v)" aria-label="Message author">
-              <i class="bi bi-envelope" aria-hidden="true"></i>
-            </button>
+            @if (post.userId !== platform.myUid() && !platform.isBlocked(post.userId)) {
+              <button type="button" (click)="showMessageBox.update(v => !v)" aria-label="Message author"><i class="bi bi-envelope"></i></button>
+            }
             <button type="button" [class.active]="social.isSaved(post)" (click)="toggleSave()" aria-label="Save post">
               <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
             </button>
@@ -82,7 +82,7 @@
 
           <p class="detail-counts">{{ social.likeCount(post) }} likes - {{ social.commentCount(post) }} comments</p>
           <p class="detail-caption">
-            <strong>{{ post.username || 'Anonymous' }}</strong>
+            <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]"><strong>{{ post.username || 'Anonymous' }}</strong></a>
             <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
           </p>
 
@@ -143,8 +143,67 @@
         </div>
       </article>
 
+      @if (platform.isActionable(post)) {
+        <section class="verification-panel tm-panel">
+          <header>
+            <div>
+              <p>Community verification</p>
+              <h2>{{ confirmationCount(post) }} confirmation{{ confirmationCount(post) === 1 ? '' : 's' }}</h2>
+            </div>
+            <span class="status-pill" [attr.data-status]="post.currentStatus || 'active'">{{ post.currentStatus || 'active' }}</span>
+          </header>
+
+          @if (post.userId !== platform.myUid()) {
+            <button class="tm-btn" [class.tm-btn-primary]="!platform.hasConfirmed(postKey())" type="button" (click)="toggleConfirmation(post)">
+              <i class="bi" [ngClass]="platform.hasConfirmed(postKey()) ? 'bi-patch-check-fill' : 'bi-patch-check'"></i>
+              {{ platform.hasConfirmed(postKey()) ? 'Confirmed' : 'Confirm this update' }}
+            </button>
+          }
+
+          @if (platform.confirmationsFor(postKey()).length) {
+            <details class="confirmers">
+              <summary>See confirming neighbors</summary>
+              <div>
+                @for (confirmation of platform.confirmationsFor(postKey()); track confirmation.userId) {
+                  <a [routerLink]="confirmation.userId === platform.myUid() ? ['/profile'] : ['/users', confirmation.userId]">
+                    {{ confirmation.userName || 'Neighbor' }} <small>{{ confirmation.createdAt | timeAgo }}</small>
+                  </a>
+                }
+              </div>
+            </details>
+          }
+
+          @if (platform.canSetStatus(post)) {
+            <div class="status-editor">
+              <label for="status-note">Add a status note <span>{{ statusNote().length }}/250</span></label>
+              <input id="status-note" class="tm-input" [ngModel]="statusNote()" (ngModelChange)="statusNote.set($event)" maxlength="250" placeholder="Optional context for neighbors" />
+              <div class="status-actions">
+                @for (status of allowedStatuses(post); track status) {
+                  <button class="tm-btn" [class.tm-btn-primary]="status === (post.currentStatus || 'active')" type="button" [disabled]="statusSaving()" (click)="updateStatus(post, status)">{{ status | titlecase }}</button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (platform.statusFor(postKey()).length) {
+            <div class="status-history">
+              <h3>Status history</h3>
+              @for (entry of platform.statusFor(postKey()); track entry.id) {
+                <div><span class="status-dot"></span><p><strong>{{ entry.status | titlecase }}</strong> by {{ entry.actorName || 'Post author' }}<small>{{ entry.createdAt | timeAgo }}</small>@if (entry.note) { <em>{{ entry.note }}</em> }</p></div>
+              }
+            </div>
+          }
+        </section>
+      }
+
       <section class="comments-panel tm-panel">
-        <h2>Comments</h2>
+        <div class="comments-heading">
+          <h2>Comments</h2>
+          <select class="tm-input" [ngModel]="commentSort()" (ngModelChange)="commentSort.set($event)" aria-label="Sort comments">
+            <option value="helpful">Most helpful</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
 
         @if ((post.comments?.length || 0) === 0 && social.commentsFor(post).length === 0) {
           <div class="comment-empty">No comments yet.</div>
@@ -157,47 +216,87 @@
           </div>
         }
 
-        @for (comment of social.topLevelCommentsFor(post); track comment.id) {
-          <div class="comment-row">
+        @for (comment of visibleComments(); track comment.id) {
+          <div class="comment-row" [id]="'comment-' + comment.id">
             <div class="comment-main">
-              <strong>{{ comment.author }}</strong>
-              <span>{{ comment.text }}</span>
-              <small>{{ comment.createdAt | timeAgo }} - {{ comment.mentions.length ? '@' + comment.mentions.join(' @') : 'No mentions' }}</small>
+              <div class="comment-author-line">
+                <a [routerLink]="comment.authorUid === platform.myUid() ? ['/profile'] : ['/users', comment.authorUid]"><strong>{{ comment.author }}</strong></a>
+                @if (comment.authorUid === post.userId) { <span class="op-badge">OP</span> }
+              </div>
+              @if (editingCommentId() === comment.id) {
+                <div class="comment-edit"><input class="tm-input" [ngModel]="editCommentText()" (ngModelChange)="editCommentText.set($event)" maxlength="1000" /><button class="tm-btn tm-btn-primary" type="button" (click)="saveCommentEdit(comment)">Save</button><button class="tm-btn" type="button" (click)="editingCommentId.set(null)">Cancel</button></div>
+              } @else if (comment.deletedAt) {
+                <span class="deleted-comment">Comment deleted</span>
+              } @else {
+                <span>{{ comment.text }}</span>
+              }
+              @if (comment.mentions.length) {
+                <div class="comment-mentions">
+                  @for (mention of comment.mentions; track mention) {
+                    @if (mentionUid(mention); as uid) { <a [routerLink]="['/users', uid]">&#64;{{ mention }}</a> } @else { <span>&#64;{{ mention }}</span> }
+                  }
+                </div>
+              }
+              <small>{{ comment.createdAt | timeAgo }} @if (comment.updatedAt) { · edited }</small>
             </div>
             <div class="comment-actions">
-              <button type="button" (click)="upvoteComment(comment.id)"><i class="bi bi-arrow-up"></i> {{ comment.upvotes }}</button>
-              <button type="button" (click)="replyTo.set(replyTo() === comment.id ? null : comment.id)">Reply</button>
+              <button type="button" [class.active]="platform.isCommentReacted(comment.id)" (click)="upvoteComment(comment.id)"><i class="bi bi-arrow-up"></i> {{ comment.upvotes }}</button>
+              @if (!comment.deletedAt) { <button type="button" (click)="replyTo.set(replyTo() === comment.id ? null : comment.id)">Reply</button> }
+              @if (social.canEditComment(comment)) {
+                <button type="button" (click)="beginEdit(comment)">Edit</button>
+                <button type="button" (click)="deleteComment(comment)">Delete</button>
+              } @else if (!comment.deletedAt) {
+                <button type="button" (click)="reportComment(comment)">Report</button>
+              }
             </div>
-            @for (reply of social.repliesFor(post, comment.id); track reply.id) {
-              <div class="comment-row comment-row--reply">
-                <strong>{{ reply.author }}</strong>
-                <span>{{ reply.text }}</span>
+            @for (reply of repliesFor(comment.id); track reply.id) {
+              <div class="comment-row comment-row--reply" [id]="'comment-' + reply.id">
+                <div class="comment-main">
+                  <div class="comment-author-line"><a [routerLink]="reply.authorUid === platform.myUid() ? ['/profile'] : ['/users', reply.authorUid]"><strong>{{ reply.author }}</strong></a>@if (reply.authorUid === post.userId) { <span class="op-badge">OP</span> }</div>
+                  @if (editingCommentId() === reply.id) {
+                    <div class="comment-edit"><input class="tm-input" [ngModel]="editCommentText()" (ngModelChange)="editCommentText.set($event)" /><button class="tm-btn tm-btn-primary" type="button" (click)="saveCommentEdit(reply)">Save</button></div>
+                  } @else if (reply.deletedAt) { <span class="deleted-comment">Comment deleted</span> } @else { <span>{{ reply.text }}</span> }
+                  <small>{{ reply.createdAt | timeAgo }} @if (reply.updatedAt) { · edited }</small>
+                </div>
+                <div class="comment-actions">
+                  <button type="button" [class.active]="platform.isCommentReacted(reply.id)" (click)="upvoteComment(reply.id)"><i class="bi bi-arrow-up"></i> {{ reply.upvotes }}</button>
+                  @if (social.canEditComment(reply)) { <button type="button" (click)="beginEdit(reply)">Edit</button><button type="button" (click)="deleteComment(reply)">Delete</button> } @else if (!reply.deletedAt) { <button type="button" (click)="reportComment(reply)">Report</button> }
+                </div>
               </div>
             }
+            @if (replyCount(comment.id) > 3) {
+              <button class="thread-toggle" type="button" (click)="toggleThread(comment.id)">{{ expandedThreads().has(comment.id) ? 'Collapse replies' : 'Show ' + (replyCount(comment.id) - 3) + ' more replies' }}</button>
+            }
             @if (replyTo() === comment.id) {
-              <form class="comment-form reply-form" (ngSubmit)="addReply(comment.id)">
+              <form class="comment-form reply-form mention-wrap" (ngSubmit)="addReply(comment.id)">
                 <input
                   class="tm-input"
                   name="reply"
                   placeholder="Reply with @mentions"
                   [ngModel]="replyText()"
-                  (ngModelChange)="replyText.set($event)"
+                  (ngModelChange)="onMentionInput($event, 'reply')"
                 />
                 <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!replyText().trim()">Reply</button>
+                @if (mentionContext() === 'reply' && mentionSuggestions().length) {
+                  <div class="mention-menu">@for (profile of mentionSuggestions(); track profile.uid) { <button type="button" (click)="chooseMention(profile)"><strong>{{ profile.name }}</strong><span>{{ profile.reputation }} rep</span></button> }</div>
+                }
               </form>
             }
           </div>
         }
 
-        <form class="comment-form" (ngSubmit)="addComment()">
+        <form class="comment-form mention-wrap" (ngSubmit)="addComment()">
           <input
             class="tm-input"
             name="comment"
             placeholder="Add a comment with @mentions"
             [ngModel]="commentText()"
-            (ngModelChange)="commentText.set($event)"
+            (ngModelChange)="onMentionInput($event, 'comment')"
           />
           <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!commentText().trim()">Post</button>
+          @if (mentionContext() === 'comment' && mentionSuggestions().length) {
+            <div class="mention-menu">@for (profile of mentionSuggestions(); track profile.uid) { <button type="button" (click)="chooseMention(profile)"><strong>{{ profile.name }}</strong><span>{{ profile.reputation }} rep</span></button> }</div>
+          }
         </form>
       </section>
 
