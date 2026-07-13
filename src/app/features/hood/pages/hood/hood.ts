@@ -260,7 +260,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     savedGeocode.forEach(([k, v]) => this.geocodeCache.set(k, v));
 
     const savedBoundary = readLocalStorage<[string, PlaceBoundary][]>(this.BOUNDARY_CACHE_KEY, []);
-    savedBoundary.forEach(([k, v]) => this.boundaryCache.set(k, v));
+    savedBoundary.forEach(([k, v]) => this.setInCache(this.boundaryCache, k, v));
 
     const savedReverse = readLocalStorage<[string, string][]>(this.REVERSE_CACHE_KEY, []);
     savedReverse.forEach(([k, v]) => this.reverseCache.set(k, v));
@@ -879,7 +879,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (cached) return cached;
     const boundary = await Utils.getPlaceBoundary(name);
     if (boundary) {
-      this.boundaryCache.set(key, boundary);
+      this.setInCache(this.boundaryCache, key, boundary);
       writeLocalStorage(this.BOUNDARY_CACHE_KEY, Array.from(this.boundaryCache.entries()));
     }
     return boundary;
@@ -928,7 +928,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     let geometry: HoodBoundaryGeometry;
     if (place.geojson && (place.geojson.type === 'Polygon' || place.geojson.type === 'MultiPolygon')) {
-      geometry = place.geojson as HoodBoundaryGeometry;
+      geometry = Utils.simplifyBoundary(place.geojson as HoodBoundaryGeometry);
     } else {
       geometry = Utils.createRectangleGeometry(place.boundingbox);
     }
@@ -938,7 +938,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     // Also store in the dedicated boundary cache so style.load / refresh can reuse it.
     const key = name.trim().toLowerCase();
-    this.boundaryCache.set(key, { geometry, bounds });
+    this.setInCache(this.boundaryCache, key, { geometry, bounds });
     writeLocalStorage(this.BOUNDARY_CACHE_KEY, Array.from(this.boundaryCache.entries()));
   }
 

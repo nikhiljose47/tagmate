@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import type { MultiPolygon, Polygon } from 'geojson';
+import type { MultiPolygon, Polygon, Position } from 'geojson';
 import type { LngLatBoundsLike } from 'maplibre-gl';
 
 type BoundaryGeometry = Polygon | MultiPolygon;
@@ -80,7 +80,7 @@ export class Utils implements OnDestroy {
     if (!bounds) return null;
 
     if (place.geojson && this.isBoundaryGeometry(place.geojson)) {
-      return { geometry: place.geojson, bounds };
+      return { geometry: this.simplifyBoundary(place.geojson), bounds };
     }
 
     return { geometry: this.createRectangleGeometry(place.boundingbox), bounds };
@@ -108,5 +108,67 @@ export class Utils implements OnDestroy {
       type: 'Polygon',
       coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]],
     };
+  }
+
+  /**
+   * Keeps externally supplied administrative boundaries cheap enough to render
+   * on mobile. Nominatim can return rings with many thousands of vertices;
+   * MapLibre otherwise has to repeatedly tessellate those raw coordinates.
+   */
+  static simplifyBoundary(geometry: BoundaryGeometry, tolerance = 0.00002): BoundaryGeometry {
+    const simplifyPolygon = (polygon: Position[][]): Position[][] =>
+      polygon.map((ring) => this.simplifyRing(ring, tolerance));
+
+    return geometry.type === 'Polygon'
+      ? { type: 'Polygon', coordinates: simplifyPolygon(geometry.coordinates) }
+      : { type: 'MultiPolygon', coordinates: geometry.coordinates.map(simplifyPolygon) };
+  }
+
+  private static simplifyRing(ring: Position[], tolerance: number): Position[] {
+    if (ring.length <= 4) return ring;
+    const closed = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1];
+    const points = closed ? ring.slice(0, -1) : ring.slice();
+    if (points.length < 3) return ring;
+
+    const squaredTolerance = tolerance * tolerance;
+    const keep = new Uint8Array(points.length);
+    keep[0] = 1;
+    keep[points.length - 1] = 1;
+    const pending: Array<[number, number]> = [[0, points.length - 1]];
+
+    while (pending.length) {
+      const [start, end] = pending.pop()!;
+      let maxDistance = squaredTolerance;
+      let index = -1;
+      for (let i = start + 1; i < end; i++) {
+        const distance = this.squaredSegmentDistance(points[i], points[start], points[end]);
+        if (distance > maxDistance) {
+          maxDistance = distance;
+          index = i;
+        }
+      }
+      if (index !== -1) {
+        keep[index] = 1;
+        pending.push([start, index], [index, end]);
+      }
+    }
+
+    const simplified = points.filter((_, index) => keep[index]);
+    // A polygon needs at least three distinct points plus its closing point.
+    return simplified.length >= 3 ? [...simplified, simplified[0]] : ring;
+  }
+
+  private static squaredSegmentDistance(point: Position, start: Position, end: Position): number {
+    const dx = end[0] - start[0];
+    const dy = end[1] - start[1];
+    if (dx === 0 && dy === 0) {
+      const px = point[0] - start[0];
+      const py = point[1] - start[1];
+      return px * px + py * py;
+    }
+    const t = Math.max(0, Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / (dx * dx + dy * dy)));
+    const px = point[0] - (start[0] + t * dx);
+    const py = point[1] - (start[1] + t * dy);
+    return px * px + py * py;
   }
 }

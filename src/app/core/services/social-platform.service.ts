@@ -26,6 +26,7 @@ export class SocialPlatformService implements OnDestroy {
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
   private readonly destroy$ = new Subject<void>();
+  private readonly unreadMessageThreads = new Map<string, string>();
   private hydratedUid: string | null = null;
 
   readonly followedUsers = signal(new Set<string>());
@@ -64,11 +65,21 @@ export class SocialPlatformService implements OnDestroy {
     this.supabase.liveInserts<DirectMessageStateRow>('direct_messages')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => {
-        if (row.to_uid === this.myUid() && !row.read && !this.isThreadMuted(row.thread_id)) this.unreadMessages.update((count) => count + 1);
+        if (row.to_uid === this.myUid() && !row.read) {
+          this.unreadMessageThreads.set(row.id, row.thread_id);
+          this.syncUnreadCount();
+        }
       });
     this.supabase.liveUpdates<DirectMessageStateRow>('direct_messages')
       .pipe(takeUntil(this.destroy$))
-      .subscribe((row) => { if (row.to_uid === this.myUid() && row.read) void this.refreshUnreadMessages(); });
+      .subscribe((row) => {
+        // A read transition is already fully described by the realtime row.
+        // Avoid re-fetching the user's entire inbox for every read receipt.
+        if (row.to_uid === this.myUid() && row.read) {
+          this.unreadMessageThreads.delete(row.id);
+          this.syncUnreadCount();
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -210,7 +221,7 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid) return false;
     const result = await this.toggleSetRow(this.mutedThreads, threadId, 'muted_threads',
       { user_id: uid, thread_id: threadId }, { user_id: uid, thread_id: threadId });
-    await this.refreshUnreadMessages();
+    this.syncUnreadCount();
     return result;
   }
 
@@ -330,7 +341,10 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid) return;
     const readAt = new Date().toISOString();
     await firstValueFrom(this.supabase.updateRowsWhere('direct_messages', { thread_id: threadId, to_uid: uid }, { read: true, read_at: readAt }));
-    await this.refreshUnreadMessages();
+    for (const [messageId, unreadThreadId] of this.unreadMessageThreads) {
+      if (unreadThreadId === threadId) this.unreadMessageThreads.delete(messageId);
+    }
+    this.syncUnreadCount();
   }
 
   private async hydrateViewerState(uid: string): Promise<void> {
@@ -350,7 +364,11 @@ export class SocialPlatformService implements OnDestroy {
       this.blockedUsers.set(new Set((blocks.data ?? []).map((row) => row.blocked_id)));
       this.mutedThreads.set(new Set((muted.data ?? []).map((row) => row.thread_id)));
       this.reactedComments.set(new Set((reactions.data ?? []).map((row) => row.comment_id)));
-      this.unreadMessages.set((messages.data ?? []).filter((row: any) => row.to_uid === uid && !row.read && !this.mutedThreads().has(row.thread_id)).length);
+      this.unreadMessageThreads.clear();
+      for (const row of messages.data ?? []) {
+        if (row.to_uid === uid && !row.read) this.unreadMessageThreads.set(row.id, row.thread_id);
+      }
+      this.syncUnreadCount();
     } catch (error) {
       this.logger.warn('Could not hydrate social graph', error);
     }
@@ -365,6 +383,7 @@ export class SocialPlatformService implements OnDestroy {
     this.reactedComments.set(new Set());
     this.confirmations.set({});
     this.statusHistory.set({});
+    this.unreadMessageThreads.clear();
     this.unreadMessages.set(0);
   }
 
@@ -399,15 +418,12 @@ export class SocialPlatformService implements OnDestroy {
     }
   }
 
-  private async refreshUnreadMessages(): Promise<void> {
-    const uid = this.myUid();
-    if (!uid) return;
-    try {
-      const { data } = await firstValueFrom(this.supabase.getDirectMessagesForUser(uid));
-      this.unreadMessages.set((data ?? []).filter((row: any) => row.to_uid === uid && !row.read && !this.mutedThreads().has(row.thread_id)).length);
-    } catch (error) {
-      this.logger.warn('Could not refresh unread messages', error);
+  private syncUnreadCount(): void {
+    let count = 0;
+    for (const threadId of this.unreadMessageThreads.values()) {
+      if (!this.isThreadMuted(threadId)) count++;
     }
+    this.unreadMessages.set(count);
   }
 
   private addToSet(state: WritableSignal<Set<string>>, value: string): void {

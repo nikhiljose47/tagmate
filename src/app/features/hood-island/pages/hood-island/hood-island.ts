@@ -51,6 +51,7 @@ const HOOD_CENTER: [number, number] = [77.7011, 12.9569]; // [lng, lat]
 // Same localStorage key as the Map tab — a boundary cached by either page is
 // instantly available to the other.
 const BOUNDARY_CACHE_KEY = 'tagmate_boundary_cache';
+const BOUNDARY_CACHE_LIMIT = 50;
 
 // ── Source / layer IDs ────────────────────────────────────────────────────────
 // Prefixed "hi-" (hood-island) to avoid any collision with the main map tab layers.
@@ -1291,12 +1292,18 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   private async fetchAndCacheBoundary(): Promise<PlaceBoundary | null> {
     const boundary = await Utils.getPlaceBoundary(this.currentQuery);
     if (boundary) {
-      const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-      const cache   = new Map(entries);
-      cache.set(this.currentQuery.toLowerCase(), boundary);
-      writeLocalStorage(BOUNDARY_CACHE_KEY, Array.from(cache.entries()));
+      this.writeCachedBoundary(this.currentQuery, boundary);
     }
     return boundary;
+  }
+
+  private writeCachedBoundary(key: string, boundary: PlaceBoundary): void {
+    const cache = new Map(readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []));
+    const normalizedKey = key.toLowerCase();
+    cache.delete(normalizedKey);
+    cache.set(normalizedKey, boundary);
+    while (cache.size > BOUNDARY_CACHE_LIMIT) cache.delete(cache.keys().next().value!);
+    writeLocalStorage(BOUNDARY_CACHE_KEY, Array.from(cache.entries()));
   }
 
   /**
@@ -1311,7 +1318,10 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
     // Round off the raw administrative boundary's sharp survey-line corners
     // so the coastline reads as natural terrain, not a legal boundary.
-    const smoothed = smoothGeometry(geometry, 3);
+    // Simplify before smoothing. The former three smoothing passes multiplied
+    // every Nominatim vertex eightfold, which was especially expensive on
+    // lower-end mobile GPUs.
+    const smoothed = smoothGeometry(Utils.simplifyBoundary(geometry) as DistrictGeometry, 1);
 
     const rawBounds    = getGeometryBounds(smoothed);
     const paddedBounds = padBounds(rawBounds);
@@ -1621,9 +1631,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
           : Utils.createRectangleGeometry(place.boundingbox);
 
       const boundary: PlaceBoundary = { geometry, bounds };
-      const fresh = new Map(readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []));
-      fresh.set(cacheKey, boundary);
-      writeLocalStorage(BOUNDARY_CACHE_KEY, Array.from(fresh.entries()));
+      this.writeCachedBoundary(cacheKey, boundary);
 
       this.applyDistrictGeometry(geometry, label);
     } catch {
@@ -1669,11 +1677,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         return;
       }
 
-      const fresh = new Map(
-        readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, [])
-      );
-      fresh.set(query.toLowerCase(), boundary);
-      writeLocalStorage(BOUNDARY_CACHE_KEY, Array.from(fresh.entries()));
+      this.writeCachedBoundary(query, boundary);
 
       this.applyDistrictGeometry(boundary.geometry as DistrictGeometry, label);
     } catch {
