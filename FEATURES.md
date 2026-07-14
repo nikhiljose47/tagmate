@@ -99,6 +99,12 @@ npm test -- --watch=false --browsers=ChromeHeadless
 ```
 Ensure all tests compile and pass successfully. The suite now includes 59 tests covering auth restoration, trusted admin authorization, Supabase error propagation, nav, app-topbar, map-hood, post-detail, and inbox components.
 
+Run the end-to-end (E2E) browser test suite using Playwright:
+```bash
+npm run test:e2e
+```
+The E2E suite contains 5 spec files covering 5-user social interactions, Chatmate AI chatbot concierge, weekly quests/reputation progression, websocket-backed group chatrooms, and routing guards/form security.
+
 ### Manual UI Verification Checklist
 Before deploying changes:
 1. **Theme Switching**: Click the theme switcher button and verify styles render correctly in all modes, particularly dark/midnight.
