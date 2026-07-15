@@ -20,12 +20,7 @@ export class MessagingService {
     return this.supabase.addRow('direct_messages', { ...input });
   }
 
-  sendHoodMessage(input: {
-    hood_id: string;
-    user_id: string;
-    username: string;
-    text: string;
-  }) {
+  sendHoodMessage(input: { hood_id: string; user_id: string; username: string; text: string }) {
     return this.supabase.addRow('hood_messages', input);
   }
 

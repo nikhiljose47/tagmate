@@ -10,9 +10,11 @@ export class PostTrustService {
 
   setConfirmation(postId: string, uid: string, enabled: boolean) {
     const row = { post_id: postId, user_id: uid };
-    return (enabled
-      ? this.supabase.addRow('post_confirmations', row)
-      : this.supabase.deleteRowsWhere('post_confirmations', row)) as Observable<unknown>;
+    return (
+      enabled
+        ? this.supabase.addRow('post_confirmations', row)
+        : this.supabase.deleteRowsWhere('post_confirmations', row)
+    ) as Observable<unknown>;
   }
 
   addStatus(postId: string, actorId: string, status: PostStatus, note: string | null) {

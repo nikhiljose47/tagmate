@@ -12,7 +12,10 @@ export class NotificationService {
   }
 
   markRead(notificationId: string, readAt: string) {
-    return this.supabase.updateRow('notifications', notificationId, { read: true, read_at: readAt });
+    return this.supabase.updateRow('notifications', notificationId, {
+      read: true,
+      read_at: readAt,
+    });
   }
 
   markAllRead(uid: string, readAt: string) {

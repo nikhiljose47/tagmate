@@ -34,7 +34,10 @@ export class CommentService {
   setReaction(commentId: string, uid: string, enabled: boolean) {
     return enabled
       ? this.supabase.addRow('post_comment_reactions', { comment_id: commentId, user_id: uid })
-      : this.supabase.deleteRowsWhere('post_comment_reactions', { comment_id: commentId, user_id: uid });
+      : this.supabase.deleteRowsWhere('post_comment_reactions', {
+          comment_id: commentId,
+          user_id: uid,
+        });
   }
 
   report(commentId: string, reporterId: string, reason = 'reported') {
