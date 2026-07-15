@@ -27,7 +27,7 @@ jobs:
         run: Get-ChildItem dist/browser -Recurse -File | Sort-Object Length -Descending | Select-Object -First 30 Name,Length | Format-Table -AutoSize
         shell: pwsh
       - name: Run Chromium smoke tests
-        run: npx playwright install --with-deps chromium && npx playwright test --project=chromium
+        run: npx playwright install --with-deps chromium && npm run test:e2e:smoke
       - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

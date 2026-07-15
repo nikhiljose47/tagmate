@@ -5,10 +5,11 @@ test.describe('Accessibility smoke checks', () => {
     await page.goto('/login');
 
     await expect(page.getByRole('textbox', { name: 'Email address' })).toBeVisible();
-    await expect(page.getByLabel('Password')).toBeVisible();
+    const password = page.getByRole('textbox', { name: 'Password', exact: true });
+    await expect(password).toBeVisible();
     await expect(page.getByRole('button', { name: 'Show password' })).toBeVisible();
 
-    await page.getByLabel('Password').focus();
+    await password.focus();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: 'Show password' })).toBeFocused();
   });

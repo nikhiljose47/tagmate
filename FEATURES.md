@@ -101,7 +101,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 - **Typed Social Aliases**: Shared `UserRow`, `CommentRow`, `DirectMessageRow`, `NotificationRow`, and `TagRow` aliases now describe the common social/query boundaries.
 - **Privacy-Safe Activation Events**: Posting, liking, and commenting emit only event categories—never content, identity, or exact location.
 - **Map Chunk Guardrail**: Production and staging builds enforce a 1.60 MB hard limit for every lazy script, preventing unnoticed map-route chunk growth.
-- **Reliable E2E Preview**: Playwright serves the built browser files through a dependency-free Node static server rather than Wrangler, with Angular route fallback and a 30-second startup limit.
+- **Reliable E2E Preview**: Playwright serves the built browser files through a dependency-free Node static server rather than Wrangler, with Angular route fallback and a 30-second startup limit. Pull-request verification runs the backend-free accessibility smoke test; seeded multi-user Supabase suites remain explicit integration tests.
 - **First-Run Hood Guidance**: New devices receive a concise, keyboard-accessible prompt to choose a hood before discovering nearby content.
 
 * [x] **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post.
