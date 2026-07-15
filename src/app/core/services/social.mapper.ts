@@ -1,4 +1,20 @@
-import { DirectMessage, LocalNotification, ThreadedComment } from '../models/tag.model';
+import {
+  DirectMessage,
+  HoodMessage,
+  LocalNotification,
+  ThreadedComment,
+} from '../models/tag.model';
+
+/** `users` row used by profile lookup and search queries. */
+export interface UserRow {
+  uid: string;
+  name: string;
+  is_guest: boolean;
+  reputation: number | null;
+  bio: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
 
 /** `post_comments` row (snake_case, matches the Supabase table). */
 export interface PostCommentRow {
@@ -13,6 +29,29 @@ export interface PostCommentRow {
   created_at: string;
   updated_at?: string | null;
   deleted_at?: string | null;
+}
+
+/** Backward-compatible name for a `post_comments` table row. */
+export type CommentRow = PostCommentRow;
+
+export interface HoodMessageRow {
+  id: string;
+  hood_id: string;
+  user_id: string;
+  username: string;
+  text: string;
+  created_at: string;
+}
+
+export function rowToHoodMessage(row: HoodMessageRow): HoodMessage {
+  return {
+    id: row.id,
+    hoodId: row.hood_id,
+    userId: row.user_id,
+    username: row.username,
+    text: row.text,
+    createdAt: row.created_at,
+  };
 }
 
 export function rowToComment(row: PostCommentRow): ThreadedComment {

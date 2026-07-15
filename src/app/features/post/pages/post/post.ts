@@ -15,6 +15,7 @@ import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens'
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { NetworkService } from '../../../../core/services/network.service';
+import { TelemetryService } from '../../../../core/services/telemetry.service';
 
 /** A locally-selected file + instant Object URL preview. */
 interface MediaItem {
@@ -51,6 +52,7 @@ export class PostPage {
   private readonly logger = inject(LoggerService);
   private readonly media = inject(MediaCompressionService);
   private readonly network = inject(NetworkService);
+  private readonly telemetry = inject(TelemetryService);
 
   constructor(
     public shared: SharedStateService,
@@ -290,6 +292,7 @@ export class PostPage {
       };
 
       await firstValueFrom(this.tagRepo.create(tagObject));
+      this.telemetry.track('activation.post-created', { kind: tagObject.tag ?? 'tag' });
       this.submitted.emit(tagObject);
       this.resetForm();
       void this.router.navigate([AppRoute.Hood]);

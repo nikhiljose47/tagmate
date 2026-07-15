@@ -1,4 +1,6 @@
-export const environment = {
+import { AppEnvironment } from './environment.model';
+
+export const environment: AppEnvironment = {
   production: true,
   mapTilerApiKey: '1hAbQJYYNfEOl5YZkol6',
   supabaseUrl: 'https://peiriuszdvhtwewydgte.supabase.co',

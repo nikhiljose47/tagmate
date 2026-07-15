@@ -6,6 +6,7 @@ export interface TelemetryEventMap {
   'activation.hood-selected': { hoodId: string };
   'activation.nearby-content-viewed': { source: 'feed' | 'map' | 'neighborhood' };
   'activation.post-created': { kind: string };
+  'activation.interaction': { kind: 'like' | 'comment' | 'rsvp' | 'poll-vote' };
   'runtime.map-timing': {
     metric: 'library-loaded' | 'map-ready' | 'first-marker' | 'boundary-ready';
     durationMs: number;

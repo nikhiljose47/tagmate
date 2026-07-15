@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { Observable, ReplaySubject, from, map } from 'rxjs';
 import { SupabaseClientService } from './supabase-client.service';
+import { clearUserStorage } from '../utils/local-storage.util';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
@@ -63,7 +64,14 @@ export class AuthService implements OnDestroy {
   }
 
   signOut() {
-    return from(this.client.auth.signOut());
+    return from(this.signOutAndClearUserStorage());
+  }
+
+  private async signOutAndClearUserStorage() {
+    const { data: userData } = await this.client.auth.getUser();
+    const result = await this.client.auth.signOut();
+    if (!result.error && userData.user?.id) clearUserStorage(userData.user.id);
+    return result;
   }
 
   resetPassword(email: string) {

@@ -2,9 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { Hood } from '../models/hood.model';
 import { Tag } from '../models/tag.model';
 import { TagDataService } from './tag-data.service';
-import { rowToTag, TagRow } from './tag.mapper';
+import { rowToTag } from './tag.mapper';
+import {
+  deviceStorageKey,
+  migrateLocalStorageKey,
+  readLocalStorage,
+} from '../utils/local-storage.util';
 
-const HOOD_KEY = 'tagmate_hood';
+const HOOD_KEY = deviceStorageKey('hood');
+const LEGACY_HOOD_KEY = 'tagmate_hood';
 const CACHE_TTL = 60_000;
 const DELTA = 0.12; // ~13 km radius around hood centre
 
@@ -42,12 +48,7 @@ export class PreloadService {
   }
 
   private readStoredHood(): Hood {
-    if (typeof window === 'undefined') return new Hood();
-    try {
-      const raw = localStorage.getItem(HOOD_KEY);
-      return raw ? new Hood(JSON.parse(raw) as Partial<Hood>) : new Hood();
-    } catch {
-      return new Hood();
-    }
+    migrateLocalStorageKey(LEGACY_HOOD_KEY, HOOD_KEY);
+    return new Hood(readLocalStorage<Partial<Hood>>(HOOD_KEY, {}));
   }
 }

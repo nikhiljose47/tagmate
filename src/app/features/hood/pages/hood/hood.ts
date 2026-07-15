@@ -40,9 +40,15 @@ import { escapeHtml } from '../../../../shared/utils/string.utils';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
-import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
+import {
+  deviceStorageKey,
+  migrateLocalStorageKey,
+  readLocalStorage,
+  writeLocalStorage,
+} from '../../../../core/utils/local-storage.util';
 import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
+import { TelemetryService } from '../../../../core/services/telemetry.service';
 
 interface CountryBounds {
   minLat: number;
@@ -75,7 +81,8 @@ type MapStyleKey = 'streets' | 'satellite' | 'hybrid' | 'outdoor';
 const MAP_STYLE_KEYS: readonly MapStyleKey[] = ['streets', 'satellite', 'hybrid', 'outdoor'];
 
 /** Display preferences persisted across reloads — same pattern as ThemeService. */
-const HOOD_SETTINGS_KEY = 'tagmate_hood_settings';
+const HOOD_SETTINGS_KEY = deviceStorageKey('hood-settings');
+const HOOD_SELECTION_KEY = deviceStorageKey('hood');
 
 interface StoredHoodSettings {
   countryMode: boolean;
@@ -96,6 +103,7 @@ const DEFAULT_HOOD_SETTINGS: StoredHoodSettings = {
 };
 
 function readStoredHoodSettings(): StoredHoodSettings {
+  migrateLocalStorageKey('tagmate_hood_settings', HOOD_SETTINGS_KEY);
   const stored = readLocalStorage<Partial<StoredHoodSettings>>(HOOD_SETTINGS_KEY, {});
   return {
     countryMode: stored.countryMode ?? DEFAULT_HOOD_SETTINGS.countryMode,
@@ -109,6 +117,11 @@ function readStoredHoodSettings(): StoredHoodSettings {
       ? stored.categoryFilters
       : DEFAULT_HOOD_SETTINGS.categoryFilters,
   };
+}
+
+function hasStoredHoodSelection(): boolean {
+  const stored = readLocalStorage<Partial<Hood> | null>(HOOD_SELECTION_KEY, null);
+  return !!stored?.name && !!stored.coords;
 }
 
 interface MapPost extends Tag {
@@ -173,6 +186,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   protected readonly social = inject(SocialInteractionsService);
   protected readonly workspace = inject(WorkspaceStateService);
   protected readonly platform = inject(SocialPlatformService);
+  private readonly telemetry = inject(TelemetryService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -205,9 +219,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     cache.set(key, value);
   }
 
-  private readonly GEOCODE_CACHE_KEY = 'tagmate_geocode_cache';
-  private readonly BOUNDARY_CACHE_KEY = 'tagmate_boundary_cache';
-  private readonly REVERSE_CACHE_KEY = 'tagmate_reverse_cache';
+  private readonly GEOCODE_CACHE_KEY = deviceStorageKey('map-geocode-cache');
+  private readonly BOUNDARY_CACHE_KEY = deviceStorageKey('map-boundary-cache');
+  private readonly REVERSE_CACHE_KEY = deviceStorageKey('map-reverse-geocode-cache');
 
   // Restored once at construction time — same "remember what I picked last
   // time" behaviour as the theme setting, scoped to this map's display prefs.
@@ -221,6 +235,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   showMapFilters = signal(false);
   showLayerMenu = signal(false);
   showStylePanel = signal(false);
+  readonly showFirstRunHoodPrompt = signal(!hasStoredHoodSelection());
   heatmapMode = signal(this.storedSettings.heatmapMode);
   postsVisible = signal(this.storedSettings.postsVisible);
   boundaryVisible = signal(this.storedSettings.boundaryVisible);
@@ -255,6 +270,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   hood = this.store.selectSignal(selectHood);
 
   constructor() {
+    migrateLocalStorageKey('tagmate_geocode_cache', this.GEOCODE_CACHE_KEY);
+    migrateLocalStorageKey('tagmate_boundary_cache', this.BOUNDARY_CACHE_KEY);
+    migrateLocalStorageKey('tagmate_reverse_cache', this.REVERSE_CACHE_KEY);
+
     // Load persisted caches from localStorage
     const savedGeocode = readLocalStorage<[string, NominatimSearchResult[]][]>(
       this.GEOCODE_CACHE_KEY,
@@ -995,6 +1014,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     const hood = new Hood({ name: q, coords: { lat, lng } });
     this.store.dispatch(setUserPreference({ pref: { hood, mapZoom: 13 } }));
+    this.showFirstRunHoodPrompt.set(false);
+    this.telemetry.track('activation.hood-selected', { hoodId: hood.name });
     this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
     this.enableLocationSelection();
     this.setTemporaryMarker(lng, lat);

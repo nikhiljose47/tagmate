@@ -21,6 +21,7 @@ interface ConfirmState extends Required<ConfirmOptions> {
 export class ConfirmDialogService {
   private nextId = 1;
   private resolver: ((result: boolean) => void) | null = null;
+  private previousFocus: HTMLElement | null = null;
 
   readonly state = signal<ConfirmState | null>(null);
 
@@ -28,6 +29,10 @@ export class ConfirmDialogService {
     // Resolve any still-open prior request as cancelled before opening a new one.
     this.resolver?.(false);
 
+    this.previousFocus =
+      typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const id = this.nextId++;
     this.state.set({
       id,
@@ -47,5 +52,8 @@ export class ConfirmDialogService {
     this.resolver?.(result);
     this.resolver = null;
     this.state.set(null);
+    const focusTarget = this.previousFocus;
+    this.previousFocus = null;
+    queueMicrotask(() => focusTarget?.focus());
   }
 }

@@ -4,6 +4,7 @@ import { map } from 'rxjs/operators';
 import { SupabaseClientService } from './supabase-client.service';
 import { AppUser } from '../models/app-user.model';
 import { TagRow } from './tag.mapper';
+import { UserRow } from './social.mapper';
 
 @Injectable({ providedIn: 'root' })
 export class TagDataService {
@@ -47,7 +48,7 @@ export class TagDataService {
         .from('users')
         .select('uid,name,is_guest,reputation,bio,created_at,updated_at')
         .eq('uid', uid)
-        .single<any>(),
+        .single<UserRow>(),
     ).pipe(
       map((result) => {
         const { data } = this.requireSuccess(result);
@@ -98,13 +99,13 @@ export class TagDataService {
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 
-  searchUsers(query: string, limit = 8): Observable<{ data: any[] | null; error: unknown }> {
+  searchUsers(query: string, limit = 8): Observable<{ data: UserRow[] | null; error: unknown }> {
     const sanitized = query.replace(/[,()%]/g, '').trim();
     if (!sanitized) return of({ data: [], error: null });
     return from(
       this.client
         .from('users')
-        .select('uid,name,bio,reputation,created_at,updated_at')
+        .select('uid,name,is_guest,bio,reputation,created_at,updated_at')
         .ilike('name', `%${sanitized}%`)
         .eq('is_guest', false)
         .limit(limit),

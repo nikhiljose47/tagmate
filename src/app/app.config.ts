@@ -23,6 +23,10 @@ import { SupabaseTagRepository } from './core/repositories/implementations/supab
 import { USER_REPOSITORY } from './core/repositories/repository.tokens';
 import { SupabaseUserRepository } from './core/repositories/implementations/supabase-user.repository';
 import { provideServiceWorker } from '@angular/service-worker';
+import { environment } from './environments/environment';
+import { validateEnvironment } from './environments/environment.validation';
+
+validateEnvironment(environment);
 
 export const appConfig: ApplicationConfig = {
   providers: [

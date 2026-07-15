@@ -7,6 +7,7 @@ import { StorageService } from './storage.service';
 import { RealtimeService } from './realtime.service';
 import { AppUser } from '../models/app-user.model';
 import { TagRow } from './tag.mapper';
+import { DirectMessageRow } from './social.mapper';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
@@ -180,7 +181,9 @@ export class SupabaseService {
 
   // ---------- SOCIAL ----------
 
-  getDirectMessagesForUser(uid: string): Observable<{ data: any[] | null; error: unknown }> {
+  getDirectMessagesForUser(
+    uid: string,
+  ): Observable<{ data: DirectMessageRow[] | null; error: unknown }> {
     return this.socialData.getDirectMessagesForUser(uid);
   }
 

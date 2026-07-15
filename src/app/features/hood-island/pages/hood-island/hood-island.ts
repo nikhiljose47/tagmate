@@ -22,16 +22,18 @@ import type {
 } from 'maplibre-gl';
 import * as maptilersdk from '@maptiler/sdk';
 
-import {
-  addClassificationLayers,
-  buildClassificationReport,
-  describeFeaturesAt,
-  inspectMapStyle,
-  type ClassificationReport,
-} from './map-inspector';
+import type { ClassificationReport } from './map-inspector';
 import { environment } from '../../../../environments/environment';
 import { PlaceBoundary, Utils } from '../../../../core/services/utils.service';
-import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
+import { TelemetryService } from '../../../../core/services/telemetry.service';
+import { BoundaryService } from '../../../../core/services/boundary.service';
+import { MapControllerService } from '../../../../core/services/map-controller.service';
+import { MapTemplateStoreService } from '../../../../core/services/map-template-store.service';
+import { MarkerService } from '../../../../core/services/marker.service';
+import {
+  deviceStorageKey,
+  migrateLocalStorageKey,
+} from '../../../../core/utils/local-storage.util';
 
 // ── Hardcoded district ────────────────────────────────────────────────────────
 // The island view is pinned to Marathahalli (Bengaluru) for now. `HOOD_QUERY`
@@ -40,11 +42,11 @@ import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/loca
 const HOOD_LABEL = 'Marathahalli';
 const HOOD_QUERY = 'Marathahalli, Bengaluru';
 const HOOD_CENTER: [number, number] = [77.7011, 12.9569]; // [lng, lat]
+const BOUNDARY_CACHE_KEY = deviceStorageKey('map-boundary-cache');
+const TEMPLATES_KEY = deviceStorageKey('island-templates');
 
 // Same localStorage key as the Map tab — a boundary cached by either page is
 // instantly available to the other.
-const BOUNDARY_CACHE_KEY = 'tagmate_boundary_cache';
-const BOUNDARY_CACHE_LIMIT = 50;
 
 // ── Source / layer IDs ────────────────────────────────────────────────────────
 // Prefixed "hi-" (hood-island) to avoid any collision with the main map tab layers.
@@ -309,8 +311,6 @@ interface IslandTemplate {
   settings: IslandTemplateSettings;
 }
 
-const TEMPLATES_KEY = 'tagmate_island_templates';
-
 // ── Visual ocean modes ────────────────────────────────────────────────────────
 
 interface OceanMode {
@@ -548,6 +548,11 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   private readonly ngZone = inject(NgZone);
   readonly router = inject(Router);
+  private readonly telemetry = inject(TelemetryService);
+  private readonly boundaries = inject(BoundaryService);
+  private readonly mapController = inject(MapControllerService);
+  private readonly templateStore = inject(MapTemplateStoreService);
+  private readonly markers = inject(MarkerService);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -555,7 +560,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // Identical pattern to HoodPage — avoids a network round-trip on first render.
   private map?: MapLibreMap;
   private mapReady = false;
-  private resizeObserver?: ResizeObserver;
   private cityMarkers: CityMarker[] = [];
   private currentMarkerAreaKey = '';
   private featuredMarkerIds: string[] = [];
@@ -563,6 +567,8 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   private featuredMarkerCursor = 0;
   private featuredRotationTimer?: number;
   private featuredHoverCount = 0;
+  private mapStartedAt = 0;
+  private firstMarkerTracked = false;
   private readonly featuredMarkers = new Map<string, maptilersdk.Marker>();
 
   // ── Map data inspector / adaptive classification ─────────────────────────────
@@ -570,13 +576,17 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // loaded style is summarised in the console, and a classification report is
   // built once tiles render. Adaptive layers are added either way — they rely
   // on the report, never on assumed schema.
-  private readonly enableMapDataInspector = true;
+  private readonly enableMapDataInspector = !environment.production;
   private classificationReport: ClassificationReport | null = null;
   private classificationDone = false;
   private classificationAttempts = 0;
 
   private readonly onInspectClick = (e: MapMouseEvent): void => {
-    if (this.map && this.enableMapDataInspector) describeFeaturesAt(this.map, e.point);
+    if (this.map && this.enableMapDataInspector) {
+      void this.loadMapInspector().then(({ describeFeaturesAt }) =>
+        describeFeaturesAt(this.map!, e.point),
+      );
+    }
   };
 
   // ── Template signals ──────────────────────────────────────────────────────────
@@ -657,11 +667,16 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   readonly searchOpen = signal(false);
 
   private searchDebounce?: ReturnType<typeof setTimeout>;
+  private searchAbort?: AbortController;
 
   async ngAfterViewInit(): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    this.templates.set(readLocalStorage<IslandTemplate[]>(TEMPLATES_KEY, []));
+    migrateLocalStorageKey('tagmate_boundary_cache', BOUNDARY_CACHE_KEY);
+    migrateLocalStorageKey('tagmate_island_templates', TEMPLATES_KEY);
+    this.templates.set(
+      this.templateStore.load((value): value is IslandTemplate => this.isIslandTemplate(value)),
+    );
 
     if (!this.supportsWebGl()) {
       this.errorMsg.set('WebGL is not available in this browser.');
@@ -678,13 +693,12 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
+    this.searchAbort?.abort();
     this.stopFeaturedRotation();
     this.clearFeaturedMarkers();
-    this.resizeObserver?.disconnect();
-    this.resizeObserver = undefined;
     this.unregisterMarkerEvents();
     this.map?.off('click', this.onInspectClick);
-    this.map?.remove();
+    this.mapController.destroy();
     this.map = undefined;
   }
 
@@ -705,6 +719,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
     maptilersdk.config.apiKey = key;
 
+    this.mapStartedAt = performance.now();
     this.map = new maptilersdk.Map({
       container: this.mapEl.nativeElement,
       style: this.styleUrl(this.baseStyle()),
@@ -740,8 +755,8 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       const firstLoad = !this.mapReady;
       if (firstLoad) {
         this.mapReady = true;
-        this.resizeObserver = new ResizeObserver(() => this.map?.resize());
-        this.resizeObserver.observe(this.mapEl!.nativeElement);
+        this.trackMapTiming('map-ready');
+        this.mapController.attach(this.map!, this.mapEl!.nativeElement);
       }
       this.addSources();
       this.addLayers();
@@ -755,7 +770,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         // Cards are intentionally static per visit — no rotation timer.
       }
 
-      if (this.enableMapDataInspector) inspectMapStyle(this.map!);
+      if (this.enableMapDataInspector) {
+        void this.loadMapInspector().then(({ inspectMapStyle }) => inspectMapStyle(this.map!));
+      }
       // Classification needs rendered tiles — wait for the first idle after
       // each style load, then detect what the tileset really contains and add
       // adaptive layers for exactly that. The timer is a fallback for maps
@@ -763,8 +780,8 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       // guarded so it only runs once per style load.
       this.classificationDone = false;
       this.classificationAttempts = 0;
-      this.map!.once('idle', () => this.runClassificationPass());
-      setTimeout(() => this.runClassificationPass(), 4000);
+      this.map!.once('idle', () => void this.runClassificationPass());
+      setTimeout(() => void this.runClassificationPass(), 4000);
     });
 
     if (this.enableMapDataInspector) {
@@ -1134,30 +1151,33 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     markers: CityMarker[],
   ): FeatureCollection<Point, CityMarkerProperties> {
     const featured = new Set(this.featuredMarkerIds);
-    return {
-      type: 'FeatureCollection',
-      features: markers.map((marker) => ({
-        type: 'Feature',
-        properties: {
-          id: marker.id,
-          title: marker.title,
-          description: marker.description,
-          imageUrl: marker.imageUrl,
-          type: marker.type,
-          priority: marker.priority,
-          featured: featured.has(marker.id),
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [marker.longitude, marker.latitude],
-        },
-      })),
-    };
+    return this.markers.toFeatureCollection(markers, (marker) => ({
+      id: marker.id,
+      title: marker.title,
+      description: marker.description,
+      imageUrl: marker.imageUrl,
+      type: marker.type,
+      priority: marker.priority,
+      featured: featured.has(marker.id),
+    }));
   }
 
   private updateMarkerSource(): void {
     const source = this.map?.getSource(GAME_MARKERS_SRC) as GeoJSONSource | undefined;
-    source?.setData(this.createMarkersGeoJson(this.cityMarkers));
+    const featured = new Set(this.featuredMarkerIds);
+    this.markers.setSourceData(source, this.cityMarkers, (marker) => ({
+      id: marker.id,
+      title: marker.title,
+      description: marker.description,
+      imageUrl: marker.imageUrl,
+      type: marker.type,
+      priority: marker.priority,
+      featured: featured.has(marker.id),
+    }));
+    if (this.cityMarkers.length && !this.firstMarkerTracked) {
+      this.firstMarkerTracked = true;
+      this.trackMapTiming('first-marker');
+    }
   }
 
   private syncMarkersToGeometry(geometry: DistrictGeometry, label: string): void {
@@ -1313,7 +1333,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   private startFeaturedRotation(): void {
     this.stopFeaturedRotation();
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || this.prefersReducedMotion()) return;
     this.featuredRotationTimer = window.setInterval(() => {
       if (this.featuredHoverCount > 0) return;
       this.featuredMarkerIds = this.nextFeaturedIds(FEATURED_MARKER_COUNT);
@@ -1413,7 +1433,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
    */
   private async loadDistrict(): Promise<void> {
     try {
-      const boundary = this.readCachedBoundary() ?? (await this.fetchAndCacheBoundary());
+      const boundary = await this.boundaries.resolve(this.currentQuery, this.currentLabel);
 
       if (!boundary) {
         this.ngZone.run(() => {
@@ -1424,6 +1444,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       }
 
       this.applyDistrictGeometry(boundary.geometry as DistrictGeometry, this.currentLabel);
+      this.trackMapTiming('boundary-ready');
     } catch {
       this.ngZone.run(() => {
         this.errorMsg.set('Failed to load the district boundary.');
@@ -1432,32 +1453,8 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  /** Checks the shared boundary cache under both the query and the label key. */
-  private readCachedBoundary(): PlaceBoundary | null {
-    const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-    const cache = new Map(entries);
-    return (
-      cache.get(this.currentQuery.toLowerCase()) ??
-      cache.get(this.currentLabel.toLowerCase()) ??
-      null
-    );
-  }
-
-  private async fetchAndCacheBoundary(): Promise<PlaceBoundary | null> {
-    const boundary = await Utils.getPlaceBoundary(this.currentQuery);
-    if (boundary) {
-      this.writeCachedBoundary(this.currentQuery, boundary);
-    }
-    return boundary;
-  }
-
   private writeCachedBoundary(key: string, boundary: PlaceBoundary): void {
-    const cache = new Map(readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []));
-    const normalizedKey = key.toLowerCase();
-    cache.delete(normalizedKey);
-    cache.set(normalizedKey, boundary);
-    while (cache.size > BOUNDARY_CACHE_LIMIT) cache.delete(cache.keys().next().value!);
-    writeLocalStorage(BOUNDARY_CACHE_KEY, Array.from(cache.entries()));
+    this.boundaries.setCached(key, boundary);
   }
 
   /**
@@ -1528,14 +1525,16 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
    * Runs once per style load (setStyle wipes the layers; the next idle pass
    * re-detects against the new style's schema and re-adds them).
    */
-  private runClassificationPass(): void {
+  private async runClassificationPass(): Promise<void> {
     if (!this.map || !this.mapReady || this.classificationDone) return;
+    const { addClassificationLayers, buildClassificationReport } = await this.loadMapInspector();
+    if (!this.map || this.classificationDone) return;
     const report = buildClassificationReport(this.map);
     // Nothing rendered yet (background/throttled tab, tiles still loading) —
     // keep retrying with a cap instead of burning the single pass on nothing.
     if (!report.detectedSourceLayers.length && this.classificationAttempts < 15) {
       this.classificationAttempts++;
-      setTimeout(() => this.runClassificationPass(), 3000);
+      setTimeout(() => void this.runClassificationPass(), 3000);
       return;
     }
     this.classificationDone = true;
@@ -1690,7 +1689,12 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   private async fetchSearchResults(query: string): Promise<void> {
     try {
-      const res = await fetch(`/api/nominatim/search?q=${encodeURIComponent(query)}`);
+      this.searchAbort?.abort();
+      const controller = new AbortController();
+      this.searchAbort = controller;
+      const res = await fetch(`/api/nominatim/search?q=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error('search failed');
       const places = (await res.json()) as Array<{
         display_name: string;
@@ -1702,6 +1706,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         osm_id: number;
       }>;
       this.ngZone.run(() => {
+        if (query !== this.searchQuery().trim()) return;
         this.searchResults.set(
           places.slice(0, 6).map((p) => ({
             displayName: p.display_name,
@@ -1716,10 +1721,13 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         this.searching.set(false);
         this.searchOpen.set(this.searchResults().length > 0);
       });
-    } catch {
+    } catch (error) {
+      if ((error as DOMException).name === 'AbortError') return;
       this.ngZone.run(() => {
+        if (query !== this.searchQuery().trim()) return;
         this.searching.set(false);
         this.searchResults.set([]);
+        this.errorMsg.set('Place search failed. Check your connection and try again.');
       });
     }
   }
@@ -1750,9 +1758,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       this.errorMsg.set('');
     });
     try {
-      const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-      const cache = new Map(entries);
-      const cached = cache.get(cacheKey);
+      const cached = this.boundaries.getCached(cacheKey);
 
       if (cached) {
         this.applyDistrictGeometry(cached.geometry as DistrictGeometry, label);
@@ -1823,9 +1829,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       this.errorMsg.set('');
     });
     try {
-      const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-      const cache = new Map(entries);
-      const cached = cache.get(query.toLowerCase());
+      const cached = this.boundaries.getCached(query);
 
       if (cached) {
         this.applyDistrictGeometry(cached.geometry as DistrictGeometry, label);
@@ -1837,7 +1841,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         this.map!.flyTo({ center: approxCenter, zoom: 13, duration: 500 }),
       );
 
-      const boundary = await Utils.getPlaceBoundary(query);
+      const boundary = await this.boundaries.resolve(query);
       if (!boundary) {
         this.ngZone.run(() => {
           this.errorMsg.set(`Boundary not found for "${label}".`);
@@ -2026,7 +2030,25 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private persistTemplates(): void {
-    writeLocalStorage(TEMPLATES_KEY, this.templates());
+    this.templateStore.save(this.templates());
+  }
+
+  /** Loads diagnostics only in development instead of bundling them into the map route. */
+  private loadMapInspector(): Promise<typeof import('./map-inspector')> {
+    return import('./map-inspector');
+  }
+
+  private isIslandTemplate(value: unknown): value is IslandTemplate {
+    if (!value || typeof value !== 'object') return false;
+    const template = value as Partial<IslandTemplate>;
+    return (
+      typeof template.id === 'string' &&
+      typeof template.name === 'string' &&
+      typeof template.createdAt === 'number' &&
+      typeof template.updatedAt === 'number' &&
+      typeof template.favorite === 'boolean' &&
+      !!template.settings
+    );
   }
 
   private newTemplateId(): string {
@@ -2101,5 +2123,19 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     } catch {
       return false;
     }
+  }
+
+  private prefersReducedMotion(): boolean {
+    return (
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+
+  private trackMapTiming(metric: 'map-ready' | 'first-marker' | 'boundary-ready'): void {
+    if (!this.mapStartedAt || typeof performance === 'undefined') return;
+    this.telemetry.track('runtime.map-timing', {
+      metric,
+      durationMs: Math.round(performance.now() - this.mapStartedAt),
+    });
   }
 }

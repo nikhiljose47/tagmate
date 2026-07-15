@@ -12,12 +12,11 @@
         'bi-moon-fill': theme.currentTheme() === 'dark',
         'bi-moon-stars-fill': theme.currentTheme() === 'midnight',
         'bi-tree-fill': theme.currentTheme() === 'forest',
-        'bi-cup-hot-fill': theme.currentTheme() === 'sepia'
+        'bi-cup-hot-fill': theme.currentTheme() === 'sepia',
       }"
     ></i>
   </button>
   <div class="login-content">
-
     <!-- Brand -->
     <div class="brand-block">
       <div class="brand-logo">
@@ -34,6 +33,7 @@
           type="text"
           class="tm-input"
           placeholder="Email address"
+          aria-label="Email address"
           [value]="email()"
           (input)="email.set($any($event.target).value)"
           [disabled]="loading()"
@@ -44,6 +44,7 @@
             [type]="showPassword() ? 'text' : 'password'"
             class="tm-input"
             placeholder="Password"
+            aria-label="Password"
             [value]="password()"
             (input)="password.set($any($event.target).value)"
             [disabled]="loading()"
@@ -54,20 +55,24 @@
             class="password-toggle"
             (click)="showPassword.set(!showPassword())"
             [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
-            tabindex="-1"
           >
             <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
           </button>
         </div>
-        
+
         <div class="forgot-password-link text-right mt-1 mb-2">
-          <a routerLink="/login/forgot-password" class="text-xs text-tm-primary font-semibold">Forgot Password?</a>
+          <a routerLink="/login/forgot-password" class="text-xs text-tm-primary font-semibold"
+            >Forgot Password?</a
+          >
         </div>
 
         <button class="tm-btn tm-btn-primary w-full" [disabled]="loading()" (click)="login()">
-          @if (!loading()) { Log In }
-          @else {
-            <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+          @if (!loading()) {
+            Log In
+          } @else {
+            <span
+              class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            ></span>
             Signing in...
           }
         </button>
@@ -75,30 +80,28 @@
 
       <div class="divider">OR</div>
 
-      <button
-        class="guest-btn"
-        [disabled]="loading()"
-        (click)="loginGuest()"
-      >
+      <button class="guest-btn" [disabled]="loading()" (click)="loginGuest()">
         @if (!loading()) {
           <i class="bi bi-incognito"></i>
           Continue as Guest
         } @else {
-          <span class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"></span>
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+          ></span>
           Please wait...
         }
       </button>
 
       @if (error()) {
-        <div class="error-msg">
+        <div class="error-msg" role="alert">
           <i class="bi bi-exclamation-circle"></i> {{ error() }}
         </div>
       }
     </div>
 
     <p class="signup-hint">
-      Don't have an account? <a routerLink="/login/signup" class="text-tm-primary font-semibold">Sign up</a>
+      Don't have an account?
+      <a routerLink="/login/signup" class="text-tm-primary font-semibold">Sign up</a>
     </p>
-
   </div>
 </div>

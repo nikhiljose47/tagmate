@@ -17,7 +17,12 @@ import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { coverGradient, avatarBg } from '../../../../shared/utils/color.utils';
 import { ThemeService, AppTheme } from '../../../../core/services/theme.service';
-import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/local-storage.util';
+import {
+  migrateLocalStorageKey,
+  readLocalStorage,
+  userStorageKey,
+  writeLocalStorage,
+} from '../../../../core/utils/local-storage.util';
 
 type ProfileTab = 'posts' | 'saved' | 'settings';
 
@@ -26,18 +31,11 @@ interface ProfileSettings {
   postActivityNotifications: boolean;
 }
 
-const PROFILE_SETTINGS_KEY = 'tagmate.profileSettings';
+const LEGACY_PROFILE_SETTINGS_KEY = 'tagmate.profileSettings';
 const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   locationSuggestions: true,
   postActivityNotifications: true,
 };
-
-function readProfileSettings(): ProfileSettings {
-  return {
-    ...DEFAULT_PROFILE_SETTINGS,
-    ...readLocalStorage<Partial<ProfileSettings>>(PROFILE_SETTINGS_KEY, {}),
-  };
-}
 
 @Component({
   selector: 'app-profile',
@@ -78,7 +76,7 @@ export class ProfilePage implements OnInit {
   editBio = signal('');
   profileSaving = signal(false);
   allTags = signal<Tag[]>([]);
-  settings = signal<ProfileSettings>(readProfileSettings());
+  settings = signal<ProfileSettings>(DEFAULT_PROFILE_SETTINGS);
   savedTags = computed(() =>
     this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)),
   );
@@ -91,6 +89,7 @@ export class ProfilePage implements OnInit {
   convertLoading = signal(false);
 
   ngOnInit(): void {
+    this.settings.set(this.readProfileSettings());
     this.tagRepo
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -164,7 +163,7 @@ export class ProfilePage implements OnInit {
     }
   }
   saveSettings(): void {
-    writeLocalStorage(PROFILE_SETTINGS_KEY, this.settings());
+    writeLocalStorage(this.profileSettingsKey(), this.settings());
     this.toast.show('Settings saved.', 'success');
   }
   savedCount(): number {
@@ -174,7 +173,7 @@ export class ProfilePage implements OnInit {
   updateSetting<K extends keyof ProfileSettings>(key: K, value: ProfileSettings[K]): void {
     this.settings.update((settings) => {
       const next = { ...settings, [key]: value };
-      writeLocalStorage(PROFILE_SETTINGS_KEY, next);
+      writeLocalStorage(this.profileSettingsKey(), next);
       return next;
     });
   }
@@ -199,6 +198,19 @@ export class ProfilePage implements OnInit {
       this.logger.error('Logout failed', err);
       this.toast.show('Could not log out.', 'danger');
     }
+  }
+
+  private profileSettingsKey(): string {
+    return userStorageKey(this.sessionService.user()?.uid ?? 'guest', 'profile-settings');
+  }
+
+  private readProfileSettings(): ProfileSettings {
+    const key = this.profileSettingsKey();
+    migrateLocalStorageKey(LEGACY_PROFILE_SETTINGS_KEY, key);
+    return {
+      ...DEFAULT_PROFILE_SETTINGS,
+      ...readLocalStorage<Partial<ProfileSettings>>(key, {}),
+    };
   }
 
   async convertAccount(): Promise<void> {

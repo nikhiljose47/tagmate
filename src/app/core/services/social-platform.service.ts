@@ -11,7 +11,11 @@ import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
 import { LoggerService } from './logger.service';
 import { ToastService } from './toast.service';
-import { rowToTag, TagRow } from './tag.mapper';
+import { CommentService } from './comment.service';
+import { MessagingService } from './messaging.service';
+import { RelationshipService } from './relationship.service';
+import { PostTrustService } from './post-trust.service';
+import { rowToTag } from './tag.mapper';
 
 interface UserFollowRow {
   follower_id: string;
@@ -72,6 +76,10 @@ export class SocialPlatformService implements OnDestroy {
   private readonly session = inject(UserSessionService);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
+  private readonly commentsApi = inject(CommentService);
+  private readonly messagingApi = inject(MessagingService);
+  private readonly relationshipsApi = inject(RelationshipService);
+  private readonly postTrustApi = inject(PostTrustService);
   private readonly destroy$ = new Subject<void>();
   private readonly unreadMessageThreads = new Map<string, string>();
   private hydratedUid: string | null = null;
@@ -173,7 +181,7 @@ export class SocialPlatformService implements OnDestroy {
 
   async getProfile(uid: string): Promise<SocialProfile | null> {
     try {
-      const user = await firstValueFrom(this.supabase.getUserById(uid));
+      const user = await firstValueFrom(this.relationshipsApi.getProfile(uid));
       if (!user || user.isGuest || this.isBlocked(uid)) return null;
       return {
         uid: user.uid,
@@ -191,7 +199,7 @@ export class SocialPlatformService implements OnDestroy {
 
   async searchProfiles(query: string, limit = 6): Promise<SocialProfile[]> {
     try {
-      const { data } = await firstValueFrom(this.supabase.searchUsers(query, limit));
+      const { data } = await firstValueFrom(this.relationshipsApi.searchProfiles(query, limit));
       return ((data ?? []) as ProfileRow[])
         .filter((row) => !this.isBlocked(row.uid))
         .map((row) => this.mapProfile(row));
@@ -208,11 +216,7 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid || !cleanName || cleanName.length > 40 || cleanBio.length > 280) return false;
     try {
       await firstValueFrom(
-        this.supabase.updateRowsWhere<ProfileRow>('users', { uid }, {
-          name: cleanName,
-          bio: cleanBio,
-          updated_at: new Date().toISOString(),
-        } as Partial<ProfileRow>),
+        this.relationshipsApi.updateProfile(uid, cleanName, cleanBio, new Date().toISOString()),
       );
       const current = this.session.user();
       if (current)
@@ -325,11 +329,7 @@ export class SocialPlatformService implements OnDestroy {
 
   async followingFeed(limit: number, offset: number, query = ''): Promise<Tag[]> {
     const { data } = await firstValueFrom(
-      this.supabase.callRpc<TagRow[]>('fetch_following_feed', {
-        page_limit: limit,
-        page_offset: offset,
-        query: query || null,
-      }),
+      this.relationshipsApi.followingFeed(limit, offset, query),
     );
     return (data ?? []).map(rowToTag);
   }
@@ -415,11 +415,11 @@ export class SocialPlatformService implements OnDestroy {
     try {
       if (wasConfirmed)
         await firstValueFrom(
-          this.supabase.deleteRowsWhere('post_confirmations', { post_id: postId, user_id: uid }),
+          this.postTrustApi.setConfirmation(postId, uid, false),
         );
       else
         await firstValueFrom(
-          this.supabase.addRow('post_confirmations', { post_id: postId, user_id: uid }),
+          this.postTrustApi.setConfirmation(postId, uid, true),
         );
       return !wasConfirmed;
     } catch (error) {
@@ -435,12 +435,7 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid || !post.id || !this.canSetStatus(post)) return false;
     try {
       await firstValueFrom(
-        this.supabase.addRow('post_status_history', {
-          post_id: post.id,
-          actor_id: uid,
-          status,
-          note: note.trim().slice(0, 250) || null,
-        }),
+        this.postTrustApi.addStatus(post.id, uid, status, note.trim().slice(0, 250) || null),
       );
       return true;
     } catch (error) {
@@ -463,27 +458,45 @@ export class SocialPlatformService implements OnDestroy {
   }
 
   async reportComment(commentId: string, reason = 'reported'): Promise<boolean> {
-    return this.report('comment_reports', {
-      comment_id: commentId,
-      reporter_id: this.myUid(),
-      reason,
-    });
+    const uid = this.myUid();
+    if (!uid) return false;
+    try {
+      await firstValueFrom(this.commentsApi.report(commentId, uid, reason));
+      this.toast.show('Report submitted for review.', 'success');
+      return true;
+    } catch (error) {
+      this.logger.error('Comment report failed', error);
+      this.toast.show('Could not submit report.', 'danger');
+      return false;
+    }
   }
 
   async reportMessage(messageId: string, reason = 'reported'): Promise<boolean> {
-    return this.report('message_reports', {
-      message_id: messageId,
-      reporter_id: this.myUid(),
-      reason,
-    });
+    const uid = this.myUid();
+    if (!uid) return false;
+    try {
+      await firstValueFrom(this.messagingApi.report(messageId, uid, reason));
+      this.toast.show('Report submitted for review.', 'success');
+      return true;
+    } catch (error) {
+      this.logger.error('Message report failed', error);
+      this.toast.show('Could not submit report.', 'danger');
+      return false;
+    }
   }
 
   async reportUser(userId: string, reason = 'reported'): Promise<boolean> {
-    return this.report('user_reports', {
-      reported_user_id: userId,
-      reporter_id: this.myUid(),
-      reason,
-    });
+    const uid = this.myUid();
+    if (!uid) return false;
+    try {
+      await firstValueFrom(this.relationshipsApi.reportUser(userId, uid, reason));
+      this.toast.show('Report submitted for review.', 'success');
+      return true;
+    } catch (error) {
+      this.logger.error('User report failed', error);
+      this.toast.show('Could not submit report.', 'danger');
+      return false;
+    }
   }
 
   async markThreadRead(threadId: string): Promise<void> {
@@ -491,11 +504,7 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid) return;
     const readAt = new Date().toISOString();
     await firstValueFrom(
-      this.supabase.updateRowsWhere(
-        'direct_messages',
-        { thread_id: threadId, to_uid: uid },
-        { read: true, read_at: readAt },
-      ),
+      this.messagingApi.markThreadRead(threadId, uid, readAt),
     );
     for (const [messageId, unreadThreadId] of this.unreadMessageThreads) {
       if (unreadThreadId === threadId) this.unreadMessageThreads.delete(messageId);
@@ -597,19 +606,6 @@ export class SocialPlatformService implements OnDestroy {
       this.logger.error(`Toggle failed for ${table}`, error);
       this.toast.show('Could not save that change.', 'danger');
       return enabled;
-    }
-  }
-
-  private async report(table: string, row: Record<string, unknown>): Promise<boolean> {
-    if (!this.myUid()) return false;
-    try {
-      await firstValueFrom(this.supabase.addRow(table, row));
-      this.toast.show('Report submitted for review.', 'success');
-      return true;
-    } catch (error) {
-      this.logger.error(`Report failed for ${table}`, error);
-      this.toast.show('Could not submit report.', 'danger');
-      return false;
     }
   }
 

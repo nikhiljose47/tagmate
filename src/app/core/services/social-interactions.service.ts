@@ -13,18 +13,30 @@ import { UserSessionService } from './user-session.service';
 import { LoggerService } from './logger.service';
 import { ToastService } from './toast.service';
 import { ConfirmDialogService } from './confirm-dialog.service';
+import { CommentService } from './comment.service';
+import { MessagingService } from './messaging.service';
+import { NotificationService } from './notification.service';
 import { TAG_REPOSITORY } from '../repositories/repository.tokens';
 import { NetworkService } from './network.service';
 import { SocialPlatformService } from './social-platform.service';
+import { TelemetryService } from './telemetry.service';
 import {
   PostCommentRow,
   rowToComment,
   DirectMessageRow,
   rowToDirectMessage,
+  HoodMessageRow,
+  rowToHoodMessage,
   NotificationRow,
   rowToNotification,
   notificationToRow,
 } from './social.mapper';
+import {
+  deviceStorageKey,
+  readLocalStorage,
+  removeLocalStorage,
+  writeLocalStorage,
+} from '../utils/local-storage.util';
 
 export type LocalComment = ThreadedComment;
 
@@ -45,7 +57,8 @@ interface OwnershipRow {
   post_id: string;
 }
 
-const QUESTS_KEY = 'tagmate.completedQuests';
+const QUESTS_KEY = deviceStorageKey('completed-quests');
+const LEGACY_QUESTS_KEY = 'tagmate.completedQuests';
 const QUEST_NAMES: Record<string, string> = {
   love: 'Civic Love',
   comment: 'Chatty Neighbor',
@@ -80,6 +93,10 @@ export class SocialInteractionsService implements OnDestroy {
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly network = inject(NetworkService);
   private readonly platform = inject(SocialPlatformService);
+  private readonly commentsApi = inject(CommentService);
+  private readonly messagingApi = inject(MessagingService);
+  private readonly notificationsApi = inject(NotificationService);
+  private readonly telemetry = inject(TelemetryService);
 
   // ---- deletion (broadcast so every page holding its own copy of a post list can react) ----
   private readonly _postDeleted$ = new Subject<string>();
@@ -128,7 +145,7 @@ export class SocialInteractionsService implements OnDestroy {
 
   private runToggleWithReconciliation(
     typeKey: string,
-    action$: Observable<any>,
+    action$: Observable<unknown>,
     initialClientState: boolean,
     setClientState: (state: boolean) => void,
     updateDelta: (finalDelta: number) => void,
@@ -262,7 +279,10 @@ export class SocialInteractionsService implements OnDestroy {
       'Could not update like — please try again.',
     );
 
-    if (nowLiked) this.completeQuest('love');
+    if (nowLiked) {
+      this.completeQuest('love');
+      this.telemetry.track('activation.interaction', { kind: 'like' });
+    }
     return nowLiked;
   }
 
@@ -423,11 +443,11 @@ export class SocialInteractionsService implements OnDestroy {
       mentions,
     };
 
-    firstValueFrom(this.supabase.addRow('post_comments', row))
+    firstValueFrom(this.commentsApi.create(row))
       .then(({ data, error }) => {
         if (error) throw error;
         if (!data) throw new Error('addComment: no row returned');
-        const commentRow = data as PostCommentRow;
+        const commentRow = data as unknown as PostCommentRow;
         this.comments.update((c) => ({
           ...c,
           [key]: (c[key] ?? []).map((cm) =>
@@ -446,6 +466,7 @@ export class SocialInteractionsService implements OnDestroy {
       });
 
     this.completeQuest('comment');
+    this.telemetry.track('activation.interaction', { kind: 'comment' });
   }
 
   upvoteComment(post: Tag, commentId: string): void {
@@ -475,12 +496,7 @@ export class SocialInteractionsService implements OnDestroy {
       ),
     }));
     try {
-      await firstValueFrom(
-        this.supabase.updateRow('post_comments', comment.id, {
-          text: trimmed,
-          updated_at: new Date().toISOString(),
-        }),
-      );
+      await firstValueFrom(this.commentsApi.update(comment.id, trimmed, new Date().toISOString()));
       return true;
     } catch (error) {
       this.comments.update((state) => ({
@@ -507,13 +523,7 @@ export class SocialInteractionsService implements OnDestroy {
       ),
     }));
     try {
-      await firstValueFrom(
-        this.supabase.updateRow('post_comments', comment.id, {
-          text: '',
-          deleted_at: deletedAt,
-          updated_at: deletedAt,
-        }),
-      );
+      await firstValueFrom(this.commentsApi.softDelete(comment.id, deletedAt));
       return true;
     } catch (error) {
       this.comments.update((state) => ({ ...state, [key]: existing }));
@@ -693,7 +703,7 @@ export class SocialInteractionsService implements OnDestroy {
       read: false,
     };
 
-    firstValueFrom(this.supabase.addRow('direct_messages', row))
+    firstValueFrom(this.messagingApi.sendDirectMessage(row))
       .then(({ error }) => {
         if (error) throw error;
       })
@@ -745,9 +755,7 @@ export class SocialInteractionsService implements OnDestroy {
       ),
     );
     try {
-      await firstValueFrom(
-        this.supabase.updateRow('notifications', notificationId, { read: true, read_at: readAt }),
-      );
+      await firstValueFrom(this.notificationsApi.markRead(notificationId, readAt));
     } catch (error) {
       this.notifications.update((current) =>
         current.map((notification) =>
@@ -769,13 +777,7 @@ export class SocialInteractionsService implements OnDestroy {
       previous.map((notification) => ({ ...notification, read: true, readAt })),
     );
     try {
-      await firstValueFrom(
-        this.supabase.updateRowsWhere(
-          'notifications',
-          { user_id: uid },
-          { read: true, read_at: readAt },
-        ),
-      );
+      await firstValueFrom(this.notificationsApi.markAllRead(uid, readAt));
     } catch (error) {
       this.notifications.set(previous);
       this.logger.error('Could not mark all notifications read', error);
@@ -1050,7 +1052,7 @@ export class SocialInteractionsService implements OnDestroy {
     this.activeChatHoodId.set(hoodId);
     this.activeChatMessages.set([]);
     this.supabase
-      .getRows<any>('hood_messages', { field: 'hood_id', op: '==', value: hoodId })
+      .getRows<HoodMessageRow>('hood_messages', { field: 'hood_id', op: '==', value: hoodId })
       .subscribe({
         next: ({ data, error }) => {
           if (error) {
@@ -1058,14 +1060,7 @@ export class SocialInteractionsService implements OnDestroy {
             return;
           }
           const mapped: HoodMessage[] = (data ?? [])
-            .map((row) => ({
-              id: row.id,
-              hoodId: row.hood_id,
-              userId: row.user_id,
-              username: row.username,
-              text: row.text,
-              createdAt: row.created_at,
-            }))
+            .map(rowToHoodMessage)
             .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           this.activeChatMessages.set(mapped);
         },
@@ -1102,7 +1097,7 @@ export class SocialInteractionsService implements OnDestroy {
       text: trimmed,
     };
 
-    firstValueFrom(this.supabase.addRow('hood_messages', row))
+    firstValueFrom(this.messagingApi.sendHoodMessage(row))
       .then(({ error }) => {
         if (error) throw error;
       })
@@ -1234,23 +1229,15 @@ export class SocialInteractionsService implements OnDestroy {
       });
 
     this.supabase
-      .liveInserts<any>('hood_messages')
+      .liveInserts<HoodMessageRow>('hood_messages')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => {
         if (row.hood_id === this.activeChatHoodId()) {
           this.activeChatMessages.update((msgs) => {
             if (msgs.some((m) => m.id === row.id)) return msgs;
-            return [
-              ...msgs,
-              {
-                id: row.id,
-                hoodId: row.hood_id,
-                userId: row.user_id,
-                username: row.username,
-                text: row.text,
-                createdAt: row.created_at,
-              },
-            ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            return [...msgs, rowToHoodMessage(row)].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            );
           });
         }
       });
@@ -1299,7 +1286,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     if (uid) {
       void this.fireAndForget(
-        this.supabase.addRow('notifications', notificationToRow(notification, uid)),
+        this.notificationsApi.create(notificationToRow(notification, uid)),
         (err) => this.logger.warn('addNotification: remote write failed (kept locally)', err),
       );
     }
@@ -1361,21 +1348,18 @@ export class SocialInteractionsService implements OnDestroy {
   }
 
   private readJson<T>(key: string, fallback: T): T {
-    try {
-      if (typeof localStorage === 'undefined') return fallback;
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
+    const value = readLocalStorage<T | null>(key, null);
+    if (value !== null) return value;
+    const legacyValue = readLocalStorage<T | null>(LEGACY_QUESTS_KEY, null);
+    if (legacyValue !== null) {
+      writeLocalStorage(key, legacyValue);
+      removeLocalStorage(LEGACY_QUESTS_KEY);
+      return legacyValue;
     }
+    return fallback;
   }
 
   private writeJson<T>(key: string, value: T): void {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-      // Local quest state should never block the main posting flow.
-    }
+    writeLocalStorage(key, value);
   }
 }

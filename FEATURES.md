@@ -90,6 +90,19 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 - **Coverage Ratchet**: The baseline is enforced at 27% statements, 30% lines, 15% functions, and 10% branches. Each feature/refactor must raise or preserve these levels until the 70/70/70/60 target is achieved.
 - **Safe Map Cards**: Featured map markers build popup DOM with `textContent` and validate image URLs rather than interpolating user data through `innerHTML`.
 - **Resilient Preferences**: Device preferences use SSR-safe, namespaced storage helpers that tolerate unavailable, malformed, expired, or quota-limited browser storage.
+- **Safe Storage Lifecycle**: Legacy browser keys migrate to `tagmate:device:*` or `tagmate:user:<uid>:*`; signing out clears only the current user's cached values.
+- **Configuration Guardrails**: Startup validates the required MapTiler and Supabase settings, and `environment.example.ts` documents the no-secret configuration shape.
+- **Map Reliability Signals**: The Hood Island route cancels superseded place searches, respects reduced-motion preferences for featured-marker rotation, loads its inspector only in development, and records map-ready, first-marker, and boundary-ready timings.
+- **Shared Marker Boundary**: `MarkerService` owns marker GeoJSON construction and MapLibre source updates, keeping map pages focused on feature behavior.
+- **Activation Telemetry**: Selecting a neighborhood on the map records a privacy-safe hood-selection event without location coordinates.
+- **Accessibility Smoke Coverage**: The login controls have explicit accessible names, its password visibility control is keyboard reachable, errors announce themselves, and Playwright checks that path.
+- **Dialog Focus Restoration**: App-wide confirmations return focus to their invoking control after completion, making destructive actions usable by keyboard-only users.
+- **Typed Message Queries**: Direct-message reads now return `DirectMessageRow` values rather than untyped query results at the service boundary.
+- **Typed Social Aliases**: Shared `UserRow`, `CommentRow`, `DirectMessageRow`, `NotificationRow`, and `TagRow` aliases now describe the common social/query boundaries.
+- **Privacy-Safe Activation Events**: Posting, liking, and commenting emit only event categories—never content, identity, or exact location.
+- **Map Chunk Guardrail**: Production and staging builds enforce a 1.60 MB hard limit for every lazy script, preventing unnoticed map-route chunk growth.
+- **Reliable E2E Preview**: Playwright serves the built browser files through a dependency-free Node static server rather than Wrangler, with Angular route fallback and a 30-second startup limit.
+- **First-Run Hood Guidance**: New devices receive a concise, keyboard-accessible prompt to choose a hood before discovering nearby content.
 
 * [x] **Neighborhood Group Chatrooms**: Real-time websocket-backed room chats for broad neighborhood discussion without requiring a specific post.
 * [x] **Virtual Sticky Bulletin Board**: A fast announcement wall for short, non-geolocated notes (e.g. "Found keys at the park").
