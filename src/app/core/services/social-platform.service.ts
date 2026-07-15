@@ -413,14 +413,8 @@ export class SocialPlatformService implements OnDestroy {
         : [optimistic, ...(state[postId] ?? [])],
     }));
     try {
-      if (wasConfirmed)
-        await firstValueFrom(
-          this.postTrustApi.setConfirmation(postId, uid, false),
-        );
-      else
-        await firstValueFrom(
-          this.postTrustApi.setConfirmation(postId, uid, true),
-        );
+      if (wasConfirmed) await firstValueFrom(this.postTrustApi.setConfirmation(postId, uid, false));
+      else await firstValueFrom(this.postTrustApi.setConfirmation(postId, uid, true));
       return !wasConfirmed;
     } catch (error) {
       await this.hydratePostTrust(postId);
@@ -503,9 +497,7 @@ export class SocialPlatformService implements OnDestroy {
     const uid = this.myUid();
     if (!uid) return;
     const readAt = new Date().toISOString();
-    await firstValueFrom(
-      this.messagingApi.markThreadRead(threadId, uid, readAt),
-    );
+    await firstValueFrom(this.messagingApi.markThreadRead(threadId, uid, readAt));
     for (const [messageId, unreadThreadId] of this.unreadMessageThreads) {
       if (unreadThreadId === threadId) this.unreadMessageThreads.delete(messageId);
     }

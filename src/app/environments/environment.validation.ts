@@ -16,6 +16,8 @@ export function validateEnvironment(environment: AppEnvironment): void {
     const url = new URL(environment.supabaseUrl);
     if (url.protocol !== 'https:') throw new Error('Supabase URL must use HTTPS');
   } catch {
-    throw new Error('Invalid required application configuration: supabaseUrl must be an HTTPS URL.');
+    throw new Error(
+      'Invalid required application configuration: supabaseUrl must be an HTTPS URL.',
+    );
   }
 }

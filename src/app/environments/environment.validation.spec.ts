@@ -17,8 +17,8 @@ describe('validateEnvironment', () => {
     expect(() => validateEnvironment({ ...validEnvironment, mapTilerApiKey: '' })).toThrowError(
       'Missing required application configuration: mapTilerApiKey',
     );
-    expect(() => validateEnvironment({ ...validEnvironment, supabaseUrl: 'http://example.test' })).toThrowError(
-      'Invalid required application configuration: supabaseUrl must be an HTTPS URL.',
-    );
+    expect(() =>
+      validateEnvironment({ ...validEnvironment, supabaseUrl: 'http://example.test' }),
+    ).toThrowError('Invalid required application configuration: supabaseUrl must be an HTTPS URL.');
   });
 });
