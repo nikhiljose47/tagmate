@@ -61,15 +61,15 @@ const COUNTRY_BOUNDS: Record<string, CountryBounds> = {
 };
 
 // MapLibre source/layer IDs kept as module-level constants for clarity.
-const POSTS_SOURCE          = 'posts-source';
-const CLUSTERS_LAYER        = 'post-clusters';
-const CLUSTER_COUNT_LAYER   = 'post-cluster-count';
+const POSTS_SOURCE = 'posts-source';
+const CLUSTERS_LAYER = 'post-clusters';
+const CLUSTER_COUNT_LAYER = 'post-cluster-count';
 const INDIVIDUAL_POSTS_LAYER = 'individual-posts';
-const HOOD_SOURCE           = 'hood-source';
-const HOOD_FILL_LAYER       = 'hood-fill';
-const HOOD_LINE_LAYER       = 'hood-line';
-const DEFAULT_ZOOM          = 15;
-const ZOOM_LEVELS           = [7, 10, 12, 15] as const;
+const HOOD_SOURCE = 'hood-source';
+const HOOD_FILL_LAYER = 'hood-fill';
+const HOOD_LINE_LAYER = 'hood-line';
+const DEFAULT_ZOOM = 15;
+const ZOOM_LEVELS = [7, 10, 12, 15] as const;
 
 type MapStyleKey = 'streets' | 'satellite' | 'hybrid' | 'outdoor';
 const MAP_STYLE_KEYS: readonly MapStyleKey[] = ['streets', 'satellite', 'hybrid', 'outdoor'];
@@ -87,27 +87,27 @@ interface StoredHoodSettings {
 }
 
 const DEFAULT_HOOD_SETTINGS: StoredHoodSettings = {
-  countryMode:      false,
-  postsVisible:     true,
-  boundaryVisible:  true,
-  heatmapMode:      false,
-  mapStyle:         'streets',
-  categoryFilters:  [],
+  countryMode: false,
+  postsVisible: true,
+  boundaryVisible: true,
+  heatmapMode: false,
+  mapStyle: 'streets',
+  categoryFilters: [],
 };
 
 function readStoredHoodSettings(): StoredHoodSettings {
   const stored = readLocalStorage<Partial<StoredHoodSettings>>(HOOD_SETTINGS_KEY, {});
   return {
-    countryMode:     stored.countryMode     ?? DEFAULT_HOOD_SETTINGS.countryMode,
-    postsVisible:    stored.postsVisible    ?? DEFAULT_HOOD_SETTINGS.postsVisible,
+    countryMode: stored.countryMode ?? DEFAULT_HOOD_SETTINGS.countryMode,
+    postsVisible: stored.postsVisible ?? DEFAULT_HOOD_SETTINGS.postsVisible,
     boundaryVisible: stored.boundaryVisible ?? DEFAULT_HOOD_SETTINGS.boundaryVisible,
-    heatmapMode:     stored.heatmapMode     ?? DEFAULT_HOOD_SETTINGS.heatmapMode,
-    mapStyle:        MAP_STYLE_KEYS.includes(stored.mapStyle as MapStyleKey)
-                        ? (stored.mapStyle as MapStyleKey)
-                        : DEFAULT_HOOD_SETTINGS.mapStyle,
+    heatmapMode: stored.heatmapMode ?? DEFAULT_HOOD_SETTINGS.heatmapMode,
+    mapStyle: MAP_STYLE_KEYS.includes(stored.mapStyle as MapStyleKey)
+      ? (stored.mapStyle as MapStyleKey)
+      : DEFAULT_HOOD_SETTINGS.mapStyle,
     categoryFilters: Array.isArray(stored.categoryFilters)
-                        ? stored.categoryFilters
-                        : DEFAULT_HOOD_SETTINGS.categoryFilters,
+      ? stored.categoryFilters
+      : DEFAULT_HOOD_SETTINGS.categoryFilters,
   };
 }
 
@@ -161,36 +161,36 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   @ViewChild('mapContainer', { static: true })
   private readonly mapContainer?: ElementRef<HTMLDivElement>;
 
-  private readonly http    = inject(HttpClient);
-  private readonly ngZone  = inject(NgZone);
-  readonly router  = inject(Router);
-  private readonly route   = inject(ActivatedRoute);
-  private readonly state   = inject(SharedStateService);
-  private readonly store   = inject(Store);
-  private readonly toast   = inject(ToastService);
-  private readonly preload  = inject(PreloadService);
-  private readonly tagRepo  = inject(TAG_REPOSITORY);
-  protected readonly social   = inject(SocialInteractionsService);
+  private readonly http = inject(HttpClient);
+  private readonly ngZone = inject(NgZone);
+  readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly state = inject(SharedStateService);
+  private readonly store = inject(Store);
+  private readonly toast = inject(ToastService);
+  private readonly preload = inject(PreloadService);
+  private readonly tagRepo = inject(TAG_REPOSITORY);
+  protected readonly social = inject(SocialInteractionsService);
   protected readonly workspace = inject(WorkspaceStateService);
   protected readonly platform = inject(SocialPlatformService);
 
-  private readonly destroy$        = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
-  private readonly boundaryCache   = new globalThis.Map<string, PlaceBoundary>();
+  private readonly boundaryCache = new globalThis.Map<string, PlaceBoundary>();
 
   // Preload MapLibre as soon as the router loads this chunk (before ngAfterViewInit).
   private static readonly _maplibrePromise = import('maplibre-gl');
-  private static readonly POSTS_CACHE_TTL  = 60_000;
+  private static readonly POSTS_CACHE_TTL = 60_000;
 
   private maplibre?: typeof import('maplibre-gl');
   private map?: MapLibreMap;
   private temporaryMarker?: Marker;
   private resizeObserver?: ResizeObserver;
   private locationSelectionEnabled = false;
-  private mapErrorShown            = false;
-  private mapInitialized           = false;
+  private mapErrorShown = false;
+  private mapInitialized = false;
 
-  private readonly postsCache   = new globalThis.Map<string, { posts: MapPost[]; ts: number }>();
+  private readonly postsCache = new globalThis.Map<string, { posts: MapPost[]; ts: number }>();
   private readonly reverseCache = new globalThis.Map<string, string>();
   private readonly geocodeCache = new globalThis.Map<string, NominatimSearchResult[]>();
   private currentPosts: MapPost[] = [];
@@ -213,34 +213,34 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   // time" behaviour as the theme setting, scoped to this map's display prefs.
   private readonly storedSettings = readStoredHoodSettings();
 
-  isSearching      = signal(false);
-  countryMode      = signal(this.storedSettings.countryMode);
-  showInfo         = signal(false);
-  showToolFab      = signal(false);
-  showSearch       = signal(false);
-  showMapFilters   = signal(false);
-  showLayerMenu    = signal(false);
-  showStylePanel   = signal(false);
-  heatmapMode      = signal(this.storedSettings.heatmapMode);
-  postsVisible     = signal(this.storedSettings.postsVisible);
-  boundaryVisible  = signal(this.storedSettings.boundaryVisible);
+  isSearching = signal(false);
+  countryMode = signal(this.storedSettings.countryMode);
+  showInfo = signal(false);
+  showToolFab = signal(false);
+  showSearch = signal(false);
+  showMapFilters = signal(false);
+  showLayerMenu = signal(false);
+  showStylePanel = signal(false);
+  heatmapMode = signal(this.storedSettings.heatmapMode);
+  postsVisible = signal(this.storedSettings.postsVisible);
+  boundaryVisible = signal(this.storedSettings.boundaryVisible);
   selectedMapCategories = signal<string[]>(this.storedSettings.categoryFilters);
   /** True when opened from the Post page via ?pick=1 */
-  pickMode         = signal(false);
+  pickMode = signal(false);
   /** True once the user has tapped the map in pick mode */
-  locationPicked   = signal(false);
-  currentStyle     = signal<MapStyleKey>(this.storedSettings.mapStyle);
+  locationPicked = signal(false);
+  currentStyle = signal<MapStyleKey>(this.storedSettings.mapStyle);
   protected readonly visibleMapPosts = signal<MapPost[]>([]);
   protected readonly recentMapPosts = computed(() =>
     [...this.visibleMapPosts()]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 8)
+      .slice(0, 8),
   );
   readonly MAP_STYLES: { key: MapStyleKey; label: string }[] = [
-    { key: 'streets',   label: 'Streets'   },
+    { key: 'streets', label: 'Streets' },
     { key: 'satellite', label: 'Satellite' },
-    { key: 'hybrid',    label: 'Hybrid'    },
-    { key: 'outdoor',   label: 'Outdoor'   },
+    { key: 'hybrid', label: 'Hybrid' },
+    { key: 'outdoor', label: 'Outdoor' },
   ];
   readonly CATEGORY_FILTERS = [
     TagCategory.Alert,
@@ -252,11 +252,14 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     TagCategory.Question,
   ].filter(Boolean);
   selected = signal(DEFAULT_ZOOM);
-  hood     = this.store.selectSignal(selectHood);
+  hood = this.store.selectSignal(selectHood);
 
   constructor() {
     // Load persisted caches from localStorage
-    const savedGeocode = readLocalStorage<[string, NominatimSearchResult[]][]>(this.GEOCODE_CACHE_KEY, []);
+    const savedGeocode = readLocalStorage<[string, NominatimSearchResult[]][]>(
+      this.GEOCODE_CACHE_KEY,
+      [],
+    );
     savedGeocode.forEach(([k, v]) => this.geocodeCache.set(k, v));
 
     const savedBoundary = readLocalStorage<[string, PlaceBoundary][]>(this.BOUNDARY_CACHE_KEY, []);
@@ -269,11 +272,11 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     // blob whenever any of them changes — mirrors ThemeService's pattern.
     effect(() => {
       writeLocalStorage(HOOD_SETTINGS_KEY, {
-        countryMode:     this.countryMode(),
-        postsVisible:    this.postsVisible(),
+        countryMode: this.countryMode(),
+        postsVisible: this.postsVisible(),
         boundaryVisible: this.boundaryVisible(),
-        heatmapMode:     this.heatmapMode(),
-        mapStyle:        this.currentStyle(),
+        heatmapMode: this.heatmapMode(),
+        mapStyle: this.currentStyle(),
         categoryFilters: this.selectedMapCategories(),
       } satisfies StoredHoodSettings);
     });
@@ -309,8 +312,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     this.ngZone.runOutsideAngular(() => this.initializeMap());
   }
 
-  onCountryModeChange(): void { this.loadVisiblePosts(); }
-  toggleInfo(): void          { this.showInfo.update((v) => !v); }
+  onCountryModeChange(): void {
+    this.loadVisiblePosts();
+  }
+  toggleInfo(): void {
+    this.showInfo.update((v) => !v);
+  }
 
   recenter(): void {
     const coords = this.hood()?.coords;
@@ -341,8 +348,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     }
   }
 
-  openSearch(): void  { this.showSearch.set(true); }
-  closeSearch(): void { this.showSearch.set(false); }
+  openSearch(): void {
+    this.showSearch.set(true);
+  }
+  closeSearch(): void {
+    this.showSearch.set(false);
+  }
 
   searchFromCard(value: string): void {
     const q = value?.trim();
@@ -354,7 +365,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         this.showSearch.set(false);
       }
     }, 150);
-    setTimeout(() => { clearInterval(check); this.showSearch.set(false); }, 9000);
+    setTimeout(() => {
+      clearInterval(check);
+      this.showSearch.set(false);
+    }, 9000);
   }
 
   toggleMapFilters(): void {
@@ -385,13 +399,19 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   togglePostsLayer(): void {
     this.postsVisible.update((v) => !v);
-    this.setLayerVisibility([CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER, INDIVIDUAL_POSTS_LAYER + '-bg'], this.postsVisible() && !this.heatmapMode());
+    this.setLayerVisibility(
+      [CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER, INDIVIDUAL_POSTS_LAYER + '-bg'],
+      this.postsVisible() && !this.heatmapMode(),
+    );
   }
 
   toggleHeatmapMode(): void {
     this.heatmapMode.update((v) => !v);
     this.setLayerVisibility(['posts-heatmap-layer'], this.heatmapMode());
-    this.setLayerVisibility([CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER, INDIVIDUAL_POSTS_LAYER + '-bg'], this.postsVisible() && !this.heatmapMode());
+    this.setLayerVisibility(
+      [CLUSTERS_LAYER, CLUSTER_COUNT_LAYER, INDIVIDUAL_POSTS_LAYER, INDIVIDUAL_POSTS_LAYER + '-bg'],
+      this.postsVisible() && !this.heatmapMode(),
+    );
   }
 
   toggleBoundaryLayer(): void {
@@ -403,7 +423,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     this.selectedMapCategories.update((current) =>
       current.includes(category)
         ? current.filter((item) => item !== category)
-        : [...current, category]
+        : [...current, category],
     );
     this.loadVisiblePosts();
   }
@@ -449,9 +469,11 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       },
       () => {
         this.isSearching.set(false);
-        this.showUserError('Unable to retrieve your location. Please check your browser permissions.');
+        this.showUserError(
+          'Unable to retrieve your location. Please check your browser permissions.',
+        );
       },
-      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true },
     );
   }
 
@@ -460,7 +482,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (!q) return;
 
     const cachedGeo = this.geocodeCache.get(q.toLowerCase());
-    if (cachedGeo?.length) { this.applyGeocodingResult(cachedGeo, q); return; }
+    if (cachedGeo?.length) {
+      this.applyGeocodingResult(cachedGeo, q);
+      return;
+    }
 
     this.isSearching.set(true);
 
@@ -472,7 +497,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
           this.isSearching.set(false);
           this.showUserError('Geocoding failed. Please try another location.');
           return of([]);
-        })
+        }),
       )
       .subscribe((res) => {
         this.isSearching.set(false);
@@ -485,9 +510,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   getAddressFromCoords(lat: number, lon: number): void {
-    const key    = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
     const cached = this.reverseCache.get(key);
-    if (cached) { this.state.updateText(cached); return; }
+    if (cached) {
+      this.state.updateText(cached);
+      return;
+    }
 
     // Use take(1) so the HTTP request completes even if the user navigates
     // away (clicking Done) before the reverse-geocoding response arrives.
@@ -495,7 +523,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .get<{ display_name?: string }>(`/api/nominatim/reverse?lat=${lat}&lon=${lon}`)
       .pipe(
         take(1),
-        catchError(() => of({ display_name: undefined }))
+        catchError(() => of({ display_name: undefined })),
       )
       .subscribe((res) => {
         const name = res.display_name ?? 'Unknown location';
@@ -522,21 +550,24 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     }
 
     this.map = new this.maplibre.Map({
-      container:    this.mapContainer.nativeElement,
+      container: this.mapContainer.nativeElement,
       // Boot with whatever style the user last picked (persisted in localStorage).
-      style:        this.getStyleUrl(this.currentStyle()),
-      center:       [coords.lng, coords.lat],
-      zoom:         DEFAULT_ZOOM,
-      minZoom:      4,
-      maxZoom:      18,
+      style: this.getStyleUrl(this.currentStyle()),
+      center: [coords.lng, coords.lat],
+      zoom: DEFAULT_ZOOM,
+      minZoom: 4,
+      maxZoom: 18,
       fadeDuration: 150,
       renderWorldCopies: false,
-      dragRotate:        false,
-      pitchWithRotate:   false,
+      dragRotate: false,
+      pitchWithRotate: false,
       attributionControl: { compact: true },
     });
 
-    this.map.addControl(new this.maplibre.NavigationControl({ showCompass: false }), 'bottom-right');
+    this.map.addControl(
+      new this.maplibre.NavigationControl({ showCompass: false }),
+      'bottom-right',
+    );
 
     // 'style.load' fires as soon as the style JSON + sprites are ready —
     // no tile rendering required. This means it fires even in headless/offscreen
@@ -566,7 +597,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         const preloaded = this.preload.getHoodPosts();
         if (preloaded?.length) {
           this.updatePostSource(preloaded as MapPost[]);
-          const b   = this.map!.getBounds();
+          const b = this.map!.getBounds();
           const key = `${b.getWest().toFixed(2)},${b.getSouth().toFixed(2)},${b.getEast().toFixed(2)},${b.getNorth().toFixed(2)}`;
           this.setInCache(this.postsCache, key, { posts: preloaded as MapPost[], ts: Date.now() });
         }
@@ -613,31 +644,40 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     }
 
     if (!this.map.getLayer('posts-heatmap-layer')) {
-      this.map.addLayer({
-        id: 'posts-heatmap-layer',
-        type: 'heatmap',
-        source: 'posts-heatmap-source',
-        layout: {
-          visibility: 'none'
+      this.map.addLayer(
+        {
+          id: 'posts-heatmap-layer',
+          type: 'heatmap',
+          source: 'posts-heatmap-source',
+          layout: {
+            visibility: 'none',
+          },
+          paint: {
+            'heatmap-weight': 1,
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+            'heatmap-color': [
+              'interpolate',
+              ['linear'],
+              ['heatmap-density'],
+              0,
+              'rgba(33,102,172,0)',
+              0.2,
+              'rgb(103,169,207)',
+              0.4,
+              'rgb(209,229,240)',
+              0.6,
+              'rgb(253,219,199)',
+              0.8,
+              'rgb(239,138,98)',
+              1,
+              'rgb(178,24,43)',
+            ],
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 20],
+            'heatmap-opacity': 0.8,
+          },
         },
-        paint: {
-          'heatmap-weight': 1,
-          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
-          'heatmap-color': [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0, 'rgba(33,102,172,0)',
-            0.2, 'rgb(103,169,207)',
-            0.4, 'rgb(209,229,240)',
-            0.6, 'rgb(253,219,199)',
-            0.8, 'rgb(239,138,98)',
-            1, 'rgb(178,24,43)'
-          ],
-          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 15, 20],
-          'heatmap-opacity': 0.8
-        }
-      }, CLUSTERS_LAYER); // insert below clusters layer if possible, else it just appends
+        CLUSTERS_LAYER,
+      ); // insert below clusters layer if possible, else it just appends
     }
 
     if (!this.map.getLayer(CLUSTERS_LAYER)) {
@@ -647,7 +687,15 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         source: POSTS_SOURCE,
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': ['step', ['get', 'point_count'], '#2b7de9', 25, '#f5a623', 100, '#e14b3b'],
+          'circle-color': [
+            'step',
+            ['get', 'point_count'],
+            '#2b7de9',
+            25,
+            '#f5a623',
+            100,
+            '#e14b3b',
+          ],
           'circle-radius': ['step', ['get', 'point_count'], 16, 25, 22, 100, 30],
           'circle-opacity': 0.88,
           'circle-stroke-width': 2,
@@ -685,11 +733,16 @@ export class HoodPage implements AfterViewInit, OnDestroy {
           'circle-stroke-color': [
             'match',
             ['get', 'type'],
-            'alert', '#ef4444',
-            'event', '#8b5cf6',
-            'sale', '#22c55e',
-            'market', '#f43f5e',
-            'traffic', '#f97316',
+            'alert',
+            '#ef4444',
+            'event',
+            '#8b5cf6',
+            'sale',
+            '#22c55e',
+            'market',
+            '#f43f5e',
+            'traffic',
+            '#f97316',
             '#ff5a3d',
           ],
         },
@@ -706,13 +759,20 @@ export class HoodPage implements AfterViewInit, OnDestroy {
           'text-field': [
             'match',
             ['get', 'type'],
-            'alert', '🚨',
-            'event', '🎉',
-            'sale', '🏷️',
-            'market', '🛒',
-            'traffic', '🚗',
-            'food', '🍔',
-            'question', '❓',
+            'alert',
+            '🚨',
+            'event',
+            '🎉',
+            'sale',
+            '🏷️',
+            'market',
+            '🛒',
+            'traffic',
+            '🚗',
+            'food',
+            '🍔',
+            'question',
+            '❓',
             '📍',
           ],
           'text-font': ['Noto Sans Regular'],
@@ -772,36 +832,53 @@ export class HoodPage implements AfterViewInit, OnDestroy {
             catchError((err: unknown) => {
               this.showUserError('Could not load posts for this map area.');
               return of([]);
-            })
-          )
+            }),
+          ),
         ),
-        takeUntil(this.destroy$)
+        takeUntil(this.destroy$),
       )
       .subscribe((posts) => this.updatePostSource(posts));
   }
 
   private registerLivePosts(): void {
-    this.tagRepo.liveTags()
+    this.tagRepo
+      .liveTags()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (post) => {
-          if (!this.map || !this.postIsInsideViewport(post) || !this.matchesActiveFilters(post as MapPost)) return;
+          if (
+            !this.map ||
+            !this.postIsInsideViewport(post) ||
+            !this.matchesActiveFilters(post as MapPost)
+          )
+            return;
           this.postsCache.clear();
           this.updatePostSource([post as MapPost, ...this.currentPosts]);
           this.toast.show('New nearby tag just landed.', 'success');
         },
       });
-    this.tagRepo.liveTagUpdates()
+    this.tagRepo
+      .liveTagUpdates()
       .pipe(takeUntil(this.destroy$))
       .subscribe((post) => {
-        if (!this.map || !this.postIsInsideViewport(post) || !this.matchesActiveFilters(post as MapPost)) return;
+        if (
+          !this.map ||
+          !this.postIsInsideViewport(post) ||
+          !this.matchesActiveFilters(post as MapPost)
+        )
+          return;
         this.postsCache.clear();
-        this.updatePostSource([post as MapPost, ...this.currentPosts.filter((item) => this.social.postKey(item) !== this.social.postKey(post))]);
+        this.updatePostSource([
+          post as MapPost,
+          ...this.currentPosts.filter(
+            (item) => this.social.postKey(item) !== this.social.postKey(post),
+          ),
+        ]);
       });
   }
 
   private fetchPostsForViewport(query: MapViewportQuery) {
-    const key    = `${query.west.toFixed(2)},${query.south.toFixed(2)},${query.east.toFixed(2)},${query.north.toFixed(2)}`;
+    const key = `${query.west.toFixed(2)},${query.south.toFixed(2)},${query.east.toFixed(2)},${query.north.toFixed(2)}`;
     const cached = this.postsCache.get(key);
     if (cached && Date.now() - cached.ts < HoodPage.POSTS_CACHE_TTL) {
       return of(cached.posts.filter((p) => this.matchesCountryMode(p)));
@@ -818,7 +895,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
           const posts = tags as MapPost[];
           this.setInCache(this.postsCache, key, { posts, ts: Date.now() });
           return posts.filter((p) => this.matchesActiveFilters(p));
-        })
+        }),
       );
   }
 
@@ -826,8 +903,12 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (!this.map) return;
     const b = this.map.getBounds();
     this.viewportChange$.next({
-      west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth(),
-      zoom: this.map.getZoom(), hoodId: this.hood().id,
+      west: b.getWest(),
+      south: b.getSouth(),
+      east: b.getEast(),
+      north: b.getNorth(),
+      zoom: this.map.getZoom(),
+      hoodId: this.hood().id,
     });
   }
 
@@ -849,11 +930,11 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         .map((p, i) => ({
           type: 'Feature',
           properties: {
-            id:       p.id ?? `${p.userId}-${p.createdAt}-${i}`,
-            title:    p.title ?? p.highlight ?? '',
-            type:     p.type  ?? p.tag ?? '',
+            id: p.id ?? `${p.userId}-${p.createdAt}-${i}`,
+            title: p.title ?? p.highlight ?? '',
+            type: p.type ?? p.tag ?? '',
             imageUrl: p.imageUrl ?? p.images?.[0] ?? '',
-            hoodId:   p.hoodId  ?? '',
+            hoodId: p.hoodId ?? '',
             username: p.username ?? '',
           },
           geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
@@ -874,7 +955,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   private async getPlaceBoundary(name: string): Promise<PlaceBoundary | null> {
-    const key    = name.trim().toLowerCase();
+    const key = name.trim().toLowerCase();
     const cached = this.boundaryCache.get(key);
     if (cached) return cached;
     const boundary = await Utils.getPlaceBoundary(name);
@@ -899,11 +980,14 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private applyGeocodingResult(res: NominatimSearchResult[], q: string): void {
     this.isSearching.set(false);
-    if (!res.length) { this.showUserError('Location not found.'); return; }
+    if (!res.length) {
+      this.showUserError('Location not found.');
+      return;
+    }
 
     const first = res[0];
-    const lat   = Number.parseFloat(first.lat);
-    const lng   = Number.parseFloat(first.lon);
+    const lat = Number.parseFloat(first.lat);
+    const lng = Number.parseFloat(first.lon);
     if (!this.isValidCoordinate(lat, lng)) {
       this.showUserError('The selected location has invalid coordinates.');
       return;
@@ -927,7 +1011,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (!bounds) return;
 
     let geometry: HoodBoundaryGeometry;
-    if (place.geojson && (place.geojson.type === 'Polygon' || place.geojson.type === 'MultiPolygon')) {
+    if (
+      place.geojson &&
+      (place.geojson.type === 'Polygon' || place.geojson.type === 'MultiPolygon')
+    ) {
       geometry = Utils.simplifyBoundary(place.geojson as HoodBoundaryGeometry);
     } else {
       geometry = Utils.createRectangleGeometry(place.boundingbox);
@@ -945,7 +1032,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private syncSelectedZoom(): void {
     const zoom = this.map?.getZoom();
     if (zoom === undefined) return;
-    this.selected.set(ZOOM_LEVELS.reduce((n, v) => Math.abs(v - zoom) < Math.abs(n - zoom) ? v : n));
+    this.selected.set(
+      ZOOM_LEVELS.reduce((n, v) => (Math.abs(v - zoom) < Math.abs(n - zoom) ? v : n)),
+    );
   }
 
   private matchesCountryMode(post: MapPost): boolean {
@@ -966,18 +1055,31 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private postIsInsideViewport(post: Tag): boolean {
     const b = this.map?.getBounds();
     if (!b) return false;
-    return post.lng >= b.getWest() && post.lng <= b.getEast() && post.lat >= b.getSouth() && post.lat <= b.getNorth();
+    return (
+      post.lng >= b.getWest() &&
+      post.lng <= b.getEast() &&
+      post.lat >= b.getSouth() &&
+      post.lat <= b.getNorth()
+    );
   }
 
   private isInCountryBounds(lat: number, lng: number, country: string): boolean {
     const key = country.trim().toLowerCase();
     const bounds = COUNTRY_BOUNDS[key];
     if (!bounds) return true;
-    return lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng;
+    return (
+      lat >= bounds.minLat && lat <= bounds.maxLat && lng >= bounds.minLng && lng <= bounds.maxLng
+    );
   }
 
-  private enableLocationSelection(): void  { this.locationSelectionEnabled = true;  this.setCursorForMode(); }
-  private disableLocationSelection(): void { this.locationSelectionEnabled = false; this.setCursorForMode(); }
+  private enableLocationSelection(): void {
+    this.locationSelectionEnabled = true;
+    this.setCursorForMode();
+  }
+  private disableLocationSelection(): void {
+    this.locationSelectionEnabled = false;
+    this.setCursorForMode();
+  }
 
   private handleMapClick(event: MapMouseEvent): void {
     if (!this.locationSelectionEnabled) return;
@@ -1023,11 +1125,13 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
       const [lng, lat] = feature.geometry.coordinates;
       if (lng === undefined || lat === undefined) return;
-      const title    = feature.properties.title || 'Tag post';
+      const title = feature.properties.title || 'Tag post';
       const username = feature.properties.username ? ` by ${feature.properties.username}` : '';
       new this.maplibre!.Popup({ closeButton: true, offset: 12 })
         .setLngLat([lng, lat])
-        .setHTML(`<strong>${this.escapeHtml(title)}</strong><br><span>${this.escapeHtml(feature.properties.type)}${this.escapeHtml(username)}</span>`)
+        .setHTML(
+          `<strong>${this.escapeHtml(title)}</strong><br><span>${this.escapeHtml(feature.properties.type)}${this.escapeHtml(username)}</span>`,
+        )
         .addTo(this.map!);
     });
   }
@@ -1057,9 +1161,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   private createTemporaryMarkerElement(): HTMLElement {
-    const el   = document.createElement('img');
-    el.src     = 'assets/icons/loc-pin.svg';
-    el.alt     = 'Selected location';
+    const el = document.createElement('img');
+    el.src = 'assets/icons/loc-pin.svg';
+    el.alt = 'Selected location';
     el.className = 'selected-location-marker';
     return el;
   }
@@ -1083,8 +1187,14 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   private isValidCoordinate(lat: number, lng: number): boolean {
-    return Number.isFinite(lat) && Number.isFinite(lng)
-      && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    );
   }
 
   private emptyPointCollection(): FeatureCollection<Point, MapPostProperties> {
@@ -1107,16 +1217,18 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     try {
       const canvas = document.createElement('canvas');
       return !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
 
   private getStyleUrl(style: MapStyleKey): string {
     const key = environment.mapTilerApiKey;
     const urls: Record<MapStyleKey, string> = {
-      streets:   `https://api.maptiler.com/maps/streets-v4/style.json?key=${key}`,
+      streets: `https://api.maptiler.com/maps/streets-v4/style.json?key=${key}`,
       satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${key}`,
-      hybrid:    `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`,
-      outdoor:   `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`,
+      hybrid: `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`,
+      outdoor: `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`,
     };
     return urls[style];
   }

@@ -34,7 +34,9 @@
   border: 2px solid var(--tm-border);
 }
 
-.author-info { min-width: 0; }
+.author-info {
+  min-width: 0;
+}
 
 .author-name {
   margin: 0 0 2px;
@@ -95,7 +97,9 @@
   transition: opacity 0.15s;
   pointer-events: none;
 
-  &.char-count--visible { opacity: 0.85; }
+  &.char-count--visible {
+    opacity: 0.85;
+  }
 }
 
 .field-help {
@@ -163,7 +167,7 @@
   left: 5px;
   font-size: 16px;
   color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   line-height: 1;
 }
@@ -176,7 +180,7 @@
   height: 18px;
   border-radius: 50%;
   border: none;
-  background: rgba(0,0,0,0.55);
+  background: rgba(0, 0, 0, 0.55);
   color: #fff;
   font-size: 15px;
   line-height: 1;
@@ -186,7 +190,9 @@
   backdrop-filter: blur(4px);
   transition: background 0.15s;
 
-  &:hover { background: rgba(220,38,38,0.8); }
+  &:hover {
+    background: rgba(220, 38, 38, 0.8);
+  }
 }
 
 /* "Add" button — slim horizontal pill instead of a big square tile */
@@ -199,14 +205,18 @@
   border: 1.5px dashed var(--tm-border);
   background: var(--tm-bg);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 
   &:hover {
     border-color: var(--tm-primary);
     background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
 
-    .media-add-icon { color: var(--tm-primary-text); }
+    .media-add-icon {
+      color: var(--tm-primary-text);
+    }
   }
 }
 
@@ -248,7 +258,9 @@
   padding-bottom: 2px;
   scrollbar-width: none;
 
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tag-chip {
@@ -264,7 +276,10 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
@@ -322,7 +337,10 @@
   transition: 0.15s;
   flex-shrink: 0;
 
-  &:hover { border-color: var(--tm-primary); color: var(--tm-primary-text); }
+  &:hover {
+    border-color: var(--tm-primary);
+    color: var(--tm-primary-text);
+  }
   &:has(input:checked) {
     border-color: var(--tm-primary);
     color: var(--tm-primary-text);
@@ -376,7 +394,9 @@
   border-radius: 10px;
   min-height: 38px;
   border: 1px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 
   /* When a location is actually set, make it stand out */
   &.location-display--set {
@@ -384,7 +404,9 @@
     border-color: var(--tm-border);
     background: color-mix(in srgb, var(--tm-primary) 5%, var(--tm-surface));
 
-    i { color: var(--tm-primary-text); }
+    i {
+      color: var(--tm-primary-text);
+    }
   }
 }
 
@@ -408,7 +430,9 @@
   font-size: 12px;
   cursor: pointer;
 
-  &:focus-within { border-color: var(--tm-primary); }
+  &:focus-within {
+    border-color: var(--tm-primary);
+  }
 }
 
 .expiry-select {
@@ -420,7 +444,9 @@
   outline: none;
   cursor: pointer;
 
-  option { color: initial; }
+  option {
+    color: initial;
+  }
 }
 
 .loc-btn {
@@ -479,7 +505,7 @@
   display: inline-block;
   padding: 2px 10px;
   border-radius: 10px;
-  background: rgba(99,102,241,0.1);
+  background: rgba(99, 102, 241, 0.1);
   color: var(--tm-primary);
   font-size: 11px;
   font-weight: 700;
@@ -526,7 +552,10 @@
   -webkit-appearance: none;
   appearance: none;
 
-  &:hover { border-color: var(--tm-primary); color: var(--tm-primary-text); }
+  &:hover {
+    border-color: var(--tm-primary);
+    color: var(--tm-primary-text);
+  }
 
   /* Active state for the preview toggle */
   &.foot-action--active {
@@ -563,7 +592,9 @@
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 
-  &:hover:not(:disabled) { background: var(--tm-primary-hover, #4f46e5); }
+  &:hover:not(:disabled) {
+    background: var(--tm-primary-hover, #4f46e5);
+  }
 
   /* Grey out clearly — avoids the "faded blue = pressed" visual confusion */
   &:disabled {
@@ -578,24 +609,44 @@
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.35);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 @keyframes shake-error {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
 }
 
 /* ── Mobile ─────────────────────────────── */
 @media (max-width: 520px) {
-  .post-page { padding: 0; }
-  .post-form { border-radius: 0; box-shadow: none; }
-  .event-times { grid-template-columns: 1fr; }
+  .post-page {
+    padding: 0;
+  }
+  .post-form {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .event-times {
+    grid-template-columns: 1fr;
+  }
 }

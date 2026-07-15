@@ -13,7 +13,7 @@ export interface ToastMessage {
 export class ToastService {
   private nextId = 1;
   private queue: ToastMessage[] = [];
-  
+
   readonly message = signal<ToastMessage | null>(null);
 
   show(text: string, tone: ToastTone = 'info', durationMs = 3600): void {

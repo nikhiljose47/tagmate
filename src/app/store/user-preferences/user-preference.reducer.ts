@@ -3,17 +3,13 @@ import { ActionReducer } from '@ngrx/store';
 import { setUserPreference } from './user-preference.actions';
 import { UserPreference } from '../../core/models/user-preference.model';
 import { Hood } from '../../core/models/hood.model';
+import { readLocalStorage, writeLocalStorage } from '../../core/utils/local-storage.util';
+import { AppState } from '../../state/app.state';
 
-const HOOD_KEY = 'tagmate_hood';
+const HOOD_KEY = 'tagmate:device:hood';
 
 function readStoredHood(): Hood {
-  if (typeof window === 'undefined') return new Hood();
-  try {
-    const raw = localStorage.getItem(HOOD_KEY);
-    return raw ? new Hood(JSON.parse(raw) as Partial<Hood>) : new Hood();
-  } catch {
-    return new Hood();
-  }
+  return new Hood(readLocalStorage<Partial<Hood>>(HOOD_KEY, {}));
 }
 
 export const initialUserPref: UserPreference = {
@@ -26,19 +22,17 @@ export const initialUserPref: UserPreference = {
 
 export const userPrefReducer = createReducer(
   initialUserPref,
-  on(setUserPreference, (state, { pref }) => ({ ...state, ...pref }))
+  on(setUserPreference, (state, { pref }) => ({ ...state, ...pref })),
 );
 
 /** Meta-reducer: writes hood to localStorage whenever it changes. */
-export function hoodPersistMetaReducer(reducer: ActionReducer<any>): ActionReducer<any> {
+export function hoodPersistMetaReducer(reducer: ActionReducer<AppState>): ActionReducer<AppState> {
   return (state, action) => {
     const next = reducer(state, action);
-    if (typeof window !== 'undefined') {
-      const prevHood = state?.userPref?.hood;
-      const nextHood = next?.userPref?.hood;
-      if (nextHood && nextHood !== prevHood) {
-        try { localStorage.setItem(HOOD_KEY, JSON.stringify(nextHood)); } catch {}
-      }
+    const prevHood = state?.userPref?.hood;
+    const nextHood = next?.userPref?.hood;
+    if (nextHood && nextHood !== prevHood) {
+      writeLocalStorage(HOOD_KEY, nextHood);
     }
     return next;
   };

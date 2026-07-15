@@ -33,7 +33,10 @@ function isRateLimited(ip) {
     }
   }
 
-  if (client.tokens > 0) { client.tokens--; return false; }
+  if (client.tokens > 0) {
+    client.tokens--;
+    return false;
+  }
   return true;
 }
 

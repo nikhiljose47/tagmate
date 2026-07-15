@@ -8,8 +8,18 @@ import { ThemeService } from '../../../../core/services/theme.service';
 
 const MIN_AGE = 13;
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 @Component({
@@ -20,21 +30,21 @@ const MONTHS = [
   styleUrls: ['./signup.scss'],
 })
 export class SignupPage implements OnInit {
-  email    = signal('');
+  email = signal('');
   password = signal('');
   fullName = signal('');
   username = signal('');
 
   birthMonth = signal('');
-  birthDay   = signal('');
-  birthYear  = signal('');
+  birthDay = signal('');
+  birthYear = signal('');
 
-  error    = signal('');
-  loading  = signal(false);
+  error = signal('');
+  loading = signal(false);
   showPassword = signal(false);
 
   usernameChecking = signal(false);
-  usernameTaken    = signal(false);
+  usernameTaken = signal(false);
   private usernameCheckTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly months = MONTHS;
@@ -76,12 +86,10 @@ export class SignupPage implements OnInit {
   }
 
   ngOnInit(): void {
-    this.session.user$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (this.destroyed) return;
-        if (!user.isGuest) this.router.navigateByUrl('/feed');
-      });
+    this.session.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
+      if (this.destroyed) return;
+      if (!user.isGuest) this.router.navigateByUrl('/feed');
+    });
   }
 
   onUsernameInput(value: string): void {
@@ -164,7 +172,7 @@ export class SignupPage implements OnInit {
 
   private timeoutPromise(): Promise<{ ok: false; message: string }> {
     return new Promise((resolve) =>
-      setTimeout(() => resolve({ ok: false, message: 'Request timeout (8s)' }), 8000)
+      setTimeout(() => resolve({ ok: false, message: 'Request timeout (8s)' }), 8000),
     );
   }
 }

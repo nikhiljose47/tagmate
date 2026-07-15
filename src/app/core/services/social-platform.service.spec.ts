@@ -12,11 +12,25 @@ describe('SocialPlatformService', () => {
   let supabase: jasmine.SpyObj<SupabaseService>;
 
   beforeEach(() => {
-    supabase = jasmine.createSpyObj<SupabaseService>('SupabaseService', [
-      'addRow', 'deleteRowsWhere', 'getRows', 'getDirectMessagesForUser',
-      'liveInserts', 'liveDeletes', 'liveUpdates', 'updateRowsWhere',
-      'searchUsers', 'callRpc', 'getUserById', 'getRowsIn', 'updateRow',
-    ], { session$: of(null) });
+    supabase = jasmine.createSpyObj<SupabaseService>(
+      'SupabaseService',
+      [
+        'addRow',
+        'deleteRowsWhere',
+        'getRows',
+        'getDirectMessagesForUser',
+        'liveInserts',
+        'liveDeletes',
+        'liveUpdates',
+        'updateRowsWhere',
+        'searchUsers',
+        'callRpc',
+        'getUserById',
+        'getRowsIn',
+        'updateRow',
+      ],
+      { session$: of(null) },
+    );
     supabase.addRow.and.returnValue(of({ data: {}, error: null }) as any);
     supabase.deleteRowsWhere.and.returnValue(of({ data: null, error: null }) as any);
     supabase.liveInserts.and.returnValue(EMPTY);
@@ -27,8 +41,14 @@ describe('SocialPlatformService', () => {
       providers: [
         SocialPlatformService,
         { provide: SupabaseService, useValue: supabase },
-        { provide: UserSessionService, useValue: { user: signal({ uid: 'viewer', name: 'Viewer', isGuest: false }) } },
-        { provide: LoggerService, useValue: jasmine.createSpyObj('LoggerService', ['warn', 'error']) },
+        {
+          provide: UserSessionService,
+          useValue: { user: signal({ uid: 'viewer', name: 'Viewer', isGuest: false }) },
+        },
+        {
+          provide: LoggerService,
+          useValue: jasmine.createSpyObj('LoggerService', ['warn', 'error']),
+        },
         { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['show']) },
       ],
     });

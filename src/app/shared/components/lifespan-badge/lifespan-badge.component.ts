@@ -9,13 +9,16 @@ import { CommonModule } from '@angular/common';
     <span class="lifespan-badge" [class]="'severity-' + status().severity">
       <i class="bi bi-clock"></i> {{ status().text }}
     </span>
-  `
+  `,
 })
 export class LifespanBadgeComponent implements OnInit, OnDestroy {
   @Input({ required: true }) createdAt!: string;
   @Input({ required: true }) expiresIn!: number;
 
-  protected readonly status = signal<{ text: string; severity: 'low' | 'medium' | 'high' }>({ text: '', severity: 'low' });
+  protected readonly status = signal<{ text: string; severity: 'low' | 'medium' | 'high' }>({
+    text: '',
+    severity: 'low',
+  });
   private intervalId?: any;
 
   ngOnInit(): void {

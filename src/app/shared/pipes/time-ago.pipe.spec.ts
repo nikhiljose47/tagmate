@@ -3,7 +3,9 @@ import { TimeAgoPipe } from './time-ago.pipe';
 describe('TimeAgoPipe', () => {
   let pipe: TimeAgoPipe;
 
-  beforeEach(() => { pipe = new TimeAgoPipe(); });
+  beforeEach(() => {
+    pipe = new TimeAgoPipe();
+  });
 
   it('returns "just now" for null/undefined', () => {
     expect(pipe.transform(null)).toBe('');

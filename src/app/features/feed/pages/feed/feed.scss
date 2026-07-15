@@ -165,14 +165,20 @@
   color: var(--tm-primary-text);
   font-size: 10px;
   font-weight: 850;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   text-decoration: none;
   text-transform: uppercase;
 }
 
 .post-status-badge[data-status='resolved'],
-.post-status-badge[data-status='closed'] { background: rgba(16, 185, 129, .14); color: #047857; }
-.post-status-badge[data-status='cancelled'] { background: rgba(239, 68, 68, .12); color: #b91c1c; }
+.post-status-badge[data-status='closed'] {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+.post-status-badge[data-status='cancelled'] {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
 
 .mode-tabs::-webkit-scrollbar,
 .category-strip::-webkit-scrollbar {
@@ -276,11 +282,15 @@
 
 .post-card.selected {
   border-color: color-mix(in srgb, var(--tm-primary) 55%, var(--tm-border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tm-primary) 14%, transparent), var(--tm-shadow-sm);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--tm-primary) 14%, transparent),
+    var(--tm-shadow-sm);
 }
 
 .post-card.critical {
-  box-shadow: inset 3px 0 0 var(--tm-danger), var(--tm-shadow-sm);
+  box-shadow:
+    inset 3px 0 0 var(--tm-danger),
+    var(--tm-shadow-sm);
 }
 
 .post-card-header {
@@ -586,7 +596,10 @@
   color: var(--tm-primary-text);
   cursor: pointer;
   animation: fade-in 0.2s ease-out;
-  transition: transform 0.2s, background-color 0.25s, color 0.2s;
+  transition:
+    transform 0.2s,
+    background-color 0.25s,
+    color 0.2s;
 
   &:hover {
     transform: translateY(-3px);
@@ -595,8 +608,14 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (min-width: 768px) {
@@ -673,7 +692,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
   }
   50% {

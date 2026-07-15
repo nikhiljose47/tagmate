@@ -13,8 +13,14 @@ export const APP_CONSTANTS = {
   CLUSTER_RADIUS: 45,
   MAX_POSTS_PER_QUERY: 500,
   AVATAR_COLORS: [
-    '#6366f1', '#8b5cf6', '#ec4899', '#f97316',
-    '#22c55e', '#06b6d4', '#f59e0b', '#3b82f6',
+    '#6366f1',
+    '#8b5cf6',
+    '#ec4899',
+    '#f97316',
+    '#22c55e',
+    '#06b6d4',
+    '#f59e0b',
+    '#3b82f6',
   ] as readonly string[],
   COVER_GRADIENTS: [
     'linear-gradient(135deg,#667eea,#764ba2)',

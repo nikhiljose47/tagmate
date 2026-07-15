@@ -14,25 +14,33 @@ import { avatarBg, avatarInitials } from '../../utils/color.utils';
       [style.font-size.px]="size * 0.36"
       [attr.aria-label]="username + ' avatar'"
       role="img"
-    >{{ initials }}</div>
+    >
+      {{ initials }}
+    </div>
   `,
-  styles: [`
-    .tm-avatar {
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      color: #fff;
-      font-weight: 700;
-      flex-shrink: 0;
-      user-select: none;
-      letter-spacing: 0.02em;
-    }
-  `],
+  styles: [
+    `
+      .tm-avatar {
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: #fff;
+        font-weight: 700;
+        flex-shrink: 0;
+        user-select: none;
+        letter-spacing: 0.02em;
+      }
+    `,
+  ],
 })
 export class AvatarComponent {
   @Input({ required: true }) username!: string;
   @Input() size = 40;
 
-  get bg(): string { return avatarBg(this.username); }
-  get initials(): string { return avatarInitials(this.username); }
+  get bg(): string {
+    return avatarBg(this.username);
+  }
+  get initials(): string {
+    return avatarInitials(this.username);
+  }
 }

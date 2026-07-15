@@ -1,5 +1,6 @@
 import { Injectable, signal, effect, PLATFORM_ID, inject, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { readLocalStorage, writeLocalStorage } from '../utils/local-storage.util';
 
 export type AppTheme = 'light' | 'dark' | 'midnight' | 'forest' | 'sepia';
 
@@ -7,7 +8,7 @@ export type AppTheme = 'light' | 'dark' | 'midnight' | 'forest' | 'sepia';
 export class ThemeService {
   private readonly platformId = inject(PLATFORM_ID);
   public readonly currentTheme = signal<AppTheme>('light');
-  
+
   public readonly isDarkMode = computed(() => {
     const theme = this.currentTheme();
     return theme === 'dark' || theme === 'midnight' || theme === 'forest';
@@ -15,7 +16,7 @@ export class ThemeService {
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
-      const stored = localStorage.getItem('theme') as AppTheme;
+      const stored = readLocalStorage<AppTheme | null>('tagmate:device:theme', null);
       if (stored && ['light', 'dark', 'midnight', 'forest', 'sepia'].includes(stored)) {
         this.currentTheme.set(stored);
       } else if (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -30,7 +31,7 @@ export class ThemeService {
         if (theme !== 'light') {
           document.documentElement.classList.add(theme);
         }
-        localStorage.setItem('theme', theme);
+        writeLocalStorage('tagmate:device:theme', theme);
       }
     });
   }

@@ -15,10 +15,10 @@ export class SupabaseUserRepository implements IUserRepository {
   upsert(user: CreateUserDto): Observable<void> {
     return this.tagData
       .upsertRow('users', {
-        uid:        user.uid,
-        name:       user.name,
-        is_guest:   user.isGuest,
-        email:      user.email ?? null,
+        uid: user.uid,
+        name: user.name,
+        is_guest: user.isGuest,
+        email: user.email ?? null,
         created_at: new Date().toISOString(),
       })
       .pipe(map(() => undefined));

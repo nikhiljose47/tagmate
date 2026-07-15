@@ -40,12 +40,19 @@ export interface PostStatusEntry {
 }
 
 export const ACTIONABLE_TAGS = new Set([
-  'alert', 'traffic', 'weather', 'utility', 'event', 'sale', 'market',
-  'shopping', 'business', 'health', 'question',
+  'alert',
+  'traffic',
+  'weather',
+  'utility',
+  'event',
+  'sale',
+  'market',
+  'shopping',
+  'business',
+  'health',
+  'question',
 ]);
 
 export function allowedStatusesForTag(tag: string): readonly PostStatus[] {
-  return tag === 'question'
-    ? ['active', 'closed']
-    : ['active', 'resolved', 'cancelled'];
+  return tag === 'question' ? ['active', 'closed'] : ['active', 'resolved', 'cancelled'];
 }

@@ -1,4 +1,9 @@
-import { CSP_NONCE, REQUEST_CONTEXT, mergeApplicationConfig, ApplicationConfig } from '@angular/core';
+import {
+  CSP_NONCE,
+  REQUEST_CONTEXT,
+  mergeApplicationConfig,
+  ApplicationConfig,
+} from '@angular/core';
 import { provideServerRendering, withRoutes } from '@angular/ssr';
 import { appConfig } from './app.config';
 import { serverRoutes } from './app.routes.server';
@@ -11,7 +16,7 @@ const serverConfig: ApplicationConfig = {
       useFactory: (ctx: unknown) => (typeof ctx === 'string' ? ctx : null),
       deps: [REQUEST_CONTEXT],
     },
-  ]
+  ],
 };
 
 export const config = mergeApplicationConfig(appConfig, serverConfig);

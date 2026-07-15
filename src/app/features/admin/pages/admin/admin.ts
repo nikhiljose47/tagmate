@@ -37,9 +37,21 @@ export class AdminPage implements OnInit {
     const posts = this.posts();
     return [
       { label: 'Reviewable posts', value: posts.length, note: 'Latest non-bulletin records' },
-      { label: 'Alert posts', value: posts.filter((post) => post.tag === 'alert').length, note: 'Operational risk queue' },
-      { label: 'Hidden locally', value: posts.filter((post) => this.social.isHidden(post)).length, note: 'Current viewer signal' },
-      { label: 'Owned by you', value: posts.filter((post) => this.social.canDelete(post)).length, note: 'Deletion available' },
+      {
+        label: 'Alert posts',
+        value: posts.filter((post) => post.tag === 'alert').length,
+        note: 'Operational risk queue',
+      },
+      {
+        label: 'Hidden locally',
+        value: posts.filter((post) => this.social.isHidden(post)).length,
+        note: 'Current viewer signal',
+      },
+      {
+        label: 'Owned by you',
+        value: posts.filter((post) => this.social.canDelete(post)).length,
+        note: 'Deletion available',
+      },
     ];
   });
 
@@ -53,13 +65,17 @@ export class AdminPage implements OnInit {
       row.engagement += (post.likeCount ?? 0) + (post.commentCount ?? 0) + (post.rsvpCount ?? 0);
       rows.set(user, row);
     }
-    return Array.from(rows.values()).sort((a, b) => b.posts - a.posts || b.engagement - a.engagement).slice(0, 10);
+    return Array.from(rows.values())
+      .sort((a, b) => b.posts - a.posts || b.engagement - a.engagement)
+      .slice(0, 10);
   });
 
   protected readonly moderationRows = computed(() =>
     this.posts()
-      .filter((post) => post.tag === 'alert' || this.social.isHidden(post) || this.social.canDelete(post))
-      .slice(0, 12)
+      .filter(
+        (post) => post.tag === 'alert' || this.social.isHidden(post) || this.social.canDelete(post),
+      )
+      .slice(0, 12),
   );
 
   ngOnInit(): void {
@@ -92,7 +108,9 @@ export class AdminPage implements OnInit {
   protected async deletePost(post: Tag): Promise<void> {
     const deleted = await this.social.confirmAndDeletePost(post);
     if (deleted) {
-      this.posts.update((posts) => posts.filter((item) => this.postKey(item) !== this.postKey(post)));
+      this.posts.update((posts) =>
+        posts.filter((item) => this.postKey(item) !== this.postKey(post)),
+      );
     }
   }
 

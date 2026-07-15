@@ -13,12 +13,14 @@ export const AUTH_ROUTES: Routes = [
   },
   {
     path: 'forgot-password',
-    loadComponent: () => import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPasswordComponent),
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPasswordComponent),
     title: 'Forgot Password',
   },
   {
     path: 'update-password',
-    loadComponent: () => import('./pages/update-password/update-password').then((m) => m.UpdatePasswordComponent),
+    loadComponent: () =>
+      import('./pages/update-password/update-password').then((m) => m.UpdatePasswordComponent),
     title: 'Update Password',
   },
 ];

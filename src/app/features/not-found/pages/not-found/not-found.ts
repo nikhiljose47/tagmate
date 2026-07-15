@@ -8,7 +8,7 @@ import { UserSessionService } from '../../../../core/services/user-session.servi
   standalone: true,
   imports: [CommonModule],
   templateUrl: './not-found.html',
-  styleUrls: ['./not-found.scss']
+  styleUrls: ['./not-found.scss'],
 })
 export class NotFoundPage {
   private readonly session = inject(UserSessionService);

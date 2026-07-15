@@ -12,7 +12,12 @@ import { SupabaseService } from '../../../../core/services/supabase.service';
 import { firstValueFrom } from 'rxjs';
 
 type ReportFilter = 'all' | 'reported' | 'hidden' | 'alerts';
-interface SocialReport { id: string; type: 'comment' | 'message' | 'user'; createdAt: string; subjectId: string; }
+interface SocialReport {
+  id: string;
+  type: 'comment' | 'message' | 'user';
+  createdAt: string;
+  subjectId: string;
+}
 
 @Component({
   selector: 'app-reports',
@@ -41,9 +46,17 @@ export class ReportsPage implements OnInit {
         if (filter === 'reported') return this.social.reportedPosts().has(this.postKey(post));
         if (filter === 'hidden') return this.social.hiddenPosts().has(this.postKey(post));
         if (filter === 'alerts') return post.tag === 'alert';
-        return post.tag === 'alert' || this.social.reportedPosts().has(this.postKey(post)) || this.social.hiddenPosts().has(this.postKey(post));
+        return (
+          post.tag === 'alert' ||
+          this.social.reportedPosts().has(this.postKey(post)) ||
+          this.social.hiddenPosts().has(this.postKey(post))
+        );
       })
-      .sort((a, b) => this.priority(b) - this.priority(a) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort(
+        (a, b) =>
+          this.priority(b) - this.priority(a) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
   });
 
   protected readonly filters: { key: ReportFilter; label: string }[] = [
@@ -79,15 +92,44 @@ export class ReportsPage implements OnInit {
   private async loadSocialReports(): Promise<void> {
     try {
       const [comments, messages, users] = await Promise.all([
-        firstValueFrom(this.supabase.getRows<{ id: string; comment_id: string; created_at: string }>('comment_reports')),
-        firstValueFrom(this.supabase.getRows<{ id: string; message_id: string; created_at: string }>('message_reports')),
-        firstValueFrom(this.supabase.getRows<{ id: string; reported_user_id: string; created_at: string }>('user_reports')),
+        firstValueFrom(
+          this.supabase.getRows<{ id: string; comment_id: string; created_at: string }>(
+            'comment_reports',
+          ),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<{ id: string; message_id: string; created_at: string }>(
+            'message_reports',
+          ),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<{ id: string; reported_user_id: string; created_at: string }>(
+            'user_reports',
+          ),
+        ),
       ]);
-      this.socialReports.set([
-        ...(comments?.data ?? []).map((row) => ({ id: row.id, type: 'comment' as const, subjectId: row.comment_id, createdAt: row.created_at })),
-        ...(messages?.data ?? []).map((row) => ({ id: row.id, type: 'message' as const, subjectId: row.message_id, createdAt: row.created_at })),
-        ...(users?.data ?? []).map((row) => ({ id: row.id, type: 'user' as const, subjectId: row.reported_user_id, createdAt: row.created_at })),
-      ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      this.socialReports.set(
+        [
+          ...(comments?.data ?? []).map((row) => ({
+            id: row.id,
+            type: 'comment' as const,
+            subjectId: row.comment_id,
+            createdAt: row.created_at,
+          })),
+          ...(messages?.data ?? []).map((row) => ({
+            id: row.id,
+            type: 'message' as const,
+            subjectId: row.message_id,
+            createdAt: row.created_at,
+          })),
+          ...(users?.data ?? []).map((row) => ({
+            id: row.id,
+            type: 'user' as const,
+            subjectId: row.reported_user_id,
+            createdAt: row.created_at,
+          })),
+        ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      );
     } catch (error) {
       this.logger.warn('Could not load social report queue', error);
     }
@@ -105,7 +147,9 @@ export class ReportsPage implements OnInit {
   protected async deletePost(post: Tag): Promise<void> {
     const deleted = await this.social.confirmAndDeletePost(post);
     if (deleted) {
-      this.posts.update((posts) => posts.filter((item) => this.postKey(item) !== this.postKey(post)));
+      this.posts.update((posts) =>
+        posts.filter((item) => this.postKey(item) !== this.postKey(post)),
+      );
     }
   }
 

@@ -49,3 +49,9 @@ Thumbs.db
 .env*
 !.env.example
 .angular-dev-server.log
+.angular-dev-server.err.log
+.local-dev.log
+.local-dev.err.log
+git-diff.txt
+playwright-report/
+test-results/

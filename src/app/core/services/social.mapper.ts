@@ -17,15 +17,15 @@ export interface PostCommentRow {
 
 export function rowToComment(row: PostCommentRow): ThreadedComment {
   return {
-    id:        row.id,
-    postId:    row.post_id,
-    author:    row.author_name,
+    id: row.id,
+    postId: row.post_id,
+    author: row.author_name,
     authorUid: row.author_uid,
-    text:      row.text,
+    text: row.text,
     createdAt: row.created_at,
-    upvotes:   row.upvotes,
-    mentions:  row.mentions ?? [],
-    parentId:  row.parent_id ?? undefined,
+    upvotes: row.upvotes,
+    mentions: row.mentions ?? [],
+    parentId: row.parent_id ?? undefined,
     updatedAt: row.updated_at ?? undefined,
     deletedAt: row.deleted_at ?? undefined,
   };
@@ -53,17 +53,17 @@ export interface DirectMessageRow {
  */
 export function rowToDirectMessage(row: DirectMessageRow, viewerUid: string | null): DirectMessage {
   return {
-    id:        row.id,
-    threadId:  row.thread_id,
-    postId:    row.post_id ?? '',
-    from:      row.from_uid === viewerUid ? 'You' : row.to_name,
-    to:        row.to_name,
-    fromUid:   row.from_uid,
-    toUid:     row.to_uid,
-    text:      row.text,
+    id: row.id,
+    threadId: row.thread_id,
+    postId: row.post_id ?? '',
+    from: row.from_uid === viewerUid ? 'You' : row.to_name,
+    to: row.to_name,
+    fromUid: row.from_uid,
+    toUid: row.to_uid,
+    text: row.text,
     createdAt: row.created_at,
-    read:      row.read,
-    readAt:    row.read_at ?? undefined,
+    read: row.read,
+    readAt: row.read_at ?? undefined,
   };
 }
 
@@ -85,31 +85,31 @@ export interface NotificationRow {
 
 export function rowToNotification(row: NotificationRow): LocalNotification {
   return {
-    id:        row.id,
-    type:      row.type,
-    title:     row.title,
-    body:      row.body,
-    postId:    row.post_id ?? undefined,
-    actorId:   row.actor_id ?? undefined,
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    body: row.body,
+    postId: row.post_id ?? undefined,
+    actorId: row.actor_id ?? undefined,
     targetType: row.target_type ?? undefined,
-    targetId:  row.target_id ?? undefined,
+    targetId: row.target_id ?? undefined,
     createdAt: row.created_at,
-    read:      row.read,
-    readAt:    row.read_at ?? undefined,
+    read: row.read,
+    readAt: row.read_at ?? undefined,
   };
 }
 
 export function notificationToRow(
   notification: LocalNotification,
-  userId: string
+  userId: string,
 ): Omit<NotificationRow, 'id'> {
   return {
     user_id: userId,
-    type:    notification.type,
-    title:   notification.title,
-    body:    notification.body,
+    type: notification.type,
+    title: notification.title,
+    body: notification.body,
     post_id: notification.postId ?? null,
-    read:    notification.read,
+    read: notification.read,
     created_at: notification.createdAt,
     actor_id: notification.actorId ?? null,
     target_type: notification.targetType ?? null,

@@ -64,7 +64,7 @@ export class SupabaseService {
 
   getRows<T>(
     table: string,
-    condition?: { field: string; op: '=='; value: unknown }
+    condition?: { field: string; op: '=='; value: unknown },
   ): Observable<{ data: T[] | null; error: unknown }> {
     return this.tagData.getRows<T>(table, condition);
   }
@@ -105,7 +105,11 @@ export class SupabaseService {
     return this.tagData.upsertRow(table, data, onConflict);
   }
 
-  getRowsIn<T>(table: string, field: string, values: unknown[]): Observable<{ data: T[] | null; error: unknown }> {
+  getRowsIn<T>(
+    table: string,
+    field: string,
+    values: unknown[],
+  ): Observable<{ data: T[] | null; error: unknown }> {
     return this.tagData.getRowsIn<T>(table, field, values);
   }
 
@@ -115,7 +119,12 @@ export class SupabaseService {
     return this.tagData.getLatest<T>(table, limit);
   }
 
-  getLatestPaginated<T>(table: string, limit: number, offset: number, search?: string): Observable<{ data: T[] | null; error: unknown }> {
+  getLatestPaginated<T>(
+    table: string,
+    limit: number,
+    offset: number,
+    search?: string,
+  ): Observable<{ data: T[] | null; error: unknown }> {
     return this.tagData.getLatestPaginated<T>(table, limit, offset, search);
   }
 
@@ -131,7 +140,7 @@ export class SupabaseService {
       hoodId?: string;
     },
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Observable<{ data: T[] | null; error: unknown }> {
     return this.tagData.getFilteredRows<T>(table, filters, limit, offset);
   }
@@ -140,7 +149,7 @@ export class SupabaseService {
     minLng: number,
     minLat: number,
     maxLng: number,
-    maxLat: number
+    maxLat: number,
   ): Observable<{ data: TagRow[] | null; error: unknown }> {
     return this.tagData.fetchTagsInBounds(minLng, minLat, maxLng, maxLat);
   }

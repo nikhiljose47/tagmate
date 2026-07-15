@@ -49,14 +49,14 @@ function readProfileSettings(): ProfileSettings {
 export class ProfilePage implements OnInit {
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly sessionService = inject(UserSessionService);
-  private readonly router  = inject(Router);
-  private readonly toast   = inject(ToastService);
-  private readonly shared  = inject(SharedStateService);
-  private readonly logger  = inject(LoggerService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+  private readonly shared = inject(SharedStateService);
+  private readonly logger = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
-  protected readonly theme  = inject(ThemeService);
+  protected readonly theme = inject(ThemeService);
 
   readonly availableThemes: { value: AppTheme; label: string }[] = [
     { value: 'light', label: 'Light' },
@@ -66,20 +66,22 @@ export class ProfilePage implements OnInit {
     { value: 'sepia', label: 'Sepia' },
   ];
 
-  readonly user$          = this.sessionService.user$;
-  readonly coverGradient  = coverGradient;
-  readonly avatarBg       = avatarBg;
+  readonly user$ = this.sessionService.user$;
+  readonly coverGradient = coverGradient;
+  readonly avatarBg = avatarBg;
 
-  myTags     = signal<Tag[]>([]);
-  isLoading  = signal(true);
-  activeTab  = signal<ProfileTab>('posts');
-  editMode   = signal(false);
-  editName   = signal('');
-  editBio    = signal('');
+  myTags = signal<Tag[]>([]);
+  isLoading = signal(true);
+  activeTab = signal<ProfileTab>('posts');
+  editMode = signal(false);
+  editName = signal('');
+  editBio = signal('');
   profileSaving = signal(false);
-  allTags    = signal<Tag[]>([]);
-  settings   = signal<ProfileSettings>(readProfileSettings());
-  savedTags  = computed(() => this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)));
+  allTags = signal<Tag[]>([]);
+  settings = signal<ProfileSettings>(readProfileSettings());
+  savedTags = computed(() =>
+    this.allTags().filter((tag) => this.social.isSaved(tag) && !this.social.isHidden(tag)),
+  );
 
   // Account Conversion for Guest
   convertEmail = signal('');
@@ -89,10 +91,13 @@ export class ProfilePage implements OnInit {
   convertLoading = signal(false);
 
   ngOnInit(): void {
-    this.tagRepo.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (tags) => this.allTags.set(tags),
-      error: (err) => this.logger.error('Failed to load saved posts', err),
-    });
+    this.tagRepo
+      .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (tags) => this.allTags.set(tags),
+        error: (err) => this.logger.error('Failed to load saved posts', err),
+      });
 
     this.sessionService.user$
       .pipe(
@@ -103,7 +108,7 @@ export class ProfilePage implements OnInit {
           }
           this.isLoading.set(true);
           return this.tagRepo.getByUserId(user.uid!);
-        })
+        }),
       )
       .subscribe({
         next: (tags) => {
@@ -133,7 +138,9 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  setTab(tab: ProfileTab): void     { this.activeTab.set(tab); }
+  setTab(tab: ProfileTab): void {
+    this.activeTab.set(tab);
+  }
   toggleEditProfile(): void {
     const opening = !this.editMode();
     if (opening) {
@@ -144,7 +151,10 @@ export class ProfilePage implements OnInit {
     this.editMode.set(opening);
   }
   async saveProfile(): Promise<void> {
-    if (!this.editName().trim()) { this.toast.show('Display name is required.', 'warning'); return; }
+    if (!this.editName().trim()) {
+      this.toast.show('Display name is required.', 'warning');
+      return;
+    }
     this.profileSaving.set(true);
     const saved = await this.platform.updateOwnProfile(this.editName(), this.editBio());
     this.profileSaving.set(false);
@@ -153,11 +163,13 @@ export class ProfilePage implements OnInit {
       this.toast.show('Profile saved.', 'success');
     }
   }
-  saveSettings(): void              {
+  saveSettings(): void {
     writeLocalStorage(PROFILE_SETTINGS_KEY, this.settings());
     this.toast.show('Settings saved.', 'success');
   }
-  savedCount(): number              { return this.savedTags().length; }
+  savedCount(): number {
+    return this.savedTags().length;
+  }
 
   updateSetting<K extends keyof ProfileSettings>(key: K, value: ProfileSettings[K]): void {
     this.settings.update((settings) => {
@@ -200,7 +212,7 @@ export class ProfilePage implements OnInit {
       const res = await this.sessionService.convertGuestToPermanent(
         this.convertEmail().trim(),
         this.convertPassword(),
-        this.convertUsername().trim()
+        this.convertUsername().trim(),
       );
       if (res.ok) {
         this.toast.show('Account converted successfully!', 'success');

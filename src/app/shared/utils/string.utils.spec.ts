@@ -2,7 +2,9 @@ import { escapeHtml } from './string.utils';
 
 describe('escapeHtml', () => {
   it('should escape basic HTML special characters', () => {
-    expect(escapeHtml('<script>alert("hello")</script>')).toBe('&lt;script&gt;alert(&quot;hello&quot;)&lt;/script&gt;');
+    expect(escapeHtml('<script>alert("hello")</script>')).toBe(
+      '&lt;script&gt;alert(&quot;hello&quot;)&lt;/script&gt;',
+    );
     expect(escapeHtml('A & B')).toBe('A &amp; B');
     expect(escapeHtml("John's Book")).toBe('John&#039;s Book');
   });

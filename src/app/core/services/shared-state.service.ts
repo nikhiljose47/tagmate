@@ -4,14 +4,14 @@ export type SelectedCoordinates = readonly [lat: number, lng: number] | null;
 
 /** In-progress post form, kept alive while the user detours to the map to pick a location. */
 export interface PostDraft {
-  headline:    string;
-  expiresIn:   number;
-  tag:         string;
-  isEvent:     boolean;
-  eventStart:  string;
-  eventEnd:    string;
+  headline: string;
+  expiresIn: number;
+  tag: string;
+  isEvent: boolean;
+  eventStart: string;
+  eventEnd: string;
   pollOptions: string[];
-  media:       { file: File; previewUrl: string; type: 'image' | 'video' }[];
+  media: { file: File; previewUrl: string; type: 'image' | 'video' }[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -51,7 +51,7 @@ export class SharedStateService {
           resolve(next);
         },
         () => resolve(null),
-        { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+        { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true },
       );
     });
   }

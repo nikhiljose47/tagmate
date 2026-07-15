@@ -37,13 +37,13 @@ function isRateLimited(ip: string): boolean {
       }
     }
   }
-  
+
   let client = rateLimitMap.get(ip);
   if (!client) {
     client = { tokens: limit, lastRefill: now };
     rateLimitMap.set(ip, client);
   }
-  
+
   const elapsed = now - client.lastRefill;
   if (elapsed > 0) {
     const refilled = Math.floor(elapsed * (limit / windowMs));
@@ -52,12 +52,12 @@ function isRateLimited(ip: string): boolean {
       client.lastRefill = now;
     }
   }
-  
+
   if (client.tokens > 0) {
     client.tokens--;
     return false;
   }
-  
+
   return true;
 }
 
@@ -89,7 +89,7 @@ function applySecurityHeaders(res: Response, nonce?: string): Response {
   return new Response(res.body, {
     status: res.status,
     statusText: res.statusText,
-    headers
+    headers,
   });
 }
 
@@ -97,58 +97,74 @@ function applySecurityHeaders(res: Response, nonce?: string): Response {
  * This is a request handler used by the Angular CLI (dev-server and during build).
  */
 export const reqHandler = createRequestHandler(async (req) => {
-	const url = new URL(req.url);
-	
-	// OpenStreetMap Nominatim Proxy
-	if (
-		url.pathname === '/api/nominatim/search' ||
-		url.pathname === '/api/nominatim/boundary' ||
-		url.pathname === '/api/nominatim/lookup' ||
-		url.pathname === '/api/nominatim/reverse'
-	) {
-		const ip = getClientIp(req);
-		if (isRateLimited(ip)) {
-			return applySecurityHeaders(new Response(
-				JSON.stringify({ error: 'Too Many Requests', message: 'Rate limit exceeded. Please try again later.' }),
-				{ status: 429, headers: { 'Content-Type': 'application/json' } }
-			));
-		}
+  const url = new URL(req.url);
 
-		let proxyUrl = '';
-		if (url.pathname === '/api/nominatim/search') {
-			const q = url.searchParams.get('q') || '';
-			proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`;
-		} else if (url.pathname === '/api/nominatim/boundary') {
-			const q = url.searchParams.get('q') || '';
-			proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&q=${encodeURIComponent(q)}`;
-		} else if (url.pathname === '/api/nominatim/lookup') {
-			const osmIds = url.searchParams.get('osm_ids') || '';
-			proxyUrl = `https://nominatim.openstreetmap.org/lookup?format=jsonv2&polygon_geojson=1&osm_ids=${encodeURIComponent(osmIds)}`;
-		} else {
-			const lat = url.searchParams.get('lat') || '';
-			const lon = url.searchParams.get('lon') || '';
-			proxyUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
-		}
+  // OpenStreetMap Nominatim Proxy
+  if (
+    url.pathname === '/api/nominatim/search' ||
+    url.pathname === '/api/nominatim/boundary' ||
+    url.pathname === '/api/nominatim/lookup' ||
+    url.pathname === '/api/nominatim/reverse'
+  ) {
+    const ip = getClientIp(req);
+    if (isRateLimited(ip)) {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            error: 'Too Many Requests',
+            message: 'Rate limit exceeded. Please try again later.',
+          }),
+          { status: 429, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    }
 
-		try {
-			const response = await fetch(proxyUrl, { headers: { 'User-Agent': 'TagmateApp/1.0 (Contact: admin@tagmate.com)' } });
-			return applySecurityHeaders(new Response(response.body, { status: response.status, headers: { 'Content-Type': 'application/json' } }));
-		} catch (err) {
-			return applySecurityHeaders(new Response(
-				JSON.stringify({ error: 'Bad Gateway', message: 'Failed to fetch from geocoding service.' }),
-				{ status: 502, headers: { 'Content-Type': 'application/json' } }
-			));
-		}
-	}
+    let proxyUrl = '';
+    if (url.pathname === '/api/nominatim/search') {
+      const q = url.searchParams.get('q') || '';
+      proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`;
+    } else if (url.pathname === '/api/nominatim/boundary') {
+      const q = url.searchParams.get('q') || '';
+      proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&q=${encodeURIComponent(q)}`;
+    } else if (url.pathname === '/api/nominatim/lookup') {
+      const osmIds = url.searchParams.get('osm_ids') || '';
+      proxyUrl = `https://nominatim.openstreetmap.org/lookup?format=jsonv2&polygon_geojson=1&osm_ids=${encodeURIComponent(osmIds)}`;
+    } else {
+      const lat = url.searchParams.get('lat') || '';
+      const lon = url.searchParams.get('lon') || '';
+      proxyUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+    }
 
-	const nonce = generateNonce();
-	const res = await angularApp.handle(req, nonce);
-	if (!res) {
-		return applySecurityHeaders(new Response('Page not found.', { status: 404 }));
-	}
+    try {
+      const response = await fetch(proxyUrl, {
+        headers: { 'User-Agent': 'TagmateApp/1.0 (Contact: admin@tagmate.com)' },
+      });
+      return applySecurityHeaders(
+        new Response(response.body, {
+          status: response.status,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    } catch (err) {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            error: 'Bad Gateway',
+            message: 'Failed to fetch from geocoding service.',
+          }),
+          { status: 502, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    }
+  }
 
-	return applySecurityHeaders(res, nonce);
+  const nonce = generateNonce();
+  const res = await angularApp.handle(req, nonce);
+  if (!res) {
+    return applySecurityHeaders(new Response('Page not found.', { status: 404 }));
+  }
+
+  return applySecurityHeaders(res, nonce);
 });
-
 
 export default { fetch: reqHandler };

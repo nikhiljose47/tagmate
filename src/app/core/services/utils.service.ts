@@ -87,18 +87,19 @@ export class Utils implements OnDestroy {
   }
 
   private static isBoundaryGeometry(
-    geometry: NominatimPlace['geojson']
+    geometry: NominatimPlace['geojson'],
   ): geometry is BoundaryGeometry {
     return geometry?.type === 'Polygon' || geometry?.type === 'MultiPolygon';
   }
 
-  static getBoundsFromBoundingBox(
-    box: NominatimPlace['boundingbox']
-  ): LngLatBoundsLike | null {
+  static getBoundsFromBoundingBox(box: NominatimPlace['boundingbox']): LngLatBoundsLike | null {
     if (!box) return null;
     const [s, n, w, e] = box.map(Number.parseFloat);
     if (![s, n, w, e].every(Number.isFinite)) return null;
-    return [[w, s], [e, n]];
+    return [
+      [w, s],
+      [e, n],
+    ];
   }
 
   static createRectangleGeometry(box: NominatimPlace['boundingbox']): Polygon {
@@ -106,7 +107,15 @@ export class Utils implements OnDestroy {
     const [s, n, w, e] = box.map(Number.parseFloat);
     return {
       type: 'Polygon',
-      coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]],
+      coordinates: [
+        [
+          [w, s],
+          [e, s],
+          [e, n],
+          [w, n],
+          [w, s],
+        ],
+      ],
     };
   }
 
@@ -126,7 +135,8 @@ export class Utils implements OnDestroy {
 
   private static simplifyRing(ring: Position[], tolerance: number): Position[] {
     if (ring.length <= 4) return ring;
-    const closed = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1];
+    const closed =
+      ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1];
     const points = closed ? ring.slice(0, -1) : ring.slice();
     if (points.length < 3) return ring;
 
@@ -166,7 +176,10 @@ export class Utils implements OnDestroy {
       const py = point[1] - start[1];
       return px * px + py * py;
     }
-    const t = Math.max(0, Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / (dx * dx + dy * dy)));
+    const t = Math.max(
+      0,
+      Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / (dx * dx + dy * dy)),
+    );
     const px = point[0] - (start[0] + t * dx);
     const py = point[1] - (start[1] + t * dy);
     return px * px + py * py;

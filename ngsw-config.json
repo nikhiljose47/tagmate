@@ -21,18 +21,14 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": [
-          "/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
-        ]
+        "files": ["/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"]
       }
     }
   ],
   "dataGroups": [
     {
       "name": "supabase-api",
-      "urls": [
-        "https://*.supabase.co/rest/v1/*"
-      ],
+      "urls": ["https://*.supabase.co/rest/v1/*"],
       "cacheConfig": {
         "maxSize": 100,
         "maxAge": "1h",

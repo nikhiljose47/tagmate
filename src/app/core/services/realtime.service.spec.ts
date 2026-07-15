@@ -10,22 +10,19 @@ describe('RealtimeService', () => {
   beforeEach(() => {
     channelMock = {
       on: jasmine.createSpy('on').and.returnValue({
-        subscribe: jasmine.createSpy('subscribe').and.returnValue({})
-      })
+        subscribe: jasmine.createSpy('subscribe').and.returnValue({}),
+      }),
     };
 
     clientServiceMock = {
       client: {
         channel: jasmine.createSpy('channel').and.returnValue(channelMock),
-        removeChannel: jasmine.createSpy('removeChannel')
-      }
+        removeChannel: jasmine.createSpy('removeChannel'),
+      },
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        RealtimeService,
-        { provide: SupabaseClientService, useValue: clientServiceMock }
-      ]
+      providers: [RealtimeService, { provide: SupabaseClientService, useValue: clientServiceMock }],
     });
     service = TestBed.inject(RealtimeService);
   });
@@ -39,7 +36,9 @@ describe('RealtimeService', () => {
     const second = service.liveUpdates('direct_messages').subscribe();
 
     expect(clientServiceMock.client.channel.calls.count()).toBe(2);
-    expect(clientServiceMock.client.channel.calls.argsFor(0)[0]).not.toBe(clientServiceMock.client.channel.calls.argsFor(1)[0]);
+    expect(clientServiceMock.client.channel.calls.argsFor(0)[0]).not.toBe(
+      clientServiceMock.client.channel.calls.argsFor(1)[0],
+    );
     first.unsubscribe();
     second.unsubscribe();
   });

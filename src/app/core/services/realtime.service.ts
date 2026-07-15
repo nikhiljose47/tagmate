@@ -23,7 +23,11 @@ export class RealtimeService {
     return this.liveChanges<T>(table, 'DELETE', filter);
   }
 
-  private liveChanges<T>(table: string, event: 'INSERT' | 'UPDATE' | 'DELETE', filter?: string): Observable<T> {
+  private liveChanges<T>(
+    table: string,
+    event: 'INSERT' | 'UPDATE' | 'DELETE',
+    filter?: string,
+  ): Observable<T> {
     return new Observable<T>((subscriber) => {
       if (!isPlatformBrowser(this.platformId)) {
         subscriber.complete();
@@ -33,14 +37,16 @@ export class RealtimeService {
       // Supabase channels cannot add postgres callbacks after subscribe(). Each
       // observable therefore gets its own channel, even when two consumers
       // watch the same table/event (for example inbox state and message cache).
-      const baseName = filter ? `${table}-${event.toLowerCase()}:${filter}` : `${table}-${event.toLowerCase()}`;
+      const baseName = filter
+        ? `${table}-${event.toLowerCase()}:${filter}`
+        : `${table}-${event.toLowerCase()}`;
       const channelName = `${baseName}:${++this.channelSequence}`;
       const channel = this.client
         .channel(channelName)
         .on(
           'postgres_changes',
           { event, schema: 'public', table, ...(filter ? { filter } : {}) },
-          (payload) => subscriber.next((event === 'DELETE' ? payload.old : payload.new) as T)
+          (payload) => subscriber.next((event === 'DELETE' ? payload.old : payload.new) as T),
         )
         .subscribe((status) => {
           if (status === 'CHANNEL_ERROR') {

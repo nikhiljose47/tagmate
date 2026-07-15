@@ -17,27 +17,29 @@ export class SupabaseTagRepository implements ITagRepository {
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
-  getFiltered(filters?: {
-    tags?: string[];
-    before?: string;
-    after?: string;
-    userId?: string;
-    search?: string;
-    excludeTag?: string;
-    hoodId?: string;
-  }, limit?: number, offset?: number): Observable<Tag[]> {
+  getFiltered(
+    filters?: {
+      tags?: string[];
+      before?: string;
+      after?: string;
+      userId?: string;
+      search?: string;
+      excludeTag?: string;
+      hoodId?: string;
+    },
+    limit?: number,
+    offset?: number,
+  ): Observable<Tag[]> {
     return this.tagData
       .getFilteredRows<TagRow>('tags', filters || {}, limit, offset)
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
   getPaginated(limit: number, offset: number, search?: string): Observable<Tag[]> {
-    return this.tagData
-      .getLatestPaginated<TagRow>('tags', limit, offset, search)
-      .pipe(
-        retry({ count: 3, delay: 2000 }),
-        map(({ data }) => (data ?? []).map(rowToTag))
-      );
+    return this.tagData.getLatestPaginated<TagRow>('tags', limit, offset, search).pipe(
+      retry({ count: 3, delay: 2000 }),
+      map(({ data }) => (data ?? []).map(rowToTag)),
+    );
   }
 
   getById(id: string): Observable<Tag | null> {
@@ -83,15 +85,13 @@ export class SupabaseTagRepository implements ITagRepository {
     if (partial.pollOptions !== undefined) row.poll_options = partial.pollOptions;
     if (partial.pollVotes !== undefined) row.poll_votes = partial.pollVotes;
 
-    return this.tagData
-      .updateRow<TagRow>('tags', id, row)
-      .pipe(
-        map(({ data, error }) => {
-          if (error) throw error;
-          if (!data) throw new Error('Update failed: no data returned');
-          return rowToTag(data);
-        })
-      );
+    return this.tagData.updateRow<TagRow>('tags', id, row).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        if (!data) throw new Error('Update failed: no data returned');
+        return rowToTag(data);
+      }),
+    );
   }
 
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {
@@ -101,8 +101,6 @@ export class SupabaseTagRepository implements ITagRepository {
   }
 
   delete(id: string): Observable<void> {
-    return this.tagData.deleteRow('tags', id).pipe(
-      map(() => undefined)
-    );
+    return this.tagData.deleteRow('tags', id).pipe(map(() => undefined));
   }
 }

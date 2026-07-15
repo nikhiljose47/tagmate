@@ -18,7 +18,8 @@ export class AuthService implements OnDestroy {
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
-      void this.client.auth.getSession()
+      void this.client.auth
+        .getSession()
         .then(({ data, error }) => {
           if (error) throw error;
           this._session$.next(data.session);
@@ -31,7 +32,7 @@ export class AuthService implements OnDestroy {
     this.authSubscription = this.client.auth.onAuthStateChange(
       (_event: AuthChangeEvent, session: Session | null) => {
         this._session$.next(session);
-      }
+      },
     ).data.subscription;
   }
 
@@ -49,12 +50,12 @@ export class AuthService implements OnDestroy {
   }
 
   isUsernameTaken(username: string): Observable<boolean> {
-    return from(
-      this.client.from('users').select('uid').ilike('name', username).limit(1)
-    ).pipe(map(({ data, error }) => {
-      if (error) throw error;
-      return !!data && data.length > 0;
-    }));
+    return from(this.client.from('users').select('uid').ilike('name', username).limit(1)).pipe(
+      map(({ data, error }) => {
+        if (error) throw error;
+        return !!data && data.length > 0;
+      }),
+    );
   }
 
   signInAnonymously() {
@@ -66,7 +67,8 @@ export class AuthService implements OnDestroy {
   }
 
   resetPassword(email: string) {
-    const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/login/update-password` : '';
+    const redirectUrl =
+      typeof window !== 'undefined' ? `${window.location.origin}/login/update-password` : '';
     return from(this.client.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl }));
   }
 

@@ -63,7 +63,9 @@
   background: var(--tm-primary);
   color: #fff;
 
-  &:hover { background: var(--tm-primary-hover, #4f46e5); }
+  &:hover {
+    background: var(--tm-primary-hover, #4f46e5);
+  }
 }
 
 .confirm-btn--danger {
@@ -71,15 +73,27 @@
   background: var(--tm-danger, #ef4444);
   color: #fff;
 
-  &:hover { background: #dc2626; }
+  &:hover {
+    background: #dc2626;
+  }
 }
 
 @keyframes confirm-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes confirm-pop-in {
-  from { opacity: 0; transform: scale(0.94) translateY(6px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }

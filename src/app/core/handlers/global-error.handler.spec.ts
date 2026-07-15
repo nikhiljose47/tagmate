@@ -17,7 +17,7 @@ describe('GlobalErrorHandler', () => {
         GlobalErrorHandler,
         { provide: LoggerService, useValue: loggerSpy },
         { provide: TelemetryService, useValue: telemetrySpy },
-      ]
+      ],
     });
     handler = TestBed.inject(GlobalErrorHandler);
   });
@@ -33,6 +33,8 @@ describe('GlobalErrorHandler', () => {
     }
     handler.handleError(error);
     expect(loggerSpy.error).toHaveBeenCalled();
-    expect(telemetrySpy.captureException).toHaveBeenCalledWith(error, { message: 'Global error test' });
+    expect(telemetrySpy.captureException).toHaveBeenCalledWith(error, {
+      message: 'Global error test',
+    });
   });
 });

@@ -53,14 +53,20 @@ export class DmInboxComponent implements OnInit {
   isLoading = signal(true);
   filteredThreads = computed(() => {
     const query = this.searchText().trim().toLowerCase();
-    return query ? this.threads().filter((thread) => `${thread.otherName} ${thread.lastMessage} ${thread.postPreview ?? ''}`.toLowerCase().includes(query)) : this.threads();
+    return query
+      ? this.threads().filter((thread) =>
+          `${thread.otherName} ${thread.lastMessage} ${thread.postPreview ?? ''}`
+            .toLowerCase()
+            .includes(query),
+        )
+      : this.threads();
   });
 
   // Computes the active thread's messages in real-time from the social service
   activeMessages = computed<DirectMessage[]>(() => {
     const thread = this.selectedThread();
     if (!thread) return [];
-    
+
     return this.social.threadById(thread.threadId);
   });
 
@@ -68,15 +74,14 @@ export class DmInboxComponent implements OnInit {
     toObservable(this.session.user)
       .pipe(
         filter((user): user is NonNullable<typeof user> => !!user),
-        takeUntilDestroyed()
+        takeUntilDestroyed(),
       )
       .subscribe((user) => {
         this.loadInbox(user.uid);
       });
   }
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void {}
 
   private async loadInbox(uid: string): Promise<void> {
     try {
@@ -90,7 +95,7 @@ export class DmInboxComponent implements OnInit {
       }
 
       // Group by thread_id to get last messages
-      const threadMap = new Map<string, typeof data[0]>();
+      const threadMap = new Map<string, (typeof data)[0]>();
       const otherUids = new Set<string>();
       const unreadByThread = new Map<string, boolean>();
 
@@ -106,7 +111,11 @@ export class DmInboxComponent implements OnInit {
       const userProfiles = new Map<string, string>();
       if (otherUids.size > 0) {
         const { data: users, error: userError } = await firstValueFrom(
-          this.tagData.getRowsIn<{ uid: string; name: string }>('users', 'uid', Array.from(otherUids))
+          this.tagData.getRowsIn<{ uid: string; name: string }>(
+            'users',
+            'uid',
+            Array.from(otherUids),
+          ),
         );
         if (!userError && users) {
           for (const u of users) {
@@ -116,10 +125,15 @@ export class DmInboxComponent implements OnInit {
       }
 
       const postPreviews = new Map<string, string>();
-      const postIds = Array.from(new Set(data.map((message) => message.post_id).filter((id): id is string => !!id)));
+      const postIds = Array.from(
+        new Set(data.map((message) => message.post_id).filter((id): id is string => !!id)),
+      );
       if (postIds.length) {
-        const { data: posts } = await firstValueFrom(this.tagData.getRowsIn<TagRow>('tags', 'id', postIds));
-        for (const post of posts ?? []) if (post.id) postPreviews.set(post.id, post.highlight || `#${post.tag}`);
+        const { data: posts } = await firstValueFrom(
+          this.tagData.getRowsIn<TagRow>('tags', 'id', postIds),
+        );
+        for (const post of posts ?? [])
+          if (post.id) postPreviews.set(post.id, post.highlight || `#${post.tag}`);
       }
 
       const parsedThreads: ChatThread[] = [];
@@ -127,7 +141,7 @@ export class DmInboxComponent implements OnInit {
         const otherUid = lastMsg.from_uid === uid ? lastMsg.to_uid : lastMsg.from_uid;
         const otherName = userProfiles.get(otherUid) || lastMsg.to_name || 'User';
         const parts = threadId.split(':');
-        const postId = threadId.startsWith('profile:') ? '' : (lastMsg.post_id || parts[0] || '');
+        const postId = threadId.startsWith('profile:') ? '' : lastMsg.post_id || parts[0] || '';
 
         parsedThreads.push({
           threadId,
@@ -141,7 +155,11 @@ export class DmInboxComponent implements OnInit {
         });
       }
 
-      this.threads.set(parsedThreads.filter((thread) => !this.platform.isBlocked(thread.otherUid)).sort((a, b) => b.lastMessageDate.localeCompare(a.lastMessageDate)));
+      this.threads.set(
+        parsedThreads
+          .filter((thread) => !this.platform.isBlocked(thread.otherUid))
+          .sort((a, b) => b.lastMessageDate.localeCompare(a.lastMessageDate)),
+      );
       this.openRequestedThread(uid);
     } catch (err) {
       this.logger.error('Failed to load DM inbox threads', err);
@@ -157,8 +175,11 @@ export class DmInboxComponent implements OnInit {
       thread.unread = false;
       this.threads.update((curr) => [...curr]);
       this.social.markThreadReadLocal(thread.threadId);
-      try { await this.platform.markThreadRead(thread.threadId); }
-      catch (error) { this.logger.warn('Could not persist conversation read state', error); }
+      try {
+        await this.platform.markThreadRead(thread.threadId);
+      } catch (error) {
+        this.logger.warn('Could not persist conversation read state', error);
+      }
     }
   }
 
@@ -168,9 +189,16 @@ export class DmInboxComponent implements OnInit {
     if (!thread || !text) return;
 
     try {
-      this.social.sendMessageToUser(thread.otherUid, thread.otherName, text, thread.postId || undefined, 'You', thread.threadId);
+      this.social.sendMessageToUser(
+        thread.otherUid,
+        thread.otherName,
+        text,
+        thread.postId || undefined,
+        'You',
+        thread.threadId,
+      );
       this.messageText.set('');
-      
+
       // Update thread preview
       this.threads.update((curr) => {
         const found = curr.find((t) => t.threadId === thread.threadId);
@@ -178,7 +206,9 @@ export class DmInboxComponent implements OnInit {
           found.lastMessage = text;
           found.lastMessageDate = new Date().toISOString();
         }
-        return [...curr].sort((a, b) => new Date(b.lastMessageDate).getTime() - new Date(a.lastMessageDate).getTime());
+        return [...curr].sort(
+          (a, b) => new Date(b.lastMessageDate).getTime() - new Date(a.lastMessageDate).getTime(),
+        );
       });
     } catch (err) {
       this.logger.error('Failed to send DM reply', err);
@@ -199,8 +229,13 @@ export class DmInboxComponent implements OnInit {
   async blockParticipant(): Promise<void> {
     const thread = this.selectedThread();
     if (!thread) return;
-    const confirmed = await this.confirmDialog.confirm({ title: `Block ${thread.otherName}?`, message: 'Their content will be hidden and further contact will be prevented.', confirmText: 'Block', danger: true });
-    if (confirmed && await this.platform.blockUser(thread.otherUid)) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: `Block ${thread.otherName}?`,
+      message: 'Their content will be hidden and further contact will be prevented.',
+      confirmText: 'Block',
+      danger: true,
+    });
+    if (confirmed && (await this.platform.blockUser(thread.otherUid))) {
       this.threads.update((items) => items.filter((item) => item.otherUid !== thread.otherUid));
       this.selectedThread.set(null);
       this.toast.show(`${thread.otherName} blocked.`, 'warning');
@@ -209,8 +244,13 @@ export class DmInboxComponent implements OnInit {
 
   async reportConversation(): Promise<void> {
     const messages = this.activeMessages();
-    const incoming = [...messages].reverse().find((message) => message.fromUid !== this.platform.myUid());
-    if (!incoming) { this.toast.show('There is no incoming message to report.', 'info'); return; }
+    const incoming = [...messages]
+      .reverse()
+      .find((message) => message.fromUid !== this.platform.myUid());
+    if (!incoming) {
+      this.toast.show('There is no incoming message to report.', 'info');
+      return;
+    }
     await this.platform.reportMessage(incoming.id);
   }
 
@@ -224,7 +264,15 @@ export class DmInboxComponent implements OnInit {
     } else if (requestedUser && requestedUser !== uid && !this.platform.isBlocked(requestedUser)) {
       const threadId = `profile:${[uid, requestedUser].sort().join(':')}`;
       const existing = this.threads().find((thread) => thread.threadId === threadId);
-      const thread = existing ?? { threadId, postId: '', otherUid: requestedUser, otherName: requestedName, lastMessage: 'Start a conversation', lastMessageDate: new Date().toISOString(), unread: false };
+      const thread = existing ?? {
+        threadId,
+        postId: '',
+        otherUid: requestedUser,
+        otherName: requestedName,
+        lastMessage: 'Start a conversation',
+        lastMessageDate: new Date().toISOString(),
+        unread: false,
+      };
       if (!existing) this.threads.update((items) => [thread, ...items]);
       void this.selectThread(thread);
     }

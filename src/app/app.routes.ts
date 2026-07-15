@@ -16,7 +16,7 @@ export const rootRedirectGuard: CanActivateFn = () => {
       } else {
         return router.createUrlTree(['/login']);
       }
-    })
+    }),
   );
 };
 
@@ -37,7 +37,8 @@ export const routes: Routes = [
   },
   {
     path: 'island',
-    loadChildren: () => import('./features/hood-island/hood-island.routes').then((m) => m.HOOD_ISLAND_ROUTES),
+    loadChildren: () =>
+      import('./features/hood-island/hood-island.routes').then((m) => m.HOOD_ISLAND_ROUTES),
   },
   {
     path: 'post',
@@ -53,7 +54,8 @@ export const routes: Routes = [
   {
     path: 'messages',
     canActivate: [authGuard],
-    loadChildren: () => import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES),
+    loadChildren: () =>
+      import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES),
   },
   {
     path: 'reports',
@@ -63,7 +65,8 @@ export const routes: Routes = [
   {
     path: 'analytics',
     canActivate: [authGuard],
-    loadChildren: () => import('./features/analytics/analytics.routes').then((m) => m.ANALYTICS_ROUTES),
+    loadChildren: () =>
+      import('./features/analytics/analytics.routes').then((m) => m.ANALYTICS_ROUTES),
   },
   {
     path: 'admin',
@@ -85,12 +88,15 @@ export const routes: Routes = [
     path: 'users/:uid',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/profile/pages/public-profile/public-profile').then((m) => m.PublicProfilePage),
+      import('./features/profile/pages/public-profile/public-profile').then(
+        (m) => m.PublicProfilePage,
+      ),
     title: 'Neighbor Profile',
   },
   {
     path: 'not-found',
-    loadComponent: () => import('./features/not-found/pages/not-found/not-found').then((m) => m.NotFoundPage),
+    loadComponent: () =>
+      import('./features/not-found/pages/not-found/not-found').then((m) => m.NotFoundPage),
   },
   {
     path: '',

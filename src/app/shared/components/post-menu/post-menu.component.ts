@@ -1,4 +1,13 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  Output,
+  inject,
+  signal,
+} from '@angular/core';
 
 /**
  * Top-right kebab menu for a post card (Instagram/WhatsApp style).

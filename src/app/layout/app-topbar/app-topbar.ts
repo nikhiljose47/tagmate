@@ -74,7 +74,8 @@ export class AppTopbarComponent implements OnDestroy {
     this.closeCommand();
     this.query.set('');
     this.results.set([]);
-    if (result.id.startsWith('topic-')) await this.router.navigate(['/feed'], { queryParams: { topic: result.title.slice(1) } });
+    if (result.id.startsWith('topic-'))
+      await this.router.navigate(['/feed'], { queryParams: { topic: result.title.slice(1) } });
     else await this.router.navigate(result.route);
   }
 
@@ -99,13 +100,30 @@ export class AppTopbarComponent implements OnDestroy {
     this.tagRepo.getPaginated(6, 0, query).subscribe({
       next: (posts) => {
         void this.platform.searchProfiles(query, 5).then((profiles) => {
-          const hoods = Array.from(new Set(posts.map((post) => post.hoodId).filter((hood): hood is string => !!hood))).slice(0, 3);
-          const topics = Array.from(new Set(posts.map((post) => post.tag).filter(Boolean))).slice(0, 3);
+          const hoods = Array.from(
+            new Set(posts.map((post) => post.hoodId).filter((hood): hood is string => !!hood)),
+          ).slice(0, 3);
+          const topics = Array.from(new Set(posts.map((post) => post.tag).filter(Boolean))).slice(
+            0,
+            3,
+          );
           this.results.set([
             ...this.quickActions(query),
             ...profiles.map((profile) => this.toProfileResult(profile)),
-            ...hoods.map((hood) => ({ id: `hood-${hood}`, title: hood, subtitle: 'Neighborhood', route: ['/neighborhood', this.slug(hood)], icon: 'bi-geo-alt' })),
-            ...topics.map((tag) => ({ id: `topic-${tag}`, title: `#${tag}`, subtitle: 'Topic', route: ['/feed'], icon: 'bi-hash' })),
+            ...hoods.map((hood) => ({
+              id: `hood-${hood}`,
+              title: hood,
+              subtitle: 'Neighborhood',
+              route: ['/neighborhood', this.slug(hood)],
+              icon: 'bi-geo-alt',
+            })),
+            ...topics.map((tag) => ({
+              id: `topic-${tag}`,
+              title: `#${tag}`,
+              subtitle: 'Topic',
+              route: ['/feed'],
+              icon: 'bi-hash',
+            })),
             ...posts.map((post) => this.toCommandResult(post)),
           ]);
           this.isSearching.set(false);
@@ -167,6 +185,12 @@ export class AppTopbarComponent implements OnDestroy {
   }
 
   private slug(value: string): string {
-    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nearby';
+    return (
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'nearby'
+    );
   }
 }

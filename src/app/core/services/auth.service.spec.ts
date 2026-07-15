@@ -10,12 +10,18 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     authMock = {
-      getSession: jasmine.createSpy('getSession').and.returnValue(Promise.resolve({ data: { session: null } })),
+      getSession: jasmine
+        .createSpy('getSession')
+        .and.returnValue(Promise.resolve({ data: { session: null } })),
       onAuthStateChange: jasmine.createSpy('onAuthStateChange').and.returnValue({
-        data: { subscription: { unsubscribe: () => {} } }
+        data: { subscription: { unsubscribe: () => {} } },
       }),
-      signInWithPassword: jasmine.createSpy('signInWithPassword').and.returnValue(Promise.resolve({ data: {}, error: null })),
-      signUp: jasmine.createSpy('signUp').and.returnValue(Promise.resolve({ data: {}, error: null })),
+      signInWithPassword: jasmine
+        .createSpy('signInWithPassword')
+        .and.returnValue(Promise.resolve({ data: {}, error: null })),
+      signUp: jasmine
+        .createSpy('signUp')
+        .and.returnValue(Promise.resolve({ data: {}, error: null })),
       signOut: jasmine.createSpy('signOut').and.returnValue(Promise.resolve({ error: null })),
     };
 
@@ -25,18 +31,15 @@ describe('AuthService', () => {
         from: jasmine.createSpy('from').and.returnValue({
           select: jasmine.createSpy('select').and.returnValue({
             ilike: jasmine.createSpy('ilike').and.returnValue({
-              limit: jasmine.createSpy('limit').and.returnValue(of({ data: [] }))
-            })
-          })
-        })
-      }
+              limit: jasmine.createSpy('limit').and.returnValue(of({ data: [] })),
+            }),
+          }),
+        }),
+      },
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        AuthService,
-        { provide: SupabaseClientService, useValue: clientServiceMock }
-      ]
+      providers: [AuthService, { provide: SupabaseClientService, useValue: clientServiceMock }],
     });
     service = TestBed.inject(AuthService);
   });
@@ -49,7 +52,7 @@ describe('AuthService', () => {
     await service.signInWithPassword('test@example.com', 'password123').toPromise();
     expect(authMock.signInWithPassword).toHaveBeenCalledWith({
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
   });
 
@@ -58,7 +61,7 @@ describe('AuthService', () => {
     expect(authMock.signUp).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password123',
-      options: { data: { username: 'testuser' } }
+      options: { data: { username: 'testuser' } },
     });
   });
 
@@ -67,9 +70,9 @@ describe('AuthService', () => {
     TestBed.resetTestingModule();
     const freshAuth = {
       ...authMock,
-      getSession: jasmine.createSpy('getSession').and.returnValue(
-        Promise.resolve({ data: { session: restored }, error: null })
-      ),
+      getSession: jasmine
+        .createSpy('getSession')
+        .and.returnValue(Promise.resolve({ data: { session: restored }, error: null })),
     };
     TestBed.configureTestingModule({
       providers: [

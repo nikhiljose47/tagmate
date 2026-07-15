@@ -56,7 +56,9 @@
 }
 
 @keyframes island-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // ── Error state ───────────────────────────────────────────────────────────────
@@ -91,7 +93,9 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
@@ -105,7 +109,7 @@
 
 %glass {
   background: rgba(6, 13, 26, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(18px) saturate(1.8);
   -webkit-backdrop-filter: blur(18px) saturate(1.8);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
@@ -124,10 +128,14 @@
 // The wrapper is fixed full-viewport, so the left sidebar (72px icon rail /
 // 245px full sidebar — see app.scss) overlaps left: 16px. Clear it on desktop.
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .island-search-wrap { left: calc(72px + 16px); }
+  .island-search-wrap {
+    left: calc(72px + 16px);
+  }
 }
 @media (min-width: 1280px) {
-  .island-search-wrap { left: calc(245px + 16px); }
+  .island-search-wrap {
+    left: calc(245px + 16px);
+  }
 }
 
 .island-search-bar {
@@ -161,7 +169,7 @@
   gap: 1px;
 }
 
-.island-search-fields input[type="search"] {
+.island-search-fields input[type='search'] {
   background: transparent;
   border: none;
   outline: none;
@@ -230,7 +238,7 @@
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
-    background: rgba(99, 102, 241, 0.10);
+    background: rgba(99, 102, 241, 0.1);
   }
 
   .bi-geo-alt {
@@ -286,14 +294,17 @@
   color: #94a3b8;
   font-size: 16px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
   -webkit-tap-highlight-color: transparent;
 
   &:hover,
   &.active {
     color: #e2e8f0;
     border-color: rgba(99, 102, 241, 0.55);
-    background: rgba(99, 102, 241, 0.10);
+    background: rgba(99, 102, 241, 0.1);
   }
 }
 
@@ -337,7 +348,10 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
@@ -346,7 +360,7 @@
   }
 
   &.active {
-    border-color: rgba(99, 102, 241, 0.60);
+    border-color: rgba(99, 102, 241, 0.6);
     background: rgba(99, 102, 241, 0.12);
     color: #c7d2fe;
   }
@@ -380,7 +394,9 @@
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   -webkit-tap-highlight-color: transparent;
 
   &:hover {
@@ -407,7 +423,9 @@
     height: 13px;
     border-radius: 50%;
     background: #94a3b8;
-    transition: transform 0.18s, background 0.18s;
+    transition:
+      transform 0.18s,
+      background 0.18s;
   }
 
   &.on {
@@ -450,8 +468,14 @@
 }
 
 @keyframes drawerSlideIn {
-  from { transform: translateX(100%); opacity: 0.5; }
-  to   { transform: translateX(0);    opacity: 1;   }
+  from {
+    transform: translateX(100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .island-drawer-header {
@@ -474,7 +498,7 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
   color: #94a3b8;
   font-size: 13px;
@@ -482,10 +506,15 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   -webkit-tap-highlight-color: transparent;
 
-  &:hover { background: rgba(99, 102, 241, 0.15); color: #e2e8f0; }
+  &:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: #e2e8f0;
+  }
 }
 
 .island-drawer-body {
@@ -495,8 +524,12 @@
   padding: 4px 0 24px;
   scroll-behavior: smooth;
 
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.12);
     border-radius: 2px;
@@ -507,7 +540,9 @@
   padding: 14px 16px 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .island-section-title {
@@ -544,7 +579,9 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 
   .bi {
@@ -572,16 +609,22 @@
   }
 
   &:hover {
-    background: rgba(99, 102, 241, 0.10);
-    border-color: rgba(99, 102, 241, 0.30);
-    .bi { color: #818cf8; }
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+    .bi {
+      color: #818cf8;
+    }
   }
 
   &.active {
     background: rgba(99, 102, 241, 0.16);
     border-color: rgba(99, 102, 241, 0.55);
-    .bi { color: #a5b4fc; }
-    strong { color: #e0e7ff; }
+    .bi {
+      color: #a5b4fc;
+    }
+    strong {
+      color: #e0e7ff;
+    }
   }
 }
 
@@ -593,8 +636,12 @@
   gap: 5px;
   margin-bottom: 8px;
 
-  &.cols-3 { grid-template-columns: repeat(3, 1fr); }
-  &.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  &.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  &.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .island-adv-btn {
@@ -610,17 +657,25 @@
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
   -webkit-tap-highlight-color: transparent;
   white-space: nowrap;
 
-  &:hover { background: rgba(255, 255, 255, 0.08); color: #e2e8f0; }
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+  }
   &.active {
-    border-color: rgba(99, 102, 241, 0.60);
+    border-color: rgba(99, 102, 241, 0.6);
     background: rgba(99, 102, 241, 0.14);
     color: #c7d2fe;
   }
-  &.compact { padding: 6px 4px; }
+  &.compact {
+    padding: 6px 4px;
+  }
 
   &.ocean-btn {
     flex-direction: column;
@@ -668,7 +723,7 @@
   appearance: none;
   height: 4px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
   outline: none;
   cursor: pointer;
 
@@ -680,9 +735,13 @@
     background: #6366f1;
     border: 2px solid #e0e7ff;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    transition:
+      background 0.15s,
+      transform 0.1s;
   }
-  &::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  &::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
   &::-moz-range-thumb {
     width: 14px;
     height: 14px;
@@ -703,7 +762,9 @@
   padding: 2px 4px;
   border-radius: 4px;
   -webkit-tap-highlight-color: transparent;
-  &:hover { background: rgba(99, 102, 241, 0.12); }
+  &:hover {
+    background: rgba(99, 102, 241, 0.12);
+  }
 }
 
 .island-reset-all-btn {
@@ -719,7 +780,9 @@
   cursor: pointer;
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
-  &:hover { background: rgba(99, 102, 241, 0.10); }
+  &:hover {
+    background: rgba(99, 102, 241, 0.1);
+  }
 }
 
 // ── Layer visibility grid ─────────────────────────────────────────────────────
@@ -743,12 +806,20 @@
   font-size: 10px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    opacity 0.12s;
   -webkit-tap-highlight-color: transparent;
 
-  .bi { font-size: 16px; }
+  .bi {
+    font-size: 16px;
+  }
 
-  &:hover { background: rgba(255, 255, 255, 0.10); }
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
 
   &.hidden {
     opacity: 0.38;
@@ -771,7 +842,9 @@
   background: rgba(6, 13, 26, 0.7) !important;
   color: #64748b !important;
 
-  a { color: #6366f1 !important; }
+  a {
+    color: #6366f1 !important;
+  }
 }
 
 :host ::ng-deep .maplibregl-ctrl-zoom-in,
@@ -793,8 +866,13 @@
   align-items: center;
   gap: 2px;
 
-  .island-reset-btn { font-size: 12px; }
-  button:disabled { opacity: 0.35; cursor: default; }
+  .island-reset-btn {
+    font-size: 12px;
+  }
+  button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
 }
 
 .island-tpl-save-row {
@@ -813,8 +891,12 @@
     font-size: 12px;
     outline: none;
 
-    &::placeholder { color: #64748b; }
-    &:focus { border-color: rgba(99, 102, 241, 0.5); }
+    &::placeholder {
+      color: #64748b;
+    }
+    &:focus {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
   }
 
   button {
@@ -829,8 +911,13 @@
     transition: background 0.12s;
     -webkit-tap-highlight-color: transparent;
 
-    &:hover:not(:disabled) { background: rgba(99, 102, 241, 0.3); }
-    &:disabled { opacity: 0.4; cursor: default; }
+    &:hover:not(:disabled) {
+      background: rgba(99, 102, 241, 0.3);
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
   }
 }
 
@@ -862,8 +949,12 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
-  &:hover { color: #cbd5e1; }
-  &.on { color: #fbbf24; }
+  &:hover {
+    color: #cbd5e1;
+  }
+  &.on {
+    color: #fbbf24;
+  }
 }
 
 .island-tpl-name {
@@ -905,10 +996,15 @@
     color: #94a3b8;
     font-size: 11px;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition:
+      background 0.12s,
+      color 0.12s;
     -webkit-tap-highlight-color: transparent;
 
-    &:hover { background: rgba(255, 255, 255, 0.09); color: #e2e8f0; }
+    &:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: #e2e8f0;
+    }
 
     &.apply {
       padding: 4px 10px;
@@ -917,10 +1013,15 @@
       border: 1px solid rgba(99, 102, 241, 0.35);
       background: rgba(99, 102, 241, 0.14);
 
-      &:hover { background: rgba(99, 102, 241, 0.3); }
+      &:hover {
+        background: rgba(99, 102, 241, 0.3);
+      }
     }
 
-    &.danger:hover { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+    &.danger:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+    }
   }
 }
 
@@ -961,9 +1062,15 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
 }
 
-:host ::ng-deep .game-featured-marker--alert  { color: #fb7185; }
-:host ::ng-deep .game-featured-marker--connect { color: #22d3ee; }
-:host ::ng-deep .game-featured-marker--opening { color: #f59e0b; }
+:host ::ng-deep .game-featured-marker--alert {
+  color: #fb7185;
+}
+:host ::ng-deep .game-featured-marker--connect {
+  color: #22d3ee;
+}
+:host ::ng-deep .game-featured-marker--opening {
+  color: #f59e0b;
+}
 
 :host ::ng-deep .game-marker-card-wrap {
   position: absolute;
@@ -976,9 +1083,14 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.13), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.13),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   pointer-events: auto;
-  transition: left 0.22s ease, right 0.22s ease, transform 0.22s ease;
+  transition:
+    left 0.22s ease,
+    right 0.22s ease,
+    transform 0.22s ease;
 }
 
 :host ::ng-deep .game-featured-marker--left .game-marker-card-wrap {
@@ -1009,7 +1121,12 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.72) 46%, transparent 58%);
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.72) 46%,
+    transparent 58%
+  );
   animation: islandMarkerCardShine 14s linear infinite;
 }
 
@@ -1061,11 +1178,24 @@
 }
 
 @keyframes islandMarkerCardShine {
-  0%   { transform: translateX(-120%); opacity: 0; }
-  4%   { opacity: 1; }
-  14%  { transform: translateX(120%); opacity: 1; }
-  18%  { opacity: 0; }
-  100% { transform: translateX(120%); opacity: 0; }
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  14% {
+    transform: translateX(120%);
+    opacity: 1;
+  }
+  18% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,20 @@
 import { Injectable, inject, isDevMode } from '@angular/core';
 import { LoggerService } from './logger.service';
 
+export interface TelemetryEventMap {
+  'app.route-viewed': { path: string };
+  'activation.hood-selected': { hoodId: string };
+  'activation.nearby-content-viewed': { source: 'feed' | 'map' | 'neighborhood' };
+  'activation.post-created': { kind: string };
+  'runtime.map-timing': {
+    metric: 'library-loaded' | 'map-ready' | 'first-marker' | 'boundary-ready';
+    durationMs: number;
+  };
+  'runtime.realtime-reconnect': { channel: string };
+}
+
+export type TelemetryEvent = keyof TelemetryEventMap;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -47,7 +61,11 @@ export class TelemetryService {
   /**
    * Log a message to telemetry backends.
    */
-  captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info', context?: Record<string, unknown>): void {
+  captureMessage(
+    message: string,
+    level: 'info' | 'warning' | 'error' = 'info',
+    context?: Record<string, unknown>,
+  ): void {
     this.logger.info(`Telemetry captureMessage [${level}]: ${message}`, context);
 
     if (isDevMode()) {
@@ -80,5 +98,10 @@ export class TelemetryService {
         this.logger.warn('Failed to send message to LogRocket:', err);
       }
     }
+  }
+
+  /** Records a privacy-safe product or runtime event. */
+  track<Event extends TelemetryEvent>(event: Event, payload: TelemetryEventMap[Event]): void {
+    this.captureMessage(`event:${event}`, 'info', { event, ...payload });
   }
 }

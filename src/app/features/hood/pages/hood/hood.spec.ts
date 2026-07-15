@@ -8,10 +8,7 @@ describe('HoodPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HoodPage],
-      providers: [
-        ...testProviders,
-        provideHttpClientTesting(),
-      ],
+      providers: [...testProviders, provideHttpClientTesting()],
     }).compileComponents();
   });
 
@@ -31,7 +28,7 @@ describe('HoodPage', () => {
   it('should toggle layers successfully', () => {
     const fixture = TestBed.createComponent(HoodPage);
     const component = fixture.componentInstance;
-    
+
     const initialPostsVisible = component.postsVisible();
     component.togglePostsLayer();
     expect(component.postsVisible()).toBe(!initialPostsVisible);

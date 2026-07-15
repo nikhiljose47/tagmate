@@ -16,7 +16,14 @@ import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 @Component({
   selector: 'app-public-profile',
   standalone: true,
-  imports: [CommonModule, RouterLink, AvatarComponent, EmptyStateComponent, TagGradientPipe, TimeAgoPipe],
+  imports: [
+    CommonModule,
+    RouterLink,
+    AvatarComponent,
+    EmptyStateComponent,
+    TagGradientPipe,
+    TimeAgoPipe,
+  ],
   templateUrl: './public-profile.html',
   styleUrl: './public-profile.scss',
 })
@@ -35,10 +42,21 @@ export class PublicProfilePage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const uid = this.route.snapshot.paramMap.get('uid');
-    if (!uid) { this.missing.set(true); this.loading.set(false); return; }
-    if (uid === this.social.myUid()) { await this.router.navigate(['/profile']); return; }
+    if (!uid) {
+      this.missing.set(true);
+      this.loading.set(false);
+      return;
+    }
+    if (uid === this.social.myUid()) {
+      await this.router.navigate(['/profile']);
+      return;
+    }
     const profile = await this.social.getProfile(uid);
-    if (!profile) { this.missing.set(true); this.loading.set(false); return; }
+    if (!profile) {
+      this.missing.set(true);
+      this.loading.set(false);
+      return;
+    }
     this.profile.set(profile);
     try {
       this.posts.set(await firstValueFrom(this.tagRepo.getByUserId(uid)));
@@ -51,12 +69,18 @@ export class PublicProfilePage implements OnInit {
     const profile = this.profile();
     if (!profile) return;
     const following = await this.social.toggleFollowUser(profile.uid);
-    this.toast.show(following ? `Following ${profile.name}.` : `Unfollowed ${profile.name}.`, 'success');
+    this.toast.show(
+      following ? `Following ${profile.name}.` : `Unfollowed ${profile.name}.`,
+      'success',
+    );
   }
 
   protected message(): void {
     const profile = this.profile();
-    if (profile) void this.router.navigate(['/messages'], { queryParams: { user: profile.uid, name: profile.name } });
+    if (profile)
+      void this.router.navigate(['/messages'], {
+        queryParams: { user: profile.uid, name: profile.name },
+      });
   }
 
   protected async block(): Promise<void> {
@@ -64,7 +88,8 @@ export class PublicProfilePage implements OnInit {
     if (!profile) return;
     const ok = await this.confirm.confirm({
       title: `Block ${profile.name}?`,
-      message: 'Their content will be hidden and neither of you will be able to contact or follow the other.',
+      message:
+        'Their content will be hidden and neither of you will be able to contact or follow the other.',
       confirmText: 'Block',
       danger: true,
     });
@@ -77,6 +102,7 @@ export class PublicProfilePage implements OnInit {
 
   protected async report(): Promise<void> {
     const profile = this.profile();
-    if (profile && await this.social.reportUser(profile.uid)) this.toast.show('Profile reported for review.', 'success');
+    if (profile && (await this.social.reportUser(profile.uid)))
+      this.toast.show('Profile reported for review.', 'success');
   }
 }

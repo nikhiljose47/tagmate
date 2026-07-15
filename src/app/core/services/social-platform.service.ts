@@ -1,6 +1,11 @@
 import { Injectable, OnDestroy, WritableSignal, inject, signal } from '@angular/core';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
-import { SocialProfile, PostConfirmation, PostStatusEntry, ACTIONABLE_TAGS } from '../models/social.model';
+import {
+  SocialProfile,
+  PostConfirmation,
+  PostStatusEntry,
+  ACTIONABLE_TAGS,
+} from '../models/social.model';
 import { PostStatus, Tag } from '../models/tag.model';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
@@ -8,16 +13,58 @@ import { LoggerService } from './logger.service';
 import { ToastService } from './toast.service';
 import { rowToTag, TagRow } from './tag.mapper';
 
-interface UserFollowRow { follower_id: string; followed_user_id: string; }
-interface HoodFollowRow { user_id: string; hood_id: string; }
-interface TopicFollowRow { user_id: string; tag: string; }
-interface BlockRow { blocker_id: string; blocked_id: string; }
-interface MutedThreadRow { user_id: string; thread_id: string; }
-interface CommentReactionRow { comment_id: string; user_id: string; }
-interface ConfirmationRow { post_id: string; user_id: string; created_at: string; }
-interface StatusRow { id: string; post_id: string; actor_id: string | null; status: PostStatus; note: string | null; created_at: string; }
-interface DirectMessageStateRow { id: string; thread_id: string; from_uid: string; to_uid: string; read: boolean; }
-interface ProfileRow { uid: string; name: string; bio: string | null; reputation: number | null; created_at?: string; updated_at?: string; }
+interface UserFollowRow {
+  follower_id: string;
+  followed_user_id: string;
+}
+interface HoodFollowRow {
+  user_id: string;
+  hood_id: string;
+}
+interface TopicFollowRow {
+  user_id: string;
+  tag: string;
+}
+interface BlockRow {
+  blocker_id: string;
+  blocked_id: string;
+}
+interface MutedThreadRow {
+  user_id: string;
+  thread_id: string;
+}
+interface CommentReactionRow {
+  comment_id: string;
+  user_id: string;
+}
+interface ConfirmationRow {
+  post_id: string;
+  user_id: string;
+  created_at: string;
+}
+interface StatusRow {
+  id: string;
+  post_id: string;
+  actor_id: string | null;
+  status: PostStatus;
+  note: string | null;
+  created_at: string;
+}
+interface DirectMessageStateRow {
+  id: string;
+  thread_id: string;
+  from_uid: string;
+  to_uid: string;
+  read: boolean;
+}
+interface ProfileRow {
+  uid: string;
+  name: string;
+  bio: string | null;
+  reputation: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SocialPlatformService implements OnDestroy {
@@ -53,16 +100,20 @@ export class SocialPlatformService implements OnDestroy {
       }
     });
 
-    this.supabase.liveInserts<ConfirmationRow>('post_confirmations')
+    this.supabase
+      .liveInserts<ConfirmationRow>('post_confirmations')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => this.mergeConfirmation(row));
-    this.supabase.liveDeletes<ConfirmationRow>('post_confirmations')
+    this.supabase
+      .liveDeletes<ConfirmationRow>('post_confirmations')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => this.removeConfirmation(row));
-    this.supabase.liveInserts<StatusRow>('post_status_history')
+    this.supabase
+      .liveInserts<StatusRow>('post_status_history')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => this.mergeStatus(row));
-    this.supabase.liveInserts<DirectMessageStateRow>('direct_messages')
+    this.supabase
+      .liveInserts<DirectMessageStateRow>('direct_messages')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => {
         if (row.to_uid === this.myUid() && !row.read) {
@@ -70,7 +121,8 @@ export class SocialPlatformService implements OnDestroy {
           this.syncUnreadCount();
         }
       });
-    this.supabase.liveUpdates<DirectMessageStateRow>('direct_messages')
+    this.supabase
+      .liveUpdates<DirectMessageStateRow>('direct_messages')
       .pipe(takeUntil(this.destroy$))
       .subscribe((row) => {
         // A read transition is already fully described by the realtime row.
@@ -100,12 +152,24 @@ export class SocialPlatformService implements OnDestroy {
     return !!uid && this.isActionable(post) && (post.userId === uid || this.isAdmin());
   }
 
-  isFollowingUser(uid: string): boolean { return this.followedUsers().has(uid); }
-  isFollowingHood(hoodId: string): boolean { return this.followedHoods().has(hoodId); }
-  isFollowingTopic(tag: string): boolean { return this.followedTopics().has(tag); }
-  isBlocked(uid: string): boolean { return this.blockedUsers().has(uid); }
-  isThreadMuted(threadId: string): boolean { return this.mutedThreads().has(threadId); }
-  isCommentReacted(commentId: string): boolean { return this.reactedComments().has(commentId); }
+  isFollowingUser(uid: string): boolean {
+    return this.followedUsers().has(uid);
+  }
+  isFollowingHood(hoodId: string): boolean {
+    return this.followedHoods().has(hoodId);
+  }
+  isFollowingTopic(tag: string): boolean {
+    return this.followedTopics().has(tag);
+  }
+  isBlocked(uid: string): boolean {
+    return this.blockedUsers().has(uid);
+  }
+  isThreadMuted(threadId: string): boolean {
+    return this.mutedThreads().has(threadId);
+  }
+  isCommentReacted(commentId: string): boolean {
+    return this.reactedComments().has(commentId);
+  }
 
   async getProfile(uid: string): Promise<SocialProfile | null> {
     try {
@@ -143,13 +207,21 @@ export class SocialPlatformService implements OnDestroy {
     const cleanBio = bio.trim();
     if (!uid || !cleanName || cleanName.length > 40 || cleanBio.length > 280) return false;
     try {
-      await firstValueFrom(this.supabase.updateRowsWhere<ProfileRow>('users', { uid }, {
-        name: cleanName,
-        bio: cleanBio,
-        updated_at: new Date().toISOString(),
-      } as Partial<ProfileRow>));
+      await firstValueFrom(
+        this.supabase.updateRowsWhere<ProfileRow>('users', { uid }, {
+          name: cleanName,
+          bio: cleanBio,
+          updated_at: new Date().toISOString(),
+        } as Partial<ProfileRow>),
+      );
       const current = this.session.user();
-      if (current) this.session.user.set({ ...current, name: cleanName, bio: cleanBio, updatedAt: new Date().toISOString() });
+      if (current)
+        this.session.user.set({
+          ...current,
+          name: cleanName,
+          bio: cleanBio,
+          updatedAt: new Date().toISOString(),
+        });
       return true;
     } catch (error) {
       this.logger.error('Profile update failed', error);
@@ -162,9 +234,11 @@ export class SocialPlatformService implements OnDestroy {
     const uid = this.myUid();
     if (!uid || uid === targetUid || this.isBlocked(targetUid)) return false;
     return this.toggleSetRow(
-      this.followedUsers, targetUid, 'user_follows',
+      this.followedUsers,
+      targetUid,
+      'user_follows',
       { follower_id: uid, followed_user_id: targetUid },
-      { follower_id: uid, followed_user_id: targetUid }
+      { follower_id: uid, followed_user_id: targetUid },
     );
   }
 
@@ -172,16 +246,26 @@ export class SocialPlatformService implements OnDestroy {
     const uid = this.myUid();
     const id = hoodId.trim();
     if (!uid || !id) return false;
-    return this.toggleSetRow(this.followedHoods, id, 'user_followed_hoods',
-      { user_id: uid, hood_id: id }, { user_id: uid, hood_id: id });
+    return this.toggleSetRow(
+      this.followedHoods,
+      id,
+      'user_followed_hoods',
+      { user_id: uid, hood_id: id },
+      { user_id: uid, hood_id: id },
+    );
   }
 
   async toggleFollowTopic(tag: string): Promise<boolean> {
     const uid = this.myUid();
     const id = tag.trim();
     if (!uid || !id) return false;
-    return this.toggleSetRow(this.followedTopics, id, 'user_followed_topics',
-      { user_id: uid, tag: id }, { user_id: uid, tag: id });
+    return this.toggleSetRow(
+      this.followedTopics,
+      id,
+      'user_followed_topics',
+      { user_id: uid, tag: id },
+      { user_id: uid, tag: id },
+    );
   }
 
   async blockUser(targetUid: string): Promise<boolean> {
@@ -191,8 +275,15 @@ export class SocialPlatformService implements OnDestroy {
     this.addToSet(this.blockedUsers, targetUid);
     this.removeFromSet(this.followedUsers, targetUid);
     try {
-      await firstValueFrom(this.supabase.addRow('user_blocks', { blocker_id: uid, blocked_id: targetUid }));
-      await firstValueFrom(this.supabase.deleteRowsWhere('user_follows', { follower_id: uid, followed_user_id: targetUid }));
+      await firstValueFrom(
+        this.supabase.addRow('user_blocks', { blocker_id: uid, blocked_id: targetUid }),
+      );
+      await firstValueFrom(
+        this.supabase.deleteRowsWhere('user_follows', {
+          follower_id: uid,
+          followed_user_id: targetUid,
+        }),
+      );
       return true;
     } catch (error) {
       this.removeFromSet(this.blockedUsers, targetUid);
@@ -207,7 +298,9 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid || !this.isBlocked(targetUid)) return false;
     this.removeFromSet(this.blockedUsers, targetUid);
     try {
-      await firstValueFrom(this.supabase.deleteRowsWhere('user_blocks', { blocker_id: uid, blocked_id: targetUid }));
+      await firstValueFrom(
+        this.supabase.deleteRowsWhere('user_blocks', { blocker_id: uid, blocked_id: targetUid }),
+      );
       return true;
     } catch (error) {
       this.addToSet(this.blockedUsers, targetUid);
@@ -219,36 +312,59 @@ export class SocialPlatformService implements OnDestroy {
   async toggleThreadMute(threadId: string): Promise<boolean> {
     const uid = this.myUid();
     if (!uid) return false;
-    const result = await this.toggleSetRow(this.mutedThreads, threadId, 'muted_threads',
-      { user_id: uid, thread_id: threadId }, { user_id: uid, thread_id: threadId });
+    const result = await this.toggleSetRow(
+      this.mutedThreads,
+      threadId,
+      'muted_threads',
+      { user_id: uid, thread_id: threadId },
+      { user_id: uid, thread_id: threadId },
+    );
     this.syncUnreadCount();
     return result;
   }
 
   async followingFeed(limit: number, offset: number, query = ''): Promise<Tag[]> {
-    const { data } = await firstValueFrom(this.supabase.callRpc<TagRow[]>('fetch_following_feed', {
-      page_limit: limit,
-      page_offset: offset,
-      query: query || null,
-    }));
+    const { data } = await firstValueFrom(
+      this.supabase.callRpc<TagRow[]>('fetch_following_feed', {
+        page_limit: limit,
+        page_offset: offset,
+        query: query || null,
+      }),
+    );
     return (data ?? []).map(rowToTag);
   }
 
   async hydratePostTrust(postId: string): Promise<void> {
     try {
       const [confirmResult, statusResult] = await Promise.all([
-        firstValueFrom(this.supabase.getRows<ConfirmationRow>('post_confirmations', { field: 'post_id', op: '==', value: postId })),
-        firstValueFrom(this.supabase.getRows<StatusRow>('post_status_history', { field: 'post_id', op: '==', value: postId })),
+        firstValueFrom(
+          this.supabase.getRows<ConfirmationRow>('post_confirmations', {
+            field: 'post_id',
+            op: '==',
+            value: postId,
+          }),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<StatusRow>('post_status_history', {
+            field: 'post_id',
+            op: '==',
+            value: postId,
+          }),
+        ),
       ]);
       const confirmations = confirmResult.data ?? [];
       const statuses = statusResult.data ?? [];
-      const userIds = Array.from(new Set([
-        ...confirmations.map((row) => row.user_id),
-        ...statuses.map((row) => row.actor_id).filter((id): id is string => !!id),
-      ]));
+      const userIds = Array.from(
+        new Set([
+          ...confirmations.map((row) => row.user_id),
+          ...statuses.map((row) => row.actor_id).filter((id): id is string => !!id),
+        ]),
+      );
       const names = new Map<string, string>();
       if (userIds.length) {
-        const { data } = await firstValueFrom(this.supabase.getRowsIn<{ uid: string; name: string }>('users', 'uid', userIds));
+        const { data } = await firstValueFrom(
+          this.supabase.getRowsIn<{ uid: string; name: string }>('users', 'uid', userIds),
+        );
         for (const row of data ?? []) names.set(row.uid, row.name);
       }
       this.confirmations.update((state) => ({
@@ -268,8 +384,12 @@ export class SocialPlatformService implements OnDestroy {
     }
   }
 
-  confirmationsFor(postId: string): PostConfirmation[] { return this.confirmations()[postId] ?? []; }
-  statusFor(postId: string): PostStatusEntry[] { return this.statusHistory()[postId] ?? []; }
+  confirmationsFor(postId: string): PostConfirmation[] {
+    return this.confirmations()[postId] ?? [];
+  }
+  statusFor(postId: string): PostStatusEntry[] {
+    return this.statusHistory()[postId] ?? [];
+  }
   hasConfirmed(postId: string): boolean {
     const uid = this.myUid();
     return !!uid && this.confirmationsFor(postId).some((item) => item.userId === uid);
@@ -280,7 +400,12 @@ export class SocialPlatformService implements OnDestroy {
     const postId = post.id;
     if (!uid || !postId || post.userId === uid || !this.isActionable(post)) return false;
     const wasConfirmed = this.hasConfirmed(postId);
-    const optimistic: PostConfirmation = { postId, userId: uid, userName: this.session.user()?.name, createdAt: new Date().toISOString() };
+    const optimistic: PostConfirmation = {
+      postId,
+      userId: uid,
+      userName: this.session.user()?.name,
+      createdAt: new Date().toISOString(),
+    };
     this.confirmations.update((state) => ({
       ...state,
       [postId]: wasConfirmed
@@ -288,8 +413,14 @@ export class SocialPlatformService implements OnDestroy {
         : [optimistic, ...(state[postId] ?? [])],
     }));
     try {
-      if (wasConfirmed) await firstValueFrom(this.supabase.deleteRowsWhere('post_confirmations', { post_id: postId, user_id: uid }));
-      else await firstValueFrom(this.supabase.addRow('post_confirmations', { post_id: postId, user_id: uid }));
+      if (wasConfirmed)
+        await firstValueFrom(
+          this.supabase.deleteRowsWhere('post_confirmations', { post_id: postId, user_id: uid }),
+        );
+      else
+        await firstValueFrom(
+          this.supabase.addRow('post_confirmations', { post_id: postId, user_id: uid }),
+        );
       return !wasConfirmed;
     } catch (error) {
       await this.hydratePostTrust(postId);
@@ -303,12 +434,14 @@ export class SocialPlatformService implements OnDestroy {
     const uid = this.myUid();
     if (!uid || !post.id || !this.canSetStatus(post)) return false;
     try {
-      await firstValueFrom(this.supabase.addRow('post_status_history', {
-        post_id: post.id,
-        actor_id: uid,
-        status,
-        note: note.trim().slice(0, 250) || null,
-      }));
+      await firstValueFrom(
+        this.supabase.addRow('post_status_history', {
+          post_id: post.id,
+          actor_id: uid,
+          status,
+          note: note.trim().slice(0, 250) || null,
+        }),
+      );
       return true;
     } catch (error) {
       this.logger.error('Status update failed', error);
@@ -320,27 +453,50 @@ export class SocialPlatformService implements OnDestroy {
   async toggleCommentReaction(commentId: string): Promise<boolean> {
     const uid = this.myUid();
     if (!uid) return false;
-    return this.toggleSetRow(this.reactedComments, commentId, 'post_comment_reactions',
-      { comment_id: commentId, user_id: uid }, { comment_id: commentId, user_id: uid });
+    return this.toggleSetRow(
+      this.reactedComments,
+      commentId,
+      'post_comment_reactions',
+      { comment_id: commentId, user_id: uid },
+      { comment_id: commentId, user_id: uid },
+    );
   }
 
   async reportComment(commentId: string, reason = 'reported'): Promise<boolean> {
-    return this.report('comment_reports', { comment_id: commentId, reporter_id: this.myUid(), reason });
+    return this.report('comment_reports', {
+      comment_id: commentId,
+      reporter_id: this.myUid(),
+      reason,
+    });
   }
 
   async reportMessage(messageId: string, reason = 'reported'): Promise<boolean> {
-    return this.report('message_reports', { message_id: messageId, reporter_id: this.myUid(), reason });
+    return this.report('message_reports', {
+      message_id: messageId,
+      reporter_id: this.myUid(),
+      reason,
+    });
   }
 
   async reportUser(userId: string, reason = 'reported'): Promise<boolean> {
-    return this.report('user_reports', { reported_user_id: userId, reporter_id: this.myUid(), reason });
+    return this.report('user_reports', {
+      reported_user_id: userId,
+      reporter_id: this.myUid(),
+      reason,
+    });
   }
 
   async markThreadRead(threadId: string): Promise<void> {
     const uid = this.myUid();
     if (!uid) return;
     const readAt = new Date().toISOString();
-    await firstValueFrom(this.supabase.updateRowsWhere('direct_messages', { thread_id: threadId, to_uid: uid }, { read: true, read_at: readAt }));
+    await firstValueFrom(
+      this.supabase.updateRowsWhere(
+        'direct_messages',
+        { thread_id: threadId, to_uid: uid },
+        { read: true, read_at: readAt },
+      ),
+    );
     for (const [messageId, unreadThreadId] of this.unreadMessageThreads) {
       if (unreadThreadId === threadId) this.unreadMessageThreads.delete(messageId);
     }
@@ -350,12 +506,48 @@ export class SocialPlatformService implements OnDestroy {
   private async hydrateViewerState(uid: string): Promise<void> {
     try {
       const [users, hoods, topics, blocks, muted, reactions, messages] = await Promise.all([
-        firstValueFrom(this.supabase.getRows<UserFollowRow>('user_follows', { field: 'follower_id', op: '==', value: uid })),
-        firstValueFrom(this.supabase.getRows<HoodFollowRow>('user_followed_hoods', { field: 'user_id', op: '==', value: uid })),
-        firstValueFrom(this.supabase.getRows<TopicFollowRow>('user_followed_topics', { field: 'user_id', op: '==', value: uid })),
-        firstValueFrom(this.supabase.getRows<BlockRow>('user_blocks', { field: 'blocker_id', op: '==', value: uid })),
-        firstValueFrom(this.supabase.getRows<MutedThreadRow>('muted_threads', { field: 'user_id', op: '==', value: uid })),
-        firstValueFrom(this.supabase.getRows<CommentReactionRow>('post_comment_reactions', { field: 'user_id', op: '==', value: uid })),
+        firstValueFrom(
+          this.supabase.getRows<UserFollowRow>('user_follows', {
+            field: 'follower_id',
+            op: '==',
+            value: uid,
+          }),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<HoodFollowRow>('user_followed_hoods', {
+            field: 'user_id',
+            op: '==',
+            value: uid,
+          }),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<TopicFollowRow>('user_followed_topics', {
+            field: 'user_id',
+            op: '==',
+            value: uid,
+          }),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<BlockRow>('user_blocks', {
+            field: 'blocker_id',
+            op: '==',
+            value: uid,
+          }),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<MutedThreadRow>('muted_threads', {
+            field: 'user_id',
+            op: '==',
+            value: uid,
+          }),
+        ),
+        firstValueFrom(
+          this.supabase.getRows<CommentReactionRow>('post_comment_reactions', {
+            field: 'user_id',
+            op: '==',
+            value: uid,
+          }),
+        ),
         firstValueFrom(this.supabase.getDirectMessagesForUser(uid)),
       ]);
       this.followedUsers.set(new Set((users.data ?? []).map((row) => row.followed_user_id)));
@@ -388,8 +580,11 @@ export class SocialPlatformService implements OnDestroy {
   }
 
   private async toggleSetRow(
-    state: WritableSignal<Set<string>>, key: string, table: string,
-    insertRow: Record<string, unknown>, deleteMatchers: Record<string, unknown>
+    state: WritableSignal<Set<string>>,
+    key: string,
+    table: string,
+    insertRow: Record<string, unknown>,
+    deleteMatchers: Record<string, unknown>,
   ): Promise<boolean> {
     const enabled = state().has(key);
     enabled ? this.removeFromSet(state, key) : this.addToSet(state, key);
@@ -431,11 +626,22 @@ export class SocialPlatformService implements OnDestroy {
   }
 
   private removeFromSet(state: WritableSignal<Set<string>>, value: string): void {
-    state.update((current) => { const next = new Set(current); next.delete(value); return next; });
+    state.update((current) => {
+      const next = new Set(current);
+      next.delete(value);
+      return next;
+    });
   }
 
   private mapProfile(row: ProfileRow): SocialProfile {
-    return { uid: row.uid, name: row.name, bio: row.bio ?? '', reputation: row.reputation ?? 0, createdAt: row.created_at, updatedAt: row.updated_at };
+    return {
+      uid: row.uid,
+      name: row.name,
+      bio: row.bio ?? '',
+      reputation: row.reputation ?? 0,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   private mapConfirmation(row: ConfirmationRow, userName?: string): PostConfirmation {
@@ -443,24 +649,41 @@ export class SocialPlatformService implements OnDestroy {
   }
 
   private mapStatus(row: StatusRow, actorName?: string): PostStatusEntry {
-    return { id: row.id, postId: row.post_id, actorId: row.actor_id ?? undefined, actorName, status: row.status, note: row.note ?? undefined, createdAt: row.created_at };
+    return {
+      id: row.id,
+      postId: row.post_id,
+      actorId: row.actor_id ?? undefined,
+      actorName,
+      status: row.status,
+      note: row.note ?? undefined,
+      createdAt: row.created_at,
+    };
   }
 
   private mergeConfirmation(row: ConfirmationRow): void {
     const current = this.confirmations()[row.post_id];
     if (!current || current.some((item) => item.userId === row.user_id)) return;
-    this.confirmations.update((state) => ({ ...state, [row.post_id]: [this.mapConfirmation(row), ...current] }));
+    this.confirmations.update((state) => ({
+      ...state,
+      [row.post_id]: [this.mapConfirmation(row), ...current],
+    }));
   }
 
   private removeConfirmation(row: ConfirmationRow): void {
     const current = this.confirmations()[row.post_id];
     if (!current) return;
-    this.confirmations.update((state) => ({ ...state, [row.post_id]: current.filter((item) => item.userId !== row.user_id) }));
+    this.confirmations.update((state) => ({
+      ...state,
+      [row.post_id]: current.filter((item) => item.userId !== row.user_id),
+    }));
   }
 
   private mergeStatus(row: StatusRow): void {
     const current = this.statusHistory()[row.post_id];
     if (!current || current.some((item) => item.id === row.id)) return;
-    this.statusHistory.update((state) => ({ ...state, [row.post_id]: [this.mapStatus(row), ...current] }));
+    this.statusHistory.update((state) => ({
+      ...state,
+      [row.post_id]: [this.mapStatus(row), ...current],
+    }));
   }
 }

@@ -5,8 +5,8 @@
   justify-content: center;
   padding: 24px 16px;
   background:
-    radial-gradient(ellipse at top left, rgba(99,102,241,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at bottom right, rgba(139,92,246,0.14) 0%, transparent 55%),
+    radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.14) 0%, transparent 55%),
     var(--tm-bg);
 }
 
@@ -35,7 +35,7 @@
   color: #fff;
   font-size: 28px;
   margin-bottom: 12px;
-  box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
 }
 
 .brand-name {
@@ -61,8 +61,8 @@
   border-radius: 20px;
   padding: 24px;
   box-shadow:
-    0 0 0 1px rgba(0,0,0,0.05),
-    0 8px 32px rgba(15,23,42,0.10);
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    0 8px 32px rgba(15, 23, 42, 0.1);
 }
 
 .login-fields {
@@ -97,7 +97,9 @@
   background: transparent;
   color: var(--tm-text-secondary);
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .password-toggle:hover {
@@ -120,13 +122,25 @@
 }
 
 @keyframes eye-pop-open {
-  from { opacity: 0; transform: scale(0.6) rotate(-8deg); }
-  to   { opacity: 1; transform: scale(1) rotate(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
 }
 
 @keyframes eye-pop-closed {
-  from { opacity: 0; transform: scale(0.6) rotate(8deg); }
-  to   { opacity: 1; transform: scale(1) rotate(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
 }
 
 /* ── Divider ────────────────────────────── */
@@ -171,7 +185,7 @@
 .guest-btn:hover:not(:disabled) {
   background: var(--tm-surface);
   border-color: var(--tm-primary);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .guest-btn:disabled {
@@ -202,8 +216,20 @@
 }
 
 @media (max-width: 420px) {
-  .login-page { align-items: flex-start; padding-top: max(32px, env(safe-area-inset-top)); }
-  .brand-name { font-size: 30px; }
-  .brand-logo { width: 54px; height: 54px; font-size: 24px; }
-  .login-card { padding: 20px 18px; border-radius: 16px; }
+  .login-page {
+    align-items: flex-start;
+    padding-top: max(32px, env(safe-area-inset-top));
+  }
+  .brand-name {
+    font-size: 30px;
+  }
+  .brand-logo {
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+  }
+  .login-card {
+    padding: 20px 18px;
+    border-radius: 16px;
+  }
 }

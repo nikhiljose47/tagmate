@@ -18,9 +18,9 @@ import { NetworkService } from '../../../../core/services/network.service';
 
 /** A locally-selected file + instant Object URL preview. */
 interface MediaItem {
-  file:       File;
-  previewUrl: string;   // URL.createObjectURL() — shown instantly, no FileReader wait
-  type:       'image' | 'video';
+  file: File;
+  previewUrl: string; // URL.createObjectURL() — shown instantly, no FileReader wait
+  type: 'image' | 'video';
 }
 
 const MAX_MEDIA = 5;
@@ -33,7 +33,6 @@ const COMPOSE_PROMPTS = [
   'Traffic? Garage sale? Lost cat? Tag it here…',
   "Something happening nearby? Don't keep it to yourself…",
 ];
-
 
 @Component({
   selector: 'app-post',
@@ -48,27 +47,27 @@ export class PostPage {
 
   private readonly userSession = inject(UserSessionService);
   private readonly mediaService = inject(MediaService);
-  private readonly tagRepo     = inject(TAG_REPOSITORY);
-  private readonly logger      = inject(LoggerService);
-  private readonly media       = inject(MediaCompressionService);
-  private readonly network     = inject(NetworkService);
+  private readonly tagRepo = inject(TAG_REPOSITORY);
+  private readonly logger = inject(LoggerService);
+  private readonly media = inject(MediaCompressionService);
+  private readonly network = inject(NetworkService);
 
   constructor(
-    public  shared: SharedStateService,
+    public shared: SharedStateService,
     private router: Router,
-    private toast:  ToastService
+    private toast: ToastService,
   ) {
     // Restore the draft after the pick-location round-trip to the map —
     // navigation destroys this component, so the draft lives in SharedStateService.
     const draft = this.shared.postDraft();
     if (draft) {
       this.formData = {
-        headline:    draft.headline,
-        expiresIn:   draft.expiresIn,
-        tag:         draft.tag,
-        isEvent:     draft.isEvent,
-        eventStart:  draft.eventStart,
-        eventEnd:    draft.eventEnd,
+        headline: draft.headline,
+        expiresIn: draft.expiresIn,
+        tag: draft.tag,
+        isEvent: draft.isEvent,
+        eventStart: draft.eventStart,
+        eventEnd: draft.eventEnd,
         pollOptions: [...draft.pollOptions],
       };
       this.mediaItems.set(draft.media);
@@ -81,29 +80,29 @@ export class PostPage {
 
   private saveDraft(): void {
     const draft: PostDraft = {
-      headline:    this.formData.headline,
-      expiresIn:   this.formData.expiresIn,
-      tag:         this.formData.tag,
-      isEvent:     this.formData.isEvent,
-      eventStart:  this.formData.eventStart,
-      eventEnd:    this.formData.eventEnd,
+      headline: this.formData.headline,
+      expiresIn: this.formData.expiresIn,
+      tag: this.formData.tag,
+      isEvent: this.formData.isEvent,
+      eventStart: this.formData.eventStart,
+      eventEnd: this.formData.eventEnd,
       pollOptions: [...this.formData.pollOptions],
-      media:       this.mediaItems(),
+      media: this.mediaItems(),
     };
     this.shared.postDraft.set(draft);
   }
 
   // ── Signals (required for zoneless CD) ──────────────────────────────────
   isSubmitting = signal(false);
-  mediaItems   = signal<MediaItem[]>([]);
-  showMapHint  = signal(false);
-  showPreview  = signal(false);
+  mediaItems = signal<MediaItem[]>([]);
+  showMapHint = signal(false);
+  showPreview = signal(false);
   locationErrorVisible = signal(false);
   shakeLocation = signal(false);
   tagErrorVisible = signal(false);
 
   readonly canAddMore = computed(() => this.mediaItems().length < MAX_MEDIA);
-  readonly maxMedia   = MAX_MEDIA;
+  readonly maxMedia = MAX_MEDIA;
 
   // ── Form data ────────────────────────────────────────────────────────────
   readonly tags = Object.values(TagCategory);
@@ -111,12 +110,12 @@ export class PostPage {
 
   /** Post lifetime presets — `expiresIn` is minutes app-wide (see LifespanPipe). */
   readonly expiryOptions = [
-    { label: '15 min',  value: 15 },
-    { label: '1 hour',  value: 60 },
+    { label: '15 min', value: 15 },
+    { label: '1 hour', value: 60 },
     { label: '6 hours', value: 360 },
-    { label: '1 day',   value: 1440 },
-    { label: '3 days',  value: 4320 },
-    { label: '1 week',  value: 10080 },
+    { label: '1 day', value: 1440 },
+    { label: '3 days', value: 4320 },
+    { label: '1 week', value: 10080 },
   ];
 
   readonly user = computed(() => {
@@ -128,12 +127,12 @@ export class PostPage {
   });
 
   formData = {
-    headline:  '',
+    headline: '',
     expiresIn: 60,
-    tag:       '',
-    isEvent:   false,
+    tag: '',
+    isEvent: false,
     eventStart: '',
-    eventEnd:   '',
+    eventEnd: '',
     pollOptions: ['', ''],
   };
 
@@ -164,7 +163,7 @@ export class PostPage {
   onFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
-    input.value = '';   // reset so same file can be re-added after removal
+    input.value = ''; // reset so same file can be re-added after removal
 
     for (const file of files) {
       if (this.mediaItems().length >= MAX_MEDIA) break;
@@ -184,14 +183,16 @@ export class PostPage {
     });
   }
 
-  isVideo(item: MediaItem): boolean { return item.type === 'video'; }
+  isVideo(item: MediaItem): boolean {
+    return item.type === 'video';
+  }
 
   // ── Location ─────────────────────────────────────────────────────────────
 
   onPickLocation(): void {
-    this.saveDraft();   // survive the component destroy during the map round-trip
+    this.saveDraft(); // survive the component destroy during the map round-trip
     this.showMapHint.set(true);
-    this.shared.pickModeActive.set(true);   // belt-and-suspenders alongside query param
+    this.shared.pickModeActive.set(true); // belt-and-suspenders alongside query param
     void this.router.navigate([AppRoute.Hood], { queryParams: { pick: '1' } });
   }
 
@@ -208,11 +209,13 @@ export class PostPage {
         this.toast.show('Current location attached to this post.', 'success');
       },
       () => this.toast.show('Could not read your current location.', 'danger'),
-      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true },
     );
   }
 
-  togglePreview(): void { this.showPreview.update((v) => !v); }
+  togglePreview(): void {
+    this.showPreview.update((v) => !v);
+  }
 
   // ── Submit ───────────────────────────────────────────────────────────────
 
@@ -250,7 +253,7 @@ export class PostPage {
         return;
       }
 
-      const uid         = currentUser.uid;
+      const uid = currentUser.uid;
       const uploadedUrls: string[] = [];
 
       for (const item of this.mediaItems()) {
@@ -258,7 +261,7 @@ export class PostPage {
           // Shrink images before upload (videos pass through untouched) so we
           // save bandwidth on the upload and on every future download.
           const { file } = await this.media.compress(item.file);
-          const ext  = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
+          const ext = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
           const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
           uploadedUrls.push(await this.mediaService.uploadFile(path, file));
         } catch (err) {
@@ -268,18 +271,21 @@ export class PostPage {
       }
 
       const tagObject: Tag = {
-        username:  currentUser.name,
-        userId:    uid,
+        username: currentUser.name,
+        userId: uid,
         highlight: this.formData.headline,
-        lat:       coords[0],
-        lng:       coords[1],
+        lat: coords[0],
+        lng: coords[1],
         expiresIn: this.formData.expiresIn,
-        tag:       this.formData.tag,
+        tag: this.formData.tag,
         createdAt: new Date().toISOString(),
-        images:    uploadedUrls,
+        images: uploadedUrls,
         eventStart: this.formData.isEvent ? this.formData.eventStart || undefined : undefined,
-        eventEnd:   this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
-        pollOptions: this.formData.tag === TagCategory.Question ? this.formData.pollOptions.filter(o => o.trim().length > 0) : undefined,
+        eventEnd: this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
+        pollOptions:
+          this.formData.tag === TagCategory.Question
+            ? this.formData.pollOptions.filter((o) => o.trim().length > 0)
+            : undefined,
         pollVotes: this.formData.tag === TagCategory.Question ? {} : undefined,
       };
 
@@ -307,7 +313,15 @@ export class PostPage {
     // Revoke all object URLs to avoid memory leaks.
     this.mediaItems().forEach((m) => URL.revokeObjectURL(m.previewUrl));
     this.mediaItems.set([]);
-    this.formData  = { headline: '', expiresIn: 60, tag: '', isEvent: false, eventStart: '', eventEnd: '', pollOptions: ['', ''] };
+    this.formData = {
+      headline: '',
+      expiresIn: 60,
+      tag: '',
+      isEvent: false,
+      eventStart: '',
+      eventEnd: '',
+      pollOptions: ['', ''],
+    };
     this.shared.postDraft.set(null);
     this.showMapHint.set(false);
     this.showPreview.set(false);

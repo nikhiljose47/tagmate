@@ -18,10 +18,25 @@ import type {
 // Properties worth surfacing when inspecting features. Only those that
 // actually exist on a feature are ever printed or used.
 const INSPECT_PROPS = [
-  'class', 'subclass', 'type', 'kind',
-  'building', 'building:levels', 'height', 'render_height', 'colour',
-  'landuse', 'natural', 'leisure', 'amenity',
-  'railway', 'station', 'water', 'waterway', 'shop', 'office',
+  'class',
+  'subclass',
+  'type',
+  'kind',
+  'building',
+  'building:levels',
+  'height',
+  'render_height',
+  'colour',
+  'landuse',
+  'natural',
+  'leisure',
+  'amenity',
+  'railway',
+  'station',
+  'water',
+  'waterway',
+  'shop',
+  'office',
 ] as const;
 
 const MAX_VALUES_PER_PROP = 40;
@@ -30,23 +45,23 @@ const MAX_VALUES_PER_PROP = 40;
 
 /** One (source, source-layer, property) combination that matched a category. */
 export interface CategoryMatch {
-  source:      string;
+  source: string;
   sourceLayer: string;
-  property:    string;
-  values:      string[];
+  property: string;
+  values: string[];
 }
 
 export interface ClassificationReport {
-  detectedSourceLayers:   string[];
-  detectedPropertyNames:  string[];
+  detectedSourceLayers: string[];
+  detectedPropertyNames: string[];
   detectedPropertyValues: Record<string, string[]>;
-  buildingsAvailable:      boolean;
-  buildingTypesAvailable:  string[];
-  parksAvailable:          boolean;
-  forestsAvailable:        boolean;
-  waterAvailable:          boolean;
-  metroRoutesAvailable:    boolean;
-  metroStationsAvailable:  boolean;
+  buildingsAvailable: boolean;
+  buildingTypesAvailable: string[];
+  parksAvailable: boolean;
+  forestsAvailable: boolean;
+  waterAvailable: boolean;
+  metroRoutesAvailable: boolean;
+  metroStationsAvailable: boolean;
   /** Category key → every property/value combination found for it. */
   categories: Record<string, CategoryMatch[]>;
 }
@@ -58,62 +73,116 @@ export interface ClassificationReport {
 type CategoryGeometry = 'polygon' | 'line' | 'point';
 
 interface CategoryMatcher {
-  key:      string;
+  key: string;
   geometry: CategoryGeometry;
-  props:    string[];
-  values:   string[];
+  props: string[];
+  values: string[];
 }
 
 const CATEGORY_MATCHERS: CategoryMatcher[] = [
-  { key: 'commercial', geometry: 'polygon',
-    props:  ['building', 'class', 'subclass', 'type', 'kind', 'landuse', 'shop', 'office', 'amenity'],
-    values: ['commercial', 'retail', 'shop', 'mall', 'supermarket', 'kiosk', 'office'] },
-  { key: 'apartments', geometry: 'polygon',
-    props:  ['building', 'class', 'subclass', 'type', 'kind'],
-    values: ['apartments', 'dormitory'] },
-  { key: 'residential', geometry: 'polygon',
-    props:  ['building', 'class', 'subclass', 'type', 'kind', 'landuse'],
-    values: ['residential', 'house', 'detached', 'semidetached_house', 'terrace', 'bungalow'] },
-  { key: 'industrial', geometry: 'polygon',
-    props:  ['building', 'class', 'subclass', 'type', 'kind', 'landuse'],
-    values: ['industrial', 'warehouse', 'factory', 'manufacture', 'works', 'quarry'] },
-  { key: 'forest', geometry: 'polygon',
-    props:  ['class', 'subclass', 'type', 'kind', 'natural', 'landuse'],
-    values: ['forest', 'wood'] },
-  { key: 'park', geometry: 'polygon',
-    props:  ['class', 'subclass', 'type', 'kind', 'leisure', 'landuse'],
-    values: ['park', 'garden', 'grass', 'recreation_ground', 'playground', 'pitch', 'village_green'] },
-  { key: 'water', geometry: 'polygon',
-    props:  ['class', 'type', 'kind', 'natural', 'water'],
-    values: ['water', 'lake', 'river', 'ocean', 'sea', 'pond', 'reservoir', 'swimming_pool'] },
-  { key: 'metroRoute', geometry: 'line',
-    props:  ['class', 'subclass', 'railway', 'kind'],
-    values: ['subway', 'metro', 'light_rail', 'transit', 'rail'] },
-  { key: 'metroStation', geometry: 'point',
-    props:  ['railway', 'station', 'subclass', 'class', 'kind'],
-    values: ['station', 'subway', 'metro', 'halt', 'tram_stop'] },
+  {
+    key: 'commercial',
+    geometry: 'polygon',
+    props: [
+      'building',
+      'class',
+      'subclass',
+      'type',
+      'kind',
+      'landuse',
+      'shop',
+      'office',
+      'amenity',
+    ],
+    values: ['commercial', 'retail', 'shop', 'mall', 'supermarket', 'kiosk', 'office'],
+  },
+  {
+    key: 'apartments',
+    geometry: 'polygon',
+    props: ['building', 'class', 'subclass', 'type', 'kind'],
+    values: ['apartments', 'dormitory'],
+  },
+  {
+    key: 'residential',
+    geometry: 'polygon',
+    props: ['building', 'class', 'subclass', 'type', 'kind', 'landuse'],
+    values: ['residential', 'house', 'detached', 'semidetached_house', 'terrace', 'bungalow'],
+  },
+  {
+    key: 'industrial',
+    geometry: 'polygon',
+    props: ['building', 'class', 'subclass', 'type', 'kind', 'landuse'],
+    values: ['industrial', 'warehouse', 'factory', 'manufacture', 'works', 'quarry'],
+  },
+  {
+    key: 'forest',
+    geometry: 'polygon',
+    props: ['class', 'subclass', 'type', 'kind', 'natural', 'landuse'],
+    values: ['forest', 'wood'],
+  },
+  {
+    key: 'park',
+    geometry: 'polygon',
+    props: ['class', 'subclass', 'type', 'kind', 'leisure', 'landuse'],
+    values: [
+      'park',
+      'garden',
+      'grass',
+      'recreation_ground',
+      'playground',
+      'pitch',
+      'village_green',
+    ],
+  },
+  {
+    key: 'water',
+    geometry: 'polygon',
+    props: ['class', 'type', 'kind', 'natural', 'water'],
+    values: ['water', 'lake', 'river', 'ocean', 'sea', 'pond', 'reservoir', 'swimming_pool'],
+  },
+  {
+    key: 'metroRoute',
+    geometry: 'line',
+    props: ['class', 'subclass', 'railway', 'kind'],
+    values: ['subway', 'metro', 'light_rail', 'transit', 'rail'],
+  },
+  {
+    key: 'metroStation',
+    geometry: 'point',
+    props: ['railway', 'station', 'subclass', 'class', 'kind'],
+    values: ['station', 'subway', 'metro', 'halt', 'tram_stop'],
+  },
 ];
 
 // ── Category visual styles ────────────────────────────────────────────────────
 
 interface CategoryStyle {
-  kind:  'fill' | 'line' | 'circle';
+  kind: 'fill' | 'line' | 'circle';
   paint: Record<string, unknown>;
 }
 
 const CATEGORY_STYLES: Record<string, CategoryStyle> = {
-  commercial:  { kind: 'fill',   paint: { 'fill-color': '#d4a017', 'fill-opacity': 0.40 } },
-  apartments:  { kind: 'fill',   paint: { 'fill-color': '#f97316', 'fill-opacity': 0.40 } },
-  residential: { kind: 'fill',   paint: { 'fill-color': '#c8a37a', 'fill-opacity': 0.35 } },
-  industrial:  { kind: 'fill',   paint: { 'fill-color': '#8a8f98', 'fill-opacity': 0.40 } },
-  forest:      { kind: 'fill',   paint: { 'fill-color': '#1d6b3c', 'fill-opacity': 0.45 } },
-  park:        { kind: 'fill',   paint: { 'fill-color': '#67c26b', 'fill-opacity': 0.40 } },
-  water:       { kind: 'fill',   paint: { 'fill-color': '#2f7fd1', 'fill-opacity': 0.45 } },
-  metroRoute:  { kind: 'line',   paint: { 'line-color': '#a855f7', 'line-width': 2.5, 'line-opacity': 0.9 } },
-  metroStation:{ kind: 'circle', paint: {
-    'circle-radius': 5, 'circle-color': '#a855f7',
-    'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 } },
-  genericBuilding: { kind: 'fill', paint: { 'fill-color': '#b3aea6', 'fill-opacity': 0.30 } },
+  commercial: { kind: 'fill', paint: { 'fill-color': '#d4a017', 'fill-opacity': 0.4 } },
+  apartments: { kind: 'fill', paint: { 'fill-color': '#f97316', 'fill-opacity': 0.4 } },
+  residential: { kind: 'fill', paint: { 'fill-color': '#c8a37a', 'fill-opacity': 0.35 } },
+  industrial: { kind: 'fill', paint: { 'fill-color': '#8a8f98', 'fill-opacity': 0.4 } },
+  forest: { kind: 'fill', paint: { 'fill-color': '#1d6b3c', 'fill-opacity': 0.45 } },
+  park: { kind: 'fill', paint: { 'fill-color': '#67c26b', 'fill-opacity': 0.4 } },
+  water: { kind: 'fill', paint: { 'fill-color': '#2f7fd1', 'fill-opacity': 0.45 } },
+  metroRoute: {
+    kind: 'line',
+    paint: { 'line-color': '#a855f7', 'line-width': 2.5, 'line-opacity': 0.9 },
+  },
+  metroStation: {
+    kind: 'circle',
+    paint: {
+      'circle-radius': 5,
+      'circle-color': '#a855f7',
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 1.5,
+    },
+  },
+  genericBuilding: { kind: 'fill', paint: { 'fill-color': '#b3aea6', 'fill-opacity': 0.3 } },
 };
 
 export const CLASSIFICATION_LAYER_PREFIX = 'hi-cls-';
@@ -140,22 +209,29 @@ export function inspectMapStyle(map: MapLibreMap): void {
   console.groupCollapsed(`Layers (${layers.length})`);
   for (const layer of layers) {
     const l = layer as {
-      id: string; type: string; source?: string; 'source-layer'?: string;
-      filter?: unknown; paint?: unknown; layout?: unknown;
+      id: string;
+      type: string;
+      source?: string;
+      'source-layer'?: string;
+      filter?: unknown;
+      paint?: unknown;
+      layout?: unknown;
     };
     console.groupCollapsed(
-      `${l.id}  [${l.type}]  source=${l.source ?? '-'}  source-layer=${l['source-layer'] ?? '-'}`
+      `${l.id}  [${l.type}]  source=${l.source ?? '-'}  source-layer=${l['source-layer'] ?? '-'}`,
     );
     if (l.filter) console.log('filter:', JSON.stringify(l.filter));
-    if (l.paint)  console.log('paint:',  l.paint);
+    if (l.paint) console.log('paint:', l.paint);
     if (l.layout) console.log('layout:', l.layout);
     console.groupEnd();
   }
   console.groupEnd();
 
-  const sourceLayers = [...new Set(
-    layers.map(l => (l as { 'source-layer'?: string })['source-layer']).filter(Boolean)
-  )];
+  const sourceLayers = [
+    ...new Set(
+      layers.map((l) => (l as { 'source-layer'?: string })['source-layer']).filter(Boolean),
+    ),
+  ];
   console.log('Distinct source-layers referenced by style:', sourceLayers);
   console.groupEnd();
 }
@@ -172,9 +248,9 @@ export function describeFeaturesAt(map: MapLibreMap, point: PointLike): void {
   console.group(`[MapInspector] ${feats.length} feature(s) at clicked point`);
   for (const f of feats) {
     console.groupCollapsed(
-      `${f.layer.id}  [${f.layer.type}]  source-layer=${f.sourceLayer ?? '-'}`
+      `${f.layer.id}  [${f.layer.type}]  source-layer=${f.sourceLayer ?? '-'}`,
     );
-    console.log('source:',        f.source);
+    console.log('source:', f.source);
     console.log('geometry type:', f.geometry.type);
     if (f.id !== undefined) console.log('feature id:', f.id);
     console.log('all properties:', f.properties);
@@ -205,10 +281,10 @@ export function buildClassificationReport(map: MapLibreMap): ClassificationRepor
   const feats = map.queryRenderedFeatures();
 
   const sourceLayers = new Set<string>();
-  const propNames    = new Set<string>();
-  const propValues   = new Map<string, Set<string>>();
+  const propNames = new Set<string>();
+  const propValues = new Map<string, Set<string>>();
   // category key → "source|sourceLayer|property" → value set
-  const catMatches   = new Map<string, Map<string, Set<string>>>();
+  const catMatches = new Map<string, Map<string, Set<string>>>();
   const buildingTypes = new Set<string>();
   let buildingsSeen = false;
   let buildingSource: { source: string; sourceLayer: string } | null = null;
@@ -261,24 +337,28 @@ export function buildClassificationReport(map: MapLibreMap): ClassificationRepor
   }
   // Generic-buildings fallback target (footprints exist even without types).
   if (buildingsSeen && buildingSource) {
-    categories['genericBuilding'] = [{
-      source: buildingSource.source, sourceLayer: buildingSource.sourceLayer,
-      property: '', values: [],
-    }];
+    categories['genericBuilding'] = [
+      {
+        source: buildingSource.source,
+        sourceLayer: buildingSource.sourceLayer,
+        property: '',
+        values: [],
+      },
+    ];
   }
 
   return {
-    detectedSourceLayers:   [...sourceLayers].sort(),
-    detectedPropertyNames:  [...propNames].sort(),
+    detectedSourceLayers: [...sourceLayers].sort(),
+    detectedPropertyNames: [...propNames].sort(),
     detectedPropertyValues: Object.fromEntries(
-      [...propValues.entries()].map(([k, v]) => [k, [...v].sort()])
+      [...propValues.entries()].map(([k, v]) => [k, [...v].sort()]),
     ),
-    buildingsAvailable:     buildingsSeen,
+    buildingsAvailable: buildingsSeen,
     buildingTypesAvailable: [...buildingTypes].sort(),
-    parksAvailable:         !!categories['park']?.length,
-    forestsAvailable:       !!categories['forest']?.length,
-    waterAvailable:         !!categories['water']?.length || sourceLayers.has('water'),
-    metroRoutesAvailable:   !!categories['metroRoute']?.length,
+    parksAvailable: !!categories['park']?.length,
+    forestsAvailable: !!categories['forest']?.length,
+    waterAvailable: !!categories['water']?.length || sourceLayers.has('water'),
+    metroRoutesAvailable: !!categories['metroRoute']?.length,
     metroStationsAvailable: !!categories['metroStation']?.length,
     categories,
   };
@@ -309,7 +389,7 @@ export function addClassificationLayers(
   const before = beforeId && map.getLayer(beforeId) ? beforeId : undefined;
 
   const typedBuildingKeys = ['commercial', 'apartments', 'residential', 'industrial'];
-  const hasTypedBuildings = typedBuildingKeys.some(k => report.categories[k]?.length);
+  const hasTypedBuildings = typedBuildingKeys.some((k) => report.categories[k]?.length);
 
   for (const [key, style] of Object.entries(CATEGORY_STYLES)) {
     // Generic buildings are a fallback: only when footprints exist but no
@@ -338,13 +418,14 @@ export function addClassificationLayers(
 
       // coalesce across every property detected for this category, then
       // match against the union of detected values.
-      const props  = [...new Set(group.map(m => m.property).filter(Boolean))];
-      const values = [...new Set(group.flatMap(m => m.values))];
+      const props = [...new Set(group.map((m) => m.property).filter(Boolean))];
+      const values = [...new Set(group.flatMap((m) => m.values))];
       const filter: FilterSpecification | undefined = props.length
-        ? ['in',
-            ['coalesce', ...props.map(p => ['get', p]), ''],
+        ? ([
+            'in',
+            ['coalesce', ...props.map((p) => ['get', p]), ''],
             ['literal', values],
-          ] as unknown as FilterSpecification
+          ] as unknown as FilterSpecification)
         : undefined; // genericBuilding: whole source-layer, no filter
 
       try {
@@ -368,7 +449,7 @@ export function addClassificationLayers(
   if (!added.length) {
     console.warn(
       '[MapInspector] The current tileset exposes no usable classification ' +
-      'data (building types, land-use, water, metro). No custom layers added.'
+        'data (building types, land-use, water, metro). No custom layers added.',
     );
   }
   return added;

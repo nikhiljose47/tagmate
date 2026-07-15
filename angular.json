@@ -36,16 +36,10 @@
               },
               "src/assets"
             ],
-            "styles": [
-              "node_modules/bootstrap-icons/font/bootstrap-icons.css",
-              "src/styles.scss"
-            ],
+            "styles": ["node_modules/bootstrap-icons/font/bootstrap-icons.css", "src/styles.scss"],
             "server": "src/main.server.ts",
             "outputMode": "server",
-            "allowedCommonJsDependencies": [
-              "maplibre-gl",
-              "events"
-            ],
+            "allowedCommonJsDependencies": ["maplibre-gl", "events"],
             "ssr": {
               "entry": "src/server.ts",
               "experimentalPlatform": "neutral"
@@ -142,10 +136,7 @@
               },
               "src/assets"
             ],
-            "styles": [
-              "node_modules/bootstrap-icons/font/bootstrap-icons.css",
-              "src/styles.scss"
-            ]
+            "styles": ["src/styles.scss"]
           }
         }
       }

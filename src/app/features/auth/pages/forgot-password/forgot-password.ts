@@ -33,7 +33,7 @@ export class ForgotPasswordComponent {
     this.error.set('');
     this.loading.set(true);
     try {
-      const { error } = await this.session.resetPassword(emailVal) as any;
+      const { error } = (await this.session.resetPassword(emailVal)) as any;
       if (error) {
         this.error.set(error.message || 'Reset failed');
       } else {

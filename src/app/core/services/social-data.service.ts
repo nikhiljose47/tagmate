@@ -8,7 +8,8 @@ export class SocialDataService {
   private readonly client = this.clientService.client;
 
   getDirectMessagesForUser(uid: string): Observable<{ data: any[] | null; error: unknown }> {
-    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    const uuidRegex =
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
     if (!uuidRegex.test(uid)) {
       return of({ data: [], error: null });
     }
@@ -17,7 +18,7 @@ export class SocialDataService {
         .from('direct_messages')
         .select('*')
         .or(`from_uid.eq.${uid},to_uid.eq.${uid}`)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
     ) as Observable<{ data: any[] | null; error: unknown }>;
   }
 }

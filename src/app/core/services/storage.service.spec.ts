@@ -11,21 +11,20 @@ describe('StorageService', () => {
     storageMock = {
       from: jasmine.createSpy('from').and.returnValue({
         upload: jasmine.createSpy('upload').and.returnValue(Promise.resolve({ error: null })),
-        getPublicUrl: jasmine.createSpy('getPublicUrl').and.returnValue({ data: { publicUrl: 'https://example.com/test.jpg' } })
-      })
+        getPublicUrl: jasmine
+          .createSpy('getPublicUrl')
+          .and.returnValue({ data: { publicUrl: 'https://example.com/test.jpg' } }),
+      }),
     };
 
     clientServiceMock = {
       client: {
-        storage: storageMock
-      }
+        storage: storageMock,
+      },
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        StorageService,
-        { provide: SupabaseClientService, useValue: clientServiceMock }
-      ]
+      providers: [StorageService, { provide: SupabaseClientService, useValue: clientServiceMock }],
     });
     service = TestBed.inject(StorageService);
   });

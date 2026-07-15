@@ -28,7 +28,7 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  
+
   &:hover {
     color: var(--tm-primary);
   }
@@ -80,7 +80,7 @@
 
 .preview-emoji {
   font-size: 72px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .preview-overlay {
@@ -126,7 +126,7 @@
   border-radius: 12px;
   background: var(--tm-bg);
   padding: 8px 12px;
-  
+
   &:focus-within {
     border-color: var(--tm-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--tm-primary) 12%, transparent);

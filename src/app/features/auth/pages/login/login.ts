@@ -19,10 +19,10 @@ export class LoginPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   public readonly theme = inject(ThemeService);
 
-  email    = signal('');
+  email = signal('');
   password = signal('');
-  error    = signal('');
-  loading  = signal(false);
+  error = signal('');
+  loading = signal(false);
   showPassword = signal(false);
 
   private destroyed = false;
@@ -35,12 +35,10 @@ export class LoginPage implements OnInit {
 
   ngOnInit(): void {
     // Redirect already-authenticated users away from the login page.
-    this.session.user$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (this.destroyed) return;
-        if (!user.isGuest) this.router.navigateByUrl('/hood');
-      });
+    this.session.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
+      if (this.destroyed) return;
+      if (!user.isGuest) this.router.navigateByUrl('/hood');
+    });
   }
 
   async login(): Promise<void> {
@@ -73,7 +71,7 @@ export class LoginPage implements OnInit {
 
     try {
       const res = await Promise.race([this.session.loginGuest(), this.timeoutPromise()]);
-      
+
       if (this.destroyed) return;
 
       if (res && (res as any).ok === false) {
@@ -94,7 +92,7 @@ export class LoginPage implements OnInit {
 
   private timeoutPromise(): Promise<{ ok: false; message: string }> {
     return new Promise((resolve) =>
-      setTimeout(() => resolve({ ok: false, message: 'Request timeout (8s)' }), 8000)
+      setTimeout(() => resolve({ ok: false, message: 'Request timeout (8s)' }), 8000),
     );
   }
 }

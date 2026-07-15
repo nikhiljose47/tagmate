@@ -4,16 +4,16 @@ import { Tag } from '../models/tag.model';
 import { TagDataService } from './tag-data.service';
 import { rowToTag, TagRow } from './tag.mapper';
 
-const HOOD_KEY   = 'tagmate_hood';
-const CACHE_TTL  = 60_000;
-const DELTA      = 0.12; // ~13 km radius around hood centre
+const HOOD_KEY = 'tagmate_hood';
+const CACHE_TTL = 60_000;
+const DELTA = 0.12; // ~13 km radius around hood centre
 
 @Injectable({ providedIn: 'root' })
 export class PreloadService {
   private readonly tagData = inject(TagDataService);
 
-  private _hoodPosts: Tag[] | null    = null;
-  private _hoodTs     = 0;
+  private _hoodPosts: Tag[] | null = null;
+  private _hoodTs = 0;
 
   /** Call once on app start. */
   prefetch(): void {
@@ -32,15 +32,13 @@ export class PreloadService {
 
   private prefetchHood(): void {
     const { lat, lng } = this.readStoredHood().coords;
-    this.tagData
-      .fetchTagsInBounds(lng - DELTA, lat - DELTA, lng + DELTA, lat + DELTA)
-      .subscribe({
-        next: ({ data }) => {
-          this._hoodPosts = (data ?? []).map(rowToTag);
-          this._hoodTs    = Date.now();
-        },
-        error: () => {},
-      });
+    this.tagData.fetchTagsInBounds(lng - DELTA, lat - DELTA, lng + DELTA, lat + DELTA).subscribe({
+      next: ({ data }) => {
+        this._hoodPosts = (data ?? []).map(rowToTag);
+        this._hoodTs = Date.now();
+      },
+      error: () => {},
+    });
   }
 
   private readStoredHood(): Hood {

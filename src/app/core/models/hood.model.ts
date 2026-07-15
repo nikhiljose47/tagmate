@@ -4,7 +4,7 @@ export class Hood {
   id: string = '';
   name: string = 'Marathahalli';
   country: string = 'India';
-  coords: Coords = { lat: 12.952, lng: 77.700 };
+  coords: Coords = { lat: 12.952, lng: 77.7 };
   address: string = '';
   boundaries: number[] = [];
 

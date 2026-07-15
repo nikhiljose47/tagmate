@@ -59,7 +59,16 @@ export interface DirectMessage {
 
 export interface LocalNotification {
   id: string;
-  type: 'reply' | 'mention' | 'love' | 'follow' | 'alert' | 'rsvp' | 'message' | 'verification' | 'status';
+  type:
+    | 'reply'
+    | 'mention'
+    | 'love'
+    | 'follow'
+    | 'alert'
+    | 'rsvp'
+    | 'message'
+    | 'verification'
+    | 'status';
   title: string;
   body: string;
   postId?: string;

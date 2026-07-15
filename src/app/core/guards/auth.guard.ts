@@ -9,7 +9,7 @@ export const authGuard: CanActivateFn = () => {
 
   return auth.session$.pipe(
     take(1),
-    map((session) => (session ? true : router.createUrlTree(['/login'])))
+    map((session) => (session ? true : router.createUrlTree(['/login']))),
   );
 };
 
@@ -21,9 +21,7 @@ export const adminGuard: CanActivateFn = () => {
   return auth.session$.pipe(
     take(1),
     map((session) =>
-      session?.user.app_metadata?.['role'] === 'admin'
-        ? true
-        : router.createUrlTree(['/feed'])
-    )
+      session?.user.app_metadata?.['role'] === 'admin' ? true : router.createUrlTree(['/feed']),
+    ),
   );
 };

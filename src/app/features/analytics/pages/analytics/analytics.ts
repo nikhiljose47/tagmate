@@ -43,27 +43,51 @@ export class AnalyticsPage implements OnInit {
     const alerts = posts.filter((post) => post.tag === 'alert').length;
     const engagement = posts.reduce(
       (sum, post) => sum + (post.likeCount ?? 0) + (post.commentCount ?? 0) + (post.rsvpCount ?? 0),
-      0
+      0,
     );
     const top = this.categoryRows()[0]?.label ?? 'No category';
 
     return [
-      { label: 'Active posts', value: posts.length.toString(), note: 'Latest operational sample', icon: 'bi-broadcast' },
-      { label: 'Neighborhoods', value: neighborhoods.toString(), note: 'Distinct hoods represented', icon: 'bi-buildings' },
-      { label: 'Alerts', value: alerts.toString(), note: 'Posts tagged as alert', icon: 'bi-exclamation-triangle' },
-      { label: 'Engagement', value: engagement.toString(), note: 'Likes, comments, and RSVPs', icon: 'bi-activity' },
+      {
+        label: 'Active posts',
+        value: posts.length.toString(),
+        note: 'Latest operational sample',
+        icon: 'bi-broadcast',
+      },
+      {
+        label: 'Neighborhoods',
+        value: neighborhoods.toString(),
+        note: 'Distinct hoods represented',
+        icon: 'bi-buildings',
+      },
+      {
+        label: 'Alerts',
+        value: alerts.toString(),
+        note: 'Posts tagged as alert',
+        icon: 'bi-exclamation-triangle',
+      },
+      {
+        label: 'Engagement',
+        value: engagement.toString(),
+        note: 'Likes, comments, and RSVPs',
+        icon: 'bi-activity',
+      },
       { label: 'Top category', value: top, note: 'Highest volume category', icon: 'bi-tags' },
     ];
   });
 
-  protected readonly categoryRows = computed(() => this.countBy((post) => post.tag || 'uncategorized'));
+  protected readonly categoryRows = computed(() =>
+    this.countBy((post) => post.tag || 'uncategorized'),
+  );
   protected readonly hoodRows = computed(() => this.countBy((post) => post.hoodId || 'Nearby'));
-  protected readonly contributorRows = computed(() => this.countBy((post) => post.username || 'Anonymous'));
+  protected readonly contributorRows = computed(() =>
+    this.countBy((post) => post.username || 'Anonymous'),
+  );
   protected readonly latestAlerts = computed(() =>
     this.posts()
       .filter((post) => post.tag === 'alert')
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 6)
+      .slice(0, 6),
   );
 
   ngOnInit(): void {

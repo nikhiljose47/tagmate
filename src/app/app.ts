@@ -11,16 +11,24 @@ import { PreloadService } from './core/services/preload.service';
 import { NetworkService } from './core/services/network.service';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 import { NotificationDrawerComponent } from './shared/components/notification-drawer/notification-drawer.component';
+import { TelemetryService } from './core/services/telemetry.service';
 
 /** Minimum time the static splash (#tm-splash in index.html) stays visible. */
 const SPLASH_SHOW_MS = 1800;
-const SPLASH_FADE_MS =  450;
+const SPLASH_FADE_MS = 450;
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, NavComponent, AppTopbarComponent, ConfirmDialogComponent, NotificationDrawerComponent],
+  imports: [
+    RouterOutlet,
+    CommonModule,
+    NavComponent,
+    AppTopbarComponent,
+    ConfirmDialogComponent,
+    NotificationDrawerComponent,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   protected readonly title = signal('tagmate');
@@ -28,27 +36,33 @@ export class App {
   protected readonly network = inject(NetworkService);
 
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly preload    = inject(PreloadService);
-  private readonly router     = inject(Router);
+  private readonly preload = inject(PreloadService);
+  private readonly router = inject(Router);
+  private readonly telemetry = inject(TelemetryService);
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       map((event) => event.urlAfterRedirects),
-      startWith(this.router.url)
+      startWith(this.router.url),
     ),
-    { initialValue: this.router.url }
+    { initialValue: this.router.url },
   );
 
-  protected readonly showNav    = computed(() => !this.currentUrl().startsWith('/login'));
-  protected readonly showTopbar = computed(() =>
-    this.showNav() && !this.currentUrl().startsWith('/island')
+  protected readonly showNav = computed(() => !this.currentUrl().startsWith('/login'));
+  protected readonly showTopbar = computed(
+    () => this.showNav() && !this.currentUrl().startsWith('/island'),
   );
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
       // Fire prefetches immediately so data arrives during the splash window.
       this.preload.prefetch();
+      this.router.events
+        .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+        .subscribe((event) =>
+          this.telemetry.track('app.route-viewed', { path: event.urlAfterRedirects }),
+        );
 
       // Dismiss the static splash from index.html after the minimum show time.
       afterNextRender(() => {

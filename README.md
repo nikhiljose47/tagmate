@@ -17,20 +17,20 @@ More project notes live in `docs/`:
 These are the versions currently installed in this workspace:
 
 | Tool or package | Version |
-| --- | --- |
-| Node.js | 22.22.3 |
-| npm | 11.4.2 |
-| Angular CLI | 21.2.17 |
-| Angular | 21.2.17 |
-| TypeScript | 5.9.3 |
-| RxJS | 7.8.2 |
-| MapTiler SDK | 4.0.2 |
-| MapLibre GL JS | 5.24.0 |
-| NgRx | 21.1.1 |
-| Supabase JS | 2.110.0 |
-| Bootstrap Icons | 1.13.1 |
-| Tailwind CSS | 4.3.1 |
-| Wrangler | 4.45.3 |
+| --------------- | ------- |
+| Node.js         | 22.22.3 |
+| npm             | 11.4.2  |
+| Angular CLI     | 21.2.17 |
+| Angular         | 21.2.17 |
+| TypeScript      | 5.9.3   |
+| RxJS            | 7.8.2   |
+| MapTiler SDK    | 4.0.2   |
+| MapLibre GL JS  | 5.24.0  |
+| NgRx            | 21.1.1  |
+| Supabase JS     | 2.110.0 |
+| Bootstrap Icons | 1.13.1  |
+| Tailwind CSS    | 4.3.1   |
+| Wrangler        | 4.45.3  |
 
 The declared dependency ranges are in `package.json`. The exact installed dependency tree is locked in `package-lock.json`.
 

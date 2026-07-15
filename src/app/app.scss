@@ -51,18 +51,34 @@
   }
 }
 
-.app-toast-success { border-left-color: var(--tm-success); }
-.app-toast-warning { border-left-color: var(--tm-warning); }
-.app-toast-danger  { border-left-color: var(--tm-danger);  }
+.app-toast-success {
+  border-left-color: var(--tm-success);
+}
+.app-toast-warning {
+  border-left-color: var(--tm-warning);
+}
+.app-toast-danger {
+  border-left-color: var(--tm-danger);
+}
 .app-toast-quest {
   border-left-color: #8b5cf6;
-  background: linear-gradient(135deg, rgba(243, 232, 255, 0.95) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(243, 232, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.95) 100%
+  ) !important;
   border-color: rgba(139, 92, 246, 0.3) !important;
-  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.2), 0 8px 10px -6px rgba(139, 92, 246, 0.2) !important;
+  box-shadow:
+    0 10px 25px -5px rgba(139, 92, 246, 0.2),
+    0 8px 10px -6px rgba(139, 92, 246, 0.2) !important;
 }
 
 .dark .app-toast-quest {
-  background: linear-gradient(135deg, rgba(88, 28, 135, 0.4) 0%, rgba(30, 41, 59, 0.95) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(88, 28, 135, 0.4) 0%,
+    rgba(30, 41, 59, 0.95) 100%
+  ) !important;
   border-color: rgba(168, 85, 247, 0.4) !important;
 }
 
@@ -70,10 +86,18 @@
    Toast animation
 ───────────────────────────────────────────────────────────── */
 @keyframes toastIn {
-  from { opacity: 0; transform: translate(-50%, 10px); }
-  to   { opacity: 1; transform: translate(-50%, 0);    }
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-toast { animation: none; }
+  .app-toast {
+    animation: none;
+  }
 }

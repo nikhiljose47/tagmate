@@ -1,8 +1,8 @@
 export type ToastTone = 'info' | 'success' | 'warning' | 'danger';
 
 export enum ToastToneEnum {
-  Info    = 'info',
+  Info = 'info',
   Success = 'success',
   Warning = 'warning',
-  Danger  = 'danger',
+  Danger = 'danger',
 }

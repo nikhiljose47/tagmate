@@ -17,32 +17,37 @@ export class TagDataService {
 
   addRow<T extends Record<string, unknown>>(table: string, data: T) {
     return from(this.client.from(table).insert(data).select().single<T>()).pipe(
-      map((result) => this.requireSuccess(result))
+      map((result) => this.requireSuccess(result)),
     );
   }
 
   getRows<T>(
     table: string,
-    condition?: { field: string; op: '=='; value: unknown }
+    condition?: { field: string; op: '=='; value: unknown },
   ): Observable<{ data: T[] | null; error: unknown }> {
     let query = this.client.from(table).select('*');
     if (condition) {
       query = query.eq(condition.field, condition.value as string);
     }
-    return from(query).pipe(
-      map((result) => this.requireSuccess(result))
-    ) as Observable<{ data: T[] | null; error: unknown }>;
+    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{
+      data: T[] | null;
+      error: unknown;
+    }>;
   }
 
   getRow<T>(table: string, id: string): Observable<{ data: T | null; error: unknown }> {
-    return from(
-      this.client.from(table).select('*').eq('id', id).single<T>()
-    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T | null; error: unknown }>;
+    return from(this.client.from(table).select('*').eq('id', id).single<T>()).pipe(
+      map((result) => this.requireSuccess(result)),
+    ) as Observable<{ data: T | null; error: unknown }>;
   }
 
   getUserById(uid: string): Observable<AppUser | null> {
     return from(
-      this.client.from('users').select('uid,name,is_guest,reputation,bio,created_at,updated_at').eq('uid', uid).single<any>()
+      this.client
+        .from('users')
+        .select('uid,name,is_guest,reputation,bio,created_at,updated_at')
+        .eq('uid', uid)
+        .single<any>(),
     ).pipe(
       map((result) => {
         const { data } = this.requireSuccess(result);
@@ -56,31 +61,40 @@ export class TagDataService {
           createdAt: data.created_at ?? undefined,
           updatedAt: data.updated_at ?? undefined,
         };
-      })
+      }),
     );
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {
-    return from(this.client.from(table).update(data as Record<string, unknown>).eq('id', id).select().single<T>()).pipe(
-      map((result) => this.requireSuccess(result))
-    );
+    return from(
+      this.client
+        .from(table)
+        .update(data as Record<string, unknown>)
+        .eq('id', id)
+        .select()
+        .single<T>(),
+    ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   deleteRow(table: string, id: string) {
     return from(this.client.from(table).delete().eq('id', id)).pipe(
-      map((result) => this.requireSuccess(result))
+      map((result) => this.requireSuccess(result)),
     );
   }
 
   deleteRowsWhere(table: string, matchers: Record<string, unknown>) {
     return from(this.client.from(table).delete().match(matchers)).pipe(
-      map((result) => this.requireSuccess(result))
+      map((result) => this.requireSuccess(result)),
     );
   }
 
   updateRowsWhere<T>(table: string, matchers: Record<string, unknown>, data: Partial<T>) {
     return from(
-      this.client.from(table).update(data as Record<string, unknown>).match(matchers).select()
+      this.client
+        .from(table)
+        .update(data as Record<string, unknown>)
+        .match(matchers)
+        .select(),
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 
@@ -93,44 +107,74 @@ export class TagDataService {
         .select('uid,name,bio,reputation,created_at,updated_at')
         .ilike('name', `%${sanitized}%`)
         .eq('is_guest', false)
-        .limit(limit)
+        .limit(limit),
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 
-  callRpc<T>(name: string, params: Record<string, unknown>): Observable<{ data: T | null; error: unknown }> {
+  callRpc<T>(
+    name: string,
+    params: Record<string, unknown>,
+  ): Observable<{ data: T | null; error: unknown }> {
     return from(this.client.rpc(name, params)).pipe(
-      map((result) => this.requireSuccess(result))
+      map((result) => this.requireSuccess(result)),
     ) as Observable<{ data: T | null; error: unknown }>;
   }
 
   upsertRow<T extends Record<string, unknown>>(table: string, data: T, onConflict?: string) {
     return from(this.client.from(table).upsert(data, onConflict ? { onConflict } : undefined)).pipe(
-      map((result) => this.requireSuccess(result))
+      map((result) => this.requireSuccess(result)),
     );
   }
 
-  getRowsIn<T>(table: string, field: string, values: unknown[]): Observable<{ data: T[] | null; error: unknown }> {
+  getRowsIn<T>(
+    table: string,
+    field: string,
+    values: unknown[],
+  ): Observable<{ data: T[] | null; error: unknown }> {
     if (!values.length) return of({ data: [], error: null });
     return from(
-      this.client.from(table).select('*').in(field, values as (string | number)[])
-    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
+      this.client
+        .from(table)
+        .select('*')
+        .in(field, values as (string | number)[]),
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{
+      data: T[] | null;
+      error: unknown;
+    }>;
   }
 
   getLatest<T>(table: string, limit: number): Observable<{ data: T[] | null; error: unknown }> {
     return from(
-      this.client.from(table).select('*').order('created_at', { ascending: false }).limit(limit)
-    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
+      this.client.from(table).select('*').order('created_at', { ascending: false }).limit(limit),
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{
+      data: T[] | null;
+      error: unknown;
+    }>;
   }
 
-  getLatestPaginated<T>(table: string, limit: number, offset: number, search?: string): Observable<{ data: T[] | null; error: unknown }> {
-    let query = this.client.from(table).select('*').order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-    
+  getLatestPaginated<T>(
+    table: string,
+    limit: number,
+    offset: number,
+    search?: string,
+  ): Observable<{ data: T[] | null; error: unknown }> {
+    let query = this.client
+      .from(table)
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
     if (search) {
       const searchTerm = `%${search}%`;
-      query = query.or(`highlight.ilike.${searchTerm},username.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`);
+      query = query.or(
+        `highlight.ilike.${searchTerm},username.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`,
+      );
     }
 
-    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
+    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{
+      data: T[] | null;
+      error: unknown;
+    }>;
   }
 
   getFilteredRows<T>(
@@ -145,10 +189,10 @@ export class TagDataService {
       hoodId?: string;
     },
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Observable<{ data: T[] | null; error: unknown }> {
     let query = this.client.from(table).select('*');
-    
+
     if (filters.userId) {
       query = query.eq('user_id', filters.userId);
     }
@@ -172,23 +216,26 @@ export class TagDataService {
       const term = `%${sanitized}%`;
       query = query.or(`highlight.ilike.${term},username.ilike.${term},tag.ilike.${term}`);
     }
-    
+
     query = query.order('created_at', { ascending: false });
-    
+
     if (limit !== undefined && offset !== undefined) {
       query = query.range(offset, offset + limit - 1);
     } else if (limit !== undefined) {
       query = query.limit(limit);
     }
-    
-    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: T[] | null; error: unknown }>;
+
+    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{
+      data: T[] | null;
+      error: unknown;
+    }>;
   }
 
   fetchTagsInBounds(
     minLng: number,
     minLat: number,
     maxLng: number,
-    maxLat: number
+    maxLat: number,
   ): Observable<{ data: TagRow[] | null; error: unknown }> {
     return from(
       this.client.rpc('fetch_tags_in_bounds', {
@@ -196,13 +243,16 @@ export class TagDataService {
         min_lat: minLat,
         max_lng: maxLng,
         max_lat: maxLat,
-      })
-    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{ data: TagRow[] | null; error: unknown }>;
+      }),
+    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{
+      data: TagRow[] | null;
+      error: unknown;
+    }>;
   }
 
   setUserActive() {
     return from(this.client.rpc('set_user_active')).pipe(
-      map((result) => this.requireSuccess(result))
+      map((result) => this.requireSuccess(result)),
     );
   }
 }

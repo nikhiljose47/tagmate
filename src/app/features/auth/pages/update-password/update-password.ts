@@ -30,14 +30,16 @@ export class UpdatePasswordComponent {
   async onSubmit(): Promise<void> {
     const pass = this.password().trim();
     if (!this.isPasswordStrong(pass)) {
-      this.error.set('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.');
+      this.error.set(
+        'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.',
+      );
       return;
     }
 
     this.error.set('');
     this.loading.set(true);
     try {
-      const { error } = await this.session.updatePassword(pass) as any;
+      const { error } = (await this.session.updatePassword(pass)) as any;
       if (error) {
         this.error.set(error.message || 'Update failed');
       } else {

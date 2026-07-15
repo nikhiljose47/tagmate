@@ -30,9 +30,9 @@ export interface CompressionResult {
 // still cutting a typical 12MP phone photo (4000x3000, ~4-6MB) down to a few
 // hundred KB. Bump maxDimension further only if a wider hero layout ships.
 const DEFAULTS: Required<CompressionOptions> = {
-  maxDimension:   1920,
-  quality:        0.85,
-  mimeType:       'image/webp',
+  maxDimension: 1920,
+  quality: 0.85,
+  mimeType: 'image/webp',
   skipUnderBytes: 80 * 1024, // 80 KB — not worth re-encoding tiny images
 };
 
@@ -49,7 +49,7 @@ const DEFAULTS: Required<CompressionOptions> = {
 @Injectable({ providedIn: 'root' })
 export class MediaCompressionService {
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly logger     = inject(LoggerService);
+  private readonly logger = inject(LoggerService);
 
   /** Cached one-time check for canvas WebP encoding support. */
   private webpSupported?: boolean;
@@ -62,16 +62,16 @@ export class MediaCompressionService {
     const opts = { ...DEFAULTS, ...options };
     const passthrough = (f: File): CompressionResult => ({
       file: f,
-      originalBytes:   file.size,
+      originalBytes: file.size,
       compressedBytes: f.size,
-      ratio:           file.size ? f.size / file.size : 1,
-      didCompress:     f !== file,
+      ratio: file.size ? f.size / file.size : 1,
+      didCompress: f !== file,
     });
 
     // Only compress raster images in a browser; everything else passes through.
     if (!isPlatformBrowser(this.platformId)) return passthrough(file);
-    if (!this.isCompressibleImage(file))     return passthrough(file);
-    if (file.size < opts.skipUnderBytes)     return passthrough(file);
+    if (!this.isCompressibleImage(file)) return passthrough(file);
+    if (file.size < opts.skipUnderBytes) return passthrough(file);
 
     try {
       const mime = (await this.canEncodeWebp()) ? opts.mimeType : 'image/jpeg';
@@ -91,7 +91,7 @@ export class MediaCompressionService {
       });
       this.logger.debug(
         `Compressed ${file.name}: ${this.kb(file.size)} → ${this.kb(compressed.size)} ` +
-        `(${Math.round((1 - compressed.size / file.size) * 100)}% smaller)`
+          `(${Math.round((1 - compressed.size / file.size) * 100)}% smaller)`,
       );
       return passthrough(compressed);
     } catch (err) {
@@ -105,16 +105,19 @@ export class MediaCompressionService {
     return Promise.all(
       files.map((f) =>
         this.compress(f, options).catch((err) => {
-          this.logger.warn('Media compression failed on compressAll, falling back to original.', err);
+          this.logger.warn(
+            'Media compression failed on compressAll, falling back to original.',
+            err,
+          );
           return {
             file: f,
-            originalBytes:   f.size,
+            originalBytes: f.size,
             compressedBytes: f.size,
-            ratio:           1,
-            didCompress:     false,
+            ratio: 1,
+            didCompress: false,
           };
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -143,8 +146,14 @@ export class MediaCompressionService {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
-      img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image decode failed')); };
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Image decode failed'));
+      };
       img.src = url;
     });
   }
@@ -161,7 +170,7 @@ export class MediaCompressionService {
     width: number,
     height: number,
     mime: string,
-    quality: number
+    quality: number,
   ): Promise<Blob | null> {
     // OffscreenCanvas keeps the work off the DOM where available.
     if (typeof OffscreenCanvas !== 'undefined') {
@@ -173,7 +182,7 @@ export class MediaCompressionService {
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width  = width;
+    canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
@@ -202,7 +211,7 @@ export class MediaCompressionService {
   }
 
   private renameTo(name: string, mime: string): string {
-    const ext  = mime === 'image/webp' ? 'webp' : 'jpg';
+    const ext = mime === 'image/webp' ? 'webp' : 'jpg';
     const base = name.replace(/\.[^./\\]+$/, '');
     return `${base || 'image'}.${ext}`;
   }

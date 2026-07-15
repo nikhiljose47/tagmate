@@ -1,0 +1,40 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run test:coverage
+      - run: npm run build
+      - name: Report production bundle sizes
+        run: Get-ChildItem dist/browser -Recurse -File | Sort-Object Length -Descending | Select-Object -First 30 Name,Length | Format-Table -AutoSize
+        shell: pwsh
+      - name: Run Chromium smoke tests
+        run: npx playwright install --with-deps chromium && npx playwright test --project=chromium
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics
+          path: |
+            coverage/
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

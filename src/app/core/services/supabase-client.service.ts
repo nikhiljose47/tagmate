@@ -6,12 +6,24 @@ import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class SupabaseClientService {
   private readonly platformId = inject(PLATFORM_ID);
+  private static testClientSequence = 0;
+  private readonly authStorageKey = this.createStorageKey();
+
+  private createStorageKey(): string | undefined {
+    // TestBed deliberately creates multiple root injectors. Isolating their
+    // auth storage prevents Supabase clients from sharing mutable test state.
+    if (typeof globalThis !== 'undefined' && '__karma__' in globalThis) {
+      return `tagmate-test-auth-${++SupabaseClientService.testClientSequence}`;
+    }
+    return undefined;
+  }
 
   readonly client: SupabaseClient = createClient(
     environment.supabaseUrl,
     environment.supabaseAnonKey,
     {
       auth: {
+        ...(this.authStorageKey ? { storageKey: this.authStorageKey } : {}),
         storage: isPlatformBrowser(this.platformId)
           ? globalThis.localStorage
           : {
@@ -23,6 +35,6 @@ export class SupabaseClientService {
         persistSession: isPlatformBrowser(this.platformId),
         detectSessionInUrl: isPlatformBrowser(this.platformId),
       },
-    }
+    },
   );
 }

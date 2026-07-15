@@ -73,10 +73,14 @@ export class PostDetailPage implements OnInit {
   protected readonly visibleComments = computed(() => {
     const post = this.post();
     if (!post) return [];
-    const items = this.social.topLevelCommentsFor(post).filter((comment) => !this.platform.isBlocked(comment.authorUid));
-    return [...items].sort((a, b) => this.commentSort() === 'helpful'
-      ? b.upvotes - a.upvotes || b.createdAt.localeCompare(a.createdAt)
-      : b.createdAt.localeCompare(a.createdAt));
+    const items = this.social
+      .topLevelCommentsFor(post)
+      .filter((comment) => !this.platform.isBlocked(comment.authorUid));
+    return [...items].sort((a, b) =>
+      this.commentSort() === 'helpful'
+        ? b.upvotes - a.upvotes || b.createdAt.localeCompare(a.createdAt)
+        : b.createdAt.localeCompare(a.createdAt),
+    );
   });
 
   protected readonly postKey = computed(() => {
@@ -91,25 +95,30 @@ export class PostDetailPage implements OnInit {
       return;
     }
 
-    this.tagRepo.getById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (post) => {
-        this.post.set(post);
-        this.isLoading.set(false);
-        if (post) {
-          this.loadRelated(post);
-          void this.platform.hydratePostTrust(this.social.postKey(post));
-        }
-      },
-      error: (err) => {
-        this.logger.error('Failed to load post detail', err);
-        this.toast.show('Could not load this post.', 'danger');
-        this.isLoading.set(false);
-      },
-    });
+    this.tagRepo
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (post) => {
+          this.post.set(post);
+          this.isLoading.set(false);
+          if (post) {
+            this.loadRelated(post);
+            void this.platform.hydratePostTrust(this.social.postKey(post));
+          }
+        },
+        error: (err) => {
+          this.logger.error('Failed to load post detail', err);
+          this.toast.show('Could not load this post.', 'danger');
+          this.isLoading.set(false);
+        },
+      });
 
     // If this post (or one shown in "related") gets deleted anywhere, react immediately.
     this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
-      this.relatedPosts.update((posts) => posts.filter((p) => this.social.postKey(p) !== deletedKey));
+      this.relatedPosts.update((posts) =>
+        posts.filter((p) => this.social.postKey(p) !== deletedKey),
+      );
 
       if (this.postKey() === deletedKey) {
         this.toast.show('This post was deleted.', 'info');
@@ -161,13 +170,19 @@ export class PostDetailPage implements OnInit {
   protected repliesFor(commentId: string): ThreadedComment[] {
     const post = this.post();
     if (!post) return [];
-    const replies = this.social.repliesFor(post, commentId).filter((reply) => !this.platform.isBlocked(reply.authorUid));
+    const replies = this.social
+      .repliesFor(post, commentId)
+      .filter((reply) => !this.platform.isBlocked(reply.authorUid));
     return this.expandedThreads().has(commentId) ? replies : replies.slice(0, 3);
   }
 
   protected replyCount(commentId: string): number {
     const post = this.post();
-    return post ? this.social.repliesFor(post, commentId).filter((reply) => !this.platform.isBlocked(reply.authorUid)).length : 0;
+    return post
+      ? this.social
+          .repliesFor(post, commentId)
+          .filter((reply) => !this.platform.isBlocked(reply.authorUid)).length
+      : 0;
   }
 
   protected toggleThread(commentId: string): void {
@@ -177,10 +192,17 @@ export class PostDetailPage implements OnInit {
       return next;
     });
 
-    this.tagRepo.liveTagUpdates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((updated) => {
-      if (this.postKey() === this.social.postKey(updated)) this.post.set(updated);
-      this.relatedPosts.update((posts) => posts.map((post) => this.social.postKey(post) === this.social.postKey(updated) ? updated : post));
-    });
+    this.tagRepo
+      .liveTagUpdates()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((updated) => {
+        if (this.postKey() === this.social.postKey(updated)) this.post.set(updated);
+        this.relatedPosts.update((posts) =>
+          posts.map((post) =>
+            this.social.postKey(post) === this.social.postKey(updated) ? updated : post,
+          ),
+        );
+      });
   }
 
   protected beginEdit(comment: ThreadedComment): void {
@@ -190,13 +212,19 @@ export class PostDetailPage implements OnInit {
 
   protected async saveCommentEdit(comment: ThreadedComment): Promise<void> {
     const post = this.post();
-    if (post && await this.social.editComment(post, comment, this.editCommentText())) this.editingCommentId.set(null);
+    if (post && (await this.social.editComment(post, comment, this.editCommentText())))
+      this.editingCommentId.set(null);
   }
 
   protected async deleteComment(comment: ThreadedComment): Promise<void> {
     const post = this.post();
     if (!post) return;
-    const confirmed = await this.confirmDialog.confirm({ title: 'Delete comment?', message: 'The comment text will be removed while replies remain visible.', confirmText: 'Delete', danger: true });
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete comment?',
+      message: 'The comment text will be removed while replies remain visible.',
+      confirmText: 'Delete',
+      danger: true,
+    });
     if (confirmed) await this.social.deleteComment(post, comment);
   }
 
@@ -208,8 +236,13 @@ export class PostDetailPage implements OnInit {
     context === 'comment' ? this.commentText.set(value) : this.replyText.set(value);
     this.mentionContext.set(context);
     const match = value.match(/(?:^|\s)@([a-z0-9_.-]{1,30})$/i);
-    if (!match) { this.mentionSuggestions.set([]); return; }
-    void this.platform.searchProfiles(match[1], 5).then((profiles) => this.mentionSuggestions.set(profiles));
+    if (!match) {
+      this.mentionSuggestions.set([]);
+      return;
+    }
+    void this.platform
+      .searchProfiles(match[1], 5)
+      .then((profiles) => this.mentionSuggestions.set(profiles));
   }
 
   protected chooseMention(profile: SocialProfile): void {
@@ -231,10 +264,16 @@ export class PostDetailPage implements OnInit {
     return null;
   }
 
-  protected allowedStatuses(post: Tag): readonly PostStatus[] { return allowedStatusesForTag(post.tag); }
+  protected allowedStatuses(post: Tag): readonly PostStatus[] {
+    return allowedStatusesForTag(post.tag);
+  }
 
   protected confirmationCount(post: Tag): number {
-    return this.platform.confirmationsFor(this.social.postKey(post)).length || post.verificationCount || 0;
+    return (
+      this.platform.confirmationsFor(this.social.postKey(post)).length ||
+      post.verificationCount ||
+      0
+    );
   }
 
   protected async toggleConfirmation(post: Tag): Promise<void> {
@@ -247,7 +286,11 @@ export class PostDetailPage implements OnInit {
     const saved = await this.platform.setPostStatus(post, status, this.statusNote());
     this.statusSaving.set(false);
     if (saved) {
-      this.post.update((current) => current ? { ...current, currentStatus: status, statusUpdatedAt: new Date().toISOString() } : current);
+      this.post.update((current) =>
+        current
+          ? { ...current, currentStatus: status, statusUpdatedAt: new Date().toISOString() }
+          : current,
+      );
       this.statusNote.set('');
       this.toast.show(`Post marked ${status}.`, 'success');
     }
@@ -367,20 +410,29 @@ export class PostDetailPage implements OnInit {
   }
 
   private loadRelated(post: Tag): void {
-    this.tagRepo.getFiltered({ tags: [post.tag] }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (posts) => {
-        this.relatedPosts.set(
-          posts
-            .filter((candidate) => this.social.postKey(candidate) !== this.social.postKey(post))
-            .filter((candidate) => !this.platform.isBlocked(candidate.userId))
-            .slice(0, 3)
-        );
-      },
-      error: (err) => this.logger.error('Failed to load related posts', err),
-    });
+    this.tagRepo
+      .getFiltered({ tags: [post.tag] })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (posts) => {
+          this.relatedPosts.set(
+            posts
+              .filter((candidate) => this.social.postKey(candidate) !== this.social.postKey(post))
+              .filter((candidate) => !this.platform.isBlocked(candidate.userId))
+              .slice(0, 3),
+          );
+        },
+        error: (err) => this.logger.error('Failed to load related posts', err),
+      });
   }
 
   private slugFor(value: string): string {
-    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nearby';
+    return (
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'nearby'
+    );
   }
 }

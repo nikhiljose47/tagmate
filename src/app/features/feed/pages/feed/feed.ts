@@ -1,5 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, AfterViewInit, computed, inject, signal, ViewChild, ElementRef, HostListener } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  AfterViewInit,
+  computed,
+  inject,
+  signal,
+  ViewChild,
+  ElementRef,
+  HostListener,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -75,7 +86,13 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   private readonly destroy$ = new Subject<void>();
   protected readonly categories = computed(() => [
     'all',
-    ...Array.from(new Set(this.posts().map((post) => post.tag).filter(t => t && t !== 'bulletin'))).sort(),
+    ...Array.from(
+      new Set(
+        this.posts()
+          .map((post) => post.tag)
+          .filter((t) => t && t !== 'bulletin'),
+      ),
+    ).sort(),
   ]);
 
   protected readonly visiblePosts = computed(() => {
@@ -109,14 +126,23 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     const topic = this.route.snapshot.queryParamMap.get('topic');
     if (topic) this.selectedCategory.set(topic.toLowerCase());
     this.loadPosts();
-    this.tagRepo.liveTags()
+    this.tagRepo
+      .liveTags()
       .pipe(takeUntil(this.destroy$))
       .subscribe((post) => {
-        this.posts.update((posts) => [post, ...posts.filter((item) => this.postKey(item) !== this.postKey(post))]);
+        this.posts.update((posts) => [
+          post,
+          ...posts.filter((item) => this.postKey(item) !== this.postKey(post)),
+        ]);
       });
-    this.tagRepo.liveTagUpdates()
+    this.tagRepo
+      .liveTagUpdates()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((post) => this.posts.update((posts) => posts.map((item) => this.postKey(item) === this.postKey(post) ? post : item)));
+      .subscribe((post) =>
+        this.posts.update((posts) =>
+          posts.map((item) => (this.postKey(item) === this.postKey(post) ? post : item)),
+        ),
+      );
 
     // Drop a post immediately if it was deleted here or on any other page.
     this.social.postDeleted$.pipe(takeUntil(this.destroy$)).subscribe((deletedKey) => {
@@ -126,11 +152,19 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void {
     if (typeof IntersectionObserver !== 'undefined' && this.sentinel) {
-      this.observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && this.hasMore() && !this.isLoadingMore() && !this.isLoading()) {
-          this.loadMore();
-        }
-      }, { rootMargin: '200px' });
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          if (
+            entries[0].isIntersecting &&
+            this.hasMore() &&
+            !this.isLoadingMore() &&
+            !this.isLoading()
+          ) {
+            this.loadMore();
+          }
+        },
+        { rootMargin: '200px' },
+      );
       this.observer.observe(this.sentinel.nativeElement);
     }
   }
@@ -149,9 +183,10 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       this.isLoadingMore.set(true);
     }
     this.loadError.set(false);
-    
+
     if (this.mode() === 'following') {
-      void this.platform.followingFeed(this.PAGE_SIZE, this.offset, this.searchText().trim())
+      void this.platform
+        .followingFeed(this.PAGE_SIZE, this.offset, this.searchText().trim())
         .then((posts) => this.handleLoadedPosts(posts, reset))
         .catch((err) => this.handleLoadError(err));
       return;
@@ -187,7 +222,8 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   @HostListener('window:scroll', [])
   onWindowScroll() {
     if (typeof window !== 'undefined') {
-      const scrollPos = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const scrollPos =
+        window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       this.showScrollTop.set(scrollPos > 400);
     }
   }
@@ -202,14 +238,20 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     this.mode.set(mode);
     this.offset = 0;
     this.hasMore.set(true);
-    if (mode !== 'nearby') { this.loadPosts(true); return; }
+    if (mode !== 'nearby') {
+      this.loadPosts(true);
+      return;
+    }
 
     const coords = await this.shared.getDeviceCoordinates();
     const fallbackLat = this.hood()?.coords?.lat ?? 0;
     const fallbackLng = this.hood()?.coords?.lng ?? 0;
     this.proximityCoords.set(coords ?? [fallbackLat, fallbackLng]);
     if (!coords) {
-      this.toast.show('Sorting nearby from your current hood because location permission was unavailable.', 'info');
+      this.toast.show(
+        'Sorting nearby from your current hood because location permission was unavailable.',
+        'info',
+      );
     }
     this.loadPosts(true);
   }
@@ -315,7 +357,13 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private slugFor(value: string): string {
-    return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nearby';
+    return (
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'nearby'
+    );
   }
 
   private distanceFromProximityOrigin(post: Tag): number {

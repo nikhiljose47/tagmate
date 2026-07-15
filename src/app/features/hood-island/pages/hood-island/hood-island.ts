@@ -13,14 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
-import type {
-  Feature,
-  FeatureCollection,
-  MultiPolygon,
-  Point,
-  Polygon,
-  Position,
-} from 'geojson';
+import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon, Position } from 'geojson';
 import type {
   GeoJSONSource,
   LngLatBoundsLike,
@@ -44,8 +37,8 @@ import { readLocalStorage, writeLocalStorage } from '../../../../core/utils/loca
 // The island view is pinned to Marathahalli (Bengaluru) for now. `HOOD_QUERY`
 // is what Nominatim resolves; `HOOD_CENTER` is the boot-time camera position
 // used while the boundary is still loading.
-const HOOD_LABEL  = 'Marathahalli';
-const HOOD_QUERY  = 'Marathahalli, Bengaluru';
+const HOOD_LABEL = 'Marathahalli';
+const HOOD_QUERY = 'Marathahalli, Bengaluru';
 const HOOD_CENTER: [number, number] = [77.7011, 12.9569]; // [lng, lat]
 
 // Same localStorage key as the Map tab — a boundary cached by either page is
@@ -55,13 +48,13 @@ const BOUNDARY_CACHE_LIMIT = 50;
 
 // ── Source / layer IDs ────────────────────────────────────────────────────────
 // Prefixed "hi-" (hood-island) to avoid any collision with the main map tab layers.
-const MASK_SRC     = 'hi-mask-src';
+const MASK_SRC = 'hi-mask-src';
 const DISTRICT_SRC = 'hi-district-src';
-const MASK_LAYER    = 'hi-mask';    // deep ocean fill (the inverse polygon)
-const SHADOW_LAYER  = 'hi-shadow';  // darkens the ocean further at low zoom
+const MASK_LAYER = 'hi-mask'; // deep ocean fill (the inverse polygon)
+const SHADOW_LAYER = 'hi-shadow'; // darkens the ocean further at low zoom
 const SHALLOW_LAYER = 'hi-shallow'; // wide shallow-water band hugging the coast
-const FOAM_LAYER    = 'hi-foam';    // pale surf/foam line at the waterline
-const SAND_LAYER    = 'hi-sand';    // sandy beach strip just inside the coast
+const FOAM_LAYER = 'hi-foam'; // pale surf/foam line at the waterline
+const SAND_LAYER = 'hi-sand'; // sandy beach strip just inside the coast
 const BUILDINGS_3D_LAYER = 'hi-3d-buildings'; // optional fill-extrusion layer
 const GAME_MARKERS_SRC = 'hi-game-markers-src';
 const GAME_CLUSTERS_LAYER = 'hi-game-marker-clusters';
@@ -87,98 +80,208 @@ const FALLBACK_MARKER_IMAGE =
 // ── Base map styles (MapTiler) ────────────────────────────────────────────────
 
 interface BaseStyle {
-  key:   string;
+  key: string;
   label: string;
-  path:  string; // maps/{path}/style.json
+  path: string; // maps/{path}/style.json
 }
 
 const BASE_STYLES: BaseStyle[] = [
-  { key: 'streets',  label: 'Streets',   path: 'streets-v4' },
-  { key: 'bright',   label: 'Bright',    path: 'bright-v2'  },
-  { key: 'basic',    label: 'Basic',     path: 'basic-v2'   },
-  { key: 'outdoor',  label: 'Outdoor',   path: 'outdoor-v2' },
-  { key: 'topo',     label: 'Topo',      path: 'topo-v2'    },
-  { key: 'satellite',label: 'Satellite', path: 'hybrid'     },
-  { key: 'dataviz',  label: 'Dataviz',   path: 'dataviz'    },
+  { key: 'streets', label: 'Streets', path: 'streets-v4' },
+  { key: 'bright', label: 'Bright', path: 'bright-v2' },
+  { key: 'basic', label: 'Basic', path: 'basic-v2' },
+  { key: 'outdoor', label: 'Outdoor', path: 'outdoor-v2' },
+  { key: 'topo', label: 'Topo', path: 'topo-v2' },
+  { key: 'satellite', label: 'Satellite', path: 'hybrid' },
+  { key: 'dataviz', label: 'Dataviz', path: 'dataviz' },
 ];
 
 const TILT_OPTIONS = [
-  { label: 'Flat', pitch: 0  },
-  { label: '25°',  pitch: 25 },
-  { label: '45°',  pitch: 45 },
-  { label: '60°',  pitch: 60 },
+  { label: 'Flat', pitch: 0 },
+  { label: '25°', pitch: 25 },
+  { label: '45°', pitch: 45 },
+  { label: '60°', pitch: 60 },
 ];
 
 // ── Visual presets ────────────────────────────────────────────────────────────
 
 interface MapPreset {
-  key:         string;
-  label:       string;
-  icon:        string;
-  desc:        string;
-  baseStyle:   string;
-  oceanMode:   string;
-  pitch:       number;
+  key: string;
+  label: string;
+  icon: string;
+  desc: string;
+  baseStyle: string;
+  oceanMode: string;
+  pitch: number;
   buildings3d: boolean;
-  brightness:  number;
-  contrast:    number;
-  saturation:  number;
-  hueRotate:   number;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hueRotate: number;
 }
 
 const MAP_PRESETS: MapPreset[] = [
-  { key: 'smooth-city', label: 'Smooth City', icon: 'bi-buildings-fill', desc: 'Clean 3D city',
-    baseStyle: 'bright',    oceanMode: 'ocean',    pitch: 25, buildings3d: true,
-    brightness: 100, contrast: 100, saturation: 100, hueRotate: 0 },
-  { key: 'dark-urban',  label: 'Dark Urban',  icon: 'bi-moon-stars-fill', desc: 'Moody night feel',
-    baseStyle: 'streets',   oceanMode: 'night',    pitch: 40, buildings3d: true,
-    brightness: 82,  contrast: 112, saturation: 80,  hueRotate: 0 },
-  { key: 'google',      label: 'Google-ish',  icon: 'bi-geo-fill',        desc: 'Familiar & clean',
-    baseStyle: 'bright',    oceanMode: 'tropical', pitch: 0,  buildings3d: false,
-    brightness: 105, contrast: 100, saturation: 115, hueRotate: 0 },
-  { key: 'satellite',   label: 'Satellite',   icon: 'bi-globe2',          desc: 'Aerial view',
-    baseStyle: 'satellite', oceanMode: 'tropical', pitch: 20, buildings3d: false,
-    brightness: 100, contrast: 108, saturation: 105, hueRotate: 0 },
-  { key: 'cyberpunk',   label: 'Cyberpunk',   icon: 'bi-lightning-charge-fill', desc: 'Neon night city',
-    baseStyle: 'streets',   oceanMode: 'neon',     pitch: 35, buildings3d: true,
-    brightness: 75,  contrast: 130, saturation: 150, hueRotate: 185 },
-  { key: 'outdoor',     label: 'Outdoor',     icon: 'bi-tree-fill',       desc: 'Nature & terrain',
-    baseStyle: 'outdoor',   oceanMode: 'tropical', pitch: 10, buildings3d: false,
-    brightness: 100, contrast: 100, saturation: 115, hueRotate: 0 },
-  { key: 'minimal',     label: 'Minimal',     icon: 'bi-square',          desc: 'Clean & quiet',
-    baseStyle: 'basic',     oceanMode: 'ocean',    pitch: 0,  buildings3d: false,
-    brightness: 100, contrast: 95,  saturation: 60,  hueRotate: 0 },
-  { key: 'vintage',     label: 'Vintage',     icon: 'bi-clock-history',   desc: 'Retro sepia tone',
-    baseStyle: 'basic',     oceanMode: 'night',    pitch: 0,  buildings3d: false,
-    brightness: 90,  contrast: 95,  saturation: 65,  hueRotate: 15 },
+  {
+    key: 'smooth-city',
+    label: 'Smooth City',
+    icon: 'bi-buildings-fill',
+    desc: 'Clean 3D city',
+    baseStyle: 'bright',
+    oceanMode: 'ocean',
+    pitch: 25,
+    buildings3d: true,
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    hueRotate: 0,
+  },
+  {
+    key: 'dark-urban',
+    label: 'Dark Urban',
+    icon: 'bi-moon-stars-fill',
+    desc: 'Moody night feel',
+    baseStyle: 'streets',
+    oceanMode: 'night',
+    pitch: 40,
+    buildings3d: true,
+    brightness: 82,
+    contrast: 112,
+    saturation: 80,
+    hueRotate: 0,
+  },
+  {
+    key: 'google',
+    label: 'Google-ish',
+    icon: 'bi-geo-fill',
+    desc: 'Familiar & clean',
+    baseStyle: 'bright',
+    oceanMode: 'tropical',
+    pitch: 0,
+    buildings3d: false,
+    brightness: 105,
+    contrast: 100,
+    saturation: 115,
+    hueRotate: 0,
+  },
+  {
+    key: 'satellite',
+    label: 'Satellite',
+    icon: 'bi-globe2',
+    desc: 'Aerial view',
+    baseStyle: 'satellite',
+    oceanMode: 'tropical',
+    pitch: 20,
+    buildings3d: false,
+    brightness: 100,
+    contrast: 108,
+    saturation: 105,
+    hueRotate: 0,
+  },
+  {
+    key: 'cyberpunk',
+    label: 'Cyberpunk',
+    icon: 'bi-lightning-charge-fill',
+    desc: 'Neon night city',
+    baseStyle: 'streets',
+    oceanMode: 'neon',
+    pitch: 35,
+    buildings3d: true,
+    brightness: 75,
+    contrast: 130,
+    saturation: 150,
+    hueRotate: 185,
+  },
+  {
+    key: 'outdoor',
+    label: 'Outdoor',
+    icon: 'bi-tree-fill',
+    desc: 'Nature & terrain',
+    baseStyle: 'outdoor',
+    oceanMode: 'tropical',
+    pitch: 10,
+    buildings3d: false,
+    brightness: 100,
+    contrast: 100,
+    saturation: 115,
+    hueRotate: 0,
+  },
+  {
+    key: 'minimal',
+    label: 'Minimal',
+    icon: 'bi-square',
+    desc: 'Clean & quiet',
+    baseStyle: 'basic',
+    oceanMode: 'ocean',
+    pitch: 0,
+    buildings3d: false,
+    brightness: 100,
+    contrast: 95,
+    saturation: 60,
+    hueRotate: 0,
+  },
+  {
+    key: 'vintage',
+    label: 'Vintage',
+    icon: 'bi-clock-history',
+    desc: 'Retro sepia tone',
+    baseStyle: 'basic',
+    oceanMode: 'night',
+    pitch: 0,
+    buildings3d: false,
+    brightness: 90,
+    contrast: 95,
+    saturation: 65,
+    hueRotate: 15,
+  },
 ];
 
 // ── Layer visibility groups ───────────────────────────────────────────────────
 
 interface LayerGroup {
-  key:   string;
+  key: string;
   label: string;
-  icon:  string;
+  icon: string;
   match: (id: string, type: string, sourceLayer: string) => boolean;
 }
 
 const LAYER_GROUPS: LayerGroup[] = [
-  { key: 'buildings', label: 'Buildings', icon: 'bi-buildings',
-    match: (_i, _t, sl) => sl === 'building' },
-  { key: 'roads',     label: 'Roads',     icon: 'bi-signpost-fill',
+  {
+    key: 'buildings',
+    label: 'Buildings',
+    icon: 'bi-buildings',
+    match: (_i, _t, sl) => sl === 'building',
+  },
+  {
+    key: 'roads',
+    label: 'Roads',
+    icon: 'bi-signpost-fill',
     match: (id, _t, sl) =>
-      sl === 'transportation' && !id.includes('rail') && !id.includes('transit') && !id.includes('ferry') },
-  { key: 'water',     label: 'Water',     icon: 'bi-droplet-fill',
-    match: (_i, _t, sl) => sl === 'water' || sl === 'waterway' },
-  { key: 'parks',     label: 'Parks',     icon: 'bi-tree-fill',
-    match: (_i, _t, sl) => sl === 'landuse' || sl === 'landcover' || sl === 'park' },
-  { key: 'labels',    label: 'Labels',    icon: 'bi-fonts',
-    match: (_i, type) => type === 'symbol' },
-  { key: 'railways',  label: 'Railways',  icon: 'bi-train-front-fill',
+      sl === 'transportation' &&
+      !id.includes('rail') &&
+      !id.includes('transit') &&
+      !id.includes('ferry'),
+  },
+  {
+    key: 'water',
+    label: 'Water',
+    icon: 'bi-droplet-fill',
+    match: (_i, _t, sl) => sl === 'water' || sl === 'waterway',
+  },
+  {
+    key: 'parks',
+    label: 'Parks',
+    icon: 'bi-tree-fill',
+    match: (_i, _t, sl) => sl === 'landuse' || sl === 'landcover' || sl === 'park',
+  },
+  { key: 'labels', label: 'Labels', icon: 'bi-fonts', match: (_i, type) => type === 'symbol' },
+  {
+    key: 'railways',
+    label: 'Railways',
+    icon: 'bi-train-front-fill',
     match: (id, _t, sl) =>
-      sl === 'transportation' && (id.includes('rail') || id.includes('transit') || id.includes('ferry')) },
-  { key: 'pois',      label: 'POIs',      icon: 'bi-pin-map-fill',
-    match: (_i, _t, sl) => sl === 'poi' },
+      sl === 'transportation' &&
+      (id.includes('rail') || id.includes('transit') || id.includes('ferry')),
+  },
+  { key: 'pois', label: 'POIs', icon: 'bi-pin-map-fill', match: (_i, _t, sl) => sl === 'poi' },
 ];
 
 // ── Saved visualization templates ─────────────────────────────────────────────
@@ -186,24 +289,24 @@ const LAYER_GROUPS: LayerGroup[] = [
 // the live map. It changes the map exclusively through an explicit Apply.
 
 interface IslandTemplateSettings {
-  baseStyle:       string;
-  oceanMode:       string;
-  pitch:           number;
-  buildings3d:     boolean;
-  brightness:      number;
-  contrast:        number;
-  saturation:      number;
-  hueRotate:       number;
+  baseStyle: string;
+  oceanMode: string;
+  pitch: number;
+  buildings3d: boolean;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hueRotate: number;
   layerVisibility: Record<string, boolean>;
 }
 
 interface IslandTemplate {
-  id:        string;
-  name:      string;
+  id: string;
+  name: string;
   createdAt: number;
   updatedAt: number;
-  favorite:  boolean;
-  settings:  IslandTemplateSettings;
+  favorite: boolean;
+  settings: IslandTemplateSettings;
 }
 
 const TEMPLATES_KEY = 'tagmate_island_templates';
@@ -211,41 +314,61 @@ const TEMPLATES_KEY = 'tagmate_island_templates';
 // ── Visual ocean modes ────────────────────────────────────────────────────────
 
 interface OceanMode {
-  key:     string;
-  label:   string;
-  ocean:   string;   // MASK_LAYER fill
-  shadow:  string;   // SHADOW_LAYER fill
-  shallow: string;   // SHALLOW_LAYER line
-  foam:    string;   // FOAM_LAYER line
-  sand:    string;   // SAND_LAYER line
-  bg:      string;   // wrapper CSS background
-  swatch:  string;   // preview swatch colour for the UI button
+  key: string;
+  label: string;
+  ocean: string; // MASK_LAYER fill
+  shadow: string; // SHADOW_LAYER fill
+  shallow: string; // SHALLOW_LAYER line
+  foam: string; // FOAM_LAYER line
+  sand: string; // SAND_LAYER line
+  bg: string; // wrapper CSS background
+  swatch: string; // preview swatch colour for the UI button
 }
 
 const OCEAN_MODES: OceanMode[] = [
   {
-    key: 'ocean', label: 'Ocean',
-    ocean: '#0b2740', shadow: '#051224',
-    shallow: '#2a7f9e', foam: '#cfe8f2', sand: '#e2cf9a',
-    bg: '#0b2740', swatch: '#2a7f9e',
+    key: 'ocean',
+    label: 'Ocean',
+    ocean: '#0b2740',
+    shadow: '#051224',
+    shallow: '#2a7f9e',
+    foam: '#cfe8f2',
+    sand: '#e2cf9a',
+    bg: '#0b2740',
+    swatch: '#2a7f9e',
   },
   {
-    key: 'night', label: 'Night',
-    ocean: '#050b14', shadow: '#02050a',
-    shallow: '#1a5272', foam: '#8bbdd4', sand: '#7a6c4a',
-    bg: '#050b14', swatch: '#1a5272',
+    key: 'night',
+    label: 'Night',
+    ocean: '#050b14',
+    shadow: '#02050a',
+    shallow: '#1a5272',
+    foam: '#8bbdd4',
+    sand: '#7a6c4a',
+    bg: '#050b14',
+    swatch: '#1a5272',
   },
   {
-    key: 'tropical', label: 'Tropical',
-    ocean: '#005f87', shadow: '#003a55',
-    shallow: '#00b4d8', foam: '#e0f7fa', sand: '#f5d47e',
-    bg: '#005f87', swatch: '#00b4d8',
+    key: 'tropical',
+    label: 'Tropical',
+    ocean: '#005f87',
+    shadow: '#003a55',
+    shallow: '#00b4d8',
+    foam: '#e0f7fa',
+    sand: '#f5d47e',
+    bg: '#005f87',
+    swatch: '#00b4d8',
   },
   {
-    key: 'neon', label: 'Neon',
-    ocean: '#060018', shadow: '#02000a',
-    shallow: '#00e5ff', foam: '#ea80fc', sand: '#ffd740',
-    bg: '#060018', swatch: '#00e5ff',
+    key: 'neon',
+    label: 'Neon',
+    ocean: '#060018',
+    shadow: '#02000a',
+    shallow: '#00e5ff',
+    foam: '#ea80fc',
+    sand: '#ffd740',
+    bg: '#060018',
+    swatch: '#00e5ff',
   },
 ];
 
@@ -253,12 +376,12 @@ const OCEAN_MODES: OceanMode[] = [
 
 interface HoodSearchResult {
   displayName: string;
-  shortName:   string;
-  type:        string;
-  lat:         number;
-  lng:         number;
-  osmType:     string; // 'N' | 'W' | 'R'
-  osmId:       number;
+  shortName: string;
+  type: string;
+  lat: number;
+  lng: number;
+  osmType: string; // 'N' | 'W' | 'R'
+  osmId: number;
 }
 
 interface CityMarker {
@@ -302,9 +425,9 @@ type MarkerLayerEvent = MapMouseEvent & {
 function buildInverseMask(geometry: DistrictGeometry): Feature<Polygon> {
   const worldRing: Position[] = [
     [-180, -85.051129],
-    [ 180, -85.051129],
-    [ 180,  85.051129],
-    [-180,  85.051129],
+    [180, -85.051129],
+    [180, 85.051129],
+    [-180, 85.051129],
     [-180, -85.051129],
   ];
 
@@ -333,9 +456,7 @@ function chaikinRing(ring: Position[], iterations: number): Position[] {
   let pts = ring;
   // Nominatim rings repeat the first point at the end — drop it while smoothing.
   const closed =
-    pts.length > 1 &&
-    pts[0][0] === pts[pts.length - 1][0] &&
-    pts[0][1] === pts[pts.length - 1][1];
+    pts.length > 1 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1];
   if (closed) pts = pts.slice(0, -1);
 
   for (let it = 0; it < iterations; it++) {
@@ -357,10 +478,7 @@ function chaikinRing(ring: Position[], iterations: number): Position[] {
  * 3 iterations turns Nominatim's sharp survey-line vertices into soft,
  * natural-looking coastline curves (each iteration doubles the point count).
  */
-export function smoothGeometry(
-  geometry: DistrictGeometry,
-  iterations = 3,
-): DistrictGeometry {
+export function smoothGeometry(geometry: DistrictGeometry, iterations = 3): DistrictGeometry {
   if (geometry.type === 'Polygon') {
     return {
       type: 'Polygon',
@@ -369,9 +487,7 @@ export function smoothGeometry(
   }
   return {
     type: 'MultiPolygon',
-    coordinates: geometry.coordinates.map((poly) =>
-      poly.map((r) => chaikinRing(r, iterations)),
-    ),
+    coordinates: geometry.coordinates.map((poly) => poly.map((r) => chaikinRing(r, iterations))),
   };
 }
 
@@ -379,16 +495,14 @@ export function smoothGeometry(
  * Returns the [west, south, east, north] envelope of a Polygon or MultiPolygon.
  * Handles both geometry types by flattening all coordinate arrays.
  */
-export function getGeometryBounds(
-  geometry: DistrictGeometry,
-): [number, number, number, number] {
+export function getGeometryBounds(geometry: DistrictGeometry): [number, number, number, number] {
   const allCoords: Position[] =
-    geometry.type === 'Polygon'
-      ? geometry.coordinates.flat()
-      : geometry.coordinates.flat(2);
+    geometry.type === 'Polygon' ? geometry.coordinates.flat() : geometry.coordinates.flat(2);
 
-  let minLng = Infinity, minLat = Infinity;
-  let maxLng = -Infinity, maxLat = -Infinity;
+  let minLng = Infinity,
+    minLat = Infinity;
+  let maxLng = -Infinity,
+    maxLat = -Infinity;
 
   for (const [lng, lat] of allCoords) {
     if (lng < minLng) minLng = lng;
@@ -411,10 +525,10 @@ export function padBounds(
   const dLng = (east - west) * factor;
   const dLat = (north - south) * factor;
   return [
-    Math.max(-180,       west  - dLng),
+    Math.max(-180, west - dLng),
     Math.max(-85.051129, south - dLat),
-    Math.min( 180,       east  + dLng),
-    Math.min( 85.051129, north + dLat),
+    Math.min(180, east + dLng),
+    Math.min(85.051129, north + dLat),
   ];
 }
 
@@ -433,7 +547,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   private readonly mapEl?: ElementRef<HTMLDivElement>;
 
   private readonly ngZone = inject(NgZone);
-  readonly router         = inject(Router);
+  readonly router = inject(Router);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -466,62 +580,69 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   };
 
   // ── Template signals ──────────────────────────────────────────────────────────
-  readonly hoodName      = signal(HOOD_LABEL);
-  readonly loading       = signal(true);
-  readonly errorMsg      = signal('');
+  readonly hoodName = signal(HOOD_LABEL);
+  readonly loading = signal(true);
+  readonly errorMsg = signal('');
 
   // Visual mode
-  readonly currentMode   = signal('ocean');
-  readonly settingsOpen  = signal(false);
-  readonly oceanModes    = OCEAN_MODES;
+  readonly currentMode = signal('ocean');
+  readonly settingsOpen = signal(false);
+  readonly oceanModes = OCEAN_MODES;
   readonly currentModeConfig = computed(
-    () => OCEAN_MODES.find(m => m.key === this.currentMode()) ?? OCEAN_MODES[0]
+    () => OCEAN_MODES.find((m) => m.key === this.currentMode()) ?? OCEAN_MODES[0],
   );
 
   // Map style / camera
-  readonly baseStyles    = BASE_STYLES;
-  readonly tiltOptions   = TILT_OPTIONS;
-  readonly baseStyle     = signal('outdoor'); // default: Outdoor
-  readonly buildings3d   = signal(false);     // default: OFF
-  readonly tilt          = signal(10);         // default: slight 3D perspective
+  readonly baseStyles = BASE_STYLES;
+  readonly tiltOptions = TILT_OPTIONS;
+  readonly baseStyle = signal('outdoor'); // default: Outdoor
+  readonly buildings3d = signal(false); // default: OFF
+  readonly tilt = signal(10); // default: slight 3D perspective
 
   // Advanced config panel
-  readonly advancedOpen  = signal(false);
-  readonly presets       = MAP_PRESETS;
-  readonly layerGroups   = LAYER_GROUPS;
+  readonly advancedOpen = signal(false);
+  readonly presets = MAP_PRESETS;
+  readonly layerGroups = LAYER_GROUPS;
   readonly currentPreset = signal('outdoor');
 
   // Layer visibility (true = visible)
   readonly layerVisibility = signal<Record<string, boolean>>({
-    buildings: false, roads: true, water: true,
-    parks: true, labels: true, railways: true, pois: true,
+    buildings: false,
+    roads: true,
+    water: true,
+    parks: true,
+    labels: true,
+    railways: true,
+    pois: true,
   });
 
   // Saved templates (hydrated from localStorage in ngAfterViewInit — browser only)
-  readonly templates          = signal<IslandTemplate[]>([]);
-  readonly newTemplateName    = signal('');
-  readonly editingTemplateId  = signal<string | null>(null);
-  readonly sortedTemplates    = computed(() =>
+  readonly templates = signal<IslandTemplate[]>([]);
+  readonly newTemplateName = signal('');
+  readonly editingTemplateId = signal<string | null>(null);
+  readonly sortedTemplates = computed(() =>
     [...this.templates()].sort(
-      (a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt
-    )
+      (a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt,
+    ),
   );
 
   // CSS appearance filters applied to .island-map
-  readonly brightness  = signal(100);
-  readonly contrast    = signal(100);
-  readonly saturation  = signal(100);
-  readonly hueRotate   = signal(0);
+  readonly brightness = signal(100);
+  readonly contrast = signal(100);
+  readonly saturation = signal(100);
+  readonly hueRotate = signal(0);
 
   readonly mapFilter = computed(() => {
-    const b = this.brightness(), c = this.contrast();
-    const s = this.saturation(), h = this.hueRotate();
+    const b = this.brightness(),
+      c = this.contrast();
+    const s = this.saturation(),
+      h = this.hueRotate();
     if (b === 100 && c === 100 && s === 100 && h === 0) return '';
     const parts: string[] = [];
     if (b !== 100) parts.push(`brightness(${b}%)`);
     if (c !== 100) parts.push(`contrast(${c}%)`);
     if (s !== 100) parts.push(`saturate(${s}%)`);
-    if (h !== 0)   parts.push(`hue-rotate(${h}deg)`);
+    if (h !== 0) parts.push(`hue-rotate(${h}deg)`);
     return parts.join(' ');
   });
 
@@ -530,10 +651,10 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   private currentLabel = HOOD_LABEL;
 
   // Search
-  readonly searchQuery   = signal('');
-  readonly searching     = signal(false);
+  readonly searchQuery = signal('');
+  readonly searching = signal(false);
   readonly searchResults = signal<HoodSearchResult[]>([]);
-  readonly searchOpen    = signal(false);
+  readonly searchOpen = signal(false);
 
   private searchDebounce?: ReturnType<typeof setTimeout>;
 
@@ -585,17 +706,17 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     maptilersdk.config.apiKey = key;
 
     this.map = new maptilersdk.Map({
-      container:   this.mapEl.nativeElement,
-      style:       this.styleUrl(this.baseStyle()),
-      center:      HOOD_CENTER,
-      zoom:        13,
-      pitch:       this.tilt(),
-      minZoom:     8,
-      maxZoom:     18,
+      container: this.mapEl.nativeElement,
+      style: this.styleUrl(this.baseStyle()),
+      center: HOOD_CENTER,
+      zoom: 13,
+      pitch: this.tilt(),
+      minZoom: 8,
+      maxZoom: 18,
       fadeDuration: 150,
       renderWorldCopies: false,
-      dragRotate:        true,   // allow rotation for 3D feel
-      pitchWithRotate:   true,
+      dragRotate: true, // allow rotation for 3D feel
+      pitchWithRotate: true,
       attributionControl: { compact: true },
     }) as unknown as MapLibreMap;
 
@@ -720,11 +841,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         source: MASK_SRC,
         paint: {
           'fill-color': '#0b2740',
-          'fill-opacity': [
-            'interpolate', ['linear'], ['zoom'],
-            9, 0.97,
-            15, 0.92,
-          ],
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0.97, 15, 0.92],
         },
       });
     }
@@ -738,11 +855,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         source: MASK_SRC,
         paint: {
           'fill-color': '#051224',
-          'fill-opacity': [
-            'interpolate', ['linear'], ['zoom'],
-            9, 0.45,
-            15, 0.10,
-          ],
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0.45, 15, 0.1],
         },
       });
     }
@@ -758,9 +871,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         source: DISTRICT_SRC,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color':   '#2a7f9e',
-          'line-width':   ['interpolate', ['linear'], ['zoom'], 9, 56, 15, 26],
-          'line-blur':    ['interpolate', ['linear'], ['zoom'], 9, 52, 15, 24],
+          'line-color': '#2a7f9e',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 56, 15, 26],
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 9, 52, 15, 24],
           'line-opacity': 0.55,
         },
       });
@@ -774,9 +887,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         source: DISTRICT_SRC,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color':   '#cfe8f2',
-          'line-width':   ['interpolate', ['linear'], ['zoom'], 9, 8, 15, 4],
-          'line-blur':    ['interpolate', ['linear'], ['zoom'], 9, 7, 15, 4],
+          'line-color': '#cfe8f2',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 8, 15, 4],
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 9, 7, 15, 4],
           'line-opacity': 0.65,
         },
       });
@@ -791,10 +904,10 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         source: DISTRICT_SRC,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color':   '#e2cf9a',
-          'line-width':   ['interpolate', ['linear'], ['zoom'], 9, 22, 15, 12],
-          'line-blur':    ['interpolate', ['linear'], ['zoom'], 9, 20, 15, 11],
-          'line-opacity': 0.50,
+          'line-color': '#e2cf9a',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 22, 15, 12],
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 9, 20, 15, 11],
+          'line-opacity': 0.5,
         },
       });
     }
@@ -806,15 +919,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         source: GAME_MARKERS_SRC,
         filter: ['has', 'point_count'] as LayerFilter,
         paint: {
-          'circle-color': [
-            'step',
-            ['get', 'point_count'],
-            '#94a3b8',
-            12,
-            '#38bdf8',
-            28,
-            '#f59e0b',
-          ],
+          'circle-color': ['step', ['get', 'point_count'], '#94a3b8', 12, '#38bdf8', 28, '#f59e0b'],
           'circle-radius': ['step', ['get', 'point_count'], 16, 12, 20, 28, 25],
           'circle-opacity': 0.84,
           'circle-stroke-color': 'rgba(255, 255, 255, 0.88)',
@@ -849,7 +954,11 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         id: GAME_INTERACTIVE_LAYER,
         type: 'circle',
         source: GAME_MARKERS_SRC,
-        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'featured'], false]] as LayerFilter,
+        filter: [
+          'all',
+          ['!', ['has', 'point_count']],
+          ['==', ['get', 'featured'], false],
+        ] as LayerFilter,
         paint: {
           'circle-radius': 16,
           'circle-color': '#ffffff',
@@ -867,15 +976,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       source: GAME_MARKERS_SRC,
       filter: this.markerLayerFilter(type),
       paint: {
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          11,
-          3,
-          16,
-          5.5,
-        ],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 5.5],
         'circle-color': color,
         'circle-opacity': 0.82,
         'circle-stroke-color': 'rgba(255, 255, 255, 0.75)',
@@ -938,9 +1039,30 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   private generateDummyMarkers(count: number, geometry: DistrictGeometry): CityMarker[] {
     const titles: Record<GameMarkerType, string[]> = {
-      alert: ['Signal Jam Spotted', 'Road Patch Watch', 'Late Night Noise', 'Power Dip Alert', 'Water Line Check', 'Crowd Surge'],
-      connect: ['Coffee Crew Meetup', 'Runner Squad', 'Book Swap Circle', 'Pet Parent Ping', 'Study Buddy Call', 'Weekend Ride Plan'],
-      opening: ['New Dosa Counter', 'Rooftop Yoga Slot', 'Pop-up Dessert Bar', 'Maker Studio Launch', 'Fresh Mart Opening', 'Indie Gig Door'],
+      alert: [
+        'Signal Jam Spotted',
+        'Road Patch Watch',
+        'Late Night Noise',
+        'Power Dip Alert',
+        'Water Line Check',
+        'Crowd Surge',
+      ],
+      connect: [
+        'Coffee Crew Meetup',
+        'Runner Squad',
+        'Book Swap Circle',
+        'Pet Parent Ping',
+        'Study Buddy Call',
+        'Weekend Ride Plan',
+      ],
+      opening: [
+        'New Dosa Counter',
+        'Rooftop Yoga Slot',
+        'Pop-up Dessert Bar',
+        'Maker Studio Launch',
+        'Fresh Mart Opening',
+        'Indie Gig Door',
+      ],
     };
     const descriptions: Record<GameMarkerType, string[]> = {
       alert: [
@@ -1008,7 +1130,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     return markers;
   }
 
-  private createMarkersGeoJson(markers: CityMarker[]): FeatureCollection<Point, CityMarkerProperties> {
+  private createMarkersGeoJson(
+    markers: CityMarker[],
+  ): FeatureCollection<Point, CityMarkerProperties> {
     const featured = new Set(this.featuredMarkerIds);
     return {
       type: 'FeatureCollection',
@@ -1037,7 +1161,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private syncMarkersToGeometry(geometry: DistrictGeometry, label: string): void {
-    const bounds = getGeometryBounds(geometry).map((value) => value.toFixed(5)).join(',');
+    const bounds = getGeometryBounds(geometry)
+      .map((value) => value.toFixed(5))
+      .join(',');
     const areaKey = `${label}:${bounds}`;
 
     if (this.currentMarkerAreaKey !== areaKey || !this.cityMarkers.length) {
@@ -1094,7 +1220,8 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     if (!this.featuredMarkerQueue.length) return [];
     const ids: string[] = [];
     while (ids.length < count && ids.length < this.featuredMarkerQueue.length) {
-      const id = this.featuredMarkerQueue[this.featuredMarkerCursor % this.featuredMarkerQueue.length];
+      const id =
+        this.featuredMarkerQueue[this.featuredMarkerCursor % this.featuredMarkerQueue.length];
       this.featuredMarkerCursor++;
       if (!ids.includes(id)) ids.push(id);
     }
@@ -1117,11 +1244,14 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     element.type = 'button';
     element.className = `game-featured-marker game-featured-marker--${marker.type} ${this.getMarkerScreenClass(marker)}`;
     element.setAttribute('aria-label', marker.title);
-    element.innerHTML = `
-      <span class="game-marker-card-wrap">${this.createPopupHtml(marker)}</span>
-      <span class="game-featured-marker__stem"></span>
-      <span class="game-featured-marker__dot"></span>
-    `;
+    const cardWrap = document.createElement('span');
+    cardWrap.className = 'game-marker-card-wrap';
+    cardWrap.append(this.createPopupContent(marker));
+    const stem = document.createElement('span');
+    stem.className = 'game-featured-marker__stem';
+    const dot = document.createElement('span');
+    dot.className = 'game-featured-marker__dot';
+    element.append(cardWrap, stem, dot);
     element.querySelector('img')?.addEventListener('error', (event) => {
       const image = event.currentTarget as HTMLImageElement;
       image.src = FALLBACK_MARKER_IMAGE;
@@ -1138,23 +1268,33 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     this.featuredMarkers.set(marker.id, featuredMarker);
   }
 
-  private createPopupHtml(marker: CityMarker): string {
-    const title = this.escapeHtml(marker.title);
-    const description = this.escapeHtml(marker.description);
+  private createPopupContent(marker: CityMarker): HTMLElement {
     const shineDelay = (Math.floor(Math.random() * 9) + 1).toFixed(1);
-    const hasImage = !!marker.imageUrl;
-    const imageUrl = hasImage ? this.escapeHtml(marker.imageUrl) : '';
+    const card = document.createElement('div');
+    card.className = 'game-marker-card';
+    const content = document.createElement('div');
+    content.className = 'game-marker-card__content';
+    const shine = document.createElement('div');
+    shine.className = 'game-marker-card__shine';
+    shine.style.animationDelay = `${shineDelay}s`;
+    const title = document.createElement('h3');
+    title.className = 'game-marker-card__title';
+    title.textContent = marker.title;
+    const description = document.createElement('p');
+    description.className = 'game-marker-card__description';
+    description.textContent = marker.description;
+    content.append(shine, title, description);
+    card.append(content);
 
-    return `
-      <div class="game-marker-card">
-        <div class="game-marker-card__content">
-          <div class="game-marker-card__shine" style="animation-delay:${shineDelay}s"></div>
-          <h3 class="game-marker-card__title">${title}</h3>
-          <p class="game-marker-card__description">${description}</p>
-        </div>
-        ${hasImage ? `<img class="game-marker-card__image" src="${imageUrl}" alt="${title}" loading="lazy" />` : ''}
-      </div>
-    `;
+    if (this.isSafeImageUrl(marker.imageUrl)) {
+      const image = document.createElement('img');
+      image.className = 'game-marker-card__image';
+      image.src = marker.imageUrl!;
+      image.alt = marker.title;
+      image.loading = 'lazy';
+      card.append(image);
+    }
+    return card;
   }
 
   private replaceFeaturedMarker(marker: CityMarker): void {
@@ -1202,11 +1342,21 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private markerLayerFilter(type: GameMarkerType): LayerFilter {
-    return ['all', ['!', ['has', 'point_count']], ['==', ['get', 'type'], type], ['==', ['get', 'featured'], false]] as LayerFilter;
+    return [
+      'all',
+      ['!', ['has', 'point_count']],
+      ['==', ['get', 'type'], type],
+      ['==', ['get', 'featured'], false],
+    ] as LayerFilter;
   }
 
   private markerTypeLabel(type: GameMarkerType): string {
-    return ({ alert: 'Alert', connect: 'Connect', opening: 'Opening' } satisfies Record<GameMarkerType, string>)[type];
+    return (
+      { alert: 'Alert', connect: 'Connect', opening: 'Opening' } satisfies Record<
+        GameMarkerType,
+        string
+      >
+    )[type];
   }
 
   private updateFeaturedMarkerScreenClasses(): void {
@@ -1240,10 +1390,14 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     return `${horizontal} ${vertical}`;
   }
 
-  private escapeHtml(value: string): string {
-    const div = document.createElement('div');
-    div.textContent = value;
-    return div.innerHTML;
+  private isSafeImageUrl(value: string | undefined): value is string {
+    if (!value) return false;
+    try {
+      const url = new URL(value, window.location.origin);
+      return url.protocol === 'https:' || url.origin === window.location.origin;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -1281,7 +1435,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   /** Checks the shared boundary cache under both the query and the label key. */
   private readCachedBoundary(): PlaceBoundary | null {
     const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-    const cache   = new Map(entries);
+    const cache = new Map(entries);
     return (
       cache.get(this.currentQuery.toLowerCase()) ??
       cache.get(this.currentLabel.toLowerCase()) ??
@@ -1323,13 +1477,11 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     // lower-end mobile GPUs.
     const smoothed = smoothGeometry(Utils.simplifyBoundary(geometry) as DistrictGeometry, 1);
 
-    const rawBounds    = getGeometryBounds(smoothed);
+    const rawBounds = getGeometryBounds(smoothed);
     const paddedBounds = padBounds(rawBounds);
 
     // Paint the inverse mask over the ocean area.
-    (this.map.getSource(MASK_SRC) as GeoJSONSource).setData(
-      buildInverseMask(smoothed),
-    );
+    (this.map.getSource(MASK_SRC) as GeoJSONSource).setData(buildInverseMask(smoothed));
 
     // Paint the coastline (used by the shallow-water, foam, and sand layers).
     (this.map.getSource(DISTRICT_SRC) as GeoJSONSource).setData({
@@ -1346,9 +1498,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
     // Fit the camera to the district.
     this.map.fitBounds(rawBounds as LngLatBoundsLike, {
-      padding:  40,
+      padding: 40,
       duration: 700,
-      maxZoom:  15,
+      maxZoom: 15,
     });
 
     // After the animation settles, lock panning to the padded bounds and
@@ -1394,7 +1546,8 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     // Insert below the ocean mask so classified features outside the district
     // stay hidden under the water, matching the 3D-buildings layer placement.
     const added = addClassificationLayers(
-      this.map, report,
+      this.map,
+      report,
       this.map.getLayer(MASK_LAYER) ? MASK_LAYER : undefined,
     );
     if (this.enableMapDataInspector && added.length) {
@@ -1423,18 +1576,16 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   setTilt(pitch: number): void {
     this.tilt.set(pitch);
-    this.ngZone.runOutsideAngular(() =>
-      this.map?.easeTo({ pitch, duration: 600 })
-    );
+    this.ngZone.runOutsideAngular(() => this.map?.easeTo({ pitch, duration: 600 }));
   }
 
   toggleBuildings3d(): void {
-    this.buildings3d.update(v => !v);
+    this.buildings3d.update((v) => !v);
     this.syncBuildings3d();
   }
 
   private styleUrl(key: string): string {
-    const style = BASE_STYLES.find(s => s.key === key) ?? BASE_STYLES[0];
+    const style = BASE_STYLES.find((s) => s.key === key) ?? BASE_STYLES[0];
     return `https://api.maptiler.com/maps/${style.path}/style.json?key=${environment.mapTilerApiKey}`;
   }
 
@@ -1446,7 +1597,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   private syncBuildings3d(): void {
     if (!this.map || !this.mapReady) return;
     const want = this.buildings3d();
-    const has  = !!this.map.getLayer(BUILDINGS_3D_LAYER);
+    const has = !!this.map.getLayer(BUILDINGS_3D_LAYER);
 
     if (want && !has) {
       const source = this.findBuildingSource();
@@ -1466,21 +1617,24 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
               // low warm (houses) → tall cool (towers).
               'fill-extrusion-color': [
                 'case',
-                ['has', 'colour'], ['get', 'colour'],
-                ['interpolate', ['linear'],
+                ['has', 'colour'],
+                ['get', 'colour'],
+                [
+                  'interpolate',
+                  ['linear'],
                   ['coalesce', ['get', 'render_height'], 10],
-                  4,   '#e9dcc4',   // low-rise — warm sand
-                  12,  '#ddd3c4',   // mid-rise — neutral
-                  30,  '#c4c9d4',   // high-rise — cool grey-blue
-                  80,  '#a9b6cf',   // towers — steel blue
+                  4,
+                  '#e9dcc4', // low-rise — warm sand
+                  12,
+                  '#ddd3c4', // mid-rise — neutral
+                  30,
+                  '#c4c9d4', // high-rise — cool grey-blue
+                  80,
+                  '#a9b6cf', // towers — steel blue
                 ],
               ],
-              'fill-extrusion-height': [
-                'coalesce', ['get', 'render_height'], 10,
-              ],
-              'fill-extrusion-base': [
-                'coalesce', ['get', 'render_min_height'], 0,
-              ],
+              'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 10],
+              'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
               'fill-extrusion-opacity': 0.85,
             },
           },
@@ -1507,14 +1661,14 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private applyModeToMap(key: string): void {
-    const mode = OCEAN_MODES.find(m => m.key === key);
+    const mode = OCEAN_MODES.find((m) => m.key === key);
     if (!mode || !this.map) return;
     this.ngZone.runOutsideAngular(() => {
-      this.map!.setPaintProperty(MASK_LAYER,    'fill-color', mode.ocean);
-      this.map!.setPaintProperty(SHADOW_LAYER,  'fill-color', mode.shadow);
+      this.map!.setPaintProperty(MASK_LAYER, 'fill-color', mode.ocean);
+      this.map!.setPaintProperty(SHADOW_LAYER, 'fill-color', mode.shadow);
       this.map!.setPaintProperty(SHALLOW_LAYER, 'line-color', mode.shallow);
-      this.map!.setPaintProperty(FOAM_LAYER,    'line-color', mode.foam);
-      this.map!.setPaintProperty(SAND_LAYER,    'line-color', mode.sand);
+      this.map!.setPaintProperty(FOAM_LAYER, 'line-color', mode.foam);
+      this.map!.setPaintProperty(SAND_LAYER, 'line-color', mode.sand);
     });
   }
 
@@ -1539,21 +1693,25 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       const res = await fetch(`/api/nominatim/search?q=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error('search failed');
       const places = (await res.json()) as Array<{
-        display_name: string; name: string;
-        addresstype: string; lat: string; lon: string;
-        osm_type: string; osm_id: number;
+        display_name: string;
+        name: string;
+        addresstype: string;
+        lat: string;
+        lon: string;
+        osm_type: string;
+        osm_id: number;
       }>;
       this.ngZone.run(() => {
         this.searchResults.set(
-          places.slice(0, 6).map(p => ({
+          places.slice(0, 6).map((p) => ({
             displayName: p.display_name,
-            shortName:   p.name || p.display_name.split(',')[0],
-            type:        p.addresstype ?? 'place',
-            lat:         parseFloat(p.lat),
-            lng:         parseFloat(p.lon),
-            osmType:     (p.osm_type ?? 'node').charAt(0).toUpperCase(),
-            osmId:       p.osm_id ?? 0,
-          }))
+            shortName: p.name || p.display_name.split(',')[0],
+            type: p.addresstype ?? 'place',
+            lat: parseFloat(p.lat),
+            lng: parseFloat(p.lon),
+            osmType: (p.osm_type ?? 'node').charAt(0).toUpperCase(),
+            osmId: p.osm_id ?? 0,
+          })),
         );
         this.searching.set(false);
         this.searchOpen.set(this.searchResults().length > 0);
@@ -1572,23 +1730,29 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     this.searchResults.set([]);
     // Use OSM ID lookup so we get the exact polygon for the chosen result,
     // not whatever a second name-based search happens to return.
-    await this.loadDistrictByOsmId(
-      `${result.osmType}${result.osmId}`, result.shortName, [result.lng, result.lat]
-    );
+    await this.loadDistrictByOsmId(`${result.osmType}${result.osmId}`, result.shortName, [
+      result.lng,
+      result.lat,
+    ]);
   }
 
   private async loadDistrictByOsmId(
-    osmIdStr: string, label: string, approxCenter: [number, number]
+    osmIdStr: string,
+    label: string,
+    approxCenter: [number, number],
   ): Promise<void> {
     if (!this.map) return;
     const cacheKey = `osm:${osmIdStr}`;
     this.currentQuery = cacheKey;
     this.currentLabel = label;
-    this.ngZone.run(() => { this.loading.set(true); this.errorMsg.set(''); });
+    this.ngZone.run(() => {
+      this.loading.set(true);
+      this.errorMsg.set('');
+    });
     try {
       const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-      const cache   = new Map(entries);
-      const cached  = cache.get(cacheKey);
+      const cache = new Map(entries);
+      const cached = cache.get(cacheKey);
 
       if (cached) {
         this.applyDistrictGeometry(cached.geometry as DistrictGeometry, label);
@@ -1597,7 +1761,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
       this.map.setMaxBounds(null);
       this.ngZone.runOutsideAngular(() =>
-        this.map!.flyTo({ center: approxCenter, zoom: 13, duration: 500 })
+        this.map!.flyTo({ center: approxCenter, zoom: 13, duration: 500 }),
       );
 
       const res = await fetch(`/api/nominatim/lookup?osm_ids=${encodeURIComponent(osmIdStr)}`);
@@ -1647,16 +1811,21 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private async loadDistrictByQuery(
-    query: string, label: string, approxCenter: [number, number]
+    query: string,
+    label: string,
+    approxCenter: [number, number],
   ): Promise<void> {
     if (!this.map) return;
     this.currentQuery = query;
     this.currentLabel = label;
-    this.ngZone.run(() => { this.loading.set(true); this.errorMsg.set(''); });
+    this.ngZone.run(() => {
+      this.loading.set(true);
+      this.errorMsg.set('');
+    });
     try {
       const entries = readLocalStorage<[string, PlaceBoundary][]>(BOUNDARY_CACHE_KEY, []);
-      const cache   = new Map(entries);
-      const cached  = cache.get(query.toLowerCase());
+      const cache = new Map(entries);
+      const cached = cache.get(query.toLowerCase());
 
       if (cached) {
         this.applyDistrictGeometry(cached.geometry as DistrictGeometry, label);
@@ -1665,7 +1834,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
       this.map.setMaxBounds(null);
       this.ngZone.runOutsideAngular(() =>
-        this.map!.flyTo({ center: approxCenter, zoom: 13, duration: 500 })
+        this.map!.flyTo({ center: approxCenter, zoom: 13, duration: 500 }),
       );
 
       const boundary = await Utils.getPlaceBoundary(query);
@@ -1691,7 +1860,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // ── Presets ───────────────────────────────────────────────────────────────────
 
   applyPreset(key: string): void {
-    const p = MAP_PRESETS.find(x => x.key === key);
+    const p = MAP_PRESETS.find((x) => x.key === key);
     if (!p) return;
     this.currentPreset.set(key);
     // Appearance signals — mapFilter computed picks these up immediately
@@ -1721,14 +1890,14 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   /** Snapshot of every setting the island map supports right now. */
   private captureSettings(): IslandTemplateSettings {
     return {
-      baseStyle:       this.baseStyle(),
-      oceanMode:       this.currentMode(),
-      pitch:           this.tilt(),
-      buildings3d:     this.buildings3d(),
-      brightness:      this.brightness(),
-      contrast:        this.contrast(),
-      saturation:      this.saturation(),
-      hueRotate:       this.hueRotate(),
+      baseStyle: this.baseStyle(),
+      oceanMode: this.currentMode(),
+      pitch: this.tilt(),
+      buildings3d: this.buildings3d(),
+      brightness: this.brightness(),
+      contrast: this.contrast(),
+      saturation: this.saturation(),
+      hueRotate: this.hueRotate(),
       layerVisibility: { ...this.layerVisibility() },
     };
   }
@@ -1737,9 +1906,15 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     const name = this.newTemplateName().trim();
     if (!name) return;
     const now = Date.now();
-    this.templates.update(list => [
-      { id: this.newTemplateId(), name, createdAt: now, updatedAt: now,
-        favorite: false, settings: this.captureSettings() },
+    this.templates.update((list) => [
+      {
+        id: this.newTemplateId(),
+        name,
+        createdAt: now,
+        updatedAt: now,
+        favorite: false,
+        settings: this.captureSettings(),
+      },
       ...list,
     ]);
     this.newTemplateName.set('');
@@ -1776,23 +1951,29 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   duplicateTemplate(t: IslandTemplate): void {
     const now = Date.now();
-    this.templates.update(list => [
-      { ...t, id: this.newTemplateId(), name: `${t.name} copy`,
-        favorite: false, createdAt: now, updatedAt: now,
-        settings: { ...t.settings, layerVisibility: { ...t.settings.layerVisibility } } },
+    this.templates.update((list) => [
+      {
+        ...t,
+        id: this.newTemplateId(),
+        name: `${t.name} copy`,
+        favorite: false,
+        createdAt: now,
+        updatedAt: now,
+        settings: { ...t.settings, layerVisibility: { ...t.settings.layerVisibility } },
+      },
       ...list,
     ]);
     this.persistTemplates();
   }
 
   deleteTemplate(id: string): void {
-    this.templates.update(list => list.filter(t => t.id !== id));
+    this.templates.update((list) => list.filter((t) => t.id !== id));
     this.persistTemplates();
   }
 
   toggleTemplateFavorite(id: string): void {
-    this.templates.update(list =>
-      list.map(t => (t.id === id ? { ...t, favorite: !t.favorite } : t))
+    this.templates.update((list) =>
+      list.map((t) => (t.id === id ? { ...t, favorite: !t.favorite } : t)),
     );
     this.persistTemplates();
   }
@@ -1801,17 +1982,16 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     const name = raw.trim();
     this.editingTemplateId.set(null);
     if (!name) return;
-    this.templates.update(list =>
-      list.map(t => (t.id === id ? { ...t, name, updatedAt: Date.now() } : t))
+    this.templates.update((list) =>
+      list.map((t) => (t.id === id ? { ...t, name, updatedAt: Date.now() } : t)),
     );
     this.persistTemplates();
   }
 
   exportTemplates(): void {
-    const blob = new Blob(
-      [JSON.stringify(this.templates(), null, 2)],
-      { type: 'application/json' },
-    );
+    const blob = new Blob([JSON.stringify(this.templates(), null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1822,21 +2002,27 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   async onImportTemplates(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    const file  = input.files?.[0];
+    const file = input.files?.[0];
     input.value = '';
     if (!file) return;
     try {
       const parsed = JSON.parse(await file.text()) as IslandTemplate[];
       if (!Array.isArray(parsed)) return;
-      const existing = new Set(this.templates().map(t => t.id));
+      const existing = new Set(this.templates().map((t) => t.id));
       const incoming = parsed.filter(
-        t => t && typeof t.id === 'string' && typeof t.name === 'string'
-          && !!t.settings && !existing.has(t.id)
+        (t) =>
+          t &&
+          typeof t.id === 'string' &&
+          typeof t.name === 'string' &&
+          !!t.settings &&
+          !existing.has(t.id),
       );
       if (!incoming.length) return;
-      this.templates.update(list => [...incoming, ...list]);
+      this.templates.update((list) => [...incoming, ...list]);
       this.persistTemplates();
-    } catch { /* invalid file — ignore silently */ }
+    } catch {
+      /* invalid file — ignore silently */
+    }
   }
 
   private persistTemplates(): void {
@@ -1853,23 +2039,29 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   toggleLayerGroup(key: string): void {
     const next = !this.layerVisibility()[key];
-    this.layerVisibility.update(v => ({ ...v, [key]: next }));
+    this.layerVisibility.update((v) => ({ ...v, [key]: next }));
     if (this.mapReady) this.applyLayerGroupVisibility(key, next);
   }
 
   private applyLayerGroupVisibility(key: string, visible: boolean): void {
     if (!this.map) return;
-    const group = LAYER_GROUPS.find(g => g.key === key);
+    const group = LAYER_GROUPS.find((g) => g.key === key);
     if (!group) return;
     const vis = visible ? 'visible' : 'none';
     const layers = (this.map.getStyle()?.layers ?? []) as Array<{
-      id: string; type: string; 'source-layer'?: string;
+      id: string;
+      type: string;
+      'source-layer'?: string;
     }>;
     this.ngZone.runOutsideAngular(() => {
       for (const layer of layers) {
         if (layer.id.startsWith('hi-')) continue;
         if (group.match(layer.id, layer.type, layer['source-layer'] ?? '')) {
-          try { this.map!.setLayoutProperty(layer.id, 'visibility', vis); } catch { /* skip */ }
+          try {
+            this.map!.setLayoutProperty(layer.id, 'visibility', vis);
+          } catch {
+            /* skip */
+          }
         }
       }
     });
@@ -1885,9 +2077,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // ── Camera ────────────────────────────────────────────────────────────────────
 
   resetBearing(): void {
-    this.ngZone.runOutsideAngular(() =>
-      this.map?.easeTo({ bearing: 0, duration: 500 })
-    );
+    this.ngZone.runOutsideAngular(() => this.map?.easeTo({ bearing: 0, duration: 500 }));
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────────

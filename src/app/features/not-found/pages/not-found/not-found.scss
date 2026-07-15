@@ -72,7 +72,9 @@
   box-shadow: var(--tm-shadow-lg);
   text-align: center;
   backdrop-filter: blur(10px);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 
   &:hover {
     transform: translateY(-4px);
@@ -100,7 +102,8 @@
 }
 
 @keyframes pulse-icon {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     filter: drop-shadow(0 0 0px rgba(99, 102, 241, 0));
   }

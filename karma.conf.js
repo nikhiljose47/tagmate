@@ -18,7 +18,17 @@ module.exports = function (config) {
     coverageReporter: {
       dir: require('path').join(__dirname, './coverage/tagmate'),
       subdir: '.',
-      reporters: [{ type: 'html' }, { type: 'text-summary' }],
+      reporters: [{ type: 'html' }, { type: 'text-summary' }, { type: 'lcovonly' }],
+      check: {
+        global: {
+          // Baseline recorded in 0.1.0. Raise these in small increments until
+          // the roadmap targets (70/70/70/60) are reached.
+          statements: 27,
+          lines: 30,
+          functions: 15,
+          branches: 10,
+        },
+      },
     },
     reporters: ['progress', 'kjhtml'],
     browsers: ['ChromeHeadlessNoGpu'],

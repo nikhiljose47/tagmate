@@ -11,10 +11,8 @@ export const loggingInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     tap({
-      next: () =>
-        logger.debug(`← ${req.method} ${req.url} (${Date.now() - started}ms)`),
-      error: (err) =>
-        logger.warn(`✗ ${req.method} ${req.url} (${Date.now() - started}ms)`, err),
-    })
+      next: () => logger.debug(`← ${req.method} ${req.url} (${Date.now() - started}ms)`),
+      error: (err) => logger.warn(`✗ ${req.method} ${req.url} (${Date.now() - started}ms)`, err),
+    }),
   );
 };

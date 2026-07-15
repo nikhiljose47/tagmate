@@ -6,6 +6,7 @@ import { AppUser } from '../models/app-user.model';
 import { UserModel } from '../models/user.model';
 import { AuthResponse } from '../models/auth-response.model';
 import { SupabaseService } from './supabase.service';
+import { toAppError } from '../models/app-error.model';
 
 @Injectable({ providedIn: 'root' })
 export class UserSessionService {
@@ -28,8 +29,8 @@ export class UserSessionService {
             email: null,
             username: 'Guest',
             isGuest: true,
-          }
-    )
+          },
+    ),
   );
 
   constructor() {
@@ -68,11 +69,11 @@ export class UserSessionService {
                   is_guest: isGuest,
                   email: session.user.email ?? null,
                   created_at: new Date().toISOString(),
-                })
+                }),
               ).pipe(map(() => newAppUser));
-            })
+            }),
           );
-        })
+        }),
       )
       .subscribe((appUser) => {
         this.user.set(appUser);
@@ -82,13 +83,12 @@ export class UserSessionService {
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
       const { data, error } = await firstValueFrom(
-        this.supabase.signInWithPassword(email, password)
+        this.supabase.signInWithPassword(email, password),
       );
       if (error) {
         return {
           ok: false,
-          code: String((error as any).status ?? 'auth/unknown'),
-          message: (error as any).message ?? 'Something went wrong',
+          ...toAppError(error, 'login'),
         };
       }
       const u = data.user!;
@@ -97,15 +97,12 @@ export class UserSessionService {
         uid: u.id,
         email: u.email ?? null,
         username:
-          (u.user_metadata?.['username'] as string | undefined) ??
-          u.email?.split('@')[0] ??
-          'User',
+          (u.user_metadata?.['username'] as string | undefined) ?? u.email?.split('@')[0] ?? 'User',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         ok: false,
-        code: 'auth/unknown',
-        message: err?.message ?? 'Something went wrong',
+        ...toAppError(err, 'login'),
       };
     }
   }
@@ -113,7 +110,7 @@ export class UserSessionService {
   async signup(
     email: string,
     password: string,
-    metadata: { username: string; fullName: string; birthday: string }
+    metadata: { username: string; fullName: string; birthday: string },
   ): Promise<AuthResponse> {
     try {
       const { data, error } = await firstValueFrom(
@@ -121,13 +118,12 @@ export class UserSessionService {
           username: metadata.username,
           full_name: metadata.fullName,
           birthday: metadata.birthday,
-        })
+        }),
       );
       if (error) {
         return {
           ok: false,
-          code: String((error as any).status ?? 'auth/unknown'),
-          message: (error as any).message ?? 'Something went wrong',
+          ...toAppError(error, 'signup'),
         };
       }
       const u = data.user!;
@@ -137,11 +133,10 @@ export class UserSessionService {
         email: u.email ?? null,
         username: metadata.username,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         ok: false,
-        code: 'auth/unknown',
-        message: err?.message ?? 'Something went wrong',
+        ...toAppError(err, 'signup'),
       };
     }
   }
@@ -166,24 +161,23 @@ export class UserSessionService {
         name: uid.slice(0, 8),
         is_guest: true,
         created_at: new Date().toISOString(),
-      })
+      }),
     );
   }
 
   async convertGuestToPermanent(
     email: string,
     password: string,
-    username: string
+    username: string,
   ): Promise<AuthResponse> {
     try {
       const { data, error } = await firstValueFrom(
-        this.supabase.updateUser({ email, password, data: { username } })
+        this.supabase.updateUser({ email, password, data: { username } }),
       );
       if (error) {
         return {
           ok: false,
-          code: String((error as any).status ?? 'auth/unknown'),
-          message: (error as any).message ?? 'Something went wrong',
+          ...toAppError(error, 'convert-guest'),
         };
       }
       const uid = data.user!.id;
@@ -194,7 +188,7 @@ export class UserSessionService {
           is_guest: false,
           email,
           created_at: new Date().toISOString(),
-        })
+        }),
       );
       this.user.set({ uid, name: username, isGuest: false, email });
       return {
@@ -203,11 +197,10 @@ export class UserSessionService {
         email,
         username,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         ok: false,
-        code: 'auth/unknown',
-        message: err?.message ?? 'Something went wrong',
+        ...toAppError(err, 'convert-guest'),
       };
     }
   }

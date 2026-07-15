@@ -18,10 +18,20 @@ export class NotificationDrawerComponent {
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
 
-  protected readonly today = computed(() => this.social.notifications().filter((item) => !this.isBlockedActor(item) && this.isToday(item.createdAt)));
-  protected readonly earlier = computed(() => this.social.notifications().filter((item) => !this.isBlockedActor(item) && !this.isToday(item.createdAt)));
+  protected readonly today = computed(() =>
+    this.social
+      .notifications()
+      .filter((item) => !this.isBlockedActor(item) && this.isToday(item.createdAt)),
+  );
+  protected readonly earlier = computed(() =>
+    this.social
+      .notifications()
+      .filter((item) => !this.isBlockedActor(item) && !this.isToday(item.createdAt)),
+  );
 
-  protected close(): void { this.social.notificationsOpen.set(false); }
+  protected close(): void {
+    this.social.notificationsOpen.set(false);
+  }
 
   protected async open(item: LocalNotification): Promise<void> {
     await this.social.markNotificationRead(item.id);
@@ -31,14 +41,23 @@ export class NotificationDrawerComponent {
     } else if (item.targetType === 'thread' && item.targetId) {
       await this.router.navigate(['/messages'], { queryParams: { thread: item.targetId } });
     } else if (item.postId) {
-      await this.router.navigate(['/posts', item.postId], item.targetType === 'comment' && item.targetId ? { fragment: `comment-${item.targetId}` } : undefined);
+      await this.router.navigate(
+        ['/posts', item.postId],
+        item.targetType === 'comment' && item.targetId
+          ? { fragment: `comment-${item.targetId}` }
+          : undefined,
+      );
     }
   }
 
   private isToday(value: string): boolean {
     const date = new Date(value);
     const now = new Date();
-    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+    return (
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate()
+    );
   }
 
   private isBlockedActor(item: LocalNotification): boolean {

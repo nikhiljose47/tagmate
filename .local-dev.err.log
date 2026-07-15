@@ -1,7 +1,0 @@
-[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: NgClass is not used within the template of NavComponent[0m [1m[35m[plugin angular-compiler][0m
-
-    src/app/layout/nav/nav.ts:17:42:
-[37m      17 │   imports: [RouterLink, RouterLinkActive, [32mNgClass[37m],
-         ╵                                           [32m~~~~~~~[0m
-
-[39m[22m

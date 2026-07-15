@@ -12,34 +12,31 @@ describe('TagDataService', () => {
     fromMock = {
       select: jasmine.createSpy('select').and.returnValue({
         eq: jasmine.createSpy('eq').and.returnValue({
-          single: jasmine.createSpy('single').and.returnValue(of({ data: null, error: null }))
+          single: jasmine.createSpy('single').and.returnValue(of({ data: null, error: null })),
         }),
         order: jasmine.createSpy('order').and.returnValue({
-          limit: jasmine.createSpy('limit').and.returnValue(of({ data: [], error: null }))
-        })
+          limit: jasmine.createSpy('limit').and.returnValue(of({ data: [], error: null })),
+        }),
       }),
       insert: jasmine.createSpy('insert').and.returnValue({
         select: jasmine.createSpy('select').and.returnValue({
-          single: jasmine.createSpy('single').and.returnValue(of({ data: {}, error: null }))
-        })
+          single: jasmine.createSpy('single').and.returnValue(of({ data: {}, error: null })),
+        }),
       }),
       delete: jasmine.createSpy('delete').and.returnValue({
-        eq: jasmine.createSpy('eq').and.returnValue(of({ error: null }))
-      })
+        eq: jasmine.createSpy('eq').and.returnValue(of({ error: null })),
+      }),
     };
 
     clientServiceMock = {
       client: {
         from: jasmine.createSpy('from').and.returnValue(fromMock),
-        rpc: jasmine.createSpy('rpc').and.returnValue(of({ data: [], error: null }))
-      }
+        rpc: jasmine.createSpy('rpc').and.returnValue(of({ data: [], error: null })),
+      },
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        TagDataService,
-        { provide: SupabaseClientService, useValue: clientServiceMock }
-      ]
+      providers: [TagDataService, { provide: SupabaseClientService, useValue: clientServiceMock }],
     });
     service = TestBed.inject(TagDataService);
   });
@@ -63,7 +60,7 @@ describe('TagDataService', () => {
   it('should surface resolved Supabase errors through the observable error channel', (done) => {
     const databaseError = new Error('permission denied');
     fromMock.insert.and.returnValue({
-      select: () => ({ single: () => of({ data: null, error: databaseError }) })
+      select: () => ({ single: () => of({ data: null, error: databaseError }) }),
     });
 
     service.addRow('tags', { highlight: 'blocked' }).subscribe({
@@ -71,7 +68,7 @@ describe('TagDataService', () => {
       error: (error) => {
         expect(error).toBe(databaseError);
         done();
-      }
+      },
     });
   });
 });

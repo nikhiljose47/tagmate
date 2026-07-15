@@ -12,23 +12,23 @@ describe('SocialDataService', () => {
     fromMock = {
       select: jasmine.createSpy('select').and.returnValue({
         or: jasmine.createSpy('or').and.returnValue({
-          order: jasmine.createSpy('order').and.returnValue(of({ data: [], error: null }))
-        })
-      })
+          order: jasmine.createSpy('order').and.returnValue(of({ data: [], error: null })),
+        }),
+      }),
     };
 
     clientServiceMock = {
       client: {
         from: jasmine.createSpy('from').and.returnValue(fromMock),
-        rpc: jasmine.createSpy('rpc').and.returnValue(of({ data: null, error: null }))
-      }
+        rpc: jasmine.createSpy('rpc').and.returnValue(of({ data: null, error: null })),
+      },
     };
 
     TestBed.configureTestingModule({
       providers: [
         SocialDataService,
-        { provide: SupabaseClientService, useValue: clientServiceMock }
-      ]
+        { provide: SupabaseClientService, useValue: clientServiceMock },
+      ],
     });
     service = TestBed.inject(SocialDataService);
   });
@@ -41,5 +41,4 @@ describe('SocialDataService', () => {
     service.getDirectMessagesForUser('12345678-1234-1234-1234-1234567890ab').subscribe();
     expect(clientServiceMock.client.from).toHaveBeenCalledWith('direct_messages');
   });
-
 });

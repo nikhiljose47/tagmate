@@ -1,7 +1,6 @@
 import { tagGradient, tagEmoji, avatarBg, avatarInitials, coverGradient } from './color.utils';
 
 describe('color.utils', () => {
-
   describe('tagGradient', () => {
     it('returns a gradient string', () => {
       expect(tagGradient('news')).toContain('linear-gradient');
