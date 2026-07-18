@@ -21,6 +21,7 @@
     "test:e2e:smoke": "playwright test e2e/accessibility.spec.ts --project=chromium",
     "e2e:report": "node e2e/generate-report.mjs",
     "e2e:show": "playwright show-report",
+    "e2e:seed": "node scripts/seed-e2e.mjs",
     "serve:ssr:tagmate": "node dist/tagmate/server/server.mjs",
     "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types"

@@ -5,8 +5,12 @@ import path from 'path';
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-// User session paths (created by global-setup.ts)
-const SESSION_DIR = path.resolve(__dirname, 'e2e/.sessions');
+const hasE2ECredentials =
+  !process.env['CI'] &&
+  Boolean(
+    process.env['E2E_USER1_EMAIL'] &&
+      (process.env['E2E_USER1_PASSWORD'] || process.env['E2E_TEST_PASSWORD']),
+  );
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -15,8 +19,8 @@ export default defineConfig({
   testDir: './e2e',
   /* Test artifacts go to e2e-artifacts/ (separate from JSON results in test-results/) */
   outputDir: 'e2e-artifacts',
-  /* Global setup: pre-login all 5 users and cache sessions */
-  globalSetup: './e2e/global-setup.ts',
+  /* Integration credentials are local-only; CI runs the backend-free smoke suite. */
+  globalSetup: hasE2ECredentials ? './e2e/global-setup.ts' : undefined,
   /* Keep dependent scenarios in each spec ordered; independent files use workers. */
   fullyParallel: false,
   forbidOnly: !!process.env['CI'],
@@ -49,8 +53,6 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Default: use User 1 session (most tests override via loginAs())
-        storageState: path.join(SESSION_DIR, 'user1.json'),
       },
     },
   ],
