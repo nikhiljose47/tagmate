@@ -60,7 +60,7 @@
 
         <div class="detail-body">
           <div class="detail-actions">
-            <button type="button" [class.active]="social.isLiked(post)" (click)="toggleLike()" aria-label="Like post">
+            <button type="button" [class.active]="social.isLiked(post)" [attr.aria-pressed]="social.isLiked(post)" (click)="toggleLike()" aria-label="Like post">
               <i class="bi" [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
             </button>
             <button type="button" aria-label="Comment">
@@ -75,7 +75,7 @@
             @if (post.userId !== platform.myUid() && !platform.isBlocked(post.userId)) {
               <button type="button" (click)="showMessageBox.update(v => !v)" aria-label="Message author"><i class="bi bi-envelope"></i></button>
             }
-            <button type="button" [class.active]="social.isSaved(post)" (click)="toggleSave()" aria-label="Save post">
+            <button type="button" [class.active]="social.isSaved(post)" [attr.aria-pressed]="social.isSaved(post)" (click)="toggleSave()" aria-label="Save post">
               <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
             </button>
           </div>
