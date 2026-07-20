@@ -40,11 +40,12 @@ async function globalSetup(config: FullConfig) {
   for (const user of testUsers) {
     const sessionFile = path.join(SESSION_DIR, `user${user.index}.json`);
 
-    // Skip if session already fresh (< 30 min old)
+    // Access tokens are short-lived. Refresh before they can expire during a
+    // long suite, otherwise tests can silently be redirected back to /login.
     if (fs.existsSync(sessionFile)) {
       const stat = fs.statSync(sessionFile);
       const ageMin = (Date.now() - stat.mtimeMs) / 60000;
-      if (Number.isFinite(ageMin)) {
+      if (Number.isFinite(ageMin) && ageMin < 20) {
         console.log(`  ✓ Session for User ${user.index} cached (${ageMin.toFixed(1)}m old)`);
         continue;
       }

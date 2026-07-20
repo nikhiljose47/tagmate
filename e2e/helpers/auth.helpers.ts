@@ -44,7 +44,12 @@ export async function loginAs(page: Page, user: TestUser): Promise<void> {
       }, originState.localStorage ?? []);
     }
     await page.goto('/feed');
-    // If still on login, fall back to actual login
+    // Supabase restores from localStorage asynchronously. Give the app time to
+    // validate the session: an expired token may initially render /feed before
+    // the auth guard redirects to /login.
+    await page.waitForTimeout(500);
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 3000 }).catch(() => undefined);
+    // If the cached session has expired, use the valid test credentials.
     if (page.url().includes('/login')) {
       await _performLogin(page, user);
     }
