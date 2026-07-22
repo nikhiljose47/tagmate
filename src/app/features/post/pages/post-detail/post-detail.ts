@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -125,6 +125,18 @@ export class PostDetailPage implements OnInit {
         void this.router.navigate([AppRoute.Feed]);
       }
     });
+
+    this.tagRepo
+      .liveTagUpdates()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((updated) => {
+        if (this.postKey() === this.social.postKey(updated)) this.post.set(updated);
+        this.relatedPosts.update((posts) =>
+          posts.map((post) =>
+            this.social.postKey(post) === this.social.postKey(updated) ? updated : post,
+          ),
+        );
+      });
   }
 
   // Removed ngOnDestroy since ticker interval is gone
@@ -188,21 +200,13 @@ export class PostDetailPage implements OnInit {
   protected toggleThread(commentId: string): void {
     this.expandedThreads.update((current) => {
       const next = new Set(current);
-      next.has(commentId) ? next.delete(commentId) : next.add(commentId);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
       return next;
     });
-
-    this.tagRepo
-      .liveTagUpdates()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((updated) => {
-        if (this.postKey() === this.social.postKey(updated)) this.post.set(updated);
-        this.relatedPosts.update((posts) =>
-          posts.map((post) =>
-            this.social.postKey(post) === this.social.postKey(updated) ? updated : post,
-          ),
-        );
-      });
   }
 
   protected beginEdit(comment: ThreadedComment): void {
@@ -233,7 +237,11 @@ export class PostDetailPage implements OnInit {
   }
 
   protected onMentionInput(value: string, context: 'comment' | 'reply'): void {
-    context === 'comment' ? this.commentText.set(value) : this.replyText.set(value);
+    if (context === 'comment') {
+      this.commentText.set(value);
+    } else {
+      this.replyText.set(value);
+    }
     this.mentionContext.set(context);
     const match = value.match(/(?:^|\s)@([a-z0-9_.-]{1,30})$/i);
     if (!match) {
@@ -249,7 +257,11 @@ export class PostDetailPage implements OnInit {
     const context = this.mentionContext();
     const source = context === 'comment' ? this.commentText() : this.replyText();
     const updated = source.replace(/@([a-z0-9_.-]*)$/i, `@${profile.name} `);
-    context === 'comment' ? this.commentText.set(updated) : this.replyText.set(updated);
+    if (context === 'comment') {
+      this.commentText.set(updated);
+    } else {
+      this.replyText.set(updated);
+    }
     this.mentionSuggestions.set([]);
   }
 

@@ -68,6 +68,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 - **Server-Side Optimized Queries**: Optimized repository querying via a `.getFiltered()` database mechanism, migrating away from slow front-end array filtering.
 - **LRU Capped Cache Limiters**: Restricts front-end Nominatim geocoding and reverse-lookup Map caches to a 50-entry maximum to prevent unbounded memory growth.
 - **Native Dialog Deprecations**: Migrates browser `confirm()` popups to the asynchronous app-wide `ConfirmDialogService` modal drawer.
+- **Post Detail Live Updates Refactor**: Resolved RxJS subscription leak in `PostDetailPage` by relocating `liveTagUpdates()` subscription to `ngOnInit()`, eliminating duplicate subscriptions on thread toggle clicks.
 - **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
 
 ### Production Optimizations & Telemetry

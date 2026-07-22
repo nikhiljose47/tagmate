@@ -608,7 +608,7 @@ export class SocialInteractionsService implements OnDestroy {
     return this.rsvps().has(key);
   }
 
-  toggleRsvp(post: Tag, _user = 'You'): boolean {
+  toggleRsvp(post: Tag): boolean {
     const key = this.postKey(post);
     const uid = this.currentUid();
     if (!uid) {

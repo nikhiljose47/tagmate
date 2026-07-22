@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +8,7 @@ import { UserSessionService } from '../../../../core/services/user-session.servi
 import { SocialDataService } from '../../../../core/services/social-data.service';
 import { TagDataService } from '../../../../core/services/tag-data.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
-import { DirectMessage, Tag } from '../../../../core/models/tag.model';
+import { DirectMessage } from '../../../../core/models/tag.model';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';

@@ -588,13 +588,21 @@ export class SocialPlatformService implements OnDestroy {
     deleteMatchers: Record<string, unknown>,
   ): Promise<boolean> {
     const enabled = state().has(key);
-    enabled ? this.removeFromSet(state, key) : this.addToSet(state, key);
+    if (enabled) {
+      this.removeFromSet(state, key);
+    } else {
+      this.addToSet(state, key);
+    }
     try {
       if (enabled) await firstValueFrom(this.supabase.deleteRowsWhere(table, deleteMatchers));
       else await firstValueFrom(this.supabase.addRow(table, insertRow));
       return !enabled;
     } catch (error) {
-      enabled ? this.addToSet(state, key) : this.removeFromSet(state, key);
+      if (enabled) {
+        this.addToSet(state, key);
+      } else {
+        this.removeFromSet(state, key);
+      }
       this.logger.error(`Toggle failed for ${table}`, error);
       this.toast.show('Could not save that change.', 'danger');
       return enabled;

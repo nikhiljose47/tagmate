@@ -49,6 +49,7 @@ import {
 import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { TelemetryService } from '../../../../core/services/telemetry.service';
+import { LoggerService } from '../../../../core/services/logger.service';
 
 interface CountryBounds {
   minLat: number;
@@ -187,6 +188,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   protected readonly workspace = inject(WorkspaceStateService);
   protected readonly platform = inject(SocialPlatformService);
   private readonly telemetry = inject(TelemetryService);
+  private readonly logger = inject(LoggerService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -513,6 +515,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .pipe(
         takeUntil(this.destroy$),
         catchError((err: unknown) => {
+          this.logger.error('Geocoding failed', err);
           this.isSearching.set(false);
           this.showUserError('Geocoding failed. Please try another location.');
           return of([]);
@@ -628,7 +631,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       }
     });
 
-    this.map.on('error', (event) => {
+    this.map.on('error', () => {
       // MapLibre also fires 'error' for recoverable issues (missing glyph ranges,
       // missing sprite icons) that it falls back from on its own — those aren't
       // style-load failures, so only alarm the user if the style never loaded at all.
@@ -849,6 +852,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         switchMap((query) =>
           this.fetchPostsForViewport(query).pipe(
             catchError((err: unknown) => {
+              this.logger.error('Failed to load posts for viewport', err);
               this.showUserError('Could not load posts for this map area.');
               return of([]);
             }),
