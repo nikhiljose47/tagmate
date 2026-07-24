@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AppTheme, ThemeService } from '../../core/services/theme.service';
@@ -32,13 +32,22 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly isSearching = signal(false);
   protected readonly userMenuOpen = signal(false);
 
-  protected readonly themes: { key: AppTheme; label: string; icon: string }[] = [
+  protected readonly allThemes: { key: AppTheme; label: string; icon: string }[] = [
     { key: 'light', label: 'Light', icon: 'bi-sun-fill' },
     { key: 'dark', label: 'Dark', icon: 'bi-moon-fill' },
     { key: 'midnight', label: 'Midnight', icon: 'bi-moon-stars-fill' },
     { key: 'forest', label: 'Forest', icon: 'bi-tree-fill' },
     { key: 'sepia', label: 'Sepia', icon: 'bi-cup-hot-fill' },
   ];
+
+  protected readonly visibleThemes = computed(() => {
+    const valid = this.theme.availableThemes();
+    return this.allThemes.filter((t) => valid.includes(t.key));
+  });
+
+  protected get themes() {
+    return this.visibleThemes();
+  }
 
   private searchTimeout?: ReturnType<typeof setTimeout>;
 

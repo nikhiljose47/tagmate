@@ -30,6 +30,7 @@ import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { FeatureFlagsService } from '../../../../core/services/feature-flags.service';
 
 @Component({
   selector: 'app-neighborhood',
@@ -53,6 +54,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   protected readonly platform = inject(SocialPlatformService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly featureFlags = inject(FeatureFlagsService);
 
   private static readonly _mlPromise = import('maplibre-gl');
   private hoodMaplib?: typeof import('maplibre-gl');
@@ -70,6 +72,30 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   protected readonly activeTab = signal<
     'map' | 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat'
   >('map');
+
+  public readonly availableTabs = computed(() => {
+    const tabs: Array<{
+      id: 'map' | 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat';
+      label: string;
+      icon: string;
+    }> = [
+      { id: 'map', label: 'Map', icon: 'bi-map-fill' },
+      { id: 'overview', label: 'Overview', icon: 'bi-grid-fill' },
+    ];
+    if (this.featureFlags.enableGroupChatrooms()) {
+      tabs.push({ id: 'chat', label: 'Chat', icon: 'bi-chat-left-text-fill' });
+    }
+    if (this.featureFlags.enableBulletinBoard()) {
+      tabs.push({ id: 'bulletin', label: 'Board', icon: 'bi-pin-angle-fill' });
+    }
+    if (this.featureFlags.enableChatmateAi()) {
+      tabs.push({ id: 'ai', label: 'AI', icon: 'bi-cpu-fill' });
+    }
+    if (this.featureFlags.enableCivicQuests()) {
+      tabs.push({ id: 'leaderboard', label: 'Champion', icon: 'bi-trophy-fill' });
+    }
+    return tabs;
+  });
 
   // Group Chat states
   protected readonly chatInput = signal('');

@@ -79,7 +79,7 @@
 
           <div class="theme-section" aria-label="Theme options">
             <p>Theme</p>
-            @for (item of themes; track item.key) {
+            @for (item of visibleThemes(); track item.key) {
               <button
                 type="button"
                 role="menuitem"
