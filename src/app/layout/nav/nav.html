@@ -47,19 +47,21 @@
       }
     }
 
-    <!-- Mobile "More" button -->
-    <button
-      class="nav-item mobile-primary nav-item--more"
-      type="button"
-      [class.active]="moreMenuOpen()"
-      aria-label="More options"
-      (click)="toggleMore()"
-    >
-      <span class="nav-icon">
-        <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
-      </span>
-      <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
-    </button>
+    <!-- Mobile "More" button — only shown if overflow items exist -->
+    @if (moreMenuItems().length > 0) {
+      <button
+        class="nav-item mobile-primary nav-item--more"
+        type="button"
+        [class.active]="moreMenuOpen()"
+        aria-label="More options"
+        (click)="toggleMore()"
+      >
+        <span class="nav-icon">
+          <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
+        </span>
+        <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
+      </button>
+    }
 
     @if (moreMenuOpen()) {
       <!-- Backdrop -->

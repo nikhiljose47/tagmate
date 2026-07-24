@@ -4,6 +4,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { SocialPlatformService } from '../../core/services/social-platform.service';
+import { FeatureFlagsService, AppFeatureFlags } from '../../core/services/feature-flags.service';
+
 interface NavItem {
   route: string;
   icon: string;
@@ -11,6 +13,7 @@ interface NavItem {
   label: string;
   mobile?: boolean;
   adminOnly?: boolean;
+  featureFlag?: keyof AppFeatureFlags;
 }
 
 @Component({
@@ -24,6 +27,7 @@ export class NavComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   protected readonly platform = inject(SocialPlatformService);
+  protected readonly featureFlags = inject(FeatureFlagsService);
 
   private readonly session = toSignal(this.auth.session$, { initialValue: null });
   readonly isAdmin = computed(() => this.session()?.user?.app_metadata?.['role'] === 'admin');
@@ -43,6 +47,7 @@ export class NavComponent {
       activeIcon: 'bi-geo-alt-fill',
       label: 'Hood',
       mobile: true,
+      featureFlag: 'enableHoodIsland',
     },
     {
       route: '/post',
@@ -64,6 +69,7 @@ export class NavComponent {
       icon: 'bi-bar-chart',
       activeIcon: 'bi-bar-chart-fill',
       label: 'Analytics',
+      featureFlag: 'enableAnalytics',
     },
     {
       route: '/admin',
@@ -84,7 +90,14 @@ export class NavComponent {
   readonly moreMenuOpen = signal(false);
 
   readonly visibleNavItems = computed(() =>
-    this.navItems.filter((item) => !item.adminOnly || this.isAdmin()),
+    this.navItems.filter((item) => {
+      if (item.adminOnly && !this.isAdmin()) return false;
+      if (item.featureFlag === 'enableHoodIsland' && !this.featureFlags.enableHoodIsland())
+        return false;
+      if (item.featureFlag === 'enableAnalytics' && !this.featureFlags.enableAnalytics())
+        return false;
+      return true;
+    }),
   );
 
   readonly moreMenuItems = computed(() => this.visibleNavItems().filter((item) => !item.mobile));

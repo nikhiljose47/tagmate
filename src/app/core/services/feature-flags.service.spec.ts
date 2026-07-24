@@ -17,6 +17,8 @@ describe('FeatureFlagsService', () => {
     expect(service.enableBulletinBoard()).toBe(DEFAULT_MVP_FLAGS.enableBulletinBoard);
     expect(service.enableCivicQuests()).toBe(DEFAULT_MVP_FLAGS.enableCivicQuests);
     expect(service.enableExtraThemes()).toBe(DEFAULT_MVP_FLAGS.enableExtraThemes);
+    expect(service.enableAnalytics()).toBe(DEFAULT_MVP_FLAGS.enableAnalytics);
+    expect(service.enableHoodIsland()).toBe(DEFAULT_MVP_FLAGS.enableHoodIsland);
   });
 
   it('should update feature flags when setFlag is called', () => {
@@ -25,5 +27,8 @@ describe('FeatureFlagsService', () => {
 
     service.setFlag('enableExtraThemes', true);
     expect(service.enableExtraThemes()).toBeTrue();
+
+    service.setFlag('enableAnalytics', true);
+    expect(service.enableAnalytics()).toBeTrue();
   });
 });
