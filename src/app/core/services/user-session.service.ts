@@ -1,6 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom, Observable, of, from } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { AppUser } from '../models/app-user.model';
 import { UserModel } from '../models/user.model';
@@ -42,6 +42,18 @@ export class UserSessionService {
           }
 
           const uid = session.user.id;
+          const name =
+            (session.user.user_metadata?.['username'] as string | undefined) ??
+            session.user.email?.split('@')[0] ??
+            'User';
+          const isGuest = session.user.is_anonymous ?? false;
+          const fallbackUser: AppUser = {
+            uid,
+            name,
+            isGuest,
+            email: session.user.email ?? undefined,
+          };
+
           return this.supabase.getUserById(uid).pipe(
             switchMap((appUser) => {
               if (appUser) {
@@ -49,18 +61,6 @@ export class UserSessionService {
                 // the public profile row returned for arbitrary users.
                 return of({ ...appUser, email: session.user.email ?? undefined });
               }
-
-              const name =
-                (session.user.user_metadata?.['username'] as string | undefined) ??
-                session.user.email?.split('@')[0] ??
-                'User';
-              const isGuest = session.user.is_anonymous ?? false;
-              const newAppUser: AppUser = {
-                uid,
-                name,
-                isGuest,
-                email: session.user.email ?? undefined,
-              };
 
               return from(
                 this.supabase.upsertRow('users', {
@@ -70,8 +70,12 @@ export class UserSessionService {
                   email: session.user.email ?? null,
                   created_at: new Date().toISOString(),
                 }),
-              ).pipe(map(() => newAppUser));
+              ).pipe(map(() => fallbackUser));
             }),
+            // If getUserById or upsert fails (e.g. network error), fall back to
+            // the session metadata so the subscription stays alive and the user
+            // is not left in a permanently-guest state.
+            catchError(() => of(fallbackUser)),
           );
         }),
       )
