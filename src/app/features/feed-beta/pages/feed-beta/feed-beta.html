@@ -1,0 +1,137 @@
+@if (isLoading()) {
+  <header class="fb-topbar fb-topbar--skeleton" aria-busy="true" aria-label="Loading feed">
+    <span class="fb-sk fb-sk--avatar"></span>
+    <div class="fb-topbar-text">
+      <span class="fb-sk fb-sk--name"></span>
+      <span class="fb-sk fb-sk--loc"></span>
+    </div>
+    <span class="fb-sk fb-sk--tag"></span>
+    <span class="fb-sk fb-sk--map"></span>
+  </header>
+} @else if (activeSlide(); as active) {
+  <!-- Fixed row tracking the slide currently centered in the scroller below. -->
+  <header class="fb-topbar">
+    <a
+      class="fb-avatar-link"
+      [routerLink]="active.isMine ? ['/profile'] : ['/users', active.post.userId]"
+      [attr.aria-label]="'Open profile of ' + active.username"
+    >
+      <tm-avatar [username]="active.username" [size]="28" />
+    </a>
+
+    <div class="fb-topbar-text">
+      <a
+        class="fb-name"
+        [routerLink]="active.isMine ? ['/profile'] : ['/users', active.post.userId]"
+        >{{ active.username }}</a
+      >
+      <span class="fb-loc">
+        <i class="bi bi-geo-alt" aria-hidden="true"></i>
+        <span class="fb-loc-text">{{ active.location }}</span>
+        <span class="fb-loc-dot" aria-hidden="true">·</span>
+        <span class="fb-loc-time">{{ active.post.createdAt | timeAgo }}</span>
+      </span>
+    </div>
+
+    @if (active.post.tag) {
+      <span class="fb-topbar-tag" [title]="active.post.tag">
+        <span class="fb-topbar-tag-glyph" aria-hidden="true">{{ active.post.tag | tagEmoji }}</span>
+        <span class="fb-topbar-tag-name">{{ active.post.tag }}</span>
+      </span>
+    }
+
+    <!-- Display-only raster tiles. No GL context, no controls, no pointer events. -->
+    <div class="fb-head-map" aria-hidden="true">
+      @if (active.mapTiles.length) {
+        @for (tile of active.mapTiles; track tile.url) {
+          <img
+            class="fb-head-map-tile"
+            [src]="tile.url"
+            [style.left]="tile.left"
+            [style.top]="tile.top"
+            width="256"
+            height="256"
+            decoding="async"
+            fetchpriority="low"
+            draggable="false"
+            alt=""
+          />
+        }
+        <span class="fb-head-map-marker"></span>
+      }
+    </div>
+  </header>
+}
+
+<div class="fb-scroller" #scroller>
+  @if (isLoading()) {
+    <div class="fb-slide fb-slide--skeleton" aria-busy="true" aria-label="Loading feed">
+      <div class="fb-body">
+        <span class="fb-sk fb-sk--media"></span>
+      </div>
+    </div>
+  } @else if (loadError()) {
+    <div class="fb-notice">
+      <tm-empty-state
+        icon="!"
+        title="Could not load the feed"
+        subtitle="Check your connection and try again."
+        actionText="Retry"
+        (actionClicked)="retry()"
+      />
+    </div>
+  } @else if (!slides().length) {
+    <div class="fb-notice">
+      <tm-empty-state
+        icon="~"
+        title="Nothing to see yet"
+        subtitle="Posts from your neighborhood will show up here."
+      />
+    </div>
+  } @else {
+    @for (slide of slides(); track slide.key) {
+      <article class="fb-slide" #slideEl [attr.data-key]="slide.key">
+        <div class="fb-body">
+          <a
+            class="fb-media"
+            [routerLink]="['/posts', slide.key]"
+            [style.background]="slide.post.tag | tagGradient"
+          >
+            @if (slide.imageUrl) {
+              <!-- Gated on the same window: the gradient underneath stands in until then. -->
+              @if (isLive(slide.key)) {
+                <img
+                  class="fb-media-img"
+                  [src]="slide.imageUrl"
+                  [alt]="slide.post.highlight || 'Post image'"
+                  decoding="async"
+                />
+              }
+            } @else {
+              <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
+            }
+          </a>
+
+          <div class="fb-caption">
+            <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
+            @if (slide.post.tag) {
+              <span class="fb-caption-tag">#{{ slide.post.tag }}</span>
+            }
+          </div>
+        </div>
+      </article>
+    }
+  }
+
+  <!--
+    Kept outside the branches above so @ViewChild resolves on first paint —
+    if it only existed in the loaded branch the observer would never attach.
+  -->
+  <div #scrollSentinel class="fb-sentinel" aria-hidden="true"></div>
+
+  @if (isLoadingMore()) {
+    <div class="fb-more" role="status" aria-live="polite">
+      <span class="fb-more-spinner" aria-hidden="true"></span>
+    </div>
+  }
+</div>

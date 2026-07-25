@@ -40,6 +40,13 @@ export class NavComponent {
       label: 'Feed',
       mobile: true,
     },
+    {
+      // Desktop sidebar + mobile "More" menu — the mobile bar is already full.
+      route: '/feed-beta',
+      icon: 'bi-collection-play',
+      activeIcon: 'bi-collection-play-fill',
+      label: 'Feed Beta',
+    },
     { route: '/hood', icon: 'bi-map', activeIcon: 'bi-map-fill', label: 'Map', mobile: true },
     {
       route: '/island',

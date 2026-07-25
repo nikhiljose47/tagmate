@@ -31,6 +31,12 @@ export const routes: Routes = [
     loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
   },
   {
+    path: 'feed-beta',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/feed-beta/feed-beta.routes').then((m) => m.FEED_BETA_ROUTES),
+  },
+  {
     path: 'hood',
     canActivate: [authGuard],
     loadChildren: () => import('./features/hood/hood.routes').then((m) => m.HOOD_ROUTES),
