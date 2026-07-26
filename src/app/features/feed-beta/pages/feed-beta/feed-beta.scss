@@ -35,42 +35,158 @@
   }
 }
 
-/* ── Fixed top row (mirrors the centered slide) ─────────────── */
+/* ── Locus card (pinned location surface, mirrors the centred slide) ─── */
 
-.fb-topbar {
-  display: grid;
-  /* avatar | text (stretches) | tag | map */
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  align-items: center;
+.fb-locus {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   flex: 0 0 auto;
-  max-width: 600px;
-  width: 100%;
-  margin-inline: auto;
-  padding: 4px 12px;
-  border-bottom: 1px solid var(--tm-border);
+  max-width: 560px;
+  width: calc(100% - 24px);
+  margin: 12px auto 8px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--tm-border);
+  border-radius: 14px;
   background: var(--tm-surface);
-  box-shadow: 0 4px 10px -6px rgba(15, 23, 42, 0.15);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 8px 22px -12px rgba(15, 23, 42, 0.22);
   z-index: 2;
 }
 
-.fb-avatar-link {
+.fb-locus-kicker {
+  color: var(--tm-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.fb-locus-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fb-locus-pin {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #2563eb 12%, transparent);
+  color: #2563eb;
+
+  i {
+    font-size: 18px;
+    line-height: 1;
+  }
+}
+
+.fb-locus-pin--skeleton {
+  background: color-mix(in srgb, var(--tm-muted) 16%, transparent);
+}
+
+.fb-locus-place {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tm-text);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fb-locus-tag {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  max-width: 120px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-muted) 12%, transparent);
+  color: var(--tm-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.fb-locus-tag-glyph {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.fb-locus-tag-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .fb-locus {
+    width: calc(100% - 20px);
+    margin: 10px auto 6px;
+    padding: 10px 12px 12px;
+    border-radius: 12px;
+  }
+
+  .fb-locus-pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+
+    i {
+      font-size: 16px;
+    }
+  }
+
+  .fb-locus-place {
+    font-size: 17px;
+  }
+
+  .fb-locus-tag {
+    max-width: 96px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+/* ── Per-card user header (matches classic feed card style) ──── */
+
+.fb-card-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--tm-surface);
+}
+
+.fb-card-avatar {
   flex-shrink: 0;
   line-height: 0;
   text-decoration: none;
 }
 
-.fb-topbar-text {
+.fb-card-author {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
-.fb-name {
+.fb-card-name {
   overflow: hidden;
   color: var(--tm-text);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
   text-decoration: none;
@@ -82,118 +198,24 @@
   }
 }
 
-.fb-loc {
+.fb-card-meta {
   display: flex;
-  min-width: 0;
   align-items: center;
   gap: 3px;
   color: var(--tm-muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
 
   i {
     flex-shrink: 0;
-    font-size: 9px;
-  }
-}
-
-.fb-loc-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fb-loc-dot,
-.fb-loc-time {
-  flex-shrink: 0;
-}
-
-.fb-topbar-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  max-width: 90px;
-  padding: 1px 6px;
-  border: 1px solid var(--tm-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--tm-muted) 10%, transparent);
-  color: var(--tm-text);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.fb-topbar-tag-glyph {
-  font-size: 11px;
-  line-height: 1;
-}
-
-.fb-topbar-tag-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── Mini hood map (display only) ───────────────────────────── */
-
-.fb-head-map {
-  position: relative;
-  overflow: hidden;
-  width: 48px;
-  height: 28px;
-  border: 1px solid var(--tm-border);
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--tm-muted) 12%, transparent);
-  /* Never interactive — no drag, no tap, no zoom. */
-  pointer-events: none;
-  user-select: none;
-}
-
-/* Each tile is placed at its true offset from the post, so the mosaic is
-   effectively centred on the post's exact coordinates. */
-.fb-head-map-tile {
-  position: absolute;
-  display: block;
-  width: 256px;
-  height: 256px;
-  max-width: none;
-}
-
-/* The mosaic is centred on the post's coordinates, so dead centre is exact. */
-.fb-head-map-marker {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  transform: translate(-50%, -50%);
-  border: 1.5px solid #ffffff;
-  border-radius: 2px;
-  background: #2563eb;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.45);
-}
-
-@media (max-width: 760px) {
-  .fb-topbar {
-    gap: 6px;
-    padding: 3px 10px;
-  }
-
-  .fb-topbar-tag {
-    max-width: 76px;
-    padding: 1px 5px;
-    font-size: 9px;
-  }
-
-  .fb-head-map {
-    width: 40px;
-    height: 24px;
+    font-size: 10px;
   }
 }
 
 /* ── Scroller ───────────────────────────────────────────────── */
 
 .fb-scroller {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -202,8 +224,9 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scrollbar-width: none;
-  /* Sits behind the topbar's soft shadow so the two panels visibly separate. */
-  background: color-mix(in srgb, var(--tm-muted) 6%, var(--tm-bg, transparent));
+  /* Neutral background — the locus card's own bottom margin provides the gap. */
+  padding-top: 4px;
+  background: var(--tm-bg, #f1f5f9);
 
   &::-webkit-scrollbar {
     display: none;
@@ -218,9 +241,10 @@
   flex-direction: column;
   /* Fills the scroller so only one post is in view at a time, but can grow
      for a long caption instead of clipping it. */
-  min-height: 100%;
+  min-height: calc(100% - 4px);
   max-width: 600px;
   margin-inline: auto;
+  background: var(--tm-surface);
   scroll-snap-align: start;
   scroll-snap-stop: always;
   /* Isolates paint cost per slide. */
@@ -337,34 +361,35 @@
   animation: fb-shimmer 1.4s ease-in-out infinite;
 }
 
-.fb-sk--avatar {
-  width: 28px;
-  height: 28px;
+.fb-sk--loc-big {
+  width: 180px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.fb-sk--card-avatar {
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border-radius: 50%;
 }
 
 .fb-sk--name {
   width: 120px;
-  height: 12px;
+  height: 13px;
 }
 
 .fb-sk--loc {
   width: 168px;
-  height: 10px;
-  margin-top: 6px;
+  height: 11px;
+  margin-top: 4px;
 }
 
 .fb-sk--tag {
-  width: 68px;
-  height: 22px;
+  flex-shrink: 0;
+  width: 80px;
+  height: 26px;
   border-radius: 999px;
-}
-
-.fb-sk--map {
-  width: 56px;
-  height: 32px;
-  border-radius: 6px;
 }
 
 .fb-sk--media {
@@ -374,13 +399,8 @@
 
 @media (max-width: 760px) {
   .fb-sk--tag {
-    width: 52px;
-    height: 18px;
-  }
-
-  .fb-sk--map {
-    width: 48px;
-    height: 28px;
+    width: 64px;
+    height: 22px;
   }
 }
 

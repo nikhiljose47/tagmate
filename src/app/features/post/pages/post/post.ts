@@ -204,14 +204,38 @@ export class PostPage {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        this.shared.updateCoordinates(coords.latitude, coords.longitude);
-        this.shared.updateText('Current device location');
+      async ({ coords }) => {
+        const { latitude: lat, longitude: lng } = coords;
+        this.shared.updateCoordinates(lat, lng);
+        this.shared.updateText('Fetching location…');
         this.locationErrorVisible.set(false);
+
+        try {
+          const res = await fetch(`/api/nominatim/reverse?lat=${lat}&lon=${lng}`);
+          const data = res.ok ? await res.json() : null;
+          this.shared.updateText(data ? this.extractPlaceName(data) : 'Current location');
+        } catch {
+          this.shared.updateText('Current location');
+        }
+
         this.toast.show('Current location attached to this post.', 'success');
       },
       () => this.toast.show('Could not read your current location.', 'danger'),
       { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true },
+    );
+  }
+
+  private extractPlaceName(data: { display_name?: string; address?: Record<string, string> }): string {
+    const a = data.address ?? {};
+    return (
+      a['neighbourhood'] ||
+      a['suburb'] ||
+      a['city_district'] ||
+      a['city'] ||
+      a['town'] ||
+      a['village'] ||
+      data.display_name?.split(',')[0]?.trim() ||
+      'Current location'
     );
   }
 
@@ -278,6 +302,7 @@ export class PostPage {
         highlight: this.formData.headline,
         lat: coords[0],
         lng: coords[1],
+        hoodId: this.shared.text() || undefined,
         expiresIn: this.formData.expiresIn,
         tag: this.formData.tag,
         createdAt: new Date().toISOString(),
