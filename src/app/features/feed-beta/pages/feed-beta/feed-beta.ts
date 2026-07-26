@@ -46,14 +46,14 @@ interface BetaSlide {
   readonly post: Tag;
   readonly username: string;
   readonly location: string;
-  readonly imageUrl: string;
+  readonly imageUrls: readonly string[];
   readonly mapTiles: readonly MapTile[];
   readonly isMine: boolean;
 }
 
 /** Minimal MapTiler raster style — fewest labels/features of the available set. */
 const MAP_STYLE = 'basic-v2';
-const MAP_ZOOM = 14;
+const MAP_ZOOM = 13;
 const TILE_PX = 256;
 
 /**
@@ -93,6 +93,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChildren('slideEl') private slideEls?: QueryList<ElementRef<HTMLElement>>;
   private slideObserver?: IntersectionObserver;
+  private activeSlideObserver?: IntersectionObserver;
 
   /** rAF gate so the scroll handler runs at most once per frame. */
   private activeRafPending = false;
@@ -100,6 +101,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   /** Key of the slide currently centered in the scroller — drives the fixed top row. */
   protected readonly activeKey = signal<string>('');
+  protected readonly activeImageIndexes = signal<Record<string, number>>({});
 
   /** The centered slide, or the first one until the observer reports. */
   protected readonly activeSlide = computed<BetaSlide | undefined>(() => {
@@ -142,7 +144,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
         post,
         username: post.username || 'Anonymous',
         location: this.locationLabel(post),
-        imageUrl: post.images?.[0] ?? '',
+        imageUrls: post.images?.filter(Boolean) ?? [],
         mapTiles: this.mapTilesFor(post),
         isMine: post.userId === myUid,
       }));
@@ -178,10 +180,12 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
+    this.watchCenteredSlide();
+
     if (typeof IntersectionObserver === 'undefined') return;
 
     this.watchSlideVisibility();
-    this.watchCenteredSlide();
+    this.watchActiveSlideVisibility();
 
     if (!this.sentinel) return;
 
@@ -207,6 +211,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.observer?.disconnect();
     this.slideObserver?.disconnect();
+    this.activeSlideObserver?.disconnect();
     if (this.scrollListener && this.scroller) {
       this.scroller.nativeElement.removeEventListener('scroll', this.scrollListener);
     }
@@ -217,6 +222,18 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   /** True while the slide is near enough to the viewport to load its imagery. */
   protected isLive(key: string): boolean {
     return this.eagerKeys().has(key) || this.liveKeys().has(key);
+  }
+
+  protected imageIndex(key: string): number {
+    return this.activeImageIndexes()[key] ?? 0;
+  }
+
+  protected onImageStripScroll(key: string, event: Event, total: number): void {
+    const el = event.currentTarget as HTMLElement;
+    if (!el.clientWidth || total < 2) return;
+    const next = Math.max(0, Math.min(total - 1, Math.round(el.scrollLeft / el.clientWidth)));
+    if (next === this.imageIndex(key)) return;
+    this.activeImageIndexes.update((current) => ({ ...current, [key]: next }));
   }
 
   /**
@@ -263,8 +280,38 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       reobserve();
       // A newly-inserted live post can push the centered slide down or
       // become the new centered slide — recompute so the top row keeps up.
-      this.updateActiveSlide();
+      this.queueActiveSlideUpdate();
     });
+  }
+
+  private watchActiveSlideVisibility(): void {
+    const scrollerEl = this.scroller?.nativeElement;
+    if (!scrollerEl) return;
+
+    this.activeSlideObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const key = (visible[0]?.target as HTMLElement | undefined)?.dataset['key'];
+        if (key && key !== this.activeKey()) this.activeKey.set(key);
+      },
+      {
+        root: scrollerEl,
+        threshold: [0.45, 0.55, 0.65, 0.75],
+      },
+    );
+
+    const reobserve = () => {
+      this.activeSlideObserver?.disconnect();
+      for (const el of this.slideEls ?? []) {
+        this.activeSlideObserver?.observe(el.nativeElement);
+      }
+      this.queueActiveSlideUpdate();
+    };
+
+    reobserve();
+    this.slideEls?.changes.pipe(takeUntil(this.destroy$)).subscribe(() => reobserve());
   }
 
   /**
@@ -280,17 +327,21 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     if (!scrollerEl) return;
 
     this.scrollListener = () => {
-      if (this.activeRafPending) return;
-      this.activeRafPending = true;
-      requestAnimationFrame(() => {
-        this.activeRafPending = false;
-        this.updateActiveSlide();
-      });
+      this.queueActiveSlideUpdate();
     };
 
     scrollerEl.addEventListener('scroll', this.scrollListener, { passive: true });
     // Seed the initial state so the top row is right on first paint.
-    this.updateActiveSlide();
+    this.queueActiveSlideUpdate();
+  }
+
+  private queueActiveSlideUpdate(): void {
+    if (this.activeRafPending) return;
+    this.activeRafPending = true;
+    requestAnimationFrame(() => {
+      this.activeRafPending = false;
+      this.updateActiveSlide();
+    });
   }
 
   private updateActiveSlide(): void {
@@ -298,7 +349,8 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     const els = this.slideEls;
     if (!scrollerEl || !els || !els.length) return;
 
-    const centre = scrollerEl.scrollTop + scrollerEl.clientHeight / 2;
+    const scrollerRect = scrollerEl.getBoundingClientRect();
+    const centre = scrollerRect.top + scrollerRect.height / 2;
     let bestKey: string | null = null;
     let bestDist = Infinity;
 
@@ -306,7 +358,8 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       const node = el.nativeElement;
       const key = node.dataset['key'];
       if (!key) continue;
-      const mid = node.offsetTop + node.clientHeight / 2;
+      const rect = node.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
       const dist = Math.abs(mid - centre);
       if (dist < bestDist) {
         bestDist = dist;
@@ -357,12 +410,11 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /** Hood name when we have one, otherwise fall back to trimmed coordinates. */
+  /** Best available place/address text for the fixed top row. */
   private locationLabel(post: Tag): string {
     if (post.hoodId?.trim()) return post.hoodId.trim();
-    if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) {
-      return `${post.lat.toFixed(4)}, ${post.lng.toFixed(4)}`;
-    }
+    if (post.country?.trim()) return post.country.trim();
+    if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) return 'Pinned location';
     return 'Location unavailable';
   }
 

@@ -1,11 +1,13 @@
 @if (isLoading()) {
   <aside class="fb-locus fb-locus--skeleton" aria-busy="true" aria-label="Loading feed">
     <div class="fb-locus-content">
-      <span class="fb-locus-kicker">Now viewing</span>
+      <div class="fb-locus-heading">
+        <span class="fb-locus-kicker">Now viewing</span>
+        <span class="fb-sk fb-sk--tag"></span>
+      </div>
       <div class="fb-locus-body">
         <span class="fb-locus-pin fb-locus-pin--skeleton"></span>
         <span class="fb-sk fb-sk--loc-big"></span>
-        <span class="fb-sk fb-sk--tag"></span>
       </div>
     </div>
     <div class="fb-locus-map fb-locus-map--skeleton" aria-hidden="true"></div>
@@ -14,19 +16,21 @@
   <!-- Location card — a pinned surface that mirrors the slide currently centered below. -->
   <aside class="fb-locus" aria-live="polite">
     <div class="fb-locus-content">
-      <span class="fb-locus-kicker">Now viewing</span>
+      <div class="fb-locus-heading">
+        <span class="fb-locus-kicker">Now viewing</span>
+        @if (active.post.tag) {
+          <span class="fb-locus-tag" [title]="active.post.tag">
+            <span class="fb-locus-tag-glyph" aria-hidden="true">{{ active.post.tag | tagEmoji }}</span>
+            <span class="fb-locus-tag-name">{{ active.post.tag }}</span>
+          </span>
+        }
+      </div>
       <div class="fb-locus-body">
         <span class="fb-locus-pin" aria-hidden="true">
           <i class="bi bi-geo-alt-fill"></i>
         </span>
-        <span class="fb-locus-place">{{ active.location }}</span>
+        <span class="fb-locus-place" [title]="active.location">{{ active.location }}</span>
       </div>
-      @if (active.post.tag) {
-        <span class="fb-locus-tag" [title]="active.post.tag">
-          <span class="fb-locus-tag-glyph" aria-hidden="true">{{ active.post.tag | tagEmoji }}</span>
-          <span class="fb-locus-tag-name">{{ active.post.tag }}</span>
-        </span>
-      }
     </div>
     <!-- Tiny raster map — same tile engine as the card mini-map, no GL context. -->
     <div class="fb-locus-map" aria-hidden="true">
@@ -108,25 +112,45 @@
             </div>
           </header>
 
-          <a
+          <div
             class="fb-media"
-            [routerLink]="['/posts', slide.key]"
             [style.background]="slide.post.tag | tagGradient"
           >
-            @if (slide.imageUrl) {
+            @if (slide.imageUrls.length) {
               <!-- Gated on the live window: the gradient underneath stands in until then. -->
               @if (isLive(slide.key)) {
-                <img
-                  class="fb-media-img"
-                  [src]="slide.imageUrl"
-                  [alt]="slide.post.highlight || 'Post image'"
-                  decoding="async"
-                />
+                <div
+                  class="fb-media-strip"
+                  [class.single]="slide.imageUrls.length === 1"
+                  (scroll)="onImageStripScroll(slide.key, $event, slide.imageUrls.length)"
+                >
+                  @for (image of slide.imageUrls; track image; let i = $index) {
+                    <a
+                      class="fb-media-frame"
+                      [routerLink]="['/posts', slide.key]"
+                      [attr.aria-label]="'Open post image ' + (i + 1)"
+                    >
+                      <img
+                        class="fb-media-img"
+                        [src]="image"
+                        [alt]="slide.post.highlight || 'Post image'"
+                        decoding="async"
+                      />
+                    </a>
+                  }
+                </div>
+                @if (slide.imageUrls.length > 1) {
+                  <div class="fb-media-dots" aria-label="Image position">
+                    @for (image of slide.imageUrls; track image; let i = $index) {
+                      <span class="fb-media-dot" [class.active]="imageIndex(slide.key) === i"></span>
+                    }
+                  </div>
+                }
               }
             } @else {
               <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
             }
-          </a>
+          </div>
 
           <div class="fb-caption">
             <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
