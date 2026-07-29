@@ -16,6 +16,7 @@ import { SocialInteractionsService } from '../../core/services/social-interactio
 import { SocialPlatformService } from '../../core/services/social-platform.service';
 import { SocialProfile } from '../../core/models/social.model';
 import { TagEmojiPipe } from '../../shared/pipes/tag-emoji.pipe';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-topbar',
@@ -31,6 +32,7 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly session = inject(UserSessionService);
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
+  private readonly toast = inject(ToastService);
   protected readonly workspace = inject(WorkspaceStateService);
 
   protected readonly query = signal('');
@@ -141,6 +143,7 @@ export class AppTopbarComponent implements OnDestroy {
       hood: area.hood,
       category,
     });
+    this.toast.show(`Feed set to ${area.label} - ${this.categoryLabel(category)}.`, 'success');
     this.closeFeedScopeDialog();
   }
 
@@ -165,11 +168,13 @@ export class AppTopbarComponent implements OnDestroy {
   protected setTheme(theme: AppTheme): void {
     this.theme.setTheme(theme);
     this.userMenuOpen.set(false);
+    this.toast.show('Theme updated.', 'success');
   }
 
   protected async logout(): Promise<void> {
     await this.session.logout();
     this.userMenuOpen.set(false);
+    this.toast.show('Logged out.', 'success');
     await this.router.navigate(['/login']);
   }
 

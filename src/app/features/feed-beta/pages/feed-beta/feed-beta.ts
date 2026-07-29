@@ -23,6 +23,7 @@ import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens'
 import { LoggerService } from '../../../../core/services/logger.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
@@ -88,6 +89,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly ngZone = inject(NgZone);
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
+  private readonly toast = inject(ToastService);
   private readonly workspace = inject(WorkspaceStateService);
 
   protected readonly posts = signal<Tag[]>([]);
@@ -300,7 +302,8 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected toggleSave(post: Tag): void {
-    this.social.toggleSave(post);
+    const saved = this.social.toggleSave(post);
+    this.toast.show(saved ? 'Post saved.' : 'Post removed from saved.', 'success');
   }
 
   protected openLocation(slide: BetaSlide): void {
@@ -343,8 +346,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       }
 
       await navigator.clipboard?.writeText(`${text} ${url}`.trim());
+      this.toast.show('Share link copied.', 'success');
     } catch {
-      // Sharing can be cancelled by the user; no UI state needs to change.
+      this.toast.show('Share was cancelled.', 'info');
     }
   }
 
