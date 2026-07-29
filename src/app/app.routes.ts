@@ -12,7 +12,7 @@ export const rootRedirectGuard: CanActivateFn = () => {
     take(1),
     map((session) => {
       if (session) {
-        return router.createUrlTree(['/feed']);
+        return router.createUrlTree(['/feed-beta']);
       } else {
         return router.createUrlTree(['/login']);
       }

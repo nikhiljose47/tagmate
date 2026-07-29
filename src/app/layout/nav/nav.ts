@@ -34,18 +34,18 @@ export class NavComponent {
 
   readonly navItems: NavItem[] = [
     {
-      route: '/feed',
-      icon: 'bi-list-ul',
-      activeIcon: 'bi-list-check',
-      label: 'Feed',
+      route: '/feed-beta',
+      icon: 'bi-house',
+      activeIcon: 'bi-house-fill',
+      label: 'Home',
       mobile: true,
     },
     {
       // Desktop sidebar + mobile "More" menu — the mobile bar is already full.
-      route: '/feed-beta',
-      icon: 'bi-collection-play',
-      activeIcon: 'bi-collection-play-fill',
-      label: 'Feed Beta',
+      route: '/feed',
+      icon: 'bi-list-ul',
+      activeIcon: 'bi-list-check',
+      label: 'Classic Feed',
     },
     { route: '/hood', icon: 'bi-map', activeIcon: 'bi-map-fill', label: 'Map', mobile: true },
     {

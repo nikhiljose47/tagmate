@@ -44,7 +44,7 @@ export class UpdatePasswordComponent {
         this.error.set(error.message || 'Update failed');
       } else {
         this.toast.show('Password updated successfully!', 'success');
-        void this.router.navigate(['/feed']);
+        void this.router.navigate(['/feed-beta']);
       }
     } catch (err: any) {
       this.error.set(err?.message ?? 'Something went wrong');

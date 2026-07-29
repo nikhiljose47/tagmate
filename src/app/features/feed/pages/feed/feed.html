@@ -1,5 +1,5 @@
 <main class="feed-page">
-  <header class="feed-header">
+  <!-- <header class="feed-header">
     <div>
       <p class="feed-kicker">Nearby now</p>
       <h1>Tagmate</h1>
@@ -10,9 +10,9 @@
         Post
       </a>
     </div>
-  </header>
+  </header> -->
 
-  <section class="composer tm-panel">
+  <!-- <section class="composer tm-panel">
     <a class="composer-avatar" routerLink="/profile" aria-label="Open profile">
       <tm-avatar username="You" [size]="42" />
     </a>
@@ -20,9 +20,9 @@
     <a class="tm-icon-btn" routerLink="/hood" aria-label="Open map">
       <i class="bi bi-map" aria-hidden="true"></i>
     </a>
-  </section>
+  </section> -->
 
-  <section class="feed-controls tm-panel" aria-label="Feed controls">
+  <!-- <section class="feed-controls tm-panel" aria-label="Feed controls">
     <div class="mode-tabs" role="tablist" aria-label="Feed modes">
       <button type="button" [class.active]="mode() === 'latest'" (click)="setMode('latest')">Latest</button>
       <button type="button" [class.active]="mode() === 'nearby'" (click)="setMode('nearby')">Nearby</button>
@@ -56,7 +56,7 @@
         </button>
       }
     </div>
-  </section>
+  </section> -->
 
   @if (isLoading()) {
     <div class="feed-skeletons" aria-label="Loading feed">

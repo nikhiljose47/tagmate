@@ -88,7 +88,7 @@ export class SignupPage implements OnInit {
   ngOnInit(): void {
     this.session.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
       if (this.destroyed) return;
-      if (!user.isGuest) this.router.navigateByUrl('/feed');
+      if (!user.isGuest) this.router.navigateByUrl('/feed-beta');
     });
   }
 
@@ -159,7 +159,7 @@ export class SignupPage implements OnInit {
       if (this.destroyed) return;
 
       if (res.ok) {
-        this.router.navigateByUrl('/feed');
+        this.router.navigateByUrl('/feed-beta');
       } else {
         this.error.set(res.message ?? 'Signup failed');
       }

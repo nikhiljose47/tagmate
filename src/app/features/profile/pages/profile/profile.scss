@@ -175,17 +175,18 @@
 .posts-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  background: var(--tm-border);
+  gap: 10px;
+  padding: 10px;
+  background: var(--tm-bg);
 }
 
 .post-card {
-  position: relative;
-  aspect-ratio: 1;
   overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -195,9 +196,17 @@
 }
 
 .saved-tag {
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--tm-primary-text);
   font-size: 12px;
   font-weight: 800;
+}
+
+.post-card-media {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  place-items: center;
 }
 
 .post-card-img {
@@ -212,47 +221,32 @@
 }
 
 .post-card-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 88px;
   padding: 8px;
   gap: 8px;
-  transition: background 0.2s;
-}
-
-.post-card:hover .post-card-overlay {
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--tm-surface);
 }
 
 .post-card-text {
-  display: none;
   margin: 0;
-  color: #fff;
-  font-size: 11px;
+  color: var(--tm-text);
+  font-size: 12px;
   font-weight: 600;
-  text-align: center;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  opacity: 0;
-  transition: opacity 0.2s;
+  overflow-wrap: anywhere;
 }
 
 .post-card-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.post-card:hover .post-card-text,
-.post-card:hover .post-card-actions {
-  opacity: 1;
 }
 
 .pca-btn {
@@ -261,19 +255,19 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  border: 1px solid var(--tm-border);
+  background: var(--tm-bg);
+  color: var(--tm-text);
   font-size: 13px;
   cursor: pointer;
-  backdrop-filter: blur(4px);
   transition: background 0.15s;
 }
 .pca-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: color-mix(in srgb, var(--tm-primary) 10%, var(--tm-bg));
 }
 .pca-btn.danger:hover {
-  background: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--tm-danger);
 }
 
 /* ── Empty Tab ──────────────────────────── */

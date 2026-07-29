@@ -3,16 +3,20 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   QueryList,
   ViewChild,
   ViewChildren,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
 import { Subject, takeUntil } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
@@ -25,6 +29,11 @@ import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { environment } from '../../../../environments/environment';
+import {
+  FeedBetaArea,
+  FeedBetaScope,
+  WorkspaceStateService,
+} from '../../../../layout/workspace/workspace-state.service';
 
 /** One raster tile of the mini map, pre-offset so the post lands at box centre. */
 interface MapTile {
@@ -72,10 +81,14 @@ const EAGER_SLIDES = 3;
   styleUrl: './feed-beta.scss',
 })
 export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
+  private static readonly mapLibrePromise = import('maplibre-gl');
+
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly logger = inject(LoggerService);
-  private readonly social = inject(SocialInteractionsService);
+  private readonly ngZone = inject(NgZone);
+  protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
+  private readonly workspace = inject(WorkspaceStateService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -89,7 +102,11 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('scroller') private scroller?: ElementRef<HTMLElement>;
   @ViewChild('scrollSentinel') private sentinel?: ElementRef<HTMLElement>;
+  @ViewChild('drawerMap') private drawerMapElement?: ElementRef<HTMLDivElement>;
   private observer?: IntersectionObserver;
+  private drawerMap?: MapLibreMap;
+  private drawerMarker?: MapLibreMarker;
+  private drawerResizeObserver?: ResizeObserver;
 
   @ViewChildren('slideEl') private slideEls?: QueryList<ElementRef<HTMLElement>>;
   private slideObserver?: IntersectionObserver;
@@ -102,14 +119,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   /** Key of the slide currently centered in the scroller — drives the fixed top row. */
   protected readonly activeKey = signal<string>('');
   protected readonly activeImageIndexes = signal<Record<string, number>>({});
-
-  /** The centered slide, or the first one until the observer reports. */
-  protected readonly activeSlide = computed<BetaSlide | undefined>(() => {
-    const list = this.slides();
-    if (!list.length) return undefined;
-    const key = this.activeKey();
-    return list.find((slide) => slide.key === key) ?? list[0];
-  });
+  protected readonly mapSlide = signal<BetaSlide | null>(null);
 
   /**
    * Keys of the slides close enough to the viewport to be worth loading images
@@ -128,16 +138,62 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
    * Same visibility rules as the classic feed — bulletins, self-hidden posts,
    * and posts from blocked users never reach the viewport.
    */
+  private readonly feedCandidates = computed(() =>
+    this.posts().filter((post) => {
+      if (post.tag === 'bulletin') return false;
+      if (this.social.isHidden(post)) return false;
+      if (this.platform.isBlocked(post.userId)) return false;
+      return true;
+    }),
+  );
+
+  private readonly syncFeedScope = effect(() => {
+    const candidates = this.feedCandidates();
+    const areas = this.areasFor(candidates);
+    const categories = this.categoriesFor(candidates);
+    this.workspace.feedBetaAreas.set(areas);
+    this.workspace.feedBetaCategories.set(categories);
+
+    if (!areas.length) {
+      if (this.workspace.feedBetaScope()) this.workspace.feedBetaScope.set(null);
+      return;
+    }
+
+    const current = this.workspace.feedBetaScope();
+    if (current) {
+      const currentArea = areas.find((area) => area.id === current.areaId);
+      if (currentArea) {
+        const category = currentArea.categories.includes(current.category)
+          ? current.category
+          : (currentArea.categories[0] ?? '');
+        const next = this.toScope(currentArea, category);
+        if (
+          next.category !== current.category ||
+          next.location !== current.location ||
+          next.country !== current.country ||
+          next.hood !== current.hood
+        ) {
+          this.workspace.feedBetaScope.set(next);
+        }
+        return;
+      }
+    }
+
+    const randomPost = candidates[Math.floor(Math.random() * candidates.length)];
+    const randomArea = areas.find((area) => area.id === this.areaIdFor(randomPost)) ?? areas[0];
+    const category =
+      randomPost?.tag && randomArea.categories.includes(randomPost.tag)
+        ? randomPost.tag
+        : (randomArea.categories[0] ?? '');
+    this.workspace.feedBetaScope.set(this.toScope(randomArea, category));
+  });
+
   protected readonly slides = computed<BetaSlide[]>(() => {
     const myUid = this.platform.myUid();
+    const scope = this.workspace.feedBetaScope();
 
-    return this.posts()
-      .filter((post) => {
-        if (post.tag === 'bulletin') return false;
-        if (this.social.isHidden(post)) return false;
-        if (this.platform.isBlocked(post.userId)) return false;
-        return true;
-      })
+    return this.feedCandidates()
+      .filter((post) => this.matchesScope(post, scope))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .map((post) => ({
         key: this.social.postKey(post),
@@ -217,6 +273,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     }
     this.destroy$.next();
     this.destroy$.complete();
+    this.destroyDrawerMap();
+    this.workspace.feedBetaAreas.set([]);
+    this.workspace.feedBetaCategories.set([]);
   }
 
   /** True while the slide is near enough to the viewport to load its imagery. */
@@ -234,6 +293,111 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     const next = Math.max(0, Math.min(total - 1, Math.round(el.scrollLeft / el.clientWidth)));
     if (next === this.imageIndex(key)) return;
     this.activeImageIndexes.update((current) => ({ ...current, [key]: next }));
+  }
+
+  protected toggleLike(post: Tag): void {
+    this.social.toggleLike(post);
+  }
+
+  protected toggleSave(post: Tag): void {
+    this.social.toggleSave(post);
+  }
+
+  protected openLocation(slide: BetaSlide): void {
+    if (!this.hasCoordinates(slide.post)) return;
+    this.mapSlide.set(slide);
+    requestAnimationFrame(() => void this.renderDrawerMap(slide));
+  }
+
+  protected hasCoordinates(post: Tag): boolean {
+    return Number.isFinite(post.lat) && Number.isFinite(post.lng);
+  }
+
+  protected coordinatesLabel(post: Tag): string {
+    return this.hasCoordinates(post)
+      ? `${post.lat.toFixed(5)}, ${post.lng.toFixed(5)}`
+      : 'Location coordinates unavailable';
+  }
+
+  protected closeLocation(): void {
+    this.mapSlide.set(null);
+    this.destroyDrawerMap();
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeLocationOnEscape(): void {
+    if (this.mapSlide()) this.closeLocation();
+  }
+
+  protected async sharePost(post: Tag): Promise<void> {
+    const text = post.highlight || 'Check out this Tagmate post.';
+    const url =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/posts/${encodeURIComponent(this.social.postKey(post))}`
+        : '';
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Tagmate post', text, url });
+        return;
+      }
+
+      await navigator.clipboard?.writeText(`${text} ${url}`.trim());
+    } catch {
+      // Sharing can be cancelled by the user; no UI state needs to change.
+    }
+  }
+
+  private async renderDrawerMap(slide: BetaSlide): Promise<void> {
+    const container = this.drawerMapElement?.nativeElement;
+    const { lat, lng } = slide.post;
+    if (!container || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    if (this.drawerMap) {
+      this.drawerMap.easeTo({ center: [lng, lat], zoom: 15, duration: 350 });
+      this.drawerMarker?.setLngLat([lng, lat]);
+      return;
+    }
+
+    try {
+      const module = await FeedBetaPage.mapLibrePromise;
+      const mapLibre = (module.default ?? module) as typeof import('maplibre-gl');
+      if (this.mapSlide()?.key !== slide.key || !this.drawerMapElement?.nativeElement) return;
+
+      this.ngZone.runOutsideAngular(() => {
+        this.drawerMap = new mapLibre.Map({
+          container: this.drawerMapElement!.nativeElement,
+          style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${environment.mapTilerApiKey}`,
+          center: [lng, lat],
+          zoom: 15,
+          minZoom: 3,
+          maxZoom: 19,
+          attributionControl: { compact: true },
+          dragRotate: false,
+          pitchWithRotate: false,
+        });
+        this.drawerMap.addControl(
+          new mapLibre.NavigationControl({ showCompass: false }),
+          'bottom-right',
+        );
+        this.drawerMarker = new mapLibre.Marker({ color: '#e11d48' })
+          .setLngLat([lng, lat])
+          .addTo(this.drawerMap);
+        this.drawerResizeObserver = new ResizeObserver(() => this.drawerMap?.resize());
+        this.drawerResizeObserver.observe(this.drawerMapElement!.nativeElement);
+      });
+    } catch (error) {
+      this.logger.error('Failed to open beta feed location map', error);
+    }
+  }
+
+  private destroyDrawerMap(): void {
+    this.drawerResizeObserver?.disconnect();
+    this.drawerResizeObserver = undefined;
+    this.drawerMarker?.remove();
+    this.drawerMarker = undefined;
+    this.drawerMap?.remove();
+    this.drawerMap = undefined;
   }
 
   /**
@@ -416,6 +580,94 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     if (post.country?.trim()) return post.country.trim();
     if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) return 'Pinned location';
     return 'Location unavailable';
+  }
+
+  private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {
+    if (!scope) return true;
+    if (this.areaIdFor(post) !== scope.areaId) return false;
+    return scope.category === 'all' || post.tag === scope.category;
+  }
+
+  private areasFor(posts: readonly Tag[]): readonly FeedBetaArea[] {
+    const grouped = new Map<
+      string,
+      {
+        country: string;
+        hood: string;
+        categories: Set<string>;
+        postCount: number;
+      }
+    >();
+
+    for (const post of posts) {
+      const id = this.areaIdFor(post);
+      const country = post.country?.trim() || 'World';
+      const hood = post.hoodId?.trim() || this.locationLabel(post);
+      const existing =
+        grouped.get(id) ??
+        ({
+          country,
+          hood,
+          categories: new Set<string>(),
+          postCount: 0,
+        } satisfies {
+          country: string;
+          hood: string;
+          categories: Set<string>;
+          postCount: number;
+        });
+
+      if (post.tag?.trim()) existing.categories.add(post.tag.trim());
+      existing.postCount += 1;
+      grouped.set(id, existing);
+    }
+
+    return [...grouped.entries()]
+      .map(([id, area]) => ({
+        id,
+        label: `${area.country} (${area.hood})`,
+        country: area.country,
+        hood: area.hood,
+        categories: [...area.categories].sort(),
+        postCount: area.postCount,
+      }))
+      .filter((area) => area.categories.length > 0)
+      .sort((a, b) => b.postCount - a.postCount || a.label.localeCompare(b.label));
+  }
+
+  private categoriesFor(posts: readonly Tag[]): readonly string[] {
+    return [...new Set(posts.map((post) => post.tag?.trim()).filter(Boolean) as string[])].sort();
+  }
+
+  private toScope(area: FeedBetaArea, category: string): FeedBetaScope {
+    return {
+      areaId: area.id,
+      location: area.label,
+      country: area.country,
+      hood: area.hood,
+      category,
+    };
+  }
+
+  private areaIdFor(post: Tag | undefined): string {
+    if (!post) return 'world:nearby';
+    const country = post.country?.trim() || 'World';
+    const hood = post.hoodId?.trim();
+    if (hood) return `${this.scopeKey(country)}:${this.scopeKey(hood)}`;
+    if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) {
+      return `${this.scopeKey(country)}:${post.lat.toFixed(3)},${post.lng.toFixed(3)}`;
+    }
+    return `${this.scopeKey(country)}:nearby`;
+  }
+
+  private scopeKey(value: string): string {
+    return (
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'nearby'
+    );
   }
 
   /**

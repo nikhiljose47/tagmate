@@ -37,7 +37,7 @@ export class LoginPage implements OnInit {
     // Redirect already-authenticated users away from the login page.
     this.session.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
       if (this.destroyed) return;
-      if (!user.isGuest) this.router.navigateByUrl('/hood');
+      if (!user.isGuest) this.router.navigateByUrl('/feed-beta');
     });
   }
 
@@ -54,7 +54,7 @@ export class LoginPage implements OnInit {
       if (this.destroyed) return;
 
       if (res.ok) {
-        this.router.navigateByUrl('/hood');
+        this.router.navigateByUrl('/feed-beta');
       } else {
         this.error.set(res.message ?? 'Login failed');
       }
@@ -78,7 +78,7 @@ export class LoginPage implements OnInit {
         this.error.set((res as any).message);
         return;
       }
-      this.router.navigateByUrl('/hood');
+      this.router.navigateByUrl('/feed-beta');
     } catch (err: any) {
       if (!this.destroyed) {
         this.error.set(err?.message ?? 'Guest login failed');

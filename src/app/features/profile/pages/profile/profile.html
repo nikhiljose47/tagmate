@@ -125,11 +125,13 @@
           <div class="posts-grid">
             @for (tag of tags; track tag.id) {
               <div class="post-card" [style.background]="tag.tag | tagGradient">
-                @if (tag.images[0]) {
-                  <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
-                } @else {
-                  <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
-                }
+                <div class="post-card-media">
+                  @if (tag.images[0]) {
+                    <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+                  } @else {
+                    <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+                  }
+                </div>
                 <div class="post-card-overlay">
                   <p class="post-card-text">{{ tag.highlight }}</p>
                   <div class="post-card-actions">
@@ -159,11 +161,13 @@
         <div class="posts-grid">
           @for (tag of savedTags(); track social.postKey(tag)) {
             <a class="post-card saved-card" [routerLink]="['/posts', social.postKey(tag)]" [style.background]="tag.tag | tagGradient">
-              @if (tag.images[0]) {
-                <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" />
-              } @else {
-                <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
-              }
+              <div class="post-card-media">
+                @if (tag.images[0]) {
+                  <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" />
+                } @else {
+                  <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+                }
+              </div>
               <div class="post-card-overlay">
                 <p class="post-card-text">{{ tag.highlight }}</p>
                 <span class="saved-tag">#{{ tag.tag }}</span>
