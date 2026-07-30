@@ -40,22 +40,8 @@ export class NavComponent {
       label: 'Home',
       mobile: true,
     },
-    {
-      // Desktop sidebar + mobile "More" menu — the mobile bar is already full.
-      route: '/feed',
-      icon: 'bi-list-ul',
-      activeIcon: 'bi-list-check',
-      label: 'Classic Feed',
-    },
     { route: '/hood', icon: 'bi-map', activeIcon: 'bi-map-fill', label: 'Map', mobile: true },
-    {
-      route: '/island',
-      icon: 'bi-geo-alt',
-      activeIcon: 'bi-geo-alt-fill',
-      label: 'Hood',
-      mobile: true,
-      featureFlag: 'enableHoodIsland',
-    },
+    // Island is intentionally hidden for now.
     {
       route: '/post',
       icon: 'bi-plus-square',

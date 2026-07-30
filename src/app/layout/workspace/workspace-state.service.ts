@@ -20,6 +20,12 @@ export interface CommandResult {
   icon: string;
 }
 
+export interface HomeDistrictOption {
+  key: string;
+  name: string;
+  country: string;
+}
+
 export interface FeedBetaArea {
   readonly id: string;
   readonly label: string;
@@ -68,6 +74,10 @@ export class WorkspaceStateService {
   readonly commandOpen = signal(false);
   readonly rightPanelOpen = signal(true);
   readonly filterDrawerOpen = signal(false);
+  readonly homeDistrictOptions = signal<HomeDistrictOption[]>([]);
+  readonly homeDistrict = signal<HomeDistrictOption | null>(null);
+  readonly homeTagOptions = signal<string[]>([]);
+  readonly homeTag = signal('all');
   readonly feedBetaAreas = signal<readonly FeedBetaArea[]>([]);
   readonly feedBetaCategories = signal<readonly string[]>([]);
   readonly feedBetaScope = signal<FeedBetaScope | null>(null);
@@ -89,5 +99,28 @@ export class WorkspaceStateService {
   clearContext(): void {
     this.selectedPost.set(null);
     this.contextMode.set('empty');
+  }
+
+  setHomeDistrictOptions(options: HomeDistrictOption[]): void {
+    this.homeDistrictOptions.set(options);
+    const selected = this.homeDistrict();
+    if (selected && options.some((option) => option.key === selected.key)) return;
+    if (options[0]) this.homeDistrict.set(options[0]);
+  }
+
+  setHomeDistrict(option: HomeDistrictOption): void {
+    this.homeDistrict.set(option);
+  }
+
+  setHomeTagOptions(options: string[]): void {
+    const normalized = Array.from(new Set(options.filter(Boolean))).sort();
+    this.homeTagOptions.set(normalized);
+    if (this.homeTag() !== 'all' && !normalized.includes(this.homeTag())) {
+      this.homeTag.set('all');
+    }
+  }
+
+  setHomeTag(tag: string): void {
+    this.homeTag.set(tag || 'all');
   }
 }

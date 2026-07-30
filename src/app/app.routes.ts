@@ -27,25 +27,25 @@ export const routes: Routes = [
   },
   {
     path: 'feed',
-    canActivate: [authGuard],
-    loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
+    redirectTo: 'feed-beta',
+    pathMatch: 'full',
   },
   {
     path: 'feed-beta',
     canActivate: [authGuard],
-    loadChildren: () =>
-      import('./features/feed-beta/feed-beta.routes').then((m) => m.FEED_BETA_ROUTES),
+    loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
   },
   {
     path: 'hood',
     canActivate: [authGuard],
     loadChildren: () => import('./features/hood/hood.routes').then((m) => m.HOOD_ROUTES),
   },
-  {
-    path: 'island',
-    loadChildren: () =>
-      import('./features/hood-island/hood-island.routes').then((m) => m.HOOD_ISLAND_ROUTES),
-  },
+  // Island is intentionally hidden while the Home feed is being validated.
+  // {
+  //   path: 'island',
+  //   loadChildren: () =>
+  //     import('./features/hood-island/hood-island.routes').then((m) => m.HOOD_ISLAND_ROUTES),
+  // },
   {
     path: 'post',
     canActivate: [authGuard],

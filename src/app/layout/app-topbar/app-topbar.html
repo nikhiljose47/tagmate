@@ -1,35 +1,97 @@
 <header class="app-topbar">
-  @if (hideSearch()) {
-    <section class="topbar-feed-scope" aria-live="polite" aria-label="Feed scope">
-      <div class="topbar-scope-copy">
-        <span class="topbar-scope-kicker">Viewing feed</span>
-        <div class="topbar-scope-line">
-          <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-          @if (workspace.feedBetaScope(); as scope) {
-            <strong>{{ scope.location }}</strong>
-            <span class="topbar-scope-dot" aria-hidden="true"></span>
-            <span class="topbar-scope-category" [title]="categoryLabel(scope.category)">
-              <span aria-hidden="true">{{ scope.category | tagEmoji }}</span>
-              <span>{{ categoryLabel(scope.category) }}</span>
+  @if (isHome()) {
+    <div
+      class="home-location-picker"
+      [class.active]="homeDistrictSearchOpen() || homeTagMenuOpen()"
+    >
+      <div class="home-location-main">
+        @if (homeDistrictSearchOpen()) {
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input
+            type="search"
+            placeholder="Search districts"
+            [ngModel]="homeDistrictQuery()"
+            (ngModelChange)="searchDistricts($event)"
+            (keydown.enter)="selectFirstHomeDistrict()"
+            (blur)="closeHomeDistrictSearch()"
+            aria-label="Search districts"
+            autofocus
+          />
+        } @else {
+          <button
+            type="button"
+            class="home-location-display"
+            (click)="openHomeDistrictSearch()"
+            aria-label="Search and change district"
+          >
+            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+            <span>
+              <strong>{{ homeDistrictLabel() }}</strong>
+              <small>{{ homeDistrictCountry() }}</small>
             </span>
-          } @else {
-            <strong>Choosing feed area...</strong>
-          }
-        </div>
+          </button>
+        }
       </div>
 
       <button
-        class="topbar-scope-change"
         type="button"
-        (click)="openFeedScopeDialog()"
-        [disabled]="!workspace.feedBetaAreas().length"
-        aria-haspopup="dialog"
-        [attr.aria-expanded]="workspace.feedBetaScopeDialogOpen()"
+        class="home-filter-trigger"
+        [class.active]="homeTagMenuOpen()"
+        (click)="toggleHomeTagMenu()"
+        aria-label="Filter Home posts by tag"
+        [attr.aria-expanded]="homeTagMenuOpen()"
       >
-        <i class="bi bi-sliders" aria-hidden="true"></i>
-        <span>Change</span>
+        <i class="bi bi-funnel" aria-hidden="true"></i>
+        <span>{{ homeTagLabel() }}</span>
       </button>
-    </section>
+
+      @if (homeDistrictSearchOpen()) {
+        <section class="home-district-results" aria-label="District search results">
+          @for (district of homeDistrictResults(); track district.key) {
+            <button
+              type="button"
+              class="home-district-result"
+              (mousedown)="$event.preventDefault()"
+              (click)="selectHomeDistrict(district)"
+            >
+              <i class="bi bi-geo-alt" aria-hidden="true"></i>
+              <span>
+                <strong>{{ district.name }}</strong>
+                <small>{{ district.country }}</small>
+              </span>
+            </button>
+          } @empty {
+            <div class="home-district-empty">
+              <strong>No districts found</strong>
+              <span>Try a district name from the list.</span>
+            </div>
+          }
+        </section>
+      }
+
+      @if (homeTagMenuOpen()) {
+        <section class="home-tag-menu" aria-label="Tag filters">
+          <button
+            type="button"
+            [class.active]="workspace.homeTag() === 'all'"
+            (click)="selectHomeTag('all')"
+          >
+            <i class="bi bi-grid" aria-hidden="true"></i>
+            All tags
+          </button>
+          @for (tag of workspace.homeTagOptions(); track tag) {
+            <button
+              type="button"
+              [class.active]="workspace.homeTag() === tag"
+              (click)="selectHomeTag(tag)"
+            >
+              <i class="bi bi-hash" aria-hidden="true"></i>
+              {{ tag | titlecase }}
+            </button>
+          }
+        </section>
+      }
+    </div>
   } @else {
     <div class="topbar-search" [class.active]="workspace.commandOpen()">
       <i class="bi bi-search" aria-hidden="true"></i>
@@ -134,47 +196,4 @@
     </div>
   </div>
 
-  @if (workspace.feedBetaScopeDialogOpen()) {
-    <button
-      class="topbar-scope-backdrop"
-      type="button"
-      (click)="closeFeedScopeDialog()"
-      aria-label="Close feed scope selector"
-    ></button>
-
-    <section class="topbar-scope-dialog" role="dialog" aria-modal="true" aria-label="Change feed scope">
-      <header>
-        <div>
-          <span>Feed scope</span>
-          <h2>Choose location and category</h2>
-        </div>
-        <button type="button" (click)="closeFeedScopeDialog()" aria-label="Close feed scope selector">
-          <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
-      </header>
-
-      <label>
-        <span>Location</span>
-        <select [ngModel]="draftAreaId()" (ngModelChange)="onDraftAreaChange($event)">
-          @for (area of workspace.feedBetaAreas(); track area.id) {
-            <option [ngValue]="area.id">{{ area.label }} - {{ area.postCount }} posts</option>
-          }
-        </select>
-      </label>
-
-      <label>
-        <span>Category</span>
-        <select [ngModel]="draftCategory()" (ngModelChange)="draftCategory.set($event)">
-          @for (category of draftCategories(); track category) {
-            <option [ngValue]="category">{{ categoryLabel(category) }}</option>
-          }
-        </select>
-      </label>
-
-      <footer>
-        <button type="button" class="topbar-scope-secondary" (click)="closeFeedScopeDialog()">Cancel</button>
-        <button type="button" class="topbar-scope-primary" (click)="applyFeedScope()">Apply</button>
-      </footer>
-    </section>
-  }
 </header>
