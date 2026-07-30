@@ -1,0 +1,194 @@
+<div class="fb-scroller" #scroller>
+  @if (isLoading()) {
+    <div class="fb-slide fb-slide--skeleton" aria-busy="true" aria-label="Loading feed">
+      <div class="fb-body">
+        <div class="fb-card-header">
+          <span class="fb-sk fb-sk--card-avatar"></span>
+          <div class="fb-card-author">
+            <span class="fb-sk fb-sk--name"></span>
+            <span class="fb-sk fb-sk--loc"></span>
+          </div>
+        </div>
+        <span class="fb-sk fb-sk--media"></span>
+      </div>
+    </div>
+  } @else if (loadError()) {
+    <div class="fb-notice">
+      <tm-empty-state
+        icon="!"
+        title="Could not load the feed"
+        subtitle="Check your connection and try again."
+        actionText="Retry"
+        (actionClicked)="retry()"
+      />
+    </div>
+  } @else if (!slides().length) {
+    <div class="fb-notice">
+      <tm-empty-state
+        icon="~"
+        title="No posts in this feed scope"
+        subtitle="Change the location or category from the top bar."
+      />
+    </div>
+  } @else {
+    @for (slide of slides(); track slide.key) {
+      <article class="fb-slide" #slideEl [attr.data-key]="slide.key">
+        <div class="fb-body">
+          <header class="fb-card-header">
+            <a
+              class="fb-card-avatar"
+              [routerLink]="slide.isMine ? ['/profile'] : ['/users', slide.post.userId]"
+              [attr.aria-label]="'Open profile of ' + slide.username"
+            >
+              <tm-avatar [username]="slide.username" [size]="36" />
+            </a>
+            <div class="fb-card-author">
+              <a
+                class="fb-card-name"
+                [routerLink]="slide.isMine ? ['/profile'] : ['/users', slide.post.userId]"
+                >{{ slide.username }}</a
+              >
+              <span class="fb-card-meta">
+                <i class="bi bi-clock" aria-hidden="true"></i>
+                {{ slide.post.createdAt | timeAgo }}
+              </span>
+            </div>
+            <button
+              class="fb-card-map"
+              type="button"
+              (click)="openLocation(slide)"
+              [disabled]="!hasCoordinates(slide.post)"
+              [attr.aria-label]="'Open map for ' + slide.location"
+            >
+              <i class="bi bi-map" aria-hidden="true"></i>
+              <span>Map</span>
+            </button>
+          </header>
+
+          <div class="fb-media" [style.background]="slide.post.tag | tagGradient">
+            @if (slide.imageUrls.length) {
+              @if (isLive(slide.key)) {
+                <div
+                  class="fb-media-strip"
+                  [class.single]="slide.imageUrls.length === 1"
+                  (scroll)="onImageStripScroll(slide.key, $event, slide.imageUrls.length)"
+                >
+                  @for (image of slide.imageUrls; track image; let i = $index) {
+                    <a
+                      class="fb-media-frame"
+                      [routerLink]="['/posts', slide.key]"
+                      [attr.aria-label]="'Open post image ' + (i + 1)"
+                    >
+                      <img
+                        class="fb-media-img"
+                        [src]="image"
+                        [alt]="slide.post.highlight || 'Post image'"
+                        decoding="async"
+                      />
+                    </a>
+                  }
+                </div>
+                @if (slide.imageUrls.length > 1) {
+                  <div class="fb-media-dots" aria-label="Image position">
+                    @for (image of slide.imageUrls; track image; let i = $index) {
+                      <span class="fb-media-dot" [class.active]="imageIndex(slide.key) === i"></span>
+                    }
+                  </div>
+                }
+              }
+            } @else {
+              <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
+            }
+          </div>
+
+          <div class="fb-caption">
+            <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
+            @if (slide.post.tag) {
+              <span class="fb-caption-tag">#{{ slide.post.tag }}</span>
+            }
+          </div>
+
+          <footer class="fb-card-footer">
+            <div class="fb-card-actions">
+              <button
+                type="button"
+                [class.active]="social.isLiked(slide.post)"
+                (click)="toggleLike(slide.post)"
+                aria-label="Like post"
+              >
+                <i
+                  class="bi"
+                  [class.bi-heart-fill]="social.isLiked(slide.post)"
+                  [class.bi-heart]="!social.isLiked(slide.post)"
+                  aria-hidden="true"
+                ></i>
+              </button>
+              <a [routerLink]="['/posts', slide.key]" aria-label="Open comments">
+                <i class="bi bi-chat" aria-hidden="true"></i>
+              </a>
+              <button type="button" (click)="sharePost(slide.post)" aria-label="Share post">
+                <i class="bi bi-send" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                class="push-right"
+                [class.active]="social.isSaved(slide.post)"
+                (click)="toggleSave(slide.post)"
+                aria-label="Save post"
+              >
+                <i
+                  class="bi"
+                  [class.bi-bookmark-fill]="social.isSaved(slide.post)"
+                  [class.bi-bookmark]="!social.isSaved(slide.post)"
+                  aria-hidden="true"
+                ></i>
+              </button>
+            </div>
+            <p class="fb-card-counts">
+              {{ social.likeCount(slide.post) }} likes · {{ social.commentCount(slide.post) }} comments
+            </p>
+          </footer>
+        </div>
+      </article>
+    }
+  }
+
+  <div #scrollSentinel class="fb-sentinel" aria-hidden="true"></div>
+
+  @if (isLoadingMore()) {
+    <div class="fb-more" role="status" aria-live="polite">
+      <span class="fb-more-spinner" aria-hidden="true"></span>
+    </div>
+  }
+</div>
+
+@if (mapSlide(); as mapped) {
+  <button
+    class="fb-map-backdrop"
+    type="button"
+    (click)="closeLocation()"
+    aria-label="Close location map"
+  ></button>
+  <aside
+    class="fb-map-drawer"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'Map for ' + mapped.location"
+  >
+    <header class="fb-map-drawer-header">
+      <div>
+        <span class="fb-map-drawer-kicker">Post location</span>
+        <h2>{{ mapped.location }}</h2>
+        <p>{{ mapped.post.highlight || ('#' + mapped.post.tag) }}</p>
+      </div>
+      <button type="button" (click)="closeLocation()" aria-label="Close location map" autofocus>
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="fb-map-canvas" #drawerMap aria-label="Interactive post location map"></div>
+    <footer class="fb-map-drawer-footer">
+      <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+      <span>{{ coordinatesLabel(mapped.post) }}</span>
+    </footer>
+  </aside>
+}

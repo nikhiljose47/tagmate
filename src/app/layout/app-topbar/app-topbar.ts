@@ -1,20 +1,27 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AppTheme, ThemeService } from '../../core/services/theme.service';
 import { UserSessionService } from '../../core/services/user-session.service';
 import { TAG_REPOSITORY } from '../../core/repositories/repository.tokens';
 import { Tag } from '../../core/models/tag.model';
-import { CommandResult, WorkspaceStateService } from '../workspace/workspace-state.service';
+import {
+  CommandResult,
+  FeedBetaArea,
+  WorkspaceStateService,
+} from '../workspace/workspace-state.service';
 import { SocialInteractionsService } from '../../core/services/social-interactions.service';
 import { SocialPlatformService } from '../../core/services/social-platform.service';
 import { SocialProfile } from '../../core/models/social.model';
+import { TagEmojiPipe } from '../../shared/pipes/tag-emoji.pipe';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe],
   templateUrl: './app-topbar.html',
   styleUrl: './app-topbar.scss',
 })
@@ -25,14 +32,18 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly session = inject(UserSessionService);
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
+  private readonly toast = inject(ToastService);
   protected readonly workspace = inject(WorkspaceStateService);
 
   protected readonly query = signal('');
   protected readonly results = signal<CommandResult[]>([]);
   protected readonly isSearching = signal(false);
   protected readonly userMenuOpen = signal(false);
+  protected readonly hideSearch = signal(this.isFeedBetaUrl(this.router.url));
+  protected readonly draftAreaId = signal('');
+  protected readonly draftCategory = signal('');
 
-  protected readonly themes: { key: AppTheme; label: string; icon: string }[] = [
+  protected readonly allThemes: { key: AppTheme; label: string; icon: string }[] = [
     { key: 'light', label: 'Light', icon: 'bi-sun-fill' },
     { key: 'dark', label: 'Dark', icon: 'bi-moon-fill' },
     { key: 'midnight', label: 'Midnight', icon: 'bi-moon-stars-fill' },
@@ -40,10 +51,34 @@ export class AppTopbarComponent implements OnDestroy {
     { key: 'sepia', label: 'Sepia', icon: 'bi-cup-hot-fill' },
   ];
 
+  protected readonly visibleThemes = computed(() => {
+    const valid = this.theme.availableThemes();
+    return this.allThemes.filter((t) => valid.includes(t.key));
+  });
+
+  protected readonly draftCategories = computed(() => {
+    const area = this.workspace.feedBetaAreas().find((item) => item.id === this.draftAreaId());
+    return area?.categories ?? this.workspace.feedBetaCategories();
+  });
+
+  protected get themes() {
+    return this.visibleThemes();
+  }
+
   private searchTimeout?: ReturnType<typeof setTimeout>;
+  private readonly routerEvents: Subscription;
+
+  constructor() {
+    this.routerEvents = this.router.events.subscribe((event) => {
+      if (!(event instanceof NavigationEnd)) return;
+      this.hideSearch.set(this.isFeedBetaUrl(event.urlAfterRedirects));
+      if (this.hideSearch()) this.closeCommand();
+    });
+  }
 
   ngOnDestroy(): void {
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.routerEvents.unsubscribe();
   }
 
   protected onQueryChange(value: string): void {
@@ -70,6 +105,57 @@ export class AppTopbarComponent implements OnDestroy {
     this.workspace.commandOpen.set(false);
   }
 
+  protected openFeedScopeDialog(): void {
+    const scope = this.workspace.feedBetaScope();
+    const firstArea = this.workspace.feedBetaAreas()[0];
+    const areaId = scope?.areaId ?? firstArea?.id ?? '';
+    this.draftAreaId.set(areaId);
+    this.draftCategory.set(scope?.category ?? this.categoryOptionsFor(areaId)[0] ?? '');
+    this.workspace.feedBetaScopeDialogOpen.set(true);
+    this.userMenuOpen.set(false);
+  }
+
+  protected closeFeedScopeDialog(): void {
+    this.workspace.feedBetaScopeDialogOpen.set(false);
+  }
+
+  protected onDraftAreaChange(areaId: string): void {
+    this.draftAreaId.set(areaId);
+    const categories = this.categoryOptionsFor(areaId);
+    if (!categories.includes(this.draftCategory())) {
+      this.draftCategory.set(categories[0] ?? '');
+    }
+  }
+
+  protected applyFeedScope(): void {
+    const area = this.workspace.feedBetaAreas().find((item) => item.id === this.draftAreaId());
+    if (!area) return;
+    const category = this.categoryOptionsFor(area.id).includes(this.draftCategory())
+      ? this.draftCategory()
+      : (area.categories[0] ?? '');
+
+    if (!category) return;
+
+    this.workspace.feedBetaScope.set({
+      areaId: area.id,
+      location: area.label,
+      country: area.country,
+      hood: area.hood,
+      category,
+    });
+    this.toast.show(`Feed set to ${area.label} - ${this.categoryLabel(category)}.`, 'success');
+    this.closeFeedScopeDialog();
+  }
+
+  protected categoryLabel(category: string): string {
+    return category.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeFeedScopeOnEscape(): void {
+    if (this.workspace.feedBetaScopeDialogOpen()) this.closeFeedScopeDialog();
+  }
+
   protected async goTo(result: CommandResult): Promise<void> {
     this.closeCommand();
     this.query.set('');
@@ -82,11 +168,13 @@ export class AppTopbarComponent implements OnDestroy {
   protected setTheme(theme: AppTheme): void {
     this.theme.setTheme(theme);
     this.userMenuOpen.set(false);
+    this.toast.show('Theme updated.', 'success');
   }
 
   protected async logout(): Promise<void> {
     await this.session.logout();
     this.userMenuOpen.set(false);
+    this.toast.show('Logged out.', 'success');
     await this.router.navigate(['/login']);
   }
 
@@ -193,4 +281,16 @@ export class AppTopbarComponent implements OnDestroy {
         .replace(/^-|-$/g, '') || 'nearby'
     );
   }
+
+  private isFeedBetaUrl(url: string): boolean {
+    return url.split('?')[0].split('#')[0] === '/feed-beta';
+  }
+
+  private categoryOptionsFor(areaId: string): readonly string[] {
+    return (
+      this.workspace.feedBetaAreas().find((item: FeedBetaArea) => item.id === areaId)?.categories ??
+      this.workspace.feedBetaCategories()
+    );
+  }
+
 }

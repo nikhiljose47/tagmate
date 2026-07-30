@@ -537,46 +537,35 @@
   }
 
   .feed-workspace-list .post-card {
-    display: grid;
-    grid-template-columns: 96px minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    min-height: 118px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
   }
 
   .feed-workspace-list .post-card-header {
-    grid-column: 2;
-    min-height: 48px;
-    padding: 10px 12px 4px;
+    min-height: 54px;
+    padding: 10px 14px;
   }
 
   .feed-workspace-list .post-media {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    height: 100%;
-    min-height: 118px;
-    aspect-ratio: auto;
-    font-size: 34px;
+    width: 100%;
+    max-height: 480px;
+    aspect-ratio: 16 / 9;
+    font-size: 54px;
   }
 
   .feed-workspace-list .post-body {
-    grid-column: 2;
-    padding: 0 12px 10px;
+    padding: 12px 14px 16px;
   }
 
   .feed-workspace-list .post-action-row,
   .feed-workspace-list .poll-container {
-    display: none;
-  }
-
-  .feed-workspace-list .post-counts {
-    margin-top: 4px;
+    display: flex;
   }
 
   .feed-workspace-list .post-caption {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    display: block;
+    margin-top: 6px;
   }
 }
 

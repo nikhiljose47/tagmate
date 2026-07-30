@@ -20,6 +20,23 @@ export interface CommandResult {
   icon: string;
 }
 
+export interface FeedBetaArea {
+  readonly id: string;
+  readonly label: string;
+  readonly country: string;
+  readonly hood: string;
+  readonly categories: readonly string[];
+  readonly postCount: number;
+}
+
+export interface FeedBetaScope {
+  readonly areaId: string;
+  readonly location: string;
+  readonly country: string;
+  readonly hood: string;
+  readonly category: string;
+}
+
 export interface PostListItem {
   key: string;
   title: string;
@@ -51,6 +68,10 @@ export class WorkspaceStateService {
   readonly commandOpen = signal(false);
   readonly rightPanelOpen = signal(true);
   readonly filterDrawerOpen = signal(false);
+  readonly feedBetaAreas = signal<readonly FeedBetaArea[]>([]);
+  readonly feedBetaCategories = signal<readonly string[]>([]);
+  readonly feedBetaScope = signal<FeedBetaScope | null>(null);
+  readonly feedBetaScopeDialogOpen = signal(false);
 
   readonly hasContext = computed(() => this.contextMode() !== 'empty' || !!this.selectedPost());
 

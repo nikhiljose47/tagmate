@@ -41,45 +41,60 @@
    Toast — above bottom bar on mobile, centered on desktop
 ───────────────────────────────────────────────────────────── */
 .app-toast {
-  bottom: calc(72px + env(safe-area-inset-bottom));
-  animation: toastIn 0.24s ease-out;
+  position: fixed;
+  top: calc(68px + 12px);
+  right: 18px;
+  z-index: 10000;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  width: min(390px, calc(100vw - 24px));
+  min-height: 46px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 9px 8px 10px;
+  color: #111827;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
+  animation: toastIn 0.22s ease-out;
 }
 
-@media (min-width: 1024px) {
-  .app-toast {
-    bottom: 24px;
-  }
+.app-toast-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #111827;
+  font-size: 16px;
 }
 
-.app-toast-success {
-  border-left-color: var(--tm-success);
-}
-.app-toast-warning {
-  border-left-color: var(--tm-warning);
-}
-.app-toast-danger {
-  border-left-color: var(--tm-danger);
-}
-.app-toast-quest {
-  border-left-color: #8b5cf6;
-  background: linear-gradient(
-    135deg,
-    rgba(243, 232, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.95) 100%
-  ) !important;
-  border-color: rgba(139, 92, 246, 0.3) !important;
-  box-shadow:
-    0 10px 25px -5px rgba(139, 92, 246, 0.2),
-    0 8px 10px -6px rgba(139, 92, 246, 0.2) !important;
+.app-toast-text {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.dark .app-toast-quest {
-  background: linear-gradient(
-    135deg,
-    rgba(88, 28, 135, 0.4) 0%,
-    rgba(30, 41, 59, 0.95) 100%
-  ) !important;
-  border-color: rgba(168, 85, 247, 0.4) !important;
+.app-toast-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #111827;
+}
+
+.app-toast-close:hover {
+  background: rgba(15, 23, 42, 0.08);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -88,11 +103,20 @@
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translate(-50%, 10px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-toast {
+    top: calc(60px + 8px);
+    right: 12px;
+    left: 12px;
+    width: auto;
   }
 }
 

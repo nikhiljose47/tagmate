@@ -12,7 +12,7 @@ export const rootRedirectGuard: CanActivateFn = () => {
     take(1),
     map((session) => {
       if (session) {
-        return router.createUrlTree(['/feed']);
+        return router.createUrlTree(['/feed-beta']);
       } else {
         return router.createUrlTree(['/login']);
       }
@@ -29,6 +29,12 @@ export const routes: Routes = [
     path: 'feed',
     canActivate: [authGuard],
     loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
+  },
+  {
+    path: 'feed-beta',
+    canActivate: [authGuard],
+    loadChildren: () =>
+      import('./features/feed-beta/feed-beta.routes').then((m) => m.FEED_BETA_ROUTES),
   },
   {
     path: 'hood',

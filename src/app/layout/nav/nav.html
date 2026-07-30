@@ -1,7 +1,7 @@
 <nav class="app-nav" aria-label="Main navigation">
 
   <!-- Brand — desktop sidebar only -->
-  <a class="nav-brand" routerLink="/feed" aria-label="Tagmate home" (click)="closeMore()">
+  <a class="nav-brand" routerLink="/feed-beta" aria-label="Tagmate home" (click)="closeMore()">
     <span class="brand-icon">
       <i class="bi bi-geo-alt-fill"></i>
     </span>
@@ -47,19 +47,21 @@
       }
     }
 
-    <!-- Mobile "More" button -->
-    <button
-      class="nav-item mobile-primary nav-item--more"
-      type="button"
-      [class.active]="moreMenuOpen()"
-      aria-label="More options"
-      (click)="toggleMore()"
-    >
-      <span class="nav-icon">
-        <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
-      </span>
-      <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
-    </button>
+    <!-- Mobile "More" button — only shown if overflow items exist -->
+    @if (moreMenuItems().length > 0) {
+      <button
+        class="nav-item mobile-primary nav-item--more"
+        type="button"
+        [class.active]="moreMenuOpen()"
+        aria-label="More options"
+        (click)="toggleMore()"
+      >
+        <span class="nav-icon">
+          <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
+        </span>
+        <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
+      </button>
+    }
 
     @if (moreMenuOpen()) {
       <!-- Backdrop -->

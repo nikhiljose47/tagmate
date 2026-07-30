@@ -18,8 +18,11 @@
 }
 
 .map-filter-drawer,
-.map-inspector,
 .map-timeline {
+  display: none !important;
+}
+
+.map-inspector {
   position: absolute;
   z-index: 2100;
   border: 1px solid var(--tm-border);
@@ -28,18 +31,6 @@
   box-shadow: var(--tm-shadow-md);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-}
-
-.map-filter-drawer {
-  top: 58px;
-  left: 12px;
-  bottom: 118px;
-  width: 278px;
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  overflow: auto;
-  padding: 14px;
 }
 
 .map-filter-drawer header,

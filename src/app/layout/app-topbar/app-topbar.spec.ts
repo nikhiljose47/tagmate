@@ -19,7 +19,7 @@ describe('AppTopbarComponent', () => {
   it('should list available themes', () => {
     const fixture = TestBed.createComponent(AppTopbarComponent);
     const component = fixture.componentInstance;
-    // component has themes array matching Light, Dark, Midnight, Forest, Sepia
-    expect((component as any).themes.length).toBe(5);
+    // In Lean MVP mode, theme list is restricted to Light and Dark
+    expect((component as any).themes.length).toBe(2);
   });
 });

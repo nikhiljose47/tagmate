@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter, map, startWith } from 'rxjs';
-import { ToastService } from './core/services/toast.service';
+import { ToastService, ToastTone } from './core/services/toast.service';
 import { NavComponent } from './layout/nav/nav';
 import { AppTopbarComponent } from './layout/app-topbar/app-topbar';
 import { PreloadService } from './core/services/preload.service';
@@ -53,6 +53,22 @@ export class App {
   protected readonly showTopbar = computed(
     () => this.showNav() && !this.currentUrl().startsWith('/island'),
   );
+
+  protected toastIcon(tone: ToastTone): string {
+    switch (tone) {
+      case 'success':
+        return 'bi-check-lg';
+      case 'warning':
+        return 'bi-exclamation-lg';
+      case 'danger':
+        return 'bi-x-lg';
+      case 'quest':
+        return 'bi-trophy-fill';
+      case 'info':
+      default:
+        return 'bi-info-lg';
+    }
+  }
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {

@@ -21,30 +21,12 @@
 
   <!-- Navigation Tab Bar -->
   <div class="mode-tabs tm-panel mb-4 p-1">
-    <button type="button" [class.active]="activeTab() === 'map'" (click)="setTab('map')">
-      <i class="bi bi-map-fill" aria-hidden="true"></i>
-      Map
-    </button>
-    <button type="button" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">
-      <i class="bi bi-grid-fill" aria-hidden="true"></i>
-      Overview
-    </button>
-    <button type="button" [class.active]="activeTab() === 'chat'" (click)="setTab('chat')">
-      <i class="bi bi-chat-left-text-fill" aria-hidden="true"></i>
-      Chat
-    </button>
-    <button type="button" [class.active]="activeTab() === 'bulletin'" (click)="setTab('bulletin')">
-      <i class="bi bi-pin-angle-fill" aria-hidden="true"></i>
-      Board
-    </button>
-    <button type="button" [class.active]="activeTab() === 'ai'" (click)="setTab('ai')">
-      <i class="bi bi-cpu-fill" aria-hidden="true"></i>
-      AI
-    </button>
-    <button type="button" [class.active]="activeTab() === 'leaderboard'" (click)="setTab('leaderboard')">
-      <i class="bi bi-trophy-fill" aria-hidden="true"></i>
-      Champion
-    </button>
+    @for (tab of availableTabs(); track tab.id) {
+      <button type="button" [class.active]="activeTab() === tab.id" (click)="setTab(tab.id)">
+        <i class="bi" [class]="tab.icon" aria-hidden="true"></i>
+        {{ tab.label }}
+      </button>
+    }
   </div>
 
   <!-- MAP TAB — kept in DOM via [hidden] so MapLibre canvas stays alive across tab switches -->

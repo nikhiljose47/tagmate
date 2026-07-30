@@ -8,6 +8,17 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 
 ## 1. Current Core Features
 
+### V1 Pre-Release MVP Scope & Feature Flags
+
+To prevent channel fragmentation and ensure maximum activity around core location posts upon initial launch, secondary channels and extra customizations are managed by `FeatureFlagsService` ([feature-flags.service.ts](file:///d:/Coding/tagmate/src/app/core/services/feature-flags.service.ts)):
+- **Lean MVP Launch Defaults**:
+  - `enableChatmateAi`: `false` (AI Concierge tab/drawer hidden for V1)
+  - `enableGroupChatrooms`: `false` (Group chatroom tab hidden for V1)
+  - `enableBulletinBoard`: `false` (Sticky bulletin board tab hidden for V1)
+  - `enableCivicQuests`: `false` (Quests & leaderboards hidden for V1)
+  - `enableExtraThemes`: `false` (Restricts themes to `Light` & `Dark` for V1 launch clarity)
+- **Zero Code Destruction**: All secondary feature modules remain 100% intact and can be toggled on demand post-launch via signal flags.
+
 ### Location-Based Posting & Map (Hood)
 
 - **Interactive Mapping**: Renders high-performance map styles (Streets, Satellite, Hybrid, Outdoor) powered by MapLibre GL JS and MapTiler.
