@@ -27,13 +27,14 @@ export const routes: Routes = [
   },
   {
     path: 'feed',
-    redirectTo: 'feed-beta',
-    pathMatch: 'full',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
   },
   {
     path: 'feed-beta',
     canActivate: [authGuard],
-    loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
+    loadChildren: () =>
+      import('./features/feed-beta/feed-beta.routes').then((m) => m.FEED_BETA_ROUTES),
   },
   {
     path: 'hood',
