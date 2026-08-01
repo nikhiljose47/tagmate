@@ -30,38 +30,44 @@
     <!-- Card -->
     <div class="login-card">
       <div class="login-fields">
-        <input
-          type="email"
-          class="tm-input"
-          placeholder="Email address"
-          [value]="email()"
-          (input)="email.set($any($event.target).value)"
-          [disabled]="loading()"
-          autocomplete="email"
-        />
-        <div class="password-field">
+        <div class="field-group">
+          <label class="field-label">Email address</label>
           <input
-            [type]="showPassword() ? 'text' : 'password'"
+            type="email"
             class="tm-input"
-            placeholder="Password"
-            [value]="password()"
-            (input)="password.set($any($event.target).value)"
+            placeholder="Email address"
+            [value]="email()"
+            (input)="email.set($any($event.target).value)"
             [disabled]="loading()"
-            autocomplete="new-password"
+            autocomplete="email"
           />
-          <button
-            type="button"
-            class="password-toggle"
-            (click)="showPassword.set(!showPassword())"
-            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
-            tabindex="-1"
-          >
-            <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
-          </button>
         </div>
-        @if (password() && !isPasswordStrong(password())) {
-          <span class="field-hint field-hint-error">Must be at least 8 characters with an uppercase letter, lowercase letter, and a number.</span>
-        }
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <div class="password-field">
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              class="tm-input"
+              placeholder="Password"
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              tabindex="-1"
+            >
+              <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+            </button>
+          </div>
+          @if (password() && !isPasswordStrong(password())) {
+            <span class="field-hint field-hint-error">Must be at least 8 characters with an uppercase letter, lowercase letter, and a number.</span>
+          }
+        </div>
 
         <div class="field-group">
           <label class="field-label">Birthday</label>
@@ -102,17 +108,21 @@
           </div>
         </div>
 
-        <input
-          type="text"
-          class="tm-input"
-          placeholder="Full name"
-          [value]="fullName()"
-          (input)="fullName.set($any($event.target).value)"
-          [disabled]="loading()"
-          autocomplete="name"
-        />
+        <div class="field-group">
+          <label class="field-label">Full name</label>
+          <input
+            type="text"
+            class="tm-input"
+            placeholder="Full name"
+            [value]="fullName()"
+            (input)="fullName.set($any($event.target).value)"
+            [disabled]="loading()"
+            autocomplete="name"
+          />
+        </div>
 
         <div class="field-group">
+          <label class="field-label">Username</label>
           <input
             type="text"
             class="tm-input"

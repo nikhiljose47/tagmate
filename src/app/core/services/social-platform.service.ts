@@ -182,7 +182,15 @@ export class SocialPlatformService implements OnDestroy {
   async getProfile(uid: string): Promise<SocialProfile | null> {
     try {
       const user = await firstValueFrom(this.relationshipsApi.getProfile(uid));
-      if (!user || user.isGuest || this.isBlocked(uid)) return null;
+      if (this.isBlocked(uid)) return null;
+      if (!user || user.isGuest) {
+        return {
+          uid,
+          name: user?.name || 'Guest Neighbor',
+          bio: 'Neighbor in Tagmate community',
+          reputation: user?.reputation ?? 0,
+        };
+      }
       return {
         uid: user.uid,
         name: user.name,
@@ -193,7 +201,12 @@ export class SocialPlatformService implements OnDestroy {
       };
     } catch (error) {
       this.logger.warn('Could not load public profile', error);
-      return null;
+      return {
+        uid,
+        name: 'Guest Neighbor',
+        bio: 'Neighbor in Tagmate community',
+        reputation: 0,
+      };
     }
   }
 

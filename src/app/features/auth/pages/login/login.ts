@@ -43,6 +43,11 @@ export class LoginPage implements OnInit {
 
   async login(): Promise<void> {
     this.error.set('');
+    const em = this.email().trim();
+    if (!em || !em.includes('@') || !em.includes('.')) {
+      this.error.set('Please enter a valid email address (e.g. name@example.com) to log in.');
+      return;
+    }
     this.loading.set(true);
 
     try {

@@ -218,7 +218,10 @@ export class PostPage {
           this.shared.updateText('Current location');
         }
 
-        this.toast.show('Current location attached to this post.', 'success');
+        this.toast.show(
+          'Current location attached. If using a desktop without GPS, click "Pick on map" for precise location.',
+          'success',
+        );
       },
       () => this.toast.show('Could not read your current location.', 'danger'),
       { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true },
@@ -260,6 +263,13 @@ export class PostPage {
       this.tagErrorVisible.set(true);
       this.toast.show('Pick a category for your post.', 'warning');
       return;
+    }
+
+    if (this.formData.isEvent && this.formData.eventStart && this.formData.eventEnd) {
+      if (new Date(this.formData.eventStart) > new Date(this.formData.eventEnd)) {
+        this.toast.show('Event start date cannot be after the end date.', 'warning');
+        return;
+      }
     }
 
     const coords = this.shared.coordinates();

@@ -1152,11 +1152,19 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       if (lng === undefined || lat === undefined) return;
       const title = feature.properties.title || 'Tag post';
       const username = feature.properties.username ? ` by ${feature.properties.username}` : '';
+      const container = document.createElement('div');
+      const strongEl = document.createElement('strong');
+      strongEl.textContent = title;
+      const brEl = document.createElement('br');
+      const spanEl = document.createElement('span');
+      spanEl.textContent = `${feature.properties.type}${username}`;
+      container.appendChild(strongEl);
+      container.appendChild(brEl);
+      container.appendChild(spanEl);
+
       new this.maplibre!.Popup({ closeButton: true, offset: 12 })
         .setLngLat([lng, lat])
-        .setHTML(
-          `<strong>${this.escapeHtml(title)}</strong><br><span>${this.escapeHtml(feature.properties.type)}${this.escapeHtml(username)}</span>`,
-        )
+        .setDOMContent(container)
         .addTo(this.map!);
     });
   }

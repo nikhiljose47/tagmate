@@ -6,7 +6,13 @@ import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from 
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="empty-state" role="status" [attr.aria-label]="title">
-      <div class="empty-icon">{{ icon }}</div>
+      <div class="empty-icon">
+        @if (isIconClass(icon)) {
+          <i class="bi" [class]="icon"></i>
+        } @else {
+          {{ icon }}
+        }
+      </div>
       <p class="empty-title">{{ title }}</p>
       <p class="empty-sub">{{ subtitle }}</p>
       @if (actionText) {
@@ -95,4 +101,8 @@ export class EmptyStateComponent {
   @Input() subtitle = '';
   @Input() actionText = '';
   @Output() actionClicked = new EventEmitter<void>();
+
+  isIconClass(str: string): boolean {
+    return !!str && (str.startsWith('bi-') || str.startsWith('bi '));
+  }
 }

@@ -743,12 +743,29 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       el.textContent = this.tagEmojiChar(post.tag);
       el.title = post.highlight || post.tag;
 
-      const popup = new ml.Popup({ offset: 28, closeButton: true, maxWidth: '220px' }).setHTML(
-        `<div class="hood-map-popup">` +
-          `<strong>${this.esc(post.highlight || 'Untitled')}</strong>` +
-          `<p><a href="/users/${encodeURIComponent(post.userId)}">@${this.esc(post.username || 'Anonymous')}</a> · #${this.esc(post.tag)}</p>` +
-          `<a href="/posts/${encodeURIComponent(this.social.postKey(post))}">View post →</a>` +
-          `</div>`,
+      const popupContent = document.createElement('div');
+      popupContent.className = 'hood-map-popup';
+
+      const strongEl = document.createElement('strong');
+      strongEl.textContent = post.highlight || 'Untitled';
+
+      const pEl = document.createElement('p');
+      const userLink = document.createElement('a');
+      userLink.href = `/users/${encodeURIComponent(post.userId)}`;
+      userLink.textContent = `@${post.username || 'Anonymous'}`;
+      pEl.appendChild(userLink);
+      pEl.appendChild(document.createTextNode(` · #${post.tag}`));
+
+      const postLink = document.createElement('a');
+      postLink.href = `/posts/${encodeURIComponent(this.social.postKey(post))}`;
+      postLink.textContent = 'View post →';
+
+      popupContent.appendChild(strongEl);
+      popupContent.appendChild(pEl);
+      popupContent.appendChild(postLink);
+
+      const popup = new ml.Popup({ offset: 28, closeButton: true, maxWidth: '220px' }).setDOMContent(
+        popupContent,
       );
 
       const marker = new ml.Marker({ element: el })

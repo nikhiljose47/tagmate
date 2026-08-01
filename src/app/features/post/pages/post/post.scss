@@ -249,18 +249,10 @@
 
 /* Two compact rows that scroll sideways — all categories reachable without eating vertical space. */
 .tag-chips {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(2, auto);
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  justify-content: start;
-  overflow-x: auto;
   padding-bottom: 2px;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 }
 
 .tag-chip {
