@@ -764,9 +764,11 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       popupContent.appendChild(pEl);
       popupContent.appendChild(postLink);
 
-      const popup = new ml.Popup({ offset: 28, closeButton: true, maxWidth: '220px' }).setDOMContent(
-        popupContent,
-      );
+      const popup = new ml.Popup({
+        offset: 28,
+        closeButton: true,
+        maxWidth: '220px',
+      }).setDOMContent(popupContent);
 
       const marker = new ml.Marker({ element: el })
         .setLngLat([post.lng, post.lat])

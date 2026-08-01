@@ -519,74 +519,61 @@ export class SocialPlatformService implements OnDestroy {
 
   private async hydrateViewerState(uid: string): Promise<void> {
     // allSettled: a missing or undeployed table never blocks the rest.
-    const [users, hoods, topics, blocks, muted, reactions, messages] =
-      await Promise.allSettled([
-        firstValueFrom(
-          this.supabase.getRows<UserFollowRow>('user_follows', {
-            field: 'follower_id',
-            op: '==',
-            value: uid,
-          }),
-        ),
-        firstValueFrom(
-          this.supabase.getRows<HoodFollowRow>('user_followed_hoods', {
-            field: 'user_id',
-            op: '==',
-            value: uid,
-          }),
-        ),
-        firstValueFrom(
-          this.supabase.getRows<TopicFollowRow>('user_followed_topics', {
-            field: 'user_id',
-            op: '==',
-            value: uid,
-          }),
-        ),
-        firstValueFrom(
-          this.supabase.getRows<BlockRow>('user_blocks', {
-            field: 'blocker_id',
-            op: '==',
-            value: uid,
-          }),
-        ),
-        firstValueFrom(
-          this.supabase.getRows<MutedThreadRow>('muted_threads', {
-            field: 'user_id',
-            op: '==',
-            value: uid,
-          }),
-        ),
-        firstValueFrom(
-          this.supabase.getRows<CommentReactionRow>('post_comment_reactions', {
-            field: 'user_id',
-            op: '==',
-            value: uid,
-          }),
-        ),
-        firstValueFrom(this.supabase.getDirectMessagesForUser(uid)),
-      ]);
+    const [users, hoods, topics, blocks, muted, reactions, messages] = await Promise.allSettled([
+      firstValueFrom(
+        this.supabase.getRows<UserFollowRow>('user_follows', {
+          field: 'follower_id',
+          op: '==',
+          value: uid,
+        }),
+      ),
+      firstValueFrom(
+        this.supabase.getRows<HoodFollowRow>('user_followed_hoods', {
+          field: 'user_id',
+          op: '==',
+          value: uid,
+        }),
+      ),
+      firstValueFrom(
+        this.supabase.getRows<TopicFollowRow>('user_followed_topics', {
+          field: 'user_id',
+          op: '==',
+          value: uid,
+        }),
+      ),
+      firstValueFrom(
+        this.supabase.getRows<BlockRow>('user_blocks', {
+          field: 'blocker_id',
+          op: '==',
+          value: uid,
+        }),
+      ),
+      firstValueFrom(
+        this.supabase.getRows<MutedThreadRow>('muted_threads', {
+          field: 'user_id',
+          op: '==',
+          value: uid,
+        }),
+      ),
+      firstValueFrom(
+        this.supabase.getRows<CommentReactionRow>('post_comment_reactions', {
+          field: 'user_id',
+          op: '==',
+          value: uid,
+        }),
+      ),
+      firstValueFrom(this.supabase.getDirectMessagesForUser(uid)),
+    ]);
 
     const ok = <T>(r: PromiseSettledResult<T>): T | null =>
       r.status === 'fulfilled' ? r.value : null;
 
-    this.followedUsers.set(
-      new Set((ok(users)?.data ?? []).map((row) => row.followed_user_id)),
-    );
-    this.followedHoods.set(
-      new Set((ok(hoods)?.data ?? []).map((row) => row.hood_id)),
-    );
-    this.followedTopics.set(
-      new Set((ok(topics)?.data ?? []).map((row) => row.tag)),
-    );
-    this.blockedUsers.set(
-      new Set((ok(blocks)?.data ?? []).map((row) => row.blocked_id)),
-    );
-    this.mutedThreads.set(
-      new Set((ok(muted)?.data ?? []).map((row) => row.thread_id)),
-    );
-    this.reactedComments.set(
-      new Set((ok(reactions)?.data ?? []).map((row) => row.comment_id)),
-    );
+    this.followedUsers.set(new Set((ok(users)?.data ?? []).map((row) => row.followed_user_id)));
+    this.followedHoods.set(new Set((ok(hoods)?.data ?? []).map((row) => row.hood_id)));
+    this.followedTopics.set(new Set((ok(topics)?.data ?? []).map((row) => row.tag)));
+    this.blockedUsers.set(new Set((ok(blocks)?.data ?? []).map((row) => row.blocked_id)));
+    this.mutedThreads.set(new Set((ok(muted)?.data ?? []).map((row) => row.thread_id)));
+    this.reactedComments.set(new Set((ok(reactions)?.data ?? []).map((row) => row.comment_id)));
     this.unreadMessageThreads.clear();
     for (const row of ok(messages)?.data ?? []) {
       if (row.to_uid === uid && !row.read) this.unreadMessageThreads.set(row.id, row.thread_id);

@@ -228,7 +228,10 @@ export class PostPage {
     );
   }
 
-  private extractPlaceName(data: { display_name?: string; address?: Record<string, string> }): string {
+  private extractPlaceName(data: {
+    display_name?: string;
+    address?: Record<string, string>;
+  }): string {
     const a = data.address ?? {};
     return (
       a['neighbourhood'] ||

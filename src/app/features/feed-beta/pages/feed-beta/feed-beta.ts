@@ -77,7 +77,14 @@ const EAGER_SLIDES = 3;
   selector: 'app-feed-beta',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, AvatarComponent, EmptyStateComponent, TagEmojiPipe, TagGradientPipe, TimeAgoPipe],
+  imports: [
+    RouterLink,
+    AvatarComponent,
+    EmptyStateComponent,
+    TagEmojiPipe,
+    TagGradientPipe,
+    TimeAgoPipe,
+  ],
   templateUrl: './feed-beta.html',
   styleUrl: './feed-beta.scss',
 })
@@ -133,7 +140,12 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   /** Always-on window at the head of the feed — see EAGER_SLIDES. */
   private readonly eagerKeys = computed(
-    () => new Set(this.slides().slice(0, EAGER_SLIDES).map((slide) => slide.key)),
+    () =>
+      new Set(
+        this.slides()
+          .slice(0, EAGER_SLIDES)
+          .map((slide) => slide.key),
+      ),
   );
 
   /**
@@ -694,8 +706,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     // Web-Mercator tile coordinates (fractional).
     const fx = ((lng + 180) / 360) * scale;
     const latRad = (lat * Math.PI) / 180;
-    const fy =
-      ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
+    const fy = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
 
     // The post's position in whole-world pixels at this zoom.
     const pointX = fx * TILE_PX;

@@ -11,6 +11,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 ### V1 Pre-Release MVP Scope & Feature Flags
 
 To prevent channel fragmentation and ensure maximum activity around core location posts upon initial launch, secondary channels and extra customizations are managed by `FeatureFlagsService` ([feature-flags.service.ts](file:///d:/Coding/tagmate/src/app/core/services/feature-flags.service.ts)):
+
 - **Lean MVP Launch Defaults**:
   - `enableChatmateAi`: `false` (AI Concierge tab/drawer hidden for V1)
   - `enableGroupChatrooms`: `false` (Group chatroom tab hidden for V1)
