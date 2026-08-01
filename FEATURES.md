@@ -82,7 +82,7 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Native Dialog Deprecations**: Migrates browser `confirm()` popups to the asynchronous app-wide `ConfirmDialogService` modal drawer.
 - **Post Detail Live Updates Refactor**: Resolved RxJS subscription leak in `PostDetailPage` by relocating `liveTagUpdates()` subscription to `ngOnInit()`, eliminating duplicate subscriptions on thread toggle clicks.
 - **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
-- **Media Upload Restrictions & Video Validation**: Enforces client-side media checks on post creation (max 15MB for images before auto-compression, max 30MB & max 30s duration for videos, and strict MIME type filtering) backed by a 50MB Supabase storage policy migration (`20260802000000_storage_bucket_limits.sql`).
+- **Media Upload Restrictions & Native GPU Video Compression**: Enforces client-side WebP image compression and native GPU-accelerated video compression via `MediaRecorder` API (2.0 Mbps bitrate ceiling) alongside validation rules (max 15MB images, max 30MB & max 30s duration videos) backed by a 50MB Supabase storage policy migration (`20260802000000_storage_bucket_limits.sql`).
 - **Audit & Bug Remediations**: Added client-side email format validation on login, password reset URL error fragment detection, WCAG field labels on signup, event date range validation (`eventStart <= eventEnd`), responsive category chips layout (`flex-wrap`), and icon element rendering in `EmptyStateComponent`.
 
 ### Production Optimizations & Telemetry

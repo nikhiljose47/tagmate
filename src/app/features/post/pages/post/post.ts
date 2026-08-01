@@ -359,8 +359,8 @@ export class PostPage {
 
       for (const item of this.mediaItems()) {
         try {
-          // Shrink images before upload (videos pass through untouched) so we
-          // save bandwidth on the upload and on every future download.
+          // Compress images (WebP) and videos (native GPU MediaRecorder) before upload so we
+          // save bandwidth on upload and on every future download.
           const { file } = await this.media.compress(item.file);
           const ext = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
           const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
