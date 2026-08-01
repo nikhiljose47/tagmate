@@ -82,6 +82,7 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Native Dialog Deprecations**: Migrates browser `confirm()` popups to the asynchronous app-wide `ConfirmDialogService` modal drawer.
 - **Post Detail Live Updates Refactor**: Resolved RxJS subscription leak in `PostDetailPage` by relocating `liveTagUpdates()` subscription to `ngOnInit()`, eliminating duplicate subscriptions on thread toggle clicks.
 - **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
+- **Media Upload Restrictions & Video Validation**: Enforces client-side media checks on post creation (max 15MB for images before auto-compression, max 30MB & max 30s duration for videos, and strict MIME type filtering) backed by a 50MB Supabase storage policy migration (`20260802000000_storage_bucket_limits.sql`).
 - **Audit & Bug Remediations**: Added client-side email format validation on login, password reset URL error fragment detection, WCAG field labels on signup, event date range validation (`eventStart <= eventEnd`), responsive category chips layout (`flex-wrap`), and icon element rendering in `EmptyStateComponent`.
 
 ### Production Optimizations & Telemetry
@@ -142,7 +143,7 @@ Run the unit test suite headless from the root workspace:
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
-Ensure all tests compile and pass successfully. The suite now includes 59 tests covering auth restoration, trusted admin authorization, Supabase error propagation, nav, app-topbar, map-hood, post-detail, and inbox components.
+Ensure all tests compile and pass successfully. The unit suite uses a stateful in-memory repository (`InMemoryTagRepository`) in `testProviders` to guarantee 100% hermetic, isolated test runs without database dependencies.
 
 Run the end-to-end (E2E) browser test suite using Playwright:
 
@@ -150,7 +151,7 @@ Run the end-to-end (E2E) browser test suite using Playwright:
 npm run test:e2e
 ```
 
-The E2E suite contains 5 spec files covering 5-user social interactions, Chatmate AI chatbot concierge, weekly quests/reputation progression, websocket-backed group chatrooms, and routing guards/form security.
+The E2E suite uses Playwright network route mocking (`e2e/helpers/network-mocks.ts`) to intercept Nominatim geocoding, MapTiler vector tiles, and Supabase REST endpoints for network-free, hermetic execution.
 
 ### Manual UI Verification Checklist
 

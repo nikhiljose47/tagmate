@@ -86,13 +86,16 @@
             <input
               type="file"
               (change)="onFileSelect($event)"
-              accept="image/*,video/*"
+              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
               multiple
               hidden
             />
           </label>
         }
       </div>
+      <p class="field-help field-help--soft" style="margin-top: 0.35rem; font-size: 0.75rem;">
+        Photos &lt; 15MB • Videos &lt; 30MB &amp; 30s max duration
+      </p>
     </div>
 
     <!-- Category chips -->

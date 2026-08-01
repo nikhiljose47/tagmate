@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { setupHermeticNetworkMocks } from './helpers/network-mocks';
 
 test.describe('Accessibility smoke checks', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupHermeticNetworkMocks(page);
+  });
+
   test('login is keyboard-operable with labelled controls', async ({ page }) => {
     await page.goto('/login');
 
