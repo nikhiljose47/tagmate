@@ -206,7 +206,10 @@ export class PostPage {
       if (isVid) {
         const isValidDuration = await this.validateVideoDuration(file);
         if (!isValidDuration) {
-          this.toast.show(`Video "${file.name}" exceeds maximum duration of 30 seconds.`, 'warning');
+          this.toast.show(
+            `Video "${file.name}" exceeds maximum duration of 30 seconds.`,
+            'warning',
+          );
           continue;
         }
       }

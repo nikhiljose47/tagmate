@@ -11,10 +11,7 @@ describe('PostPage', () => {
 
     await TestBed.configureTestingModule({
       imports: [PostPage],
-      providers: [
-        ...testProviders,
-        { provide: ToastService, useValue: toastSpy },
-      ],
+      providers: [...testProviders, { provide: ToastService, useValue: toastSpy }],
     }).compileComponents();
   });
 
