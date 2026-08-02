@@ -99,8 +99,7 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     // state in India.
     return options.filter(
       (option) =>
-        option.label.toLowerCase().includes(query) ||
-        option.country.toLowerCase().includes(query),
+        option.label.toLowerCase().includes(query) || option.country.toLowerCase().includes(query),
     );
   });
   protected readonly feedBetaCountryLabel = computed(() => {
@@ -120,11 +119,6 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
   });
   protected readonly feedBetaTagOptions = computed(() => {
     return [...FEED_BETA_MAIN_CATEGORIES];
-  });
-  protected readonly feedBetaSelectedTagCount = computed(() => {
-    const scope = this.workspace.feedBetaScope();
-    if (!scope) return 0;
-    return this.feedBetaTagCount(scope.category);
   });
 
   protected readonly query = signal('');
@@ -288,15 +282,6 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
       category,
     });
     this.closeHomeDistrictSearch();
-  }
-
-  protected feedBetaTagCount(tag: string): number {
-    const current = this.workspace.feedBetaScope();
-    const area = current
-      ? this.workspace.feedBetaAreas().find((option) => option.id === current.areaId)
-      : this.workspace.feedBetaAreas()[0];
-    if (!area) return 0;
-    return area.categoryCounts[tag as keyof typeof area.categoryCounts] ?? 0;
   }
 
   @HostListener('document:keydown.escape')

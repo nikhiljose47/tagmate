@@ -199,6 +199,18 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.workspace.feedBetaScope.set(this.toScope(randomArea, randomArea.categories[0]));
   });
 
+  private readonly scrollScopeToTop = effect(() => {
+    const scope = this.workspace.feedBetaScope();
+    const key = scope ? `${scope.areaId}:${scope.category}` : '';
+    if (!key) return;
+
+    requestAnimationFrame(() => {
+      this.scroller?.nativeElement.scrollTo({ top: 0, behavior: 'auto' });
+      this.activeKey.set('');
+      this.queueActiveSlideUpdate();
+    });
+  });
+
   protected readonly slides = computed<BetaSlide[]>(() => {
     const myUid = this.platform.myUid();
     const scope = this.workspace.feedBetaScope();
