@@ -1,4 +1,8 @@
 export enum TagCategory {
+  Dating = 'dating',
+  Game = 'game',
+  Job = 'job',
+  Around = 'around',
   News = 'news',
   Weather = 'weather',
   Food = 'food',
@@ -24,6 +28,10 @@ export enum TagCategory {
 }
 
 export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
+  [TagCategory.Dating]: ['#e11d48', '#be185d'],
+  [TagCategory.Game]: ['#16a34a', '#0f766e'],
+  [TagCategory.Job]: ['#2563eb', '#4338ca'],
+  [TagCategory.Around]: ['#f59e0b', '#0d9488'],
   [TagCategory.News]: ['#3b82f6', '#1d4ed8'],
   [TagCategory.Weather]: ['#06b6d4', '#0284c7'],
   [TagCategory.Food]: ['#f97316', '#c2410c'],
@@ -49,6 +57,10 @@ export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
 };
 
 export const TAG_EMOJIS: Readonly<Partial<Record<TagCategory, string>>> = {
+  [TagCategory.Dating]: 'D',
+  [TagCategory.Game]: 'G',
+  [TagCategory.Job]: 'J',
+  [TagCategory.Around]: 'A',
   [TagCategory.News]: '📰',
   [TagCategory.Weather]: '⛅',
   [TagCategory.Food]: '🍜',

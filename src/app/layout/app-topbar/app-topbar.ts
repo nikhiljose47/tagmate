@@ -18,6 +18,7 @@ import { TAG_REPOSITORY } from '../../core/repositories/repository.tokens';
 import { Tag } from '../../core/models/tag.model';
 import {
   CommandResult,
+  FEED_BETA_MAIN_CATEGORIES,
   HomeDistrictOption,
   WorkspaceStateService,
 } from '../workspace/workspace-state.service';
@@ -27,11 +28,12 @@ import { SocialProfile } from '../../core/models/social.model';
 import { ToastService } from '../../core/services/toast.service';
 import { Store } from '@ngrx/store';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
+import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ClickOutsideDirective],
   templateUrl: './app-topbar.html',
   styleUrl: './app-topbar.scss',
 })
@@ -60,6 +62,7 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     const path = this.currentUrl().split('?')[0];
     return path === '/feed' || path === '/feed-beta';
   });
+  protected readonly isFeedBeta = computed(() => this.currentUrl().split('?')[0] === '/feed-beta');
   protected readonly homeDistrictQuery = signal('');
   protected readonly homeDistrictSearchOpen = signal(false);
   protected readonly homeTagMenuOpen = signal(false);
@@ -80,8 +83,40 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     () => this.workspace.homeDistrict()?.country || 'Search districts only',
   );
   protected readonly homeTagLabel = computed(() => {
+    if (this.isFeedBeta()) {
+      const tag = this.workspace.feedBetaScope()?.category ?? FEED_BETA_MAIN_CATEGORIES[0];
+      return this.titleTag(tag);
+    }
     const tag = this.workspace.homeTag();
     return tag === 'all' ? 'All tags' : `#${tag}`;
+  });
+  protected readonly feedBetaCountryResults = computed(() => {
+    const query = this.homeDistrictQuery().trim().toLowerCase();
+    const options = this.workspace.feedBetaAreas();
+    if (!query) return options;
+    return options.filter((option) => option.country.toLowerCase().includes(query));
+  });
+  protected readonly feedBetaCountryLabel = computed(
+    () =>
+      this.workspace.feedBetaScope()?.country ||
+      this.workspace.feedBetaAreas()[0]?.country ||
+      'Choose country',
+  );
+  protected readonly feedBetaCountryMeta = computed(() => {
+    const current = this.workspace.feedBetaScope();
+    const area = current
+      ? this.workspace.feedBetaAreas().find((option) => option.id === current.areaId)
+      : this.workspace.feedBetaAreas()[0];
+    if (!area) return 'Countries only';
+    return area.hood;
+  });
+  protected readonly feedBetaTagOptions = computed(() => {
+    return [...FEED_BETA_MAIN_CATEGORIES];
+  });
+  protected readonly feedBetaSelectedTagCount = computed(() => {
+    const scope = this.workspace.feedBetaScope();
+    if (!scope) return 0;
+    return this.feedBetaTagCount(scope.category);
   });
 
   protected readonly query = signal('');
@@ -160,9 +195,16 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     this.homeDistrictSearchOpen.set(false);
   }
 
+  protected closeHomeScopeMenus(): void {
+    this.closeHomeDistrictSearch();
+    this.homeTagMenuOpen.set(false);
+  }
+
   protected searchDistricts(value: string): void {
     this.homeDistrictQuery.set(value);
     this.homeDistrictSearchOpen.set(true);
+
+    if (this.isFeedBeta()) return;
 
     const query = value.trim();
     if (query.length < 2) {
@@ -186,6 +228,11 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
   }
 
   protected selectFirstHomeDistrict(): void {
+    if (this.isFeedBeta()) {
+      const first = this.feedBetaCountryResults()[0];
+      if (first) this.selectFeedBetaCountry(first.id);
+      return;
+    }
     const first = this.homeDistrictResults()[0];
     if (first) this.selectHomeDistrict(first);
   }
@@ -196,14 +243,60 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
   }
 
   protected selectHomeTag(tag: string): void {
+    if (this.isFeedBeta()) {
+      const current = this.workspace.feedBetaScope();
+      const area = current
+        ? this.workspace.feedBetaAreas().find((option) => option.id === current.areaId)
+        : this.workspace.feedBetaAreas()[0];
+      if (area) {
+        this.workspace.feedBetaScope.set({
+          areaId: area.id,
+          location: area.label,
+          country: area.country,
+          hood: area.hood,
+          category: tag || FEED_BETA_MAIN_CATEGORIES[0],
+        });
+      }
+      this.homeTagMenuOpen.set(false);
+      return;
+    }
     this.workspace.setHomeTag(tag);
     this.homeTagMenuOpen.set(false);
+  }
+
+  protected selectFeedBetaCountry(areaId: string): void {
+    const area = this.workspace.feedBetaAreas().find((option) => option.id === areaId);
+    if (!area) return;
+    const currentCategory = this.workspace.feedBetaScope()?.category;
+    const category =
+      currentCategory && area.categories.includes(currentCategory)
+        ? currentCategory
+        : (area.categories[0] ?? FEED_BETA_MAIN_CATEGORIES[0]);
+    this.workspace.feedBetaScope.set({
+      areaId: area.id,
+      location: area.label,
+      country: area.country,
+      hood: area.hood,
+      category,
+    });
+    this.closeHomeDistrictSearch();
+  }
+
+  protected feedBetaTagCount(tag: string): number {
+    const current = this.workspace.feedBetaScope();
+    const area = current
+      ? this.workspace.feedBetaAreas().find((option) => option.id === current.areaId)
+      : this.workspace.feedBetaAreas()[0];
+    if (!area) return 0;
+    return area.categoryCounts[tag as keyof typeof area.categoryCounts] ?? 0;
   }
 
   @HostListener('document:keydown.escape')
   protected closeHomeMenusOnEscape(): void {
     this.closeHomeDistrictSearch();
     this.homeTagMenuOpen.set(false);
+    this.userMenuOpen.set(false);
+    this.closeCommand();
   }
 
   protected async goTo(result: CommandResult): Promise<void> {
@@ -374,5 +467,9 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '') || 'nearby'
     );
+  }
+
+  private titleTag(tag: string): string {
+    return tag.charAt(0).toUpperCase() + tag.slice(1);
   }
 }

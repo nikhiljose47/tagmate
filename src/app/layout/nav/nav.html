@@ -1,5 +1,4 @@
 <nav class="app-nav" aria-label="Main navigation">
-
   <!-- Brand — desktop sidebar only -->
   <a class="nav-brand" routerLink="/feed-beta" aria-label="Tagmate home" (click)="closeMore()">
     <span class="brand-icon">
@@ -9,13 +8,13 @@
   </a>
 
   <!-- Nav items -->
-  <div class="nav-items">
+  <div class="nav-items" [tmClickOutsideEnabled]="moreMenuOpen()" (tmClickOutside)="closeMore()">
     @for (item of visibleNavItems(); track item.route) {
       @if (!item.mobile) {
         <!-- Desktop-only items (hidden on mobile) -->
         <a
           class="nav-item nav-item--desktop"
-                    [routerLink]="item.route"
+          [routerLink]="item.route"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
           [attr.aria-label]="item.label"
@@ -23,7 +22,9 @@
         >
           <span class="nav-icon">
             <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
-            @if (item.route === '/messages' && platform.unreadMessages()) { <span class="nav-unread">{{ platform.unreadMessages() }}</span> }
+            @if (item.route === '/messages' && platform.unreadMessages()) {
+              <span class="nav-unread">{{ platform.unreadMessages() }}</span>
+            }
           </span>
           <span class="nav-label">{{ item.label }}</span>
         </a>
@@ -31,7 +32,7 @@
         <!-- Mobile primary items -->
         <a
           class="nav-item mobile-primary"
-                    [routerLink]="item.route"
+          [routerLink]="item.route"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
           [attr.aria-label]="item.label"
@@ -40,7 +41,9 @@
         >
           <span class="nav-icon">
             <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
-            @if (item.route === '/messages' && platform.unreadMessages()) { <span class="nav-unread">{{ platform.unreadMessages() }}</span> }
+            @if (item.route === '/messages' && platform.unreadMessages()) {
+              <span class="nav-unread">{{ platform.unreadMessages() }}</span>
+            }
           </span>
           <span class="nav-label">{{ item.label }}</span>
         </a>
@@ -86,5 +89,4 @@
       </div>
     }
   </div>
-
 </nav>

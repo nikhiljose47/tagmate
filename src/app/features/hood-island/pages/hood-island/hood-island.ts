@@ -34,6 +34,7 @@ import {
   deviceStorageKey,
   migrateLocalStorageKey,
 } from '../../../../core/utils/local-storage.util';
+import { ClickOutsideDirective } from '../../../../shared/directives/click-outside.directive';
 
 // ── Hardcoded district ────────────────────────────────────────────────────────
 // The island view is pinned to Marathahalli (Bengaluru) for now. `HOOD_QUERY`
@@ -539,7 +540,7 @@ export function padBounds(
   templateUrl: './hood-island.html',
   styleUrls: ['./hood-island.scss'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ClickOutsideDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HoodIslandPage implements AfterViewInit, OnDestroy {

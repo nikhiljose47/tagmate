@@ -31,6 +31,7 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { environment } from '../../../../environments/environment';
 import {
+  FEED_BETA_MAIN_CATEGORIES,
   FeedBetaArea,
   FeedBetaScope,
   WorkspaceStateService,
@@ -179,7 +180,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       if (currentArea) {
         const category = currentArea.categories.includes(current.category)
           ? current.category
-          : (currentArea.categories[0] ?? '');
+          : currentArea.categories[0];
         const next = this.toScope(currentArea, category);
         if (
           next.category !== current.category ||
@@ -195,11 +196,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
     const randomPost = candidates[Math.floor(Math.random() * candidates.length)];
     const randomArea = areas.find((area) => area.id === this.areaIdFor(randomPost)) ?? areas[0];
-    const category =
-      randomPost?.tag && randomArea.categories.includes(randomPost.tag)
-        ? randomPost.tag
-        : (randomArea.categories[0] ?? '');
-    this.workspace.feedBetaScope.set(this.toScope(randomArea, category));
+    this.workspace.feedBetaScope.set(this.toScope(randomArea, randomArea.categories[0]));
   });
 
   protected readonly slides = computed<BetaSlide[]>(() => {
@@ -599,9 +596,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {
-    if (!scope) return true;
+    if (!scope) return false;
     if (this.areaIdFor(post) !== scope.areaId) return false;
-    return scope.category === 'all' || post.tag === scope.category;
+    return this.mainCategoryFor(post) === scope.category;
   }
 
   private areasFor(posts: readonly Tag[]): readonly FeedBetaArea[] {
@@ -609,31 +606,41 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       string,
       {
         country: string;
-        hood: string;
+        hoods: Set<string>;
         categories: Set<string>;
+        categoryCounts: Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number>;
         postCount: number;
       }
     >();
 
     for (const post of posts) {
+      if (!this.countryFor(post)) continue;
+      const category = this.mainCategoryFor(post);
+      if (!category) continue;
+
       const id = this.areaIdFor(post);
-      const country = post.country?.trim() || 'World';
+      const country = this.countryFor(post);
+      if (!country) continue;
       const hood = post.hoodId?.trim() || this.locationLabel(post);
       const existing =
         grouped.get(id) ??
         ({
           country,
-          hood,
+          hoods: new Set<string>(),
           categories: new Set<string>(),
+          categoryCounts: this.emptyMainCategoryCounts(),
           postCount: 0,
         } satisfies {
           country: string;
-          hood: string;
+          hoods: Set<string>;
           categories: Set<string>;
+          categoryCounts: Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number>;
           postCount: number;
         });
 
-      if (post.tag?.trim()) existing.categories.add(post.tag.trim());
+      if (hood) existing.hoods.add(hood);
+      existing.categories.add(category);
+      existing.categoryCounts[category] += 1;
       existing.postCount += 1;
       grouped.set(id, existing);
     }
@@ -641,10 +648,11 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     return [...grouped.entries()]
       .map(([id, area]) => ({
         id,
-        label: `${area.country} (${area.hood})`,
+        label: area.country,
         country: area.country,
-        hood: area.hood,
-        categories: [...area.categories].sort(),
+        hood: `${area.hoods.size || 1} location${area.hoods.size === 1 ? '' : 's'}`,
+        categories: [...FEED_BETA_MAIN_CATEGORIES],
+        categoryCounts: area.categoryCounts,
         postCount: area.postCount,
       }))
       .filter((area) => area.categories.length > 0)
@@ -652,7 +660,13 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private categoriesFor(posts: readonly Tag[]): readonly string[] {
-    return [...new Set(posts.map((post) => post.tag?.trim()).filter(Boolean) as string[])].sort();
+    const available = new Set(
+      posts
+        .filter((post) => this.countryFor(post))
+        .map((post) => this.mainCategoryFor(post))
+        .filter((category): category is (typeof FEED_BETA_MAIN_CATEGORIES)[number] => !!category),
+    );
+    return FEED_BETA_MAIN_CATEGORIES.filter((category) => available.has(category));
   }
 
   private toScope(area: FeedBetaArea, category: string): FeedBetaScope {
@@ -666,14 +680,62 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private areaIdFor(post: Tag | undefined): string {
-    if (!post) return 'world:nearby';
-    const country = post.country?.trim() || 'World';
-    const hood = post.hoodId?.trim();
-    if (hood) return `${this.scopeKey(country)}:${this.scopeKey(hood)}`;
-    if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) {
-      return `${this.scopeKey(country)}:${post.lat.toFixed(3)},${post.lng.toFixed(3)}`;
+    const country = this.countryFor(post);
+    if (!country) return '';
+    return this.scopeKey(country);
+  }
+
+  private emptyMainCategoryCounts(): Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number> {
+    return {
+      dating: 0,
+      game: 0,
+      job: 0,
+      around: 0,
+    };
+  }
+
+  private countryFor(post: Tag | undefined): string {
+    const explicit = post?.country?.trim();
+    if (explicit && explicit.toLowerCase() !== 'world') return explicit;
+
+    if (!post || !Number.isFinite(post.lat) || !Number.isFinite(post.lng)) return '';
+    if (post.lat >= 6 && post.lat <= 38 && post.lng >= 68 && post.lng <= 98) return 'India';
+    if (post.lat >= 24 && post.lat <= 50 && post.lng >= -125 && post.lng <= -66) {
+      return 'United States';
     }
-    return `${this.scopeKey(country)}:nearby`;
+    return '';
+  }
+
+  private mainCategoryFor(post: Tag): (typeof FEED_BETA_MAIN_CATEGORIES)[number] | null {
+    const tag = post.tag?.trim().toLowerCase();
+
+    if (tag === 'dating' || tag === 'network') return 'dating';
+    if (tag === 'game' || tag === 'sports' || tag === 'fitness' || tag === 'entertainment') {
+      return 'game';
+    }
+    if (tag === 'job' || tag === 'business' || tag === 'startup' || tag === 'tech') return 'job';
+
+    if (
+      tag === 'around' ||
+      tag === 'news' ||
+      tag === 'weather' ||
+      tag === 'food' ||
+      tag === 'event' ||
+      tag === 'sale' ||
+      tag === 'traffic' ||
+      tag === 'alert' ||
+      tag === 'environment' ||
+      tag === 'art' ||
+      tag === 'health' ||
+      tag === 'market' ||
+      tag === 'utility' ||
+      tag === 'shopping' ||
+      tag === 'question'
+    ) {
+      return 'around';
+    }
+
+    return null;
   }
 
   private scopeKey(value: string): string {
