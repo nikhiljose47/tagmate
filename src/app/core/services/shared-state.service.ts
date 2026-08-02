@@ -22,13 +22,22 @@ export class SharedStateService {
   /** Survives PostPage destroy/recreate during the pick-location round-trip. */
   readonly postDraft = signal<PostDraft | null>(null);
 
+  /** How the location was selected: 'place' (search) or 'pinpoint' (map tap / GPS). */
+  readonly locationType = signal<'place' | 'pinpoint'>('pinpoint');
+
   private _text = signal<string>('');
   private _coordinates = signal<SelectedCoordinates>(null);
   private _userDeviceCoords = signal<SelectedCoordinates>(null);
+  /** Admin-1 region (e.g. "Kerala"). Populated from the same reverse-geocode
+      response as `text`; used at post creation time to persist state on the tag. */
+  private _state = signal<string>('');
+  private _country = signal<string>('');
 
   readonly text = computed(() => this._text());
   readonly coordinates = computed(() => this._coordinates());
   readonly userDeviceCoords = computed(() => this._userDeviceCoords());
+  readonly state = computed(() => this._state());
+  readonly country = computed(() => this._country());
 
   updateText(value: string): void {
     this._text.set(value);
@@ -36,6 +45,11 @@ export class SharedStateService {
 
   updateCoordinates(lat: number, lng: number): void {
     this._coordinates.set([lat, lng]);
+  }
+
+  updateRegion(state: string, country: string): void {
+    this._state.set(state ?? '');
+    this._country.set(country ?? '');
   }
 
   async getDeviceCoordinates(): Promise<SelectedCoordinates> {
@@ -59,5 +73,7 @@ export class SharedStateService {
   clear(): void {
     this._text.set('');
     this._coordinates.set(null);
+    this._state.set('');
+    this._country.set('');
   }
 }

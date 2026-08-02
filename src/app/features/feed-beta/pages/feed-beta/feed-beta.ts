@@ -590,6 +590,10 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   /** Best available place/address text for the fixed top row. */
   private locationLabel(post: Tag): string {
     if (post.hoodId?.trim()) return post.hoodId.trim();
+    if (post.state?.trim() && post.country?.trim()) {
+      return `${post.state.trim()}, ${post.country.trim()}`;
+    }
+    if (post.state?.trim()) return post.state.trim();
     if (post.country?.trim()) return post.country.trim();
     if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) return 'Pinned location';
     return 'Location unavailable';
@@ -605,6 +609,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     const grouped = new Map<
       string,
       {
+        state: string;
         country: string;
         hoods: Set<string>;
         categories: Set<string>;
@@ -614,23 +619,25 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     >();
 
     for (const post of posts) {
-      if (!this.countryFor(post)) continue;
+      const country = this.countryFor(post);
+      if (!country) continue;
       const category = this.mainCategoryFor(post);
       if (!category) continue;
 
       const id = this.areaIdFor(post);
-      const country = this.countryFor(post);
-      if (!country) continue;
+      const state = this.stateFor(post);
       const hood = post.hoodId?.trim() || this.locationLabel(post);
       const existing =
         grouped.get(id) ??
         ({
+          state,
           country,
           hoods: new Set<string>(),
           categories: new Set<string>(),
           categoryCounts: this.emptyMainCategoryCounts(),
           postCount: 0,
         } satisfies {
+          state: string;
           country: string;
           hoods: Set<string>;
           categories: Set<string>;
@@ -648,7 +655,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     return [...grouped.entries()]
       .map(([id, area]) => ({
         id,
-        label: area.country,
+        // Prefer state name (Kerala) as the primary label; fall back to country
+        // for legacy posts written before the state column was populated.
+        label: area.state || area.country,
         country: area.country,
         hood: `${area.hoods.size || 1} location${area.hoods.size === 1 ? '' : 's'}`,
         categories: [...FEED_BETA_MAIN_CATEGORIES],
@@ -680,9 +689,13 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private areaIdFor(post: Tag | undefined): string {
+    const state = this.stateFor(post);
     const country = this.countryFor(post);
-    if (!country) return '';
-    return this.scopeKey(country);
+    // ID is state+country so "Kerala, India" and (hypothetically) "Kerala, X"
+    // don't collide. Fall back to country-only when state is missing.
+    if (state && country) return this.scopeKey(`${state}::${country}`);
+    if (country) return this.scopeKey(country);
+    return '';
   }
 
   private emptyMainCategoryCounts(): Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number> {
@@ -694,10 +707,17 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
+  /** Admin-1 region persisted on the tag row at post time. No inference here. */
+  private stateFor(post: Tag | undefined): string {
+    return post?.state?.trim() ?? '';
+  }
+
   private countryFor(post: Tag | undefined): string {
     const explicit = post?.country?.trim();
     if (explicit && explicit.toLowerCase() !== 'world') return explicit;
-
+    // Fallback for legacy posts written before the country column was populated.
+    // Four numeric comparisons per post — negligible; runs inside the existing
+    // slides() computed, no new reactive graph work.
     if (!post || !Number.isFinite(post.lat) || !Number.isFinite(post.lng)) return '';
     if (post.lat >= 6 && post.lat <= 38 && post.lng >= 68 && post.lng <= 98) return 'India';
     if (post.lat >= 24 && post.lat <= 50 && post.lng >= -125 && post.lng <= -66) {

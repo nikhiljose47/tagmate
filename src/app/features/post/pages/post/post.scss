@@ -360,71 +360,172 @@
 }
 
 /* ── Location ───────────────────────────── */
-.location-row {
-  padding: 8px 14px;
+.location-section {
+  padding: 10px 14px;
   border-bottom: 1px solid var(--tm-border);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.location-row--invalid .location-display {
-  border-color: var(--tm-danger, #ef4444);
-  color: var(--tm-danger, #ef4444);
-  background: color-mix(in srgb, var(--tm-danger, #ef4444) 7%, var(--tm-surface));
-}
-
-.location-display {
-  display: flex;
-  align-items: center;
   gap: 8px;
+}
+
+.location-section--invalid .loc-selected,
+.location-section--invalid .loc-actions {
+  border-color: var(--tm-danger, #ef4444);
+}
+
+/* ── Hint text ─── */
+.loc-hint {
+  margin: 0;
   font-size: 13px;
   color: var(--tm-text-secondary);
   font-weight: 500;
-  padding: 8px 12px;
-  background: var(--tm-bg);
-  border-radius: 10px;
-  min-height: 38px;
-  border: 1px solid transparent;
-  transition:
-    color 0.15s,
-    border-color 0.15s;
-
-  /* When a location is actually set, make it stand out */
-  &.location-display--set {
-    color: var(--tm-text);
-    border-color: var(--tm-border);
-    background: color-mix(in srgb, var(--tm-primary) 5%, var(--tm-surface));
-
-    i {
-      color: var(--tm-primary-text);
-    }
-  }
 }
 
-.location-btns {
+/* ── Action buttons ─── */
+.loc-actions {
   display: flex;
-  align-items: center;
   gap: 8px;
 }
 
-/* Expiry preset select, tucked into the location row */
-.expiry-wrap {
+.loc-action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--tm-border);
+  background: var(--tm-bg);
+  cursor: pointer;
+  transition: 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+
+  > i {
+    font-size: 20px;
+    color: var(--tm-primary);
+  }
+
+  &:hover {
+    border-color: var(--tm-primary);
+    background: color-mix(in srgb, var(--tm-primary) 6%, transparent);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.loc-action-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tm-text);
+  line-height: 1.2;
+}
+
+.loc-action-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--tm-text-secondary);
+  line-height: 1.2;
+}
+
+/* ── Selected location card ─── */
+.loc-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--tm-primary);
+  background: color-mix(in srgb, var(--tm-primary) 6%, var(--tm-surface));
+}
+
+.loc-selected-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.loc-selected-icon {
+  color: var(--tm-primary);
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.loc-selected-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.loc-selected-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.loc-selected-coords {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--tm-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.loc-selected-clear {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--tm-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.15s;
+
+  &:hover {
+    background: color-mix(in srgb, var(--tm-danger, #ef4444) 12%, transparent);
+    color: var(--tm-danger, #ef4444);
+  }
+}
+
+/* ── Expiry pill (in footer) ─── */
+.expiry-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: 20px;
   border: 1px solid var(--tm-border);
   background: var(--tm-surface);
   color: var(--tm-text-secondary);
   font-size: 12px;
   cursor: pointer;
+  flex-shrink: 0;
 
   &:focus-within {
     border-color: var(--tm-primary);
   }
+}
+
+.expiry-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm-text-secondary);
+  white-space: nowrap;
 }
 
 .expiry-select {
@@ -438,27 +539,6 @@
 
   option {
     color: initial;
-  }
-}
-
-.loc-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--tm-border);
-  background: var(--tm-surface);
-  color: var(--tm-text);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.15s;
-
-  &:hover {
-    border-color: var(--tm-primary);
-    color: var(--tm-primary-text);
-    background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
   }
 }
 
@@ -520,10 +600,25 @@
 /* ── Footer ─────────────────────────────── */
 .form-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   padding: 10px 14px;
   border-top: 1px solid var(--tm-border);
+}
+
+.foot-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.foot-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .foot-action {
@@ -568,7 +663,6 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
   padding: 10px 24px;
   border-radius: 20px;
   border: none;

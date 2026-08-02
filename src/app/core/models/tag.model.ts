@@ -10,6 +10,8 @@ export interface Tag {
   createdAt: string;
   images: string[];
   hoodId?: string;
+  /** Admin-1 region (e.g. "Kerala"). Populated from Nominatim at post time. */
+  state?: string;
   country?: string;
   loves?: number;
   dislikes?: number;

@@ -325,6 +325,13 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       this.state.pickModeActive.set(false);
     }
 
+    const isSearch =
+      this.route.snapshot.queryParamMap.get('search') === '1' ||
+      new URLSearchParams(window.location.search).get('search') === '1';
+    if (isSearch) {
+      this.showSearch.set(true);
+    }
+
     this.registerViewportRequests();
     this.registerLivePosts();
     const maplibreModule = await HoodPage._maplibrePromise;
@@ -542,16 +549,21 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     // Use take(1) so the HTTP request completes even if the user navigates
     // away (clicking Done) before the reverse-geocoding response arrives.
     this.http
-      .get<{ display_name?: string }>(`/api/nominatim/reverse?lat=${lat}&lon=${lon}`)
+      .get<{ display_name?: string; address?: Record<string, string> }>(
+        `/api/nominatim/reverse?lat=${lat}&lon=${lon}`,
+      )
       .pipe(
         take(1),
-        catchError(() => of({ display_name: undefined })),
+        catchError(() => of({ display_name: undefined, address: undefined })),
       )
       .subscribe((res) => {
         const name = res.display_name ?? 'Unknown location';
         this.setInCache(this.reverseCache, key, name);
         writeLocalStorage(this.REVERSE_CACHE_KEY, Array.from(this.reverseCache.entries()));
         this.state.updateText(name);
+        // Same response gives us admin-1 + country; persist so onSubmit can
+        // write them to the tag without a second geocoding call.
+        this.state.updateRegion(res.address?.['state'] ?? '', res.address?.['country'] ?? '');
       });
   }
 
@@ -1119,6 +1131,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   donePickingLocation(): void {
+    if (this.locationPicked()) {
+      this.state.locationType.set('pinpoint');
+    }
     void this.router.navigate(['/post']);
   }
 

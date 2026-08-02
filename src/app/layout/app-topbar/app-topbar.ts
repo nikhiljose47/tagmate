@@ -94,21 +94,29 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     const query = this.homeDistrictQuery().trim().toLowerCase();
     const options = this.workspace.feedBetaAreas();
     if (!query) return options;
-    return options.filter((option) => option.country.toLowerCase().includes(query));
+    // Match either state name (label) or country so users can drill in from
+    // either angle: "kerala" narrows to that state, "india" lists every
+    // state in India.
+    return options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(query) ||
+        option.country.toLowerCase().includes(query),
+    );
   });
-  protected readonly feedBetaCountryLabel = computed(
-    () =>
-      this.workspace.feedBetaScope()?.country ||
-      this.workspace.feedBetaAreas()[0]?.country ||
-      'Choose country',
-  );
+  protected readonly feedBetaCountryLabel = computed(() => {
+    const scope = this.workspace.feedBetaScope();
+    if (scope) return scope.location || scope.country || 'Choose region';
+    const first = this.workspace.feedBetaAreas()[0];
+    return first?.label ?? 'Choose region';
+  });
   protected readonly feedBetaCountryMeta = computed(() => {
     const current = this.workspace.feedBetaScope();
     const area = current
       ? this.workspace.feedBetaAreas().find((option) => option.id === current.areaId)
       : this.workspace.feedBetaAreas()[0];
-    if (!area) return 'Countries only';
-    return area.hood;
+    if (!area) return 'Regions only';
+    // Show country as the meta line when the label already carries the state.
+    return area.label !== area.country ? area.country : area.hood;
   });
   protected readonly feedBetaTagOptions = computed(() => {
     return [...FEED_BETA_MAIN_CATEGORIES];

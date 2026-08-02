@@ -13,6 +13,7 @@ export interface TagRow {
   created_at: string;
   images: string[];
   hood_id?: string;
+  state?: string;
   country?: string;
   loves?: number;
   dislikes?: number;
@@ -40,6 +41,7 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     created_at: tag.createdAt,
     images: tag.images,
     hood_id: tag.hoodId,
+    state: tag.state,
     country: tag.country,
     loves: tag.loves,
     dislikes: tag.dislikes,
@@ -63,6 +65,7 @@ export function rowToTag(row: TagRow): Tag {
     createdAt: row.created_at,
     images: row.images,
     hoodId: row.hood_id,
+    state: row.state,
     country: row.country,
     loves: row.loves,
     dislikes: row.dislikes,

@@ -396,15 +396,19 @@
 
   <!-- Pick-location banner (shown when opened from Post with ?pick=1) -->
   @if (pickMode()) {
+    <button class="pick-back-btn" type="button" (click)="donePickingLocation()" aria-label="Back to post">
+      <i class="bi bi-arrow-left"></i>
+    </button>
     <div class="pick-banner" [class.pick-banner--done]="locationPicked()">
       @if (!locationPicked()) {
         <i class="bi bi-geo-alt-fill pick-banner-icon"></i>
         <span class="pick-banner-text">Tap anywhere on the map to place your tag</span>
+        <button class="pick-cancel-btn" type="button" (click)="donePickingLocation()">Cancel</button>
       } @else {
         <i class="bi bi-check-circle-fill pick-banner-icon pick-banner-icon--ok"></i>
         <span class="pick-banner-text">Location set — tap again to move it</span>
         <button class="pick-done-btn" type="button" (click)="donePickingLocation()">
-          <i class="bi bi-arrow-left-short"></i> Done
+          <i class="bi bi-check-lg"></i> Confirm & back
         </button>
       }
     </div>

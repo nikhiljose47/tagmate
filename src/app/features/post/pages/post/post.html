@@ -148,30 +148,44 @@
     }
 
     <!-- Location -->
-    <div class="location-row" [class.location-row--invalid]="locationErrorVisible() && !shared.coordinates()" [class.shake-error]="shakeLocation()">
-      <div class="location-display" [class.location-display--set]="!!(shared.text() || shared.coordinates())">
-        <i class="bi bi-geo-alt-fill"></i>
-        <span>{{ shared.text() || (shared.coordinates() ? 'Location pinned on map' : 'No location selected') }}</span>
+    <div class="location-section" [class.location-section--invalid]="locationErrorVisible() && !shared.coordinates()" [class.shake-error]="shakeLocation()">
+      <label class="meta-label">Location</label>
+
+      <!-- Selected location display -->
+      @if (shared.coordinates()) {
+        <div class="loc-selected">
+          <div class="loc-selected-info">
+            <i class="bi bi-geo-alt-fill loc-selected-icon"></i>
+            <div class="loc-selected-text">
+              <span class="loc-selected-name">{{ shared.text() || 'Location pinned on map' }}</span>
+              <span class="loc-selected-coords">{{ shared.coordinates()![0] | number:'1.4-4' }}, {{ shared.coordinates()![1] | number:'1.4-4' }}</span>
+            </div>
+          </div>
+          <button type="button" class="loc-selected-clear" (click)="clearLocation()" aria-label="Remove location">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      } @else {
+        <p class="loc-hint">Choose where this post belongs</p>
+      }
+
+      <!-- Location action buttons -->
+      <div class="loc-actions">
+        <button class="loc-action-btn" type="button" (click)="onSearchPlace()">
+          <i class="bi bi-search"></i>
+          <span class="loc-action-label">Search a place</span>
+          <span class="loc-action-sub">e.g. Marathahalli, Bangalore</span>
+        </button>
+        <button class="loc-action-btn" type="button" (click)="onPickLocation()">
+          <i class="bi bi-pin-map-fill"></i>
+          <span class="loc-action-label">Pin on map</span>
+          <span class="loc-action-sub">Tap to drop a pin</span>
+        </button>
       </div>
+
       @if (locationErrorVisible() && !shared.coordinates()) {
         <p class="field-help field-help--error">Attach a location before posting.</p>
       }
-      <div class="location-btns">
-        <button class="loc-btn" type="button" (click)="useCurrentLocation()">
-          <i class="bi bi-crosshair"></i> Current
-        </button>
-        <button class="loc-btn" type="button" (click)="onPickLocation()">
-          <i class="bi bi-map"></i> Pick on map
-        </button>
-        <label class="expiry-wrap" title="Post disappears after this time">
-          <i class="bi bi-clock-history" aria-hidden="true"></i>
-          <select class="expiry-select" [(ngModel)]="formData.expiresIn" name="expiresIn" aria-label="Post lifetime">
-            @for (opt of expiryOptions; track opt.value) {
-              <option [ngValue]="opt.value">{{ opt.label }}</option>
-            }
-          </select>
-        </label>
-      </div>
     </div>
 
     <!-- Inline Preview Card -->
@@ -212,34 +226,46 @@
 
     <!-- Footer actions -->
     <div class="form-foot">
-      <label class="event-toggle event-toggle--foot" title="Local event with RSVP">
-        <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
-        <span><i class="bi bi-calendar-event"></i> Event</span>
-      </label>
-      <button
-        type="button"
-        class="foot-action"
-        [class.foot-action--active]="showPreview()"
-        (click)="togglePreview()"
-        aria-label="Toggle preview"
-      >
-        <i class="bi" [class]="showPreview() ? 'bi-eye-fill' : 'bi-eye'"></i>
-      </button>
-      <button type="button" class="foot-action foot-action--danger" (click)="onDiscard()" aria-label="Discard">
-        <i class="bi bi-trash"></i>
-      </button>
-
-      <button
-        type="submit"
-        class="post-btn"
-        [disabled]="isSubmitting()"
-      >
-        @if (isSubmitting()) {
-          <span class="post-spinner"></span> Posting…
-        } @else {
-          <i class="bi bi-send-fill"></i> Post
-        }
-      </button>
+      <div class="foot-left">
+        <label class="event-toggle event-toggle--foot" title="Local event with RSVP">
+          <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
+          <span><i class="bi bi-calendar-event"></i> Event</span>
+        </label>
+        <label class="expiry-pill" title="Your post will be automatically removed after this time">
+          <i class="bi bi-clock-history" aria-hidden="true"></i>
+          <span class="expiry-label">Visible for</span>
+          <select class="expiry-select" [(ngModel)]="formData.expiresIn" name="expiresIn" aria-label="Post lifetime">
+            @for (opt of expiryOptions; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      <div class="foot-right">
+        <button
+          type="button"
+          class="foot-action"
+          [class.foot-action--active]="showPreview()"
+          (click)="togglePreview()"
+          aria-label="Toggle preview"
+        >
+          <i class="bi" [class]="showPreview() ? 'bi-eye-fill' : 'bi-eye'"></i>
+        </button>
+        <button type="button" class="foot-action foot-action--danger" (click)="onDiscard()" aria-label="Discard">
+          <i class="bi bi-trash"></i>
+        </button>
+        <button
+          type="submit"
+          class="post-btn"
+          [disabled]="isSubmitting()"
+        >
+          @if (isSubmitting()) {
+            <span class="post-spinner"></span> Posting…
+          } @else {
+            <i class="bi bi-send-fill"></i> Post
+          }
+        </button>
+      </div>
     </div>
   </form>
 </div>

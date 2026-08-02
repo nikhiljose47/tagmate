@@ -208,12 +208,21 @@ export class PostPage {
         const { latitude: lat, longitude: lng } = coords;
         this.shared.updateCoordinates(lat, lng);
         this.shared.updateText('Fetching location…');
+        this.shared.locationType.set('pinpoint');
         this.locationErrorVisible.set(false);
 
         try {
           const res = await fetch(`/api/nominatim/reverse?lat=${lat}&lon=${lng}`);
           const data = res.ok ? await res.json() : null;
-          this.shared.updateText(data ? this.extractPlaceName(data) : 'Current location');
+          if (data) {
+            this.shared.updateText(this.extractPlaceName(data));
+            this.shared.updateRegion(
+              data.address?.['state'] ?? '',
+              data.address?.['country'] ?? '',
+            );
+          } else {
+            this.shared.updateText('Current location');
+          }
         } catch {
           this.shared.updateText('Current location');
         }
@@ -243,6 +252,17 @@ export class PostPage {
       data.display_name?.split(',')[0]?.trim() ||
       'Current location'
     );
+  }
+
+  onSearchPlace(): void {
+    this.saveDraft();
+    this.shared.pickModeActive.set(true);
+    void this.router.navigate([AppRoute.Hood], { queryParams: { pick: '1', search: '1' } });
+  }
+
+  clearLocation(): void {
+    this.shared.clear();
+    this.shared.locationType.set('pinpoint');
   }
 
   togglePreview(): void {
@@ -316,6 +336,8 @@ export class PostPage {
         lat: coords[0],
         lng: coords[1],
         hoodId: this.shared.text() || undefined,
+        state: this.shared.state() || undefined,
+        country: this.shared.country() || undefined,
         expiresIn: this.formData.expiresIn,
         tag: this.formData.tag,
         createdAt: new Date().toISOString(),
