@@ -399,19 +399,38 @@
     <button class="pick-back-btn" type="button" (click)="donePickingLocation()" aria-label="Back to post">
       <i class="bi bi-arrow-left"></i>
     </button>
-    <div class="pick-banner" [class.pick-banner--done]="locationPicked()">
-      @if (!locationPicked()) {
-        <i class="bi bi-geo-alt-fill pick-banner-icon"></i>
-        <span class="pick-banner-text">Tap anywhere on the map to place your tag</span>
-        <button class="pick-cancel-btn" type="button" (click)="donePickingLocation()">Cancel</button>
-      } @else {
-        <i class="bi bi-check-circle-fill pick-banner-icon pick-banner-icon--ok"></i>
-        <span class="pick-banner-text">Location set — tap again to move it</span>
-        <button class="pick-done-btn" type="button" (click)="donePickingLocation()">
-          <i class="bi bi-check-lg"></i> Confirm & back
-        </button>
-      }
-    </div>
+
+    @if (placePickMode()) {
+      <!-- Place/area pick mode — search selects the area, no pin needed -->
+      <div class="pick-banner" [class.pick-banner--place]="locationPicked()">
+        @if (!locationPicked()) {
+          <i class="bi bi-search pick-banner-icon pick-banner-icon--search"></i>
+          <span class="pick-banner-text">Search for a place to tag your post</span>
+          <button class="pick-cancel-btn" type="button" (click)="donePickingLocation()">Cancel</button>
+        } @else {
+          <i class="bi bi-check-circle-fill pick-banner-icon pick-banner-icon--ok"></i>
+          <span class="pick-banner-text">Post belongs to <strong>{{ state.text() }}</strong></span>
+          <button class="pick-done-btn" type="button" (click)="donePickingLocation()">
+            <i class="bi bi-check-lg"></i> Confirm & back
+          </button>
+        }
+      </div>
+    } @else {
+      <!-- Pinpoint pick mode — tap the map to drop a pin -->
+      <div class="pick-banner" [class.pick-banner--done]="locationPicked()">
+        @if (!locationPicked()) {
+          <i class="bi bi-geo-alt-fill pick-banner-icon"></i>
+          <span class="pick-banner-text">Tap anywhere on the map to place your tag</span>
+          <button class="pick-cancel-btn" type="button" (click)="donePickingLocation()">Cancel</button>
+        } @else {
+          <i class="bi bi-check-circle-fill pick-banner-icon pick-banner-icon--ok"></i>
+          <span class="pick-banner-text">Location set — tap again to move it</span>
+          <button class="pick-done-btn" type="button" (click)="donePickingLocation()">
+            <i class="bi bi-check-lg"></i> Confirm & back
+          </button>
+        }
+      </div>
+    }
   }
 
   @if (showFirstRunHoodPrompt()) {

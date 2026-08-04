@@ -98,7 +98,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
   private readonly toast = inject(ToastService);
-  private readonly workspace = inject(WorkspaceStateService);
+  protected readonly workspace = inject(WorkspaceStateService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -169,6 +169,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.workspace.feedBetaAreas.set(areas);
     this.workspace.feedBetaCategories.set(categories);
 
+    // Never overwrite a user-picked freeform location (may have 0 posts).
+    if (this.workspace.feedBetaScope()?.freeform) return;
+
     if (!areas.length) {
       if (this.workspace.feedBetaScope()) this.workspace.feedBetaScope.set(null);
       return;
@@ -178,9 +181,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     if (current) {
       const currentArea = areas.find((area) => area.id === current.areaId);
       if (currentArea) {
-        const category = currentArea.categories.includes(current.category)
-          ? current.category
-          : currentArea.categories[0];
+        const hasPostsIn = (cat: string) =>
+          (currentArea.categoryCounts[cat as keyof typeof currentArea.categoryCounts] ?? 0) > 0;
+        const category = hasPostsIn(current.category) ? current.category : 'around';
         const next = this.toScope(currentArea, category);
         if (
           next.category !== current.category ||
@@ -712,6 +715,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   private emptyMainCategoryCounts(): Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number> {
     return {
+      'hot-now': 0,
       dating: 0,
       game: 0,
       job: 0,
@@ -741,6 +745,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   private mainCategoryFor(post: Tag): (typeof FEED_BETA_MAIN_CATEGORIES)[number] | null {
     const tag = post.tag?.trim().toLowerCase();
 
+    if (tag === 'hot-now') return 'hot-now';
     if (tag === 'dating' || tag === 'network') return 'dating';
     if (tag === 'game' || tag === 'sports' || tag === 'fitness' || tag === 'entertainment') {
       return 'game';

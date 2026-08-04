@@ -14,6 +14,13 @@ export interface UserRow {
   bio: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  home_state?: string | null;
+  home_country?: string | null;
+  home_district?: string | null;
+  home_place?: string | null;
+  home_lat?: number | null;
+  home_lng?: number | null;
+  home_updated_at?: string | null;
 }
 
 /** `post_comments` row (snake_case, matches the Supabase table). */

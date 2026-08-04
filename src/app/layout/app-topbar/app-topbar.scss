@@ -4,14 +4,16 @@
 ───────────────────────────────────────────────────────────── */
 
 .app-topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 9000;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  height: 56px;
+  height: 53px;
   padding: 0 16px;
   border-bottom: 1px solid var(--tm-border);
   background: var(--tm-surface);
@@ -32,6 +34,19 @@
   width: 28px;
   height: 28px;
   display: block;
+
+  :host-context(.dark) &,
+  :host-context(.midnight) & {
+    filter: invert(1);
+  }
+
+  :host-context(.forest) & {
+    filter: invert(0.85) sepia(0.15) hue-rotate(90deg);
+  }
+
+  :host-context(.sepia) & {
+    filter: sepia(0.4) brightness(0.7);
+  }
 }
 
 .topbar-wordmark {
@@ -39,6 +54,36 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
+}
+
+/* ── Nav icons (desktop only) ─────────────────────────────── */
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.topbar-nav-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: var(--tm-muted);
+  text-decoration: none;
+  font-size: 18px;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--tm-bg);
+    color: var(--tm-text);
+  }
+
+  &.active {
+    color: var(--tm-primary-text);
+    background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+  }
 }
 
 /* ── Center section ───────────────────────────────────────── */
@@ -189,6 +234,112 @@
   font-weight: 800;
 }
 
+/* ── Separate Hot Now chip (after the tag dropdown) ─────────── */
+.home-hot-now-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  margin-left: 6px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, #dc2626 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #dc2626 6%, var(--tm-bg));
+  color: #dc2626;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+
+  &:hover {
+    background: color-mix(in srgb, #dc2626 12%, var(--tm-bg));
+    border-color: #dc2626;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &.active {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 18%, transparent);
+  }
+}
+
+.home-hot-now-label {
+  letter-spacing: 0.005em;
+}
+
+.home-hot-now-badge {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--tm-surface);
+  animation: hotNowBadgePulse 1.6s ease-in-out infinite;
+}
+
+.home-hot-now-chip.active .home-hot-now-badge {
+  display: none;
+}
+
+@keyframes hotNowBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hot-now-badge { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .home-hot-now-chip {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  .home-hot-now-label {
+    display: none; /* icon only on tight viewports */
+  }
+  .home-hot-now-badge {
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 9px;
+  }
+}
+
+.home-filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-primary) 11%, transparent);
+  color: var(--tm-muted);
+  font-size: 10px;
+  font-weight: 850;
+}
+
 .home-filter-trigger span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -274,6 +425,13 @@
   border-radius: 8px;
 }
 
+.home-tag-menu--beta button small {
+  margin-left: auto;
+  color: var(--tm-muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
 .home-district-result > i,
 .home-tag-menu button > i {
   flex: 0 0 auto;
@@ -295,6 +453,64 @@
 }
 
 .home-district-empty span {
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
+.home-district-hood-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  color: var(--tm-primary);
+  background: color-mix(in srgb, var(--tm-primary) 14%, transparent);
+  vertical-align: middle;
+}
+
+.home-district-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tm-muted);
+  background: color-mix(in srgb, var(--tm-muted) 12%, transparent);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.home-district-section-label {
+  padding: 6px 14px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tm-muted);
+  border-top: 1px solid var(--tm-border);
+  margin-top: 4px;
+}
+
+.home-district-result--new {
+  .home-district-new-badge {
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--tm-primary);
+    background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
+    border-radius: 999px;
+    padding: 2px 7px;
+  }
+}
+
+.home-district-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
   color: var(--tm-muted);
   font-size: 12px;
 }
@@ -625,9 +841,19 @@
 
 @media (max-width: 760px) {
   .app-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 8px;
-    height: 48px;
+    height: 46px;
     padding: 0 12px;
+  }
+
+  /* Messages icon lives in the mobile bottom nav — hide the topbar duplicate. */
+  .topbar-icon-btn--messages {
+    display: none;
+  }
+
+  .topbar-nav {
+    display: none;
   }
 
   .topbar-logo {
@@ -663,29 +889,27 @@
     padding: 0 8px;
   }
 
-  .home-filter-trigger:not(.home-filter-trigger--tag) span {
+  .home-filter-trigger span {
     display: none;
   }
 
   .home-filter-trigger--tag {
     min-height: 32px;
-    min-width: 94px;
-    max-width: 112px;
-    padding: 0 9px;
+    min-width: 34px;
+    padding: 0 8px;
   }
 
   .home-filter-trigger--tag span {
-    display: inline-flex;
+    display: none;
+  }
+
+  .home-filter-count {
+    display: none;
   }
 
   .home-location-picker--beta .home-district-results {
     width: calc(100vw - 24px);
     left: -12px;
-  }
-
-  .home-location-picker--beta .home-tag-menu {
-    right: 0;
-    width: min(240px, calc(100vw - 24px));
   }
 }
 
@@ -693,7 +917,7 @@
 
 @media (min-width: 761px) and (max-width: 1023px) {
   .app-topbar {
-    height: 52px;
+    height: 49px;
     padding: 0 16px;
   }
 }

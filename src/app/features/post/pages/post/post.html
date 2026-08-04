@@ -24,6 +24,7 @@
       <div
         class="compose-box"
         [class.is-invalid]="headline.touched && headline.invalid"
+        [class.compose-box--hot-now]="isHotNow()"
       >
         <textarea
           #headline="ngModel"
@@ -95,23 +96,62 @@
       </div>
     </div>
 
-    <!-- Category chips -->
-    <div class="category-block">
-      <label class="meta-label">Category</label>
-      <div class="tag-chips" role="radiogroup" aria-label="Post category">
-        @for (t of tags; track t) {
-          <button
-            type="button"
-            class="tag-chip"
-            [class.tag-chip--active]="formData.tag === t"
-            (click)="selectTag(t)"
-          >
-            {{ t | tagEmoji }} {{ t | titlecase }}
-          </button>
+    <!-- Category chips (hidden when Hot Now is on — hot-now IS the category) -->
+    @if (!isHotNow()) {
+      <div class="category-block">
+        <label class="meta-label">Category</label>
+        <div class="tag-chips" role="radiogroup" aria-label="Post category">
+          @for (t of tags; track t) {
+            <button
+              type="button"
+              class="tag-chip"
+              [class.tag-chip--active]="formData.tag === t"
+              (click)="selectTag(t)"
+            >
+              {{ t | tagEmoji }} {{ t | titlecase }}
+            </button>
+          }
+        </div>
+        @if (tagErrorVisible()) {
+          <p class="field-help field-help--error">Pick a category above.</p>
         }
       </div>
-      @if (tagErrorVisible()) {
-        <p class="field-help field-help--error">Pick a category above.</p>
+    }
+
+    <!-- Hot Now — urgent/emergency shortcut, its own block after the tag row -->
+    <div class="hot-now-block">
+      @if (!isHotNow()) {
+        <button
+          type="button"
+          class="hot-now-toggle"
+          [attr.aria-pressed]="false"
+          [attr.title]="'For urgent, quick or emergency posts — vanishes in 2 hours'"
+          (click)="toggleHotNow()"
+        >
+          <span class="hot-now-icon" aria-hidden="true">🔥</span>
+          <span class="hot-now-toggle-copy">
+            <strong>Post as Hot Now</strong>
+            <small>Urgent — visible for 2 hours, then vanishes</small>
+          </span>
+          <i class="bi bi-chevron-right hot-now-caret" aria-hidden="true"></i>
+        </button>
+      } @else {
+        <div class="hot-now-banner" role="status">
+          <span class="hot-now-icon hot-now-icon--pulse" aria-hidden="true">🔥</span>
+          <span class="hot-now-copy">
+            <strong>Urgent post — Hot Now</strong>
+            <span>For alerts, emergencies or things neighbors need to see right away. Vanishes in <b>2 hours</b>.</span>
+          </span>
+          <button
+            type="button"
+            class="hot-now-off"
+            (click)="toggleHotNow()"
+            aria-label="Turn off Hot Now"
+            title="Turn off Hot Now"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
       }
     </div>
 
@@ -153,12 +193,20 @@
 
       <!-- Selected location display -->
       @if (shared.coordinates()) {
-        <div class="loc-selected">
+        <div class="loc-selected" [class.loc-selected--place]="shared.locationType() === 'place'">
           <div class="loc-selected-info">
-            <i class="bi bi-geo-alt-fill loc-selected-icon"></i>
+            @if (shared.locationType() === 'place') {
+              <i class="bi bi-geo-fill loc-selected-icon"></i>
+            } @else {
+              <i class="bi bi-geo-alt-fill loc-selected-icon"></i>
+            }
             <div class="loc-selected-text">
               <span class="loc-selected-name">{{ shared.text() || 'Location pinned on map' }}</span>
-              <span class="loc-selected-coords">{{ shared.coordinates()![0] | number:'1.4-4' }}, {{ shared.coordinates()![1] | number:'1.4-4' }}</span>
+              @if (shared.locationType() === 'place') {
+                <span class="loc-selected-type">Area — post belongs to this entire place</span>
+              } @else {
+                <span class="loc-selected-coords">{{ shared.coordinates()![0] | number:'1.4-4' }}, {{ shared.coordinates()![1] | number:'1.4-4' }}</span>
+              }
             </div>
           </div>
           <button type="button" class="loc-selected-clear" (click)="clearLocation()" aria-label="Remove location">
@@ -231,15 +279,17 @@
           <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
           <span><i class="bi bi-calendar-event"></i> Event</span>
         </label>
-        <label class="expiry-pill" title="Your post will be automatically removed after this time">
-          <i class="bi bi-clock-history" aria-hidden="true"></i>
-          <span class="expiry-label">Visible for</span>
-          <select class="expiry-select" [(ngModel)]="formData.expiresIn" name="expiresIn" aria-label="Post lifetime">
-            @for (opt of expiryOptions; track opt.value) {
-              <option [ngValue]="opt.value">{{ opt.label }}</option>
-            }
-          </select>
-        </label>
+        @if (!isHotNow()) {
+          <label class="expiry-pill" title="Your post will be automatically removed after this time">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>
+            <span class="expiry-label">Visible for</span>
+            <select class="expiry-select" [(ngModel)]="formData.expiresIn" name="expiresIn" aria-label="Post lifetime">
+              @for (opt of expiryOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </label>
+        }
       </div>
       <div class="foot-right">
         <button

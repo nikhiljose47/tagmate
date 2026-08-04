@@ -77,7 +77,6 @@ export class NavComponent {
       icon: 'bi-person',
       activeIcon: 'bi-person-fill',
       label: 'Profile',
-      mobile: true,
     },
   ];
 

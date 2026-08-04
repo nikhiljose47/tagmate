@@ -4,15 +4,15 @@
   </div>
 }
 
+@if (showTopbar()) {
+  <app-topbar />
+}
+
 @if (showNav()) {
   <app-nav />
 }
 
 <div class="main-container" [class.with-nav]="showNav()">
-  @if (showTopbar()) {
-    <app-topbar />
-  }
-
   <main class="workspace-router" [class.authenticated]="showNav()">
     <router-outlet></router-outlet>
   </main>

@@ -24,11 +24,27 @@
     </div>
   } @else if (!slides().length) {
     <div class="fb-notice">
-      <tm-empty-state
-        icon="~"
-        title="No posts in this feed scope"
-        subtitle="Change the location or category from the top bar."
-      />
+      @if (workspace.feedBetaScope()?.category === 'hot-now') {
+        <div class="fb-first-post fb-first-post--hot-now">
+          <span class="fb-first-post-icon">🔥</span>
+          <strong>No hot now or emergency posts</strong>
+          <p>All quiet in {{ workspace.feedBetaScope()?.location || 'your area' }}. When someone flags a post as Hot Now, it will show up here for 2 hours.</p>
+          <a class="fb-first-post-btn fb-first-post-btn--hot-now" routerLink="/post">Post an urgent update</a>
+        </div>
+      } @else if (workspace.feedBetaScope()?.freeform) {
+        <div class="fb-first-post">
+          <span class="fb-first-post-icon">📍</span>
+          <strong>No posts in {{ workspace.feedBetaScope()!.location }} yet</strong>
+          <p>Be the first to add a post to this place!</p>
+          <a class="fb-first-post-btn" routerLink="/post">Add first post</a>
+        </div>
+      } @else {
+        <tm-empty-state
+          icon="~"
+          title="No posts in this scope"
+          subtitle="Change the location or category from the top bar."
+        />
+      }
     </div>
   } @else {
     @for (slide of slides(); track slide.key) {

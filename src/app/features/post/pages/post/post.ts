@@ -107,18 +107,27 @@ export class PostPage {
   readonly maxMedia = MAX_MEDIA;
 
   // ── Form data ────────────────────────────────────────────────────────────
-  readonly tags = Object.values(TagCategory);
+  /** Every category EXCEPT hot-now — that tag has its own top-right toggle. */
+  readonly tags = Object.values(TagCategory).filter((t) => t !== TagCategory.HotNow);
   readonly composePrompt = COMPOSE_PROMPTS[Math.floor(Math.random() * COMPOSE_PROMPTS.length)];
 
   /** Post lifetime presets — `expiresIn` is minutes app-wide (see LifespanPipe). */
   readonly expiryOptions = [
     { label: '15 min', value: 15 },
     { label: '1 hour', value: 60 },
+    { label: '2 hours', value: 120 },
     { label: '6 hours', value: 360 },
     { label: '1 day', value: 1440 },
     { label: '3 days', value: 4320 },
     { label: '1 week', value: 10080 },
   ];
+
+  /** True when the top-right Hot Now toggle is on. Plain method (not signal)
+   *  because `formData` is a POJO — a computed() would cache the initial value
+   *  and never re-run when `formData.tag` is mutated. */
+  isHotNow(): boolean {
+    return this.formData.tag === TagCategory.HotNow;
+  }
 
   readonly user = computed(() => {
     const u = this.userSession.user();
@@ -141,6 +150,22 @@ export class PostPage {
   selectTag(tag: string): void {
     this.formData.tag = tag;
     this.tagErrorVisible.set(false);
+  }
+
+  /**
+   * Top-right "Hot Now" toggle. Turning it on pins tag='hot-now' and shortens
+   * the expiry to 2 hours; turning it off restores the 1-hour default and
+   * clears the tag so the user can pick a category again.
+   */
+  toggleHotNow(): void {
+    if (this.isHotNow()) {
+      this.formData.tag = '';
+      this.formData.expiresIn = 60;
+    } else {
+      this.formData.tag = TagCategory.HotNow;
+      this.formData.expiresIn = 120;
+      this.tagErrorVisible.set(false);
+    }
   }
 
   // ── Polls ────────────────────────────────────────────────────────────────
@@ -262,7 +287,6 @@ export class PostPage {
 
   clearLocation(): void {
     this.shared.clear();
-    this.shared.locationType.set('pinpoint');
   }
 
   togglePreview(): void {
@@ -338,6 +362,7 @@ export class PostPage {
         hoodId: this.shared.text() || undefined,
         state: this.shared.state() || undefined,
         country: this.shared.country() || undefined,
+        locationType: this.shared.locationType(),
         expiresIn: this.formData.expiresIn,
         tag: this.formData.tag,
         createdAt: new Date().toISOString(),

@@ -15,6 +15,7 @@ export interface TagRow {
   hood_id?: string;
   state?: string;
   country?: string;
+  location_type?: 'pinpoint' | 'place';
   loves?: number;
   dislikes?: number;
   comments?: string[];
@@ -43,6 +44,7 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     hood_id: tag.hoodId,
     state: tag.state,
     country: tag.country,
+    location_type: tag.locationType,
     loves: tag.loves,
     dislikes: tag.dislikes,
     comments: tag.comments,
@@ -67,6 +69,7 @@ export function rowToTag(row: TagRow): Tag {
     hoodId: row.hood_id,
     state: row.state,
     country: row.country,
+    locationType: row.location_type,
     loves: row.loves,
     dislikes: row.dislikes,
     comments: row.comments,

@@ -31,6 +31,38 @@ interface ProfileSettings {
   postActivityNotifications: boolean;
 }
 
+interface NominatimAddress {
+  state?: string;
+  country?: string;
+  state_district?: string;
+  county?: string;
+  city_district?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  suburb?: string;
+  neighbourhood?: string;
+}
+
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: NominatimAddress;
+}
+
+interface HoodPick {
+  state: string;
+  country: string;
+  district: string;
+  place: string;
+  lat: number;
+  lng: number;
+}
+
+const HOOD_COOLDOWN_DAYS = 30;
+
 const LEGACY_PROFILE_SETTINGS_KEY = 'tagmate.profileSettings';
 const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   locationSuggestions: true,
@@ -87,6 +119,26 @@ export class ProfilePage implements OnInit {
   convertUsername = signal('');
   convertError = signal('');
   convertLoading = signal(false);
+
+  // Home hood editor
+  hoodEditOpen = signal(false);
+  hoodQuery = signal('');
+  hoodResults = signal<NominatimResult[]>([]);
+  hoodSearching = signal(false);
+  hoodPick = signal<HoodPick | null>(null);
+  hoodSaving = signal(false);
+  private hoodSearchTimer: ReturnType<typeof setTimeout> | undefined;
+  private hoodAbort?: AbortController;
+
+  readonly currentHood = computed(() => this.sessionService.user()?.hood ?? null);
+  readonly hoodDaysRemaining = computed(() => {
+    const updated = this.currentHood()?.updatedAt;
+    if (!updated) return 0;
+    const nextAllowed = new Date(updated).getTime() + HOOD_COOLDOWN_DAYS * 86400_000;
+    const diffMs = nextAllowed - Date.now();
+    return diffMs > 0 ? Math.ceil(diffMs / 86400_000) : 0;
+  });
+  readonly canChangeHood = computed(() => this.hoodDaysRemaining() === 0);
 
   ngOnInit(): void {
     this.settings.set(this.readProfileSettings());
@@ -238,6 +290,131 @@ export class ProfilePage implements OnInit {
       this.toast.show(err?.message ?? 'Conversion failed', 'danger');
     } finally {
       this.convertLoading.set(false);
+    }
+  }
+
+  openHoodEditor(): void {
+    if (!this.canChangeHood()) {
+      this.toast.show(
+        `You can change your home hood again in ${this.hoodDaysRemaining()} days.`,
+        'warning',
+      );
+      return;
+    }
+    this.hoodEditOpen.set(true);
+    this.hoodQuery.set('');
+    this.hoodResults.set([]);
+    this.hoodPick.set(null);
+  }
+
+  closeHoodEditor(): void {
+    this.hoodEditOpen.set(false);
+    this.hoodQuery.set('');
+    this.hoodResults.set([]);
+    this.hoodPick.set(null);
+    this.hoodAbort?.abort();
+    clearTimeout(this.hoodSearchTimer);
+  }
+
+  onHoodInput(value: string): void {
+    this.hoodQuery.set(value);
+    this.hoodPick.set(null);
+    clearTimeout(this.hoodSearchTimer);
+    const q = value.trim();
+    if (q.length < 2) {
+      this.hoodResults.set([]);
+      this.hoodSearching.set(false);
+      return;
+    }
+    this.hoodSearchTimer = setTimeout(() => this.searchHood(q), 350);
+  }
+
+  private searchHood(q: string): void {
+    this.hoodAbort?.abort();
+    this.hoodAbort = new AbortController();
+    const { signal } = this.hoodAbort;
+    this.hoodSearching.set(true);
+
+    fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=8`,
+      { signal, headers: { 'Accept-Language': 'en' } },
+    )
+      .then((r) => r.json())
+      .then((results: NominatimResult[]) => {
+        if (signal.aborted) return;
+        const filtered = results.filter(
+          (r) => !!r.address?.state && !!ProfilePage.districtOf(r.address),
+        );
+        this.hoodResults.set(filtered);
+        this.hoodSearching.set(false);
+      })
+      .catch(() => {
+        if (!signal.aborted) this.hoodSearching.set(false);
+      });
+  }
+
+  private static districtOf(addr: NominatimAddress): string {
+    return (
+      addr.state_district ||
+      addr.county ||
+      addr.city_district ||
+      addr.city ||
+      addr.town ||
+      ''
+    );
+  }
+
+  selectHood(r: NominatimResult): void {
+    const addr = r.address ?? {};
+    const district = ProfilePage.districtOf(addr);
+    const rawPlace =
+      addr.suburb ||
+      addr.neighbourhood ||
+      addr.village ||
+      addr.town ||
+      addr.city ||
+      r.display_name.split(',')[0].trim();
+    const place = rawPlace && rawPlace !== district ? rawPlace : '';
+
+    this.hoodPick.set({
+      state: addr.state || '',
+      country: addr.country || '',
+      district,
+      place,
+      lat: Number(r.lat),
+      lng: Number(r.lon),
+    });
+    this.hoodQuery.set(place ? `${place}, ${district}` : district);
+    this.hoodResults.set([]);
+  }
+
+  async saveHood(): Promise<void> {
+    const pick = this.hoodPick();
+    if (!pick || !pick.state || !pick.district) {
+      this.toast.show('Pick a location with a state and district first.', 'warning');
+      return;
+    }
+    this.hoodSaving.set(true);
+    try {
+      const res = await this.sessionService.updateHomeHood({
+        state: pick.state,
+        country: pick.country,
+        district: pick.district,
+        place: pick.place || undefined,
+        lat: pick.lat,
+        lng: pick.lng,
+      });
+      if (res.ok) {
+        this.toast.show('Home hood updated.', 'success');
+        this.closeHoodEditor();
+      } else {
+        const msg = /HOME_HOOD_COOLDOWN/i.test(res.message ?? '')
+          ? `You can only change your home hood once every ${HOOD_COOLDOWN_DAYS} days.`
+          : (res.message ?? 'Could not update home hood.');
+        this.toast.show(msg, 'danger');
+      }
+    } finally {
+      this.hoodSaving.set(false);
     }
   }
 }

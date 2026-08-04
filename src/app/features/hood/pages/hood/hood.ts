@@ -155,6 +155,7 @@ interface NominatimSearchResult {
   display_name?: string;
   geojson?: { type: string; coordinates: unknown };
   boundingbox?: [string, string, string, string];
+  address?: Record<string, string>;
 }
 
 interface ClusterFeatureProperties {
@@ -179,7 +180,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private readonly ngZone = inject(NgZone);
   readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly state = inject(SharedStateService);
+  protected readonly state = inject(SharedStateService);
   private readonly store = inject(Store);
   private readonly toast = inject(ToastService);
   private readonly preload = inject(PreloadService);
@@ -244,7 +245,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   selectedMapCategories = signal<string[]>(this.storedSettings.categoryFilters);
   /** True when opened from the Post page via ?pick=1 */
   pickMode = signal(false);
-  /** True once the user has tapped the map in pick mode */
+  /** True when picking an area via "Search a place" (?pick=1&search=1) */
+  placePickMode = signal(false);
+  /** True once the user has tapped the map or confirmed a place in pick mode */
   locationPicked = signal(false);
   currentStyle = signal<MapStyleKey>(this.storedSettings.mapStyle);
   protected readonly visibleMapPosts = signal<MapPost[]>([]);
@@ -330,6 +333,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       new URLSearchParams(window.location.search).get('search') === '1';
     if (isSearch) {
       this.showSearch.set(true);
+      if (isPick) this.placePickMode.set(true);
     }
 
     this.registerViewportRequests();
@@ -1028,6 +1032,19 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.placePickMode()) {
+      this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
+      this.state.updateCoordinates(lat, lng);
+      this.state.updateText(q);
+      if (first.address) {
+        this.state.updateRegion(first.address['state'] ?? '', first.address['country'] ?? '');
+      }
+      this.locationPicked.set(true);
+      this.loadVisiblePosts();
+      this.setBoundaryFromResult(first, q);
+      return;
+    }
+
     const hood = new Hood({ name: q, coords: { lat, lng } });
     this.store.dispatch(setUserPreference({ pref: { hood, mapZoom: 13 } }));
     this.showFirstRunHoodPrompt.set(false);
@@ -1132,7 +1149,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   donePickingLocation(): void {
     if (this.locationPicked()) {
-      this.state.locationType.set('pinpoint');
+      this.state.locationType.set(this.placePickMode() ? 'place' : 'pinpoint');
     }
     void this.router.navigate(['/post']);
   }

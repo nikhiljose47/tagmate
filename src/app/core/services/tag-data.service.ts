@@ -3,6 +3,7 @@ import { Observable, from, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SupabaseClientService } from './supabase-client.service';
 import { AppUser } from '../models/app-user.model';
+import { Hood } from '../models/hood.model';
 import { TagRow } from './tag.mapper';
 import { UserRow } from './social.mapper';
 
@@ -46,13 +47,30 @@ export class TagDataService {
     return from(
       this.client
         .from('users')
-        .select('uid,name,is_guest,reputation,bio,created_at,updated_at')
+        .select(
+          'uid,name,is_guest,reputation,bio,created_at,updated_at,' +
+            'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at',
+        )
         .eq('uid', uid)
         .single<UserRow>(),
     ).pipe(
       map((result) => {
         const { data } = this.requireSuccess(result);
         if (!data) return null;
+        const hood = data.home_state
+          ? new Hood({
+              name: data.home_place || data.home_district || data.home_state,
+              state: data.home_state,
+              country: data.home_country || 'India',
+              district: data.home_district || '',
+              place: data.home_place || '',
+              coords: {
+                lat: data.home_lat ?? 0,
+                lng: data.home_lng ?? 0,
+              },
+              updatedAt: data.home_updated_at || '',
+            })
+          : undefined;
         return {
           uid: data.uid,
           name: data.name,
@@ -61,6 +79,7 @@ export class TagDataService {
           bio: data.bio ?? '',
           createdAt: data.created_at ?? undefined,
           updatedAt: data.updated_at ?? undefined,
+          hood,
         };
       }),
     );

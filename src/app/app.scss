@@ -2,24 +2,10 @@
    Main container — offset for the nav on every breakpoint
 ───────────────────────────────────────────────────────────── */
 
-/* Mobile / tablet: space for bottom bar (~64px + safe area) */
-@media (max-width: 1023px) {
+/* Mobile only: space for bottom nav bar */
+@media (max-width: 760px) {
   .main-container.with-nav {
     padding-bottom: calc(64px + env(safe-area-inset-bottom));
-  }
-}
-
-/* Narrow desktop: space for 72px icon-only sidebar */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .main-container.with-nav {
-    margin-left: 72px;
-  }
-}
-
-/* Wide desktop: space for 245px full sidebar */
-@media (min-width: 1280px) {
-  .main-container.with-nav {
-    margin-left: 245px;
   }
 }
 
@@ -27,13 +13,33 @@
   min-height: 100dvh;
 }
 
+/* Topbar is fixed (out-of-flow) — push content below it with padding-top */
+.main-container.with-nav {
+  padding-top: 53px;
+  min-height: calc(100dvh - 53px);
+}
+
 .workspace-router.authenticated {
-  min-height: calc(100dvh - 68px);
+  min-height: calc(100dvh - 53px);
 }
 
 @media (max-width: 760px) {
+  .main-container.with-nav {
+    padding-top: 46px;
+  }
+
   .workspace-router.authenticated {
-    min-height: calc(100dvh - 60px - 64px - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 46px - 64px - env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1023px) {
+  .main-container.with-nav {
+    padding-top: 49px;
+  }
+
+  .workspace-router.authenticated {
+    min-height: calc(100dvh - 49px);
   }
 }
 
@@ -42,7 +48,7 @@
 ───────────────────────────────────────────────────────────── */
 .app-toast {
   position: fixed;
-  top: calc(68px + 12px);
+  top: calc(53px + 12px);
   right: 18px;
   z-index: 10000;
   display: grid;
@@ -113,7 +119,7 @@
 
 @media (max-width: 760px) {
   .app-toast {
-    top: calc(60px + 8px);
+    top: calc(46px + 8px);
     right: 12px;
     left: 12px;
     width: auto;

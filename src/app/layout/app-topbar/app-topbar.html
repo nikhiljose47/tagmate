@@ -5,6 +5,34 @@
     <span class="topbar-wordmark">Tagmate</span>
   </a>
 
+  <!-- ── Nav icons (desktop only, like Facebook) ── -->
+  <nav class="topbar-nav" aria-label="Main navigation">
+    <a
+      class="topbar-nav-btn"
+      routerLink="/feed-beta"
+      routerLinkActive="active"
+      aria-label="Home"
+    >
+      <i class="bi bi-house" aria-hidden="true"></i>
+    </a>
+    <a
+      class="topbar-nav-btn"
+      routerLink="/hood"
+      routerLinkActive="active"
+      aria-label="Map"
+    >
+      <i class="bi bi-map" aria-hidden="true"></i>
+    </a>
+    <a
+      class="topbar-nav-btn"
+      routerLink="/post"
+      routerLinkActive="active"
+      aria-label="Post"
+    >
+      <i class="bi bi-plus-square" aria-hidden="true"></i>
+    </a>
+  </nav>
+
   <!-- ── Center section ── -->
   <div class="topbar-center">
     @if (isHome()) {
@@ -57,7 +85,28 @@
         >
           <i class="bi" [class]="isFeedBeta() ? 'bi-hash' : 'bi-funnel'" aria-hidden="true"></i>
           <span>{{ homeTagLabel() }}</span>
+          @if (isFeedBeta()) {
+            <small class="home-filter-count">{{ feedBetaSelectedTagCount() }}</small>
+          }
         </button>
+
+        @if (isFeedBeta()) {
+          <button
+            type="button"
+            class="home-hot-now-chip"
+            [class.active]="workspace.feedBetaScope()?.category === 'hot-now'"
+            [class.has-badge]="hotNowBadgeCount() > 0"
+            (click)="openHomeHoodFeed()"
+            [attr.aria-label]="'Hot now in ' + (hood().state || 'your home hood') + (hotNowBadgeCount() > 0 ? ' — ' + hotNowBadgeCount() + ' new' : '')"
+            [attr.title]="'Hot now in ' + (hood().state || 'your home hood') + ' — urgent posts, last 2 hours'"
+          >
+            <span aria-hidden="true">🔥</span>
+            <span class="home-hot-now-label">Hot Now</span>
+            @if (hotNowBadgeCount() > 0) {
+              <span class="home-hot-now-badge" aria-hidden="true">{{ hotNowBadgeCount() > 9 ? '9+' : hotNowBadgeCount() }}</span>
+            }
+          </button>
+        }
 
         @if (homeDistrictSearchOpen()) {
           <section
@@ -74,14 +123,50 @@
                 >
                   <i class="bi bi-geo-alt" aria-hidden="true"></i>
                   <span>
-                    <strong>{{ area.label }}</strong>
+                    <strong>
+                      {{ area.label }}
+                      @if (isUserHood(area.label, area.country)) {
+                        <em class="home-district-hood-badge">(Home)</em>
+                      }
+                    </strong>
                     <small>{{ area.label !== area.country ? area.country : 'Country feed' }}</small>
                   </span>
+                  <span class="home-district-count">{{ area.postCount }}</span>
                 </button>
-              } @empty {
+              }
+              @if (isNominatimLoading()) {
+                <div class="home-district-loading">
+                  <span class="search-spinner" aria-label="Searching worldwide"></span>
+                  <small>Searching worldwide…</small>
+                </div>
+              }
+              @if (nominatimSuggestions().length) {
+                <div class="home-district-section-label">Global search</div>
+                @for (place of nominatimSuggestions(); track place.place_id) {
+                  <button
+                    type="button"
+                    class="home-district-result home-district-result--new"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="selectFeedBetaFromNominatim(place)"
+                  >
+                    <i class="bi bi-globe" aria-hidden="true"></i>
+                    <span>
+                      <strong>
+                        {{ place.address.state || place.display_name.split(',')[0] }}
+                        @if (isUserHood(place.address.state, place.address.country)) {
+                          <em class="home-district-hood-badge">(Home)</em>
+                        }
+                      </strong>
+                      <small>{{ place.address.country || '' }}</small>
+                    </span>
+                    <span class="home-district-new-badge">New</span>
+                  </button>
+                }
+              }
+              @if (!feedBetaCountryResults().length && !nominatimSuggestions().length && !isNominatimLoading()) {
                 <div class="home-district-empty">
                   <strong>No regions found</strong>
-                  <span>Try a state or country from the feed.</span>
+                  <span>Try a city, state, or country name.</span>
                 </div>
               }
             } @else {
@@ -139,6 +224,9 @@
               >
                 <i class="bi bi-hash" aria-hidden="true"></i>
                 <span>{{ tag | titlecase }}</span>
+                @if (isFeedBeta()) {
+                  <small>{{ feedBetaTagCount(tag) }}</small>
+                }
               </button>
             }
           </section>
@@ -199,7 +287,7 @@
 
   <!-- ── Actions (right) ── -->
   <div class="topbar-actions">
-    <a class="topbar-icon-btn" routerLink="/messages" aria-label="Open messages">
+    <a class="topbar-icon-btn topbar-icon-btn--messages" routerLink="/messages" aria-label="Open messages">
       <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
     </a>
 
@@ -240,9 +328,7 @@
             }}</span>
             <span class="user-menu-info">
               <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
-              <small>{{
-                session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace'
-              }}</small>
+              <small>{{ session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace' }}</small>
             </span>
           </div>
 

@@ -75,5 +75,6 @@ export class SharedStateService {
     this._coordinates.set(null);
     this._state.set('');
     this._country.set('');
+    this.locationType.set('pinpoint');
   }
 }
