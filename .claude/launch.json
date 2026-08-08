@@ -4,8 +4,9 @@
     {
       "name": "tagmate-dev",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["C:\\tmp\\tagmate\\node_modules\\@angular\\cli\\bin\\ng.js", "serve", "--port", "4201", "--host", "0.0.0.0"],
-      "port": 4201
+      "runtimeArgs": ["C:\\tmp\\tagmate\\node_modules\\@angular\\cli\\bin\\ng.js", "serve", "--host", "0.0.0.0", "--port", "4202"],
+      "port": 4202,
+      "autoPort": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { SocialPlatformService } from '../../core/services/social-platform.service';
 import { FeatureFlagsService, AppFeatureFlags } from '../../core/services/feature-flags.service';
+import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
 
 interface NavItem {
   route: string;
@@ -19,7 +20,7 @@ interface NavItem {
 @Component({
   selector: 'app-nav',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, ClickOutsideDirective],
   templateUrl: './nav.html',
   styleUrls: ['./nav.scss'],
 })
@@ -76,7 +77,6 @@ export class NavComponent {
       icon: 'bi-person',
       activeIcon: 'bi-person-fill',
       label: 'Profile',
-      mobile: true,
     },
   ];
 

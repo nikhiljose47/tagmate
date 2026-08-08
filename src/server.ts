@@ -125,7 +125,7 @@ export const reqHandler = createRequestHandler(async (req) => {
       proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`;
     } else if (url.pathname === '/api/nominatim/boundary') {
       const q = url.searchParams.get('q') || '';
-      proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&q=${encodeURIComponent(q)}`;
+      proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&addressdetails=1&q=${encodeURIComponent(q)}`;
     } else if (url.pathname === '/api/nominatim/lookup') {
       const osmIds = url.searchParams.get('osm_ids') || '';
       proxyUrl = `https://nominatim.openstreetmap.org/lookup?format=jsonv2&polygon_geojson=1&osm_ids=${encodeURIComponent(osmIds)}`;

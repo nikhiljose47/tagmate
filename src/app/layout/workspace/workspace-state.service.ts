@@ -1,6 +1,9 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Tag } from '../../core/models/tag.model';
 
+export const FEED_BETA_MAIN_CATEGORIES = ['hot-now', 'dating', 'game', 'job', 'around'] as const;
+export type FeedBetaMainCategory = (typeof FEED_BETA_MAIN_CATEGORIES)[number];
+
 export type ContextPanelMode = 'empty' | 'post' | 'filters' | 'analytics' | 'moderation';
 
 export interface WorkspaceNavItem {
@@ -32,6 +35,7 @@ export interface FeedBetaArea {
   readonly country: string;
   readonly hood: string;
   readonly categories: readonly string[];
+  readonly categoryCounts: Readonly<Record<FeedBetaMainCategory, number>>;
   readonly postCount: number;
 }
 
@@ -41,6 +45,8 @@ export interface FeedBetaScope {
   readonly country: string;
   readonly hood: string;
   readonly category: string;
+  /** True when the user picked a place from global search that has no posts yet. */
+  readonly freeform?: boolean;
 }
 
 export interface PostListItem {

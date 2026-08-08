@@ -1,3 +1,7 @@
+import { Hood } from './hood.model';
+
+export type AccountType = 'personal' | 'business';
+
 export interface AppUser {
   uid: string;
   name: string;
@@ -8,4 +12,13 @@ export interface AppUser {
   updatedAt?: string;
   /** Trigger-maintained server-side (bumped by likes on this user's posts) — never write this from the client. */
   reputation?: number;
+  /** Home hood from the users table. Absent until the row is loaded. */
+  hood?: Hood;
+  /** 'personal' unless the user signed up (or was converted) as a business account. */
+  accountType: AccountType;
+  /** Shop/business display name — set only when accountType === 'business'. */
+  businessName?: string;
+  /** Optional business contact info, shown on business-style post cards when set. */
+  businessPhone?: string;
+  businessWebsite?: string;
 }

@@ -178,6 +178,13 @@ The island map layout is tuned for desktop and mobile:
 - Marker rendering uses WebGL layers for normal markers instead of many DOM nodes.
 - Map resize calls run after container changes so the map canvas does not load with stale dimensions.
 
+## Database Architecture
+
+The application uses Supabase PostgreSQL, Supabase Auth, Storage, Realtime, and PostGIS.
+
+- [View the database architecture and ER diagram](docs/database/database-architecture.md)
+
+
 ## Useful Commands
 
 ```bash

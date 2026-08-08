@@ -7,8 +7,8 @@ describe('social trust model', () => {
     expect(ACTIONABLE_TAGS.has('food')).toBeFalse();
   });
 
-  it('keeps question status transitions intentionally narrow', () => {
-    expect(allowedStatusesForTag('question')).toEqual(['active', 'closed']);
+  it('keeps poll status transitions intentionally narrow', () => {
+    expect(allowedStatusesForTag('poll')).toEqual(['active', 'closed']);
     expect(allowedStatusesForTag('alert')).toEqual(['active', 'resolved', 'cancelled']);
   });
 });

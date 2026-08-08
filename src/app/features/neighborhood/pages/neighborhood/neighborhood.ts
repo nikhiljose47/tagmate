@@ -513,7 +513,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
         }
       }
     } else if (matchesTraffic) {
-      const matches = activePosts.filter((p) => p.tag === 'traffic' || p.tag === 'alert');
+      const matches = activePosts.filter((p) => p.tag === 'alert');
       if (matches.length > 0) {
         const item = matches[0];
         replyText = `Yes, neighbor! There's a road update posted by @${item.username}: "${item.highlight}". I've linked it below so you can locate it on the map.`;
@@ -522,7 +522,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
         replyText = `Good news! There are no active traffic alerts or road incidents reported in ${this.name} right now. Stay safe!`;
       }
     } else if (matchesSales) {
-      const matches = activePosts.filter((p) => p.tag === 'sale' || p.tag === 'market');
+      const matches = activePosts.filter((p) => p.tag === 'shop');
       if (matches.length > 0) {
         const item = matches[0];
         replyText = `Here's a deal! @${item.username} posted a sale: "${item.highlight}". Check the attachment link below to find it!`;
@@ -549,7 +549,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
         replyText = `No food tags or restaurant recommendations have been posted in ${this.name} recently. If you know a great place, pin it!`;
       }
     } else if (matchesQuestions) {
-      const matches = activePosts.filter((p) => p.tag === 'question');
+      const matches = activePosts.filter((p) => p.tag === 'poll');
       if (matches.length > 0) {
         const item = matches[0];
         replyText = `A neighbor is asking: "${item.highlight}". Click the link below to cast your vote or answer their question!`;

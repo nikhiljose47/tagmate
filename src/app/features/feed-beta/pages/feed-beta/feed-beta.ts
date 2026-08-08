@@ -31,6 +31,7 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { environment } from '../../../../environments/environment';
 import {
+  FEED_BETA_MAIN_CATEGORIES,
   FeedBetaArea,
   FeedBetaScope,
   WorkspaceStateService,
@@ -56,6 +57,8 @@ interface BetaSlide {
   readonly post: Tag;
   readonly username: string;
   readonly location: string;
+  /** Compact one-word/short-phrase area name for the author line, e.g. "Sampangirama Nagar". */
+  readonly shortLocation: string;
   readonly imageUrls: readonly string[];
   readonly mapTiles: readonly MapTile[];
   readonly isMine: boolean;
@@ -97,7 +100,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
   private readonly toast = inject(ToastService);
-  private readonly workspace = inject(WorkspaceStateService);
+  protected readonly workspace = inject(WorkspaceStateService);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -157,9 +160,23 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       if (post.tag === 'bulletin') return false;
       if (this.social.isHidden(post)) return false;
       if (this.platform.isBlocked(post.userId)) return false;
+      if (!this.isPostLive(post)) return false;
       return true;
     }),
   );
+
+  /**
+   * True while a post still belongs in the normal active feed: not expired
+   * (`created_at + expires_in` hasn't passed) and not manually ended by its
+   * owner (status still 'active'). Expired/ended posts stay in the DB for
+   * "My Posts" history — this only hides them from the live feed.
+   */
+  private isPostLive(post: Tag): boolean {
+    if (post.currentStatus && post.currentStatus !== 'active') return false;
+    const createdMs = new Date(post.createdAt).getTime();
+    if (Number.isNaN(createdMs)) return true;
+    return createdMs + post.expiresIn * 60_000 > Date.now();
+  }
 
   private readonly syncFeedScope = effect(() => {
     const candidates = this.feedCandidates();
@@ -167,6 +184,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     const categories = this.categoriesFor(candidates);
     this.workspace.feedBetaAreas.set(areas);
     this.workspace.feedBetaCategories.set(categories);
+
+    // Never overwrite a user-picked freeform location (may have 0 posts).
+    if (this.workspace.feedBetaScope()?.freeform) return;
 
     if (!areas.length) {
       if (this.workspace.feedBetaScope()) this.workspace.feedBetaScope.set(null);
@@ -177,9 +197,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     if (current) {
       const currentArea = areas.find((area) => area.id === current.areaId);
       if (currentArea) {
-        const category = currentArea.categories.includes(current.category)
-          ? current.category
-          : (currentArea.categories[0] ?? '');
+        const hasPostsIn = (cat: string) =>
+          (currentArea.categoryCounts[cat as keyof typeof currentArea.categoryCounts] ?? 0) > 0;
+        const category = hasPostsIn(current.category) ? current.category : 'around';
         const next = this.toScope(currentArea, category);
         if (
           next.category !== current.category ||
@@ -195,11 +215,19 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
     const randomPost = candidates[Math.floor(Math.random() * candidates.length)];
     const randomArea = areas.find((area) => area.id === this.areaIdFor(randomPost)) ?? areas[0];
-    const category =
-      randomPost?.tag && randomArea.categories.includes(randomPost.tag)
-        ? randomPost.tag
-        : (randomArea.categories[0] ?? '');
-    this.workspace.feedBetaScope.set(this.toScope(randomArea, category));
+    this.workspace.feedBetaScope.set(this.toScope(randomArea, randomArea.categories[0]));
+  });
+
+  private readonly scrollScopeToTop = effect(() => {
+    const scope = this.workspace.feedBetaScope();
+    const key = scope ? `${scope.areaId}:${scope.category}` : '';
+    if (!key) return;
+
+    requestAnimationFrame(() => {
+      this.scroller?.nativeElement.scrollTo({ top: 0, behavior: 'auto' });
+      this.activeKey.set('');
+      this.queueActiveSlideUpdate();
+    });
   });
 
   protected readonly slides = computed<BetaSlide[]>(() => {
@@ -214,6 +242,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
         post,
         username: post.username || 'Anonymous',
         location: this.locationLabel(post),
+        shortLocation: this.shortLocationLabel(post),
         imageUrls: post.images?.filter(Boolean) ?? [],
         mapTiles: this.mapTilesFor(post),
         isMine: post.userId === myUid,
@@ -295,6 +324,85 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   /** True while the slide is near enough to the viewport to load its imagery. */
   protected isLive(key: string): boolean {
     return this.eagerKeys().has(key) || this.liveKeys().has(key);
+  }
+
+  // ── Business card helpers ────────────────────────────────────────────────
+
+  private static readonly INTENT_LABELS: Record<string, string> = {
+    offer: 'Offer',
+    available_now: 'Available Now',
+    open_slot: 'Open Slot',
+    happening: 'Happening',
+    looking_for: 'Looking For',
+    sell_give: 'Sell / Give',
+  };
+
+  private static readonly CTA_LABELS: Record<string, string> = {
+    message: 'Message',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    directions: 'Directions',
+    visit_shop: 'Visit Shop',
+    view_product: 'View Product',
+    book: 'Book',
+    join: 'Join',
+    interested: 'Interested',
+  };
+
+  private static readonly CTA_ICONS: Record<string, string> = {
+    message: 'bi-chat-dots-fill',
+    call: 'bi-telephone-fill',
+    whatsapp: 'bi-whatsapp',
+    directions: 'bi-signpost-2-fill',
+    visit_shop: 'bi-shop-window',
+    view_product: 'bi-box-arrow-up-right',
+    book: 'bi-calendar2-check-fill',
+    join: 'bi-people-fill',
+    interested: 'bi-hand-thumbs-up-fill',
+  };
+
+  protected intentLabel(intent: string | undefined): string {
+    return intent ? (FeedBetaPage.INTENT_LABELS[intent] ?? intent) : '';
+  }
+
+  protected ctaLabel(post: Tag): string {
+    return FeedBetaPage.CTA_LABELS[post.cta ?? 'message'] ?? 'Message';
+  }
+
+  protected ctaIcon(post: Tag): string {
+    return FeedBetaPage.CTA_ICONS[post.cta ?? 'message'] ?? 'bi-chat-dots-fill';
+  }
+
+  /** External URL for the CTA when one applies — null means "open the post" (safe universal fallback). */
+  protected ctaHref(post: Tag): string | null {
+    switch (post.cta) {
+      case 'call':
+        return post.businessPhone ? `tel:${post.businessPhone}` : null;
+      case 'whatsapp':
+        return post.businessPhone
+          ? `https://wa.me/${post.businessPhone.replace(/\D/g, '')}`
+          : null;
+      case 'directions':
+        return Number.isFinite(post.lat) && Number.isFinite(post.lng)
+          ? `https://www.google.com/maps/dir/?api=1&destination=${post.lat},${post.lng}`
+          : null;
+      case 'visit_shop':
+        return post.businessWebsite || null;
+      case 'view_product':
+        return post.productLink || post.businessWebsite || null;
+      default:
+        return null;
+    }
+  }
+
+  /** "3h left" / "42m left" / "Expired" — same rule as `isPostLive`, just a label. */
+  protected timeRemainingLabel(post: Tag): string {
+    const createdMs = new Date(post.createdAt).getTime();
+    const remainingMs = createdMs + post.expiresIn * 60_000 - Date.now();
+    if (Number.isNaN(createdMs) || remainingMs <= 0) return 'Expired';
+    const hours = Math.floor(remainingMs / 3_600_000);
+    if (hours >= 1) return `${hours}h left`;
+    return `${Math.max(1, Math.floor(remainingMs / 60_000))}m left`;
   }
 
   protected imageIndex(key: string): number {
@@ -593,47 +701,82 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   /** Best available place/address text for the fixed top row. */
   private locationLabel(post: Tag): string {
     if (post.hoodId?.trim()) return post.hoodId.trim();
+    if (post.state?.trim() && post.country?.trim()) {
+      return `${post.state.trim()}, ${post.country.trim()}`;
+    }
+    if (post.state?.trim()) return post.state.trim();
     if (post.country?.trim()) return post.country.trim();
     if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) return 'Pinned location';
     return 'Location unavailable';
   }
 
+  /**
+   * Compact neighbourhood-level text for the author line, e.g. turns
+   * "Kasturba Road, Sampangirama Nagar, Bengaluru, Karnataka" into
+   * "Sampangirama Nagar" — `hoodId` is sometimes a full comma-joined address
+   * (map-pick flow) and sometimes already a clean area name (current-location
+   * flow), so this normalizes both to a single short phrase.
+   */
+  private shortLocationLabel(post: Tag): string {
+    const raw = this.locationLabel(post);
+    const parts = raw
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length <= 1) return parts[0] ?? raw;
+    // The first segment is usually a street/road; the second is the neighbourhood.
+    return parts[1];
+  }
+
   private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {
-    if (!scope) return true;
+    if (!scope) return false;
     if (this.areaIdFor(post) !== scope.areaId) return false;
-    return scope.category === 'all' || post.tag === scope.category;
+    return this.mainCategoryFor(post) === scope.category;
   }
 
   private areasFor(posts: readonly Tag[]): readonly FeedBetaArea[] {
     const grouped = new Map<
       string,
       {
+        state: string;
         country: string;
-        hood: string;
+        hoods: Set<string>;
         categories: Set<string>;
+        categoryCounts: Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number>;
         postCount: number;
       }
     >();
 
     for (const post of posts) {
+      const country = this.countryFor(post);
+      if (!country) continue;
+      const category = this.mainCategoryFor(post);
+      if (!category) continue;
+
       const id = this.areaIdFor(post);
-      const country = post.country?.trim() || 'World';
+      const state = this.stateFor(post);
       const hood = post.hoodId?.trim() || this.locationLabel(post);
       const existing =
         grouped.get(id) ??
         ({
+          state,
           country,
-          hood,
+          hoods: new Set<string>(),
           categories: new Set<string>(),
+          categoryCounts: this.emptyMainCategoryCounts(),
           postCount: 0,
         } satisfies {
+          state: string;
           country: string;
-          hood: string;
+          hoods: Set<string>;
           categories: Set<string>;
+          categoryCounts: Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number>;
           postCount: number;
         });
 
-      if (post.tag?.trim()) existing.categories.add(post.tag.trim());
+      if (hood) existing.hoods.add(hood);
+      existing.categories.add(category);
+      existing.categoryCounts[category] += 1;
       existing.postCount += 1;
       grouped.set(id, existing);
     }
@@ -641,10 +784,13 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     return [...grouped.entries()]
       .map(([id, area]) => ({
         id,
-        label: `${area.country} (${area.hood})`,
+        // Prefer state name (Kerala) as the primary label; fall back to country
+        // for legacy posts written before the state column was populated.
+        label: area.state || area.country,
         country: area.country,
-        hood: area.hood,
-        categories: [...area.categories].sort(),
+        hood: `${area.hoods.size || 1} location${area.hoods.size === 1 ? '' : 's'}`,
+        categories: [...FEED_BETA_MAIN_CATEGORIES],
+        categoryCounts: area.categoryCounts,
         postCount: area.postCount,
       }))
       .filter((area) => area.categories.length > 0)
@@ -652,7 +798,13 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private categoriesFor(posts: readonly Tag[]): readonly string[] {
-    return [...new Set(posts.map((post) => post.tag?.trim()).filter(Boolean) as string[])].sort();
+    const available = new Set(
+      posts
+        .filter((post) => this.countryFor(post))
+        .map((post) => this.mainCategoryFor(post))
+        .filter((category): category is (typeof FEED_BETA_MAIN_CATEGORIES)[number] => !!category),
+    );
+    return FEED_BETA_MAIN_CATEGORIES.filter((category) => available.has(category));
   }
 
   private toScope(area: FeedBetaArea, category: string): FeedBetaScope {
@@ -666,14 +818,71 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private areaIdFor(post: Tag | undefined): string {
-    if (!post) return 'world:nearby';
-    const country = post.country?.trim() || 'World';
-    const hood = post.hoodId?.trim();
-    if (hood) return `${this.scopeKey(country)}:${this.scopeKey(hood)}`;
-    if (Number.isFinite(post.lat) && Number.isFinite(post.lng)) {
-      return `${this.scopeKey(country)}:${post.lat.toFixed(3)},${post.lng.toFixed(3)}`;
+    const state = this.stateFor(post);
+    const country = this.countryFor(post);
+    // ID is state+country so "Kerala, India" and (hypothetically) "Kerala, X"
+    // don't collide. Fall back to country-only when state is missing.
+    if (state && country) return this.scopeKey(`${state}::${country}`);
+    if (country) return this.scopeKey(country);
+    return '';
+  }
+
+  private emptyMainCategoryCounts(): Record<(typeof FEED_BETA_MAIN_CATEGORIES)[number], number> {
+    return {
+      'hot-now': 0,
+      dating: 0,
+      game: 0,
+      job: 0,
+      around: 0,
+    };
+  }
+
+  /** Admin-1 region persisted on the tag row at post time. No inference here. */
+  private stateFor(post: Tag | undefined): string {
+    return post?.state?.trim() ?? '';
+  }
+
+  private countryFor(post: Tag | undefined): string {
+    const explicit = post?.country?.trim();
+    if (explicit && explicit.toLowerCase() !== 'world') return explicit;
+    // Fallback for legacy posts written before the country column was populated.
+    // Four numeric comparisons per post — negligible; runs inside the existing
+    // slides() computed, no new reactive graph work.
+    if (!post || !Number.isFinite(post.lat) || !Number.isFinite(post.lng)) return '';
+    if (post.lat >= 6 && post.lat <= 38 && post.lng >= 68 && post.lng <= 98) return 'India';
+    if (post.lat >= 24 && post.lat <= 50 && post.lng >= -125 && post.lng <= -66) {
+      return 'United States';
     }
-    return `${this.scopeKey(country)}:nearby`;
+    return '';
+  }
+
+  private mainCategoryFor(post: Tag): (typeof FEED_BETA_MAIN_CATEGORIES)[number] | null {
+    const tag = post.tag?.trim().toLowerCase();
+
+    if (tag === 'hot-now') return 'hot-now';
+    if (tag === 'dating') return 'dating';
+    if (tag === 'game' || tag === 'fitness') return 'game';
+    if (tag === 'job' || tag === 'biz') return 'job';
+
+    if (
+      tag === 'around' ||
+      tag === 'shop' ||
+      tag === 'help' ||
+      tag === 'food' ||
+      tag === 'health' ||
+      tag === 'learn' ||
+      tag === 'space' ||
+      tag === 'travel' ||
+      tag === 'event' ||
+      tag === 'notice' ||
+      tag === 'bulletin' ||
+      tag === 'alert' ||
+      tag === 'poll'
+    ) {
+      return 'around';
+    }
+
+    return null;
   }
 
   private scopeKey(value: string): string {

@@ -207,6 +207,34 @@
   font-weight: 600;
 }
 
+.error-msg--info {
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  color: #16a34a;
+}
+
+.resend-confirm-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  background: var(--tm-surface);
+  color: var(--tm-primary-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--tm-primary) 8%, var(--tm-surface));
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
 /* ── Signup hint ────────────────────────── */
 .signup-hint {
   margin: 0;

@@ -1,248 +1,592 @@
 <div class="post-page">
-  <form
-    #f="ngForm"
-    (ngSubmit)="onSubmit(f)"
-    class="post-form"
-    novalidate
-  >
-    <!-- Author -->
-    <div class="post-author">
-      <img
-        src="assets/avatar/panda.png"
-        alt="Avatar"
-        class="author-avatar"
-        width="44"
-        height="44"
-      />
-      <div class="author-info">
-        <p class="author-name">{{ user().name }}</p>
+  <form #f="ngForm" (ngSubmit)="onSubmit()" class="post-form" novalidate>
+    <header class="composer-head">
+      <div class="post-author">
+        <img src="assets/avatar/panda.png" alt="" class="author-avatar" width="36" height="36" />
+        <div class="author-info">
+          <p class="author-name">{{ user().name }}</p>
+          <span>{{ postType() === 'business' ? 'Business post' : 'Personal post' }}</span>
+        </div>
       </div>
-    </div>
+      <span class="step-count">
+        @if (step() === 'kind') {
+          1 of 4
+        }
+        @if (step() === 'tag') {
+          2 of 4
+        }
+        @if (step() === 'details') {
+          3 of 4
+        }
+        @if (step() === 'preview') {
+          4 of 4
+        }
+      </span>
+    </header>
 
-    <!-- Headline -->
-    <div class="field-block">
-      <div
-        class="compose-box"
-        [class.is-invalid]="headline.touched && headline.invalid"
-      >
-        <textarea
-          #headline="ngModel"
-          class="headline-input"
-          [placeholder]="composePrompt"
-          [(ngModel)]="formData.headline"
-          name="headline"
-          required
-          maxlength="280"
-          rows="5"
-        ></textarea>
-        <span class="char-count" [class.char-count--visible]="formData.headline.length > 0">
-          {{ formData.headline.length }}/280
-        </span>
-      </div>
-      @if (headline.touched && headline.invalid) {
-        <span class="field-help field-help--soft">Psst… a few words would make this shine ✨</span>
-      }
-    </div>
+    @if (step() === 'kind') {
+      <section class="kind-step">
+        <p class="step-eyebrow">Create a post</p>
+        <h1>What are you sharing?</h1>
+        <p class="step-subtitle">Choose a post type. Anyone can create either one.</p>
 
-    <!-- Media Grid (images + videos) -->
-    <div class="media-section">
-      <div class="media-grid">
+        <div class="kind-options">
+          <button type="button" class="kind-option" (click)="selectPostType('personal')">
+            <span class="kind-icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
+            <span>
+              <strong>Personal</strong>
+              <small>Share an update, ask for help, meet people, or start a poll.</small>
+            </span>
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="kind-option kind-option--business"
+            (click)="selectPostType('business')"
+          >
+            <span class="kind-icon"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
+            <span>
+              <strong>Business</strong>
+              <small>Post an arrival, discount, open slot, service, or new opening.</small>
+            </span>
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+    }
 
-        <!-- Existing media tiles -->
-        @for (item of mediaItems(); track item.previewUrl; let i = $index) {
-          <div class="media-tile" [class.media-tile--video]="isVideo(item)">
+    @if (step() === 'tag') {
+      <section class="step-tag">
+        <button type="button" class="step-back" (click)="goToKindStep()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
+          Post type
+        </button>
+        <h1 class="step-title">
+          {{
+            postType() === 'business' ? 'What is the business update?' : 'What is your post about?'
+          }}
+        </h1>
+        <p class="step-subtitle">
+          {{
+            postType() === 'business'
+              ? 'Pick the closest tag and we will build the post with you.'
+              : 'Pick a tag for your local feed.'
+          }}
+        </p>
 
-            @if (isVideo(item)) {
-              <!-- Video preview with native controls -->
-              <video
-                [src]="item.previewUrl"
-                class="media-thumb"
-                muted
-                playsinline
-                preload="metadata"
-              ></video>
-              <span class="media-badge">
-                <i class="bi bi-play-circle-fill"></i>
-              </span>
-            } @else {
-              <img [src]="item.previewUrl" alt="Preview" class="media-thumb" />
+        @if (postType() === 'business') {
+          <div class="intent-row" role="radiogroup" aria-label="What are you offering">
+            @for (option of intentOptions; track option.value) {
+              <button
+                type="button"
+                class="intent-chip"
+                [class.intent-chip--active]="formData.intent === option.value"
+                (click)="selectIntent(option.value)"
+              >
+                <i class="bi" [class]="option.icon" aria-hidden="true"></i>
+                {{ option.label }}
+              </button>
             }
+          </div>
+          <p class="step-subtitle step-subtitle--tight">Then pick the closest category:</p>
+        }
 
-            <button
-              type="button"
-              class="media-remove"
-              aria-label="Remove"
-              (click)="removeMedia(i)"
-            >&times;</button>
+        <div class="tag-grid" role="radiogroup" aria-label="Post tag">
+          @for (tag of activeTags(); track tag) {
+            <button type="button" class="tag-card" (click)="selectTag(tag)">
+              <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
+              <span class="tag-card-label">{{ tagLabel(tag) }}</span>
+            </button>
+          }
+        </div>
+
+        @if (postType() === 'personal') {
+          <button
+            type="button"
+            class="hot-now-toggle hot-now-toggle--step1"
+            title="For urgent, quick or emergency posts"
+            (click)="toggleHotNow()"
+          >
+            <i class="bi bi-fire hot-now-icon" aria-hidden="true"></i>
+            <span class="hot-now-toggle-copy">
+              <strong>Post as Hot Now</strong>
+              <small>Urgent and visible for 2 hours</small>
+            </span>
+            <i class="bi bi-chevron-right hot-now-caret" aria-hidden="true"></i>
+          </button>
+        }
+      </section>
+    }
+
+    @if (step() === 'details') {
+      <section class="details-step">
+        <div class="step-details-head">
+          <button type="button" class="step-back" (click)="goToTagStep()">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+            Change tag
+          </button>
+          <span class="step-details-tag"
+            >{{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }}</span
+          >
+        </div>
+
+        @if (isHotNow()) {
+          <div class="hot-now-block">
+            <div class="hot-now-banner" role="status">
+              <i class="bi bi-fire hot-now-icon" aria-hidden="true"></i>
+              <span class="hot-now-copy">
+                <strong>Hot Now</strong>
+                <span>For urgent local updates. This post disappears in 2 hours.</span>
+              </span>
+              <button
+                type="button"
+                class="hot-now-off"
+                (click)="toggleHotNow()"
+                aria-label="Turn off Hot Now"
+              >
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         }
 
-        <!-- Add media button -->
-        @if (canAddMore()) {
-          <label class="media-add" [attr.aria-label]="'Add photo or video (' + mediaItems().length + '/' + maxMedia + ')'">
-            <i class="bi bi-plus-circle media-add-icon"></i>
-            <span class="media-add-label">Media</span>
-            <span class="media-add-count">{{ mediaItems().length }}/{{ maxMedia }}</span>
-            <input
-              type="file"
-              (change)="onFileSelect($event)"
-              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
-              multiple
-              hidden
-            />
+        @if (currentTemplate(); as template) {
+          <div class="quick-fill-card">
+            <div class="quick-fill-head">
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              <span>
+                <strong>Quick fill</strong>
+                <small>{{ template.intro }}</small>
+              </span>
+            </div>
+            <div class="quick-fill-fields">
+              @for (field of template.fields; track field.key) {
+                <label class="quick-fill-field">
+                  <span class="quick-fill-label">{{ field.label }}</span>
+                  @if (field.type === 'select') {
+                    <select
+                      class="tm-input"
+                      [ngModel]="templateValues()[field.key]"
+                      (ngModelChange)="onTemplateFieldChange(field.key, $event)"
+                      [name]="'tpl_' + field.key"
+                      [required]="field.required ?? false"
+                    >
+                      <option value="" disabled>Choose an option</option>
+                      @for (option of field.options; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                  } @else {
+                    <input
+                      class="tm-input"
+                      [type]="field.type === 'number' ? 'number' : 'text'"
+                      [placeholder]="field.placeholder || ''"
+                      [ngModel]="templateValues()[field.key]"
+                      (ngModelChange)="onTemplateFieldChange(field.key, $event)"
+                      [name]="'tpl_' + field.key"
+                      [required]="field.required ?? false"
+                    />
+                  }
+                </label>
+              }
+            </div>
+            <p class="quick-fill-status" [class.ready]="isTemplateReady()">
+              <i
+                class="bi"
+                [class.bi-check-circle-fill]="isTemplateReady()"
+                [class.bi-pencil]="!isTemplateReady()"
+                aria-hidden="true"
+              ></i>
+              {{
+                isTemplateReady()
+                  ? 'Your post text is ready below.'
+                  : 'Required fields create the post text automatically.'
+              }}
+            </p>
+          </div>
+        }
+
+        <div class="field-block">
+          <label class="field-title" for="post-headline">
+            {{ postType() === 'business' ? 'Post title and details' : 'Your post' }}
           </label>
-        }
-      </div>
-      <p class="field-help field-help--soft" style="margin-top: 0.35rem; font-size: 0.75rem;">
-        Photos &lt; 15MB • Videos &lt; 30MB &amp; 30s max duration
-      </p>
-    </div>
-
-    <!-- Category chips -->
-    <div class="category-block">
-      <label class="meta-label">Category</label>
-      <div class="tag-chips" role="radiogroup" aria-label="Post category">
-        @for (t of tags; track t) {
-          <button
-            type="button"
-            class="tag-chip"
-            [class.tag-chip--active]="formData.tag === t"
-            (click)="selectTag(t)"
+          <div
+            class="compose-box"
+            [class.is-invalid]="headline.touched && headline.invalid"
+            [class.compose-box--hot-now]="isHotNow()"
           >
-            {{ t | tagEmoji }} {{ t | titlecase }}
-          </button>
-        }
-      </div>
-      @if (tagErrorVisible()) {
-        <p class="field-help field-help--error">Pick a category above.</p>
-      }
-    </div>
+            <textarea
+              id="post-headline"
+              #headline="ngModel"
+              class="headline-input"
+              [placeholder]="composePrompt"
+              [(ngModel)]="formData.headline"
+              name="headline"
+              required
+              maxlength="280"
+              rows="5"
+            ></textarea>
+            <span class="char-count" [class.char-count--visible]="formData.headline.length > 0">
+              {{ formData.headline.length }}/280
+            </span>
+          </div>
+          @if (headline.touched && headline.invalid) {
+            <span class="field-help field-help--error">Add a title or a few details.</span>
+          }
+        </div>
 
-    <!-- Poll Options (visible only if Question tag is selected) -->
-    @if (formData.tag === 'question') {
-      <div class="meta-field" style="margin-top: 1rem; margin-bottom: 1rem;">
-        <label class="meta-label">Poll Options ({{ formData.pollOptions.length }}/5)</label>
-        <div class="poll-options">
-          @for (opt of formData.pollOptions; track trackByIndex($index)) {
-            <div class="poll-option-row flex gap-2 mb-2" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+        @if (postType() === 'business') {
+          <div class="business-fields">
+            <div class="business-fields-row">
+              <label class="field-group">
+                <span class="field-title">Price (optional)</span>
+                <input
+                  class="tm-input"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="e.g. 99"
+                  [(ngModel)]="formData.price"
+                  name="price"
+                />
+              </label>
+              <label class="field-group">
+                <span class="field-title">Original price (optional)</span>
+                <input
+                  class="tm-input"
+                  type="number"
+                  inputmode="decimal"
+                  placeholder="For a discount"
+                  [(ngModel)]="formData.originalPrice"
+                  name="originalPrice"
+                />
+              </label>
+            </div>
+
+            <label class="field-group">
+              <span class="field-title">Availability (optional)</span>
               <input
-                type="text"
                 class="tm-input"
-                style="flex: 1;"
-                placeholder="Option {{ $index + 1 }}"
-                [(ngModel)]="formData.pollOptions[$index]"
-                name="pollOpt{{ $index }}"
-                required
+                type="text"
+                placeholder="e.g. 3 slots left, Fully booked…"
+                maxlength="60"
+                [(ngModel)]="formData.availabilityNote"
+                name="availabilityNote"
               />
-              @if (formData.pollOptions.length > 2) {
-                <button type="button" class="tm-icon-btn text-tm-danger" (click)="removePollOption($index)" aria-label="Remove option">
-                  <i class="bi bi-trash3"></i>
+            </label>
+
+            <details class="more-options">
+              <summary>More options</summary>
+              <label class="field-group">
+                <span class="field-title">Customer action</span>
+                <select class="tm-input" [(ngModel)]="formData.cta" name="cta">
+                  @for (option of ctaOptions; track option.value) {
+                    <option [ngValue]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </label>
+              <label class="field-group">
+                <span class="field-title">Product/service link</span>
+                <input
+                  class="tm-input"
+                  type="url"
+                  placeholder="https://…"
+                  [(ngModel)]="formData.productLink"
+                  name="productLink"
+                />
+              </label>
+            </details>
+          </div>
+        }
+
+        <div class="media-section">
+          <div class="section-label-row">
+            <span class="field-title">Photos or video</span>
+            <small>{{ mediaItems().length }}/{{ maxMedia }}</small>
+          </div>
+          <div class="media-grid">
+            @for (item of mediaItems(); track item.previewUrl; let i = $index) {
+              <div class="media-tile" [class.media-tile--video]="isVideo(item)">
+                @if (isVideo(item)) {
+                  <video
+                    [src]="item.previewUrl"
+                    class="media-thumb"
+                    muted
+                    playsinline
+                    preload="metadata"
+                  ></video>
+                  <span class="media-badge"><i class="bi bi-play-circle-fill"></i></span>
+                } @else {
+                  <img [src]="item.previewUrl" alt="Selected post media" class="media-thumb" />
+                }
+                <button
+                  type="button"
+                  class="media-remove"
+                  aria-label="Remove media"
+                  (click)="removeMedia(i)"
+                >
+                  <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+              </div>
+            }
+            @if (canAddMore()) {
+              <label class="media-add">
+                <i class="bi bi-image" aria-hidden="true"></i>
+                <span>Add media</span>
+                <input
+                  type="file"
+                  (change)="onFileSelect($event)"
+                  accept="image/*,video/*"
+                  multiple
+                  hidden
+                />
+              </label>
+            }
+          </div>
+        </div>
+
+        @if (formData.tag === 'poll') {
+          <div class="poll-section">
+            <span class="field-title">Poll options</span>
+            @for (option of formData.pollOptions; track trackByIndex($index)) {
+              <div class="poll-option-row">
+                <input
+                  type="text"
+                  class="tm-input"
+                  placeholder="Option {{ $index + 1 }}"
+                  [(ngModel)]="formData.pollOptions[$index]"
+                  name="pollOpt{{ $index }}"
+                  required
+                />
+                @if (formData.pollOptions.length > 2) {
+                  <button
+                    type="button"
+                    class="tm-icon-btn"
+                    (click)="removePollOption($index)"
+                    aria-label="Remove option"
+                  >
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                }
+              </div>
+            }
+            @if (formData.pollOptions.length < 5) {
+              <button type="button" class="text-action" (click)="addPollOption()">
+                <i class="bi bi-plus-lg"></i> Add option
+              </button>
+            }
+          </div>
+        }
+
+        <div
+          class="location-section"
+          [class.location-section--invalid]="locationErrorVisible() && !shared.coordinates()"
+          [class.shake-error]="shakeLocation()"
+        >
+          <div class="section-label-row">
+            <span class="field-title">Location</span>
+            <small>Required</small>
+          </div>
+          @if (shared.coordinates()) {
+            <div class="loc-selected">
+              <i class="bi bi-geo-alt-fill loc-selected-icon" aria-hidden="true"></i>
+              <div class="loc-selected-text">
+                <span class="loc-selected-name">{{
+                  shared.text() || 'Location pinned on map'
+                }}</span>
+                <span class="loc-selected-coords">Attached to this post</span>
+              </div>
+              <button
+                type="button"
+                class="loc-selected-clear"
+                (click)="clearLocation()"
+                aria-label="Remove location"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          } @else {
+            <div class="loc-actions">
+              <button class="loc-action-btn" type="button" (click)="onSearchPlace()">
+                <i class="bi bi-search"></i>
+                <span class="loc-action-label">Search place</span>
+              </button>
+              <button class="loc-action-btn" type="button" (click)="onPickLocation()">
+                <i class="bi bi-pin-map-fill"></i>
+                <span class="loc-action-label">Pin on map</span>
+              </button>
+            </div>
+          }
+          @if (locationErrorVisible() && !shared.coordinates()) {
+            <p class="field-help field-help--error">Attach a location before previewing.</p>
+          }
+        </div>
+
+        @if (formData.isEvent) {
+          <div class="event-times">
+            <label
+              ><span>Starts</span
+              ><input
+                class="tm-input"
+                type="datetime-local"
+                [(ngModel)]="formData.eventStart"
+                name="eventStart"
+            /></label>
+            <label
+              ><span>Ends</span
+              ><input
+                class="tm-input"
+                type="datetime-local"
+                [(ngModel)]="formData.eventEnd"
+                name="eventEnd"
+            /></label>
+          </div>
+        }
+
+        @if (!isHotNow() && postType() === 'business') {
+          <div class="quick-expiry">
+            <span class="field-title">Visible for</span>
+            <div class="quick-expiry-chips">
+              @for (option of quickExpiryOptions; track option.value) {
+                <button
+                  type="button"
+                  class="quick-expiry-chip"
+                  [class.quick-expiry-chip--active]="
+                    option.value === 'custom' ? showCustomExpiry() : formData.expiresIn === option.value
+                  "
+                  (click)="selectQuickExpiry(option.value)"
+                >
+                  {{ option.label }}
                 </button>
               }
             </div>
-          }
+            @if (showCustomExpiry()) {
+              <select
+                class="tm-input"
+                [(ngModel)]="formData.expiresIn"
+                name="expiresInCustom"
+                aria-label="Custom post lifetime"
+              >
+                @for (option of expiryOptions; track option.value) {
+                  <option [ngValue]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            }
+          </div>
+        }
+
+        <div class="form-foot">
+          <div class="foot-left">
+            <label class="event-toggle event-toggle--foot">
+              <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
+              <span><i class="bi bi-calendar-event"></i> Event</span>
+            </label>
+            @if (!isHotNow() && postType() === 'personal') {
+              <label class="expiry-pill">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <select
+                  class="expiry-select"
+                  [(ngModel)]="formData.expiresIn"
+                  name="expiresIn"
+                  aria-label="Post lifetime"
+                >
+                  @for (option of expiryOptions; track option.value) {
+                    <option [ngValue]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </label>
+            }
+          </div>
+          <div class="foot-right">
+            <button
+              type="button"
+              class="foot-action foot-action--danger"
+              (click)="onDiscard()"
+              aria-label="Discard"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+            <button type="button" class="post-btn" (click)="openPreview(f)">
+              Preview <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
-        @if (formData.pollOptions.length < 5) {
-          <button type="button" class="tm-btn mt-2" (click)="addPollOption()">
-            <i class="bi bi-plus-lg"></i> Add Option
+      </section>
+    }
+
+    @if (step() === 'preview') {
+      <section class="preview-step">
+        <div class="preview-heading">
+          <button type="button" class="step-back" (click)="editPost()">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+            Edit post
           </button>
-        }
-      </div>
-    }
+          <span>Feed preview</span>
+        </div>
 
-    <!-- Location -->
-    <div class="location-row" [class.location-row--invalid]="locationErrorVisible() && !shared.coordinates()" [class.shake-error]="shakeLocation()">
-      <div class="location-display" [class.location-display--set]="!!(shared.text() || shared.coordinates())">
-        <i class="bi bi-geo-alt-fill"></i>
-        <span>{{ shared.text() || (shared.coordinates() ? 'Location pinned on map' : 'No location selected') }}</span>
-      </div>
-      @if (locationErrorVisible() && !shared.coordinates()) {
-        <p class="field-help field-help--error">Attach a location before posting.</p>
-      }
-      <div class="location-btns">
-        <button class="loc-btn" type="button" (click)="useCurrentLocation()">
-          <i class="bi bi-crosshair"></i> Current
-        </button>
-        <button class="loc-btn" type="button" (click)="onPickLocation()">
-          <i class="bi bi-map"></i> Pick on map
-        </button>
-        <label class="expiry-wrap" title="Post disappears after this time">
-          <i class="bi bi-clock-history" aria-hidden="true"></i>
-          <select class="expiry-select" [(ngModel)]="formData.expiresIn" name="expiresIn" aria-label="Post lifetime">
-            @for (opt of expiryOptions; track opt.value) {
-              <option [ngValue]="opt.value">{{ opt.label }}</option>
-            }
-          </select>
-        </label>
-      </div>
-    </div>
+        <article class="feed-preview" [class.feed-preview--business]="postType() === 'business'">
+          <header class="feed-preview-author">
+            <img src="assets/avatar/panda.png" alt="" width="38" height="38" />
+            <div>
+              <strong>{{ user().name }}</strong>
+              <span><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> {{ shared.text() }}</span>
+            </div>
+            <span class="preview-type">{{ postType() }}</span>
+          </header>
 
-    <!-- Inline Preview Card -->
-    @if (showPreview()) {
-      <div class="preview-card">
-        <div class="preview-thumb">
           @if (mediaItems()[0]) {
-            @if (isVideo(mediaItems()[0])) {
-              <video [src]="mediaItems()[0].previewUrl" class="preview-media" muted playsinline preload="metadata"></video>
-            } @else {
-              <img [src]="mediaItems()[0].previewUrl" alt="Preview" class="preview-media" />
-            }
-          } @else {
-            <i class="bi bi-image text-3xl" style="color:#94a3b8"></i>
+            <div class="feed-preview-media">
+              @if (isVideo(mediaItems()[0])) {
+                <video [src]="mediaItems()[0].previewUrl" controls playsinline></video>
+              } @else {
+                <img [src]="mediaItems()[0].previewUrl" alt="Post preview" />
+              }
+              @if (mediaItems().length > 1) {
+                <span class="media-total">+{{ mediaItems().length - 1 }}</span>
+              }
+            </div>
           }
+
+          <div class="feed-preview-body">
+            <span class="preview-tag">{{ formData.tag | tagEmoji }} #{{ formData.tag }}</span>
+            <p>{{ formData.headline }}</p>
+            @if (postType() === 'business' && (formData.price || formData.availabilityNote)) {
+              <div class="preview-price-row">
+                @if (formData.price) {
+                  <span class="preview-price">₹{{ formData.price }}</span>
+                }
+                @if (formData.originalPrice) {
+                  <span class="preview-price-original">₹{{ formData.originalPrice }}</span>
+                }
+                @if (formData.availabilityNote) {
+                  <span class="preview-availability">{{ formData.availabilityNote }}</span>
+                }
+              </div>
+            }
+            <div class="preview-meta">
+              <span
+                ><i class="bi bi-clock"></i>
+                {{
+                  isHotNow() ? '2 hours' : (formData.expiresIn / 60 | number: '1.0-1') + ' hours'
+                }}</span
+              >
+              @if (formData.isEvent) {
+                <span><i class="bi bi-calendar-event"></i> Event</span>
+              }
+            </div>
+          </div>
+        </article>
+
+        <div class="preview-actions">
+          <button type="button" class="secondary-btn" (click)="editPost()">Edit</button>
+          <button type="submit" class="post-btn publish-btn" [disabled]="isSubmitting()">
+            @if (isSubmitting()) {
+              <span class="post-spinner"></span> Publishing
+            } @else {
+              <i class="bi bi-send-fill"></i> Publish
+            }
+          </button>
         </div>
-        <div class="preview-info">
-          <span class="preview-tag">{{ formData.tag || 'No tag' }}</span>
-          <p class="preview-title">{{ formData.headline || 'Untitled post' }}</p>
-          <p class="preview-loc">{{ shared.text() || 'No location' }}</p>
-        </div>
-      </div>
+      </section>
     }
-
-    <!-- Event times (shown when the footer toggle is on) -->
-    @if (formData.isEvent) {
-      <div class="event-times event-times--block">
-        <label>
-          <span>Starts</span>
-          <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventStart" name="eventStart" />
-        </label>
-        <label>
-          <span>Ends</span>
-          <input class="tm-input" type="datetime-local" [(ngModel)]="formData.eventEnd" name="eventEnd" />
-        </label>
-      </div>
-    }
-
-    <!-- Footer actions -->
-    <div class="form-foot">
-      <label class="event-toggle event-toggle--foot" title="Local event with RSVP">
-        <input type="checkbox" [(ngModel)]="formData.isEvent" name="isEvent" />
-        <span><i class="bi bi-calendar-event"></i> Event</span>
-      </label>
-      <button
-        type="button"
-        class="foot-action"
-        [class.foot-action--active]="showPreview()"
-        (click)="togglePreview()"
-        aria-label="Toggle preview"
-      >
-        <i class="bi" [class]="showPreview() ? 'bi-eye-fill' : 'bi-eye'"></i>
-      </button>
-      <button type="button" class="foot-action foot-action--danger" (click)="onDiscard()" aria-label="Discard">
-        <i class="bi bi-trash"></i>
-      </button>
-
-      <button
-        type="submit"
-        class="post-btn"
-        [disabled]="isSubmitting()"
-      >
-        @if (isSubmitting()) {
-          <span class="post-spinner"></span> Posting…
-        } @else {
-          <i class="bi bi-send-fill"></i> Post
-        }
-      </button>
-    </div>
   </form>
 </div>

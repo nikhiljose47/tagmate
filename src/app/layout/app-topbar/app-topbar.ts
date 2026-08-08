@@ -1,15 +1,7 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  HostListener,
-  OnDestroy,
-  OnInit,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, HostListener, OnDestroy, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith, Subscription } from 'rxjs';
 import { AppTheme, ThemeService } from '../../core/services/theme.service';
@@ -17,31 +9,62 @@ import { UserSessionService } from '../../core/services/user-session.service';
 import { TAG_REPOSITORY } from '../../core/repositories/repository.tokens';
 import { Tag } from '../../core/models/tag.model';
 import {
-  CommandResult,
-  HomeDistrictOption,
+  FEED_BETA_MAIN_CATEGORIES,
+  FeedBetaArea,
   WorkspaceStateService,
 } from '../workspace/workspace-state.service';
 import { SocialInteractionsService } from '../../core/services/social-interactions.service';
-import { SocialPlatformService } from '../../core/services/social-platform.service';
-import { SocialProfile } from '../../core/models/social.model';
 import { ToastService } from '../../core/services/toast.service';
 import { Store } from '@ngrx/store';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
+import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
+import { placeCode } from '../../core/data/state-codes';
+
+interface NominatimPlace {
+  place_id: number;
+  display_name: string;
+  address: {
+    state?: string;
+    country?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    county?: string;
+  };
+}
+
+/** A pending (not-yet-applied) choice inside the hood picker modal. */
+interface HoodModalSelection {
+  kind: 'area' | 'nominatim';
+  label: string;
+  meta: string;
+  payload: FeedBetaArea | NominatimPlace;
+}
+
+/** One row in the Google-Maps-style "posts in this hood" search dropdown. */
+interface HoodSearchResult {
+  id: string;
+  title: string;
+  tag: string;
+  location: string;
+  username: string;
+}
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, ClickOutsideDirective],
   templateUrl: './app-topbar.html',
   styleUrl: './app-topbar.scss',
 })
-export class AppTopbarComponent implements OnInit, OnDestroy {
+export class AppTopbarComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly tagRepo = inject(TAG_REPOSITORY, { optional: true });
   protected readonly theme = inject(ThemeService);
   protected readonly session = inject(UserSessionService);
   protected readonly social = inject(SocialInteractionsService);
-  private readonly platform = inject(SocialPlatformService);
   private readonly toast = inject(ToastService);
   private readonly store = inject(Store);
   protected readonly workspace = inject(WorkspaceStateService);
@@ -56,37 +79,98 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     { initialValue: this.router.url },
   );
 
-  protected readonly isHome = computed(() => {
-    const path = this.currentUrl().split('?')[0];
-    return path === '/feed' || path === '/feed-beta';
+  protected readonly isFeedBeta = computed(() => this.currentUrl().split('?')[0] === '/feed-beta');
+
+  protected readonly nominatimResults = signal<NominatimPlace[]>([]);
+  protected readonly isNominatimLoading = signal(false);
+  private nominatimAbort?: AbortController;
+
+  /** Nominatim suggestions that don't already match an existing feed area. */
+  protected readonly nominatimSuggestions = computed(() => {
+    const existingIds = new Set(this.workspace.feedBetaAreas().map((a) => a.id));
+    return this.nominatimResults().filter((place) => {
+      const id = this.toAreaId(place.address?.state ?? '', place.address?.country ?? '');
+      return id && !existingIds.has(id);
+    });
   });
-  protected readonly homeDistrictQuery = signal('');
-  protected readonly homeDistrictSearchOpen = signal(false);
-  protected readonly homeTagMenuOpen = signal(false);
-  private readonly homeDistrictMatches = signal<HomeDistrictOption[]>([]);
-  protected readonly homeDistrictResults = computed(() => {
-    const query = this.homeDistrictQuery().trim().toLowerCase();
-    const options = query ? this.homeDistrictMatches() : this.workspace.homeDistrictOptions();
+
+  /**
+   * Number of unread hot-now posts to badge the 🔥 chip with. Currently the
+   * count of hot-now posts in the user's home hood; the badge disappears once
+   * the user switches the feed to the hot-now filter.
+   */
+  protected readonly hotNowBadgeCount = computed(() => {
+    const scope = this.workspace.feedBetaScope();
+    if (scope?.category === 'hot-now') return 0;
+
+    const h = this.hood();
+    const norm = (s: string) => s.trim().toLowerCase();
+    const area = this.workspace.feedBetaAreas().find((a) =>
+      h?.state ? norm(a.label) === norm(h.state) : false,
+    );
+    return area?.categoryCounts['hot-now'] ?? 0;
+  });
+
+  /**
+   * Whether the home hood actually has any hot-now posts, independent of the
+   * unread badge (which zeroes out once the hot-now scope is active). Used to
+   * decide whether clicking the chip should navigate or just explain there's
+   * nothing to see.
+   */
+  protected readonly hasHotNowActivity = computed(() => {
+    const h = this.hood();
+    const norm = (s: string) => s.trim().toLowerCase();
+    const area = this.workspace.feedBetaAreas().find((a) =>
+      h?.state ? norm(a.label) === norm(h.state) : false,
+    );
+    return (area?.categoryCounts['hot-now'] ?? 0) > 0;
+  });
+
+  /** Shows a brief "no hot news around" tip when the chip is clicked with nothing to show. */
+  protected readonly hotNowInfoOpen = signal(false);
+  private hotNowInfoTimer?: ReturnType<typeof setTimeout>;
+
+  /** Full "hood/place" name — used for accessibility labels, not display. */
+  protected readonly hoodChipLabel = computed(() => {
+    const scope = this.workspace.feedBetaScope();
+    if (scope) return scope.hood?.trim() || scope.location?.trim() || 'Set location';
+    const h = this.hood();
+    return h?.place?.trim() || h?.district?.trim() || h?.state?.trim() || 'Set location';
+  });
+
+  /** Short place code shown in the chip itself, e.g. "KA" for Karnataka. */
+  protected readonly hoodChipCode = computed(() => {
+    const scope = this.workspace.feedBetaScope();
+    const stateName = scope?.location?.trim() || this.hood()?.state?.trim() || '';
+    return placeCode(stateName) || placeCode(this.hoodChipLabel());
+  });
+
+  /** Apple/Mac-style "change your location" modal — search, pick, Save, close. */
+  protected readonly hoodModalOpen = signal(false);
+  protected readonly hoodModalQuery = signal('');
+  private readonly hoodModalSelection = signal<HoodModalSelection | null>(null);
+  protected readonly hoodModalSelectionLabel = computed(() => this.hoodModalSelection()?.label ?? null);
+  protected readonly hoodModalSelectionMeta = computed(() => this.hoodModalSelection()?.meta ?? null);
+
+  /** Feed areas matching the modal's search box; unfiltered list when it's empty. */
+  protected readonly hoodModalAreaResults = computed(() => {
+    const query = this.hoodModalQuery().trim().toLowerCase();
+    const options = this.workspace.feedBetaAreas();
     if (!query) return options;
     return options.filter(
       (option) =>
-        option.name.toLowerCase().includes(query) || option.country.toLowerCase().includes(query),
+        option.label.toLowerCase().includes(query) || option.country.toLowerCase().includes(query),
     );
   });
-  protected readonly homeDistrictLabel = computed(
-    () => this.workspace.homeDistrict()?.name || 'Choose district',
-  );
-  protected readonly homeDistrictCountry = computed(
-    () => this.workspace.homeDistrict()?.country || 'Search districts only',
-  );
-  protected readonly homeTagLabel = computed(() => {
-    const tag = this.workspace.homeTag();
-    return tag === 'all' ? 'All tags' : `#${tag}`;
-  });
 
-  protected readonly query = signal('');
-  protected readonly results = signal<CommandResult[]>([]);
-  protected readonly isSearching = signal(false);
+  /** Google-Maps-style "type a phrase, see matching posts/tags in this hood" search. */
+  protected readonly postSearchQuery = signal('');
+  protected readonly postSearchOpen = signal(false);
+  protected readonly postSearchResults = signal<HoodSearchResult[]>([]);
+  protected readonly isPostSearching = signal(false);
+  private postSearchTimeout?: ReturnType<typeof setTimeout>;
+  private postSearchRequest = 0;
+
   protected readonly userMenuOpen = signal(false);
   protected readonly allThemes: { key: AppTheme; label: string; icon: string }[] = [
     { key: 'light', label: 'Light', icon: 'bi-sun-fill' },
@@ -105,114 +189,282 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     return this.visibleThemes();
   }
 
-  private searchTimeout?: ReturnType<typeof setTimeout>;
   private readonly routerEvents: Subscription;
-  private homeSearchRequest = 0;
 
   constructor() {
     this.routerEvents = this.router.events.subscribe((event) => {
       if (!(event instanceof NavigationEnd)) return;
-      if (this.isHome()) this.closeCommand();
+      this.closePostSearch();
     });
-  }
-
-  ngOnInit(): void {
-    this.loadHomeOptions();
   }
 
   ngOnDestroy(): void {
-    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    if (this.hotNowInfoTimer) clearTimeout(this.hotNowInfoTimer);
+    if (this.postSearchTimeout) clearTimeout(this.postSearchTimeout);
     this.routerEvents.unsubscribe();
+    this.nominatimAbort?.abort();
   }
 
-  protected onQueryChange(value: string): void {
-    this.query.set(value);
-    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+  // ── Hood picker modal ───────────────────────────────────────────────────
 
-    const trimmed = value.trim();
-    if (trimmed.length < 2) {
-      this.results.set(this.quickActions());
-      this.isSearching.set(false);
-      return;
-    }
-
-    this.isSearching.set(true);
-    this.searchTimeout = setTimeout(() => this.searchPosts(trimmed), 250);
+  /** Opens the modal with a blank search box and no pending pick. */
+  protected openHoodModal(): void {
+    this.hoodModalQuery.set('');
+    this.hoodModalSelection.set(null);
+    this.hoodModalOpen.set(true);
+    this.closePostSearch();
   }
 
-  protected openCommand(): void {
-    this.workspace.commandOpen.set(true);
-    if (!this.query().trim()) this.results.set(this.quickActions());
+  /** Closes the modal and discards any pending (unsaved) selection. */
+  protected closeHoodModal(): void {
+    this.hoodModalOpen.set(false);
+    this.hoodModalQuery.set('');
+    this.hoodModalSelection.set(null);
+    this.nominatimAbort?.abort();
+    this.nominatimResults.set([]);
+    this.isNominatimLoading.set(false);
   }
 
-  protected closeCommand(): void {
-    this.workspace.commandOpen.set(false);
-  }
-
-  protected openHomeDistrictSearch(): void {
-    this.homeDistrictQuery.set('');
-    this.homeDistrictSearchOpen.set(true);
-    this.homeTagMenuOpen.set(false);
-  }
-
-  protected closeHomeDistrictSearch(): void {
-    this.homeDistrictQuery.set('');
-    this.homeDistrictSearchOpen.set(false);
-  }
-
-  protected searchDistricts(value: string): void {
-    this.homeDistrictQuery.set(value);
-    this.homeDistrictSearchOpen.set(true);
+  /** Typing in the modal search box — filters known areas and queries Nominatim. */
+  protected onHoodModalQueryChange(value: string): void {
+    this.hoodModalQuery.set(value);
 
     const query = value.trim();
     if (query.length < 2) {
-      this.homeDistrictMatches.set([]);
+      this.nominatimResults.set([]);
+      this.isNominatimLoading.set(false);
       return;
     }
+    this.isNominatimLoading.set(true);
+    this.searchNominatim(query);
+  }
 
-    const request = ++this.homeSearchRequest;
-    this.tagRepo?.getPaginated(100, 0, query).subscribe({
-      next: (posts) => {
-        if (request !== this.homeSearchRequest) return;
-        this.homeDistrictMatches.set(this.toHomeDistrictOptions(posts, query));
-      },
-      error: () => this.homeDistrictMatches.set([]),
+  /** Enter key in the search box pends the top match, same as clicking it. */
+  protected pickFirstHoodModalResult(): void {
+    const first = this.hoodModalAreaResults()[0];
+    if (first) this.pickHoodArea(first);
+  }
+
+  /** Marks a known feed area as the pending (not-yet-saved) pick. */
+  protected pickHoodArea(area: FeedBetaArea): void {
+    this.hoodModalSelection.set({ kind: 'area', label: area.label, meta: area.country, payload: area });
+  }
+
+  /** Marks a Nominatim global-search result as the pending pick. */
+  protected pickHoodNominatim(place: NominatimPlace): void {
+    const label = place.address?.state || place.display_name.split(',')[0].trim();
+    this.hoodModalSelection.set({
+      kind: 'nominatim',
+      label,
+      meta: place.address?.country || '',
+      payload: place,
     });
   }
 
-  protected selectHomeDistrict(option: HomeDistrictOption): void {
-    this.workspace.setHomeDistrict(option);
-    this.closeHomeDistrictSearch();
+  protected isPendingArea(id: string): boolean {
+    const sel = this.hoodModalSelection();
+    return sel?.kind === 'area' && (sel.payload as FeedBetaArea).id === id;
   }
 
-  protected selectFirstHomeDistrict(): void {
-    const first = this.homeDistrictResults()[0];
-    if (first) this.selectHomeDistrict(first);
+  protected isPendingNominatim(placeId: number): boolean {
+    const sel = this.hoodModalSelection();
+    return sel?.kind === 'nominatim' && (sel.payload as NominatimPlace).place_id === placeId;
   }
 
-  protected toggleHomeTagMenu(): void {
-    this.homeTagMenuOpen.update((open) => !open);
-    this.homeDistrictSearchOpen.set(false);
+  /** Applies the pending pick to the feed scope and closes the modal. */
+  protected submitHoodModal(): void {
+    const sel = this.hoodModalSelection();
+    if (sel?.kind === 'area') this.applyFeedBetaArea((sel.payload as FeedBetaArea).id);
+    else if (sel?.kind === 'nominatim') this.applyFeedBetaFromNominatim(sel.payload as NominatimPlace);
+
+    this.closeHoodModal();
   }
 
-  protected selectHomeTag(tag: string): void {
-    this.workspace.setHomeTag(tag);
-    this.homeTagMenuOpen.set(false);
+  // ── Hood-scoped post search (center bar) ────────────────────────────────
+
+  protected onPostSearchChange(value: string): void {
+    this.postSearchQuery.set(value);
+    this.postSearchOpen.set(true);
+    if (this.postSearchTimeout) clearTimeout(this.postSearchTimeout);
+
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      this.postSearchResults.set([]);
+      this.isPostSearching.set(false);
+      return;
+    }
+
+    this.isPostSearching.set(true);
+    this.postSearchTimeout = setTimeout(() => this.runHoodSearch(trimmed), 250);
+  }
+
+  protected openPostSearch(): void {
+    this.postSearchOpen.set(true);
+  }
+
+  protected closePostSearch(): void {
+    this.postSearchOpen.set(false);
+  }
+
+  protected async goToSearchResult(result: HoodSearchResult): Promise<void> {
+    this.closePostSearch();
+    this.postSearchQuery.set('');
+    this.postSearchResults.set([]);
+    await this.router.navigate(['/posts', result.id]);
+  }
+
+  private runHoodSearch(query: string): void {
+    if (!this.tagRepo) {
+      this.postSearchResults.set([]);
+      this.isPostSearching.set(false);
+      return;
+    }
+
+    const request = ++this.postSearchRequest;
+    const scopeLabel = this.currentHoodStateLabel();
+    this.tagRepo.getPaginated(40, 0, query).subscribe({
+      next: (posts) => {
+        if (request !== this.postSearchRequest) return;
+        const inScope = scopeLabel
+          ? posts.filter((post) => (post.state ?? '').trim().toLowerCase() === scopeLabel)
+          : posts;
+        const list = (inScope.length ? inScope : posts)
+          .slice(0, 8)
+          .map((post) => this.toHoodSearchResult(post));
+        this.postSearchResults.set(list);
+        this.isPostSearching.set(false);
+      },
+      error: () => {
+        this.postSearchResults.set([]);
+        this.isPostSearching.set(false);
+      },
+    });
+  }
+
+  /** State name of the currently selected hood/scope, for client-side filtering. */
+  private currentHoodStateLabel(): string | null {
+    if (this.isFeedBeta()) {
+      const scope = this.workspace.feedBetaScope();
+      return scope?.location?.trim().toLowerCase() || null;
+    }
+    const h = this.hood();
+    return h?.state?.trim().toLowerCase() || null;
+  }
+
+  private toHoodSearchResult(post: Tag): HoodSearchResult {
+    const id = post.id ?? `${post.userId}-${post.createdAt}`;
+    return {
+      id,
+      title: post.highlight || 'Untitled post',
+      tag: post.tag || 'general',
+      location: this.shortHoodLabel(post.hoodId?.trim() || post.state || 'Nearby'),
+      username: post.username || 'Anonymous',
+    };
+  }
+
+  /** Collapses a full comma-joined address (or clean name) to one short phrase. */
+  private shortHoodLabel(raw: string): string {
+    const trimmed = raw.trim();
+    if (!trimmed) return 'Nearby';
+    const parts = trimmed
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length <= 1) return parts[0] ?? trimmed;
+    return parts[1];
+  }
+
+  /** Commits a known feed area as the active scope. */
+  private applyFeedBetaArea(areaId: string): void {
+    const area = this.workspace.feedBetaAreas().find((option) => option.id === areaId);
+    if (!area) return;
+    const currentCategory = this.workspace.feedBetaScope()?.category;
+    const hasPostsIn = (cat: string) =>
+      (area.categoryCounts[cat as keyof typeof area.categoryCounts] ?? 0) > 0;
+    const category = currentCategory && hasPostsIn(currentCategory) ? currentCategory : 'around';
+    this.workspace.feedBetaScope.set({
+      areaId: area.id,
+      location: area.label,
+      country: area.country,
+      hood: area.hood,
+      category,
+    });
+  }
+
+  /**
+   * Home-hood shortcut: jump to the user's home hood on the feed, filtered to
+   * `hot-now`. If posts already exist for the user's state+country the existing
+   * feed area is used; otherwise a freeform scope is set (empty-state UX).
+   */
+  protected onHotNowChipClick(): void {
+    const alreadyActive = this.workspace.feedBetaScope()?.category === 'hot-now';
+    if (!alreadyActive && !this.hasHotNowActivity()) {
+      this.showHotNowInfo();
+      return;
+    }
+    this.openHomeHoodFeed();
+  }
+
+  private showHotNowInfo(): void {
+    clearTimeout(this.hotNowInfoTimer);
+    this.hotNowInfoOpen.set(true);
+    this.hotNowInfoTimer = setTimeout(() => this.hotNowInfoOpen.set(false), 2500);
+  }
+
+  protected openHomeHoodFeed(): void {
+    const h = this.hood();
+    if (!h?.state) return;
+
+    const norm = (s: string) => s.trim().toLowerCase();
+    const existing = this.workspace
+      .feedBetaAreas()
+      .find(
+        (a) =>
+          norm(a.label) === norm(h.state) &&
+          (h.country ? norm(a.country) === norm(h.country) : true),
+      );
+
+    if (existing) {
+      this.workspace.feedBetaScope.set({
+        areaId: existing.id,
+        location: existing.label,
+        country: existing.country,
+        hood: existing.hood,
+        category: 'hot-now',
+      });
+    } else {
+      const slug = (v: string) =>
+        v.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const areaId =
+        h.state && h.country ? slug(`${h.state}::${h.country}`) : slug(h.country || h.state);
+      this.workspace.feedBetaScope.set({
+        areaId,
+        location: h.state,
+        country: h.country || h.state,
+        hood: h.district || h.place || h.state,
+        category: 'hot-now',
+        freeform: true,
+      });
+    }
+
+    if (this.currentUrl().split('?')[0] !== '/feed-beta') {
+      void this.router.navigateByUrl('/feed-beta');
+    }
+  }
+
+  /** True when the given state+country matches the signed-in user's home hood. */
+  protected isUserHood(state: string | undefined, country: string | undefined): boolean {
+    const h = this.hood();
+    if (!h?.state || !state) return false;
+    const norm = (s: string) => s.trim().toLowerCase();
+    return norm(h.state) === norm(state) && (!!country ? norm(h.country) === norm(country) : true);
   }
 
   @HostListener('document:keydown.escape')
   protected closeHomeMenusOnEscape(): void {
-    this.closeHomeDistrictSearch();
-    this.homeTagMenuOpen.set(false);
-  }
-
-  protected async goTo(result: CommandResult): Promise<void> {
-    this.closeCommand();
-    this.query.set('');
-    this.results.set([]);
-    if (result.id.startsWith('topic-'))
-      await this.router.navigate(['/feed'], { queryParams: { topic: result.title.slice(1) } });
-    else await this.router.navigate(result.route);
+    this.userMenuOpen.set(false);
+    this.closePostSearch();
+    if (this.hoodModalOpen()) this.closeHoodModal();
   }
 
   protected setTheme(theme: AppTheme): void {
@@ -228,151 +480,72 @@ export class AppTopbarComponent implements OnInit, OnDestroy {
     await this.router.navigate(['/login']);
   }
 
-  private searchPosts(query: string): void {
-    if (!this.tagRepo) {
-      this.results.set(this.quickActions());
-      this.isSearching.set(false);
+  /** Commits a Nominatim global-search result as the active feed scope. */
+  private applyFeedBetaFromNominatim(place: NominatimPlace): void {
+    const state = place.address?.state ?? '';
+    const country = place.address?.country ?? '';
+    const areaId = this.toAreaId(state, country);
+    if (!areaId) return;
+
+    // If an existing area already covers this state+country, use it as-is.
+    const existing = this.workspace.feedBetaAreas().find((a) => a.id === areaId);
+    if (existing) {
+      this.applyFeedBetaArea(existing.id);
       return;
     }
 
-    this.tagRepo.getPaginated(6, 0, query).subscribe({
-      next: (posts) => {
-        void this.platform.searchProfiles(query, 5).then((profiles) => {
-          const hoods = Array.from(
-            new Set(posts.map((post) => post.hoodId).filter((hood): hood is string => !!hood)),
-          ).slice(0, 3);
-          const topics = Array.from(new Set(posts.map((post) => post.tag).filter(Boolean))).slice(
-            0,
-            3,
-          );
-          this.results.set([
-            ...this.quickActions(query),
-            ...profiles.map((profile) => this.toProfileResult(profile)),
-            ...hoods.map((hood) => ({
-              id: `hood-${hood}`,
-              title: hood,
-              subtitle: 'Neighborhood',
-              route: ['/neighborhood', this.slug(hood)],
-              icon: 'bi-geo-alt',
-            })),
-            ...topics.map((tag) => ({
-              id: `topic-${tag}`,
-              title: `#${tag}`,
-              subtitle: 'Topic',
-              route: ['/feed'],
-              icon: 'bi-hash',
-            })),
-            ...posts.map((post) => this.toCommandResult(post)),
-          ]);
-          this.isSearching.set(false);
+    const label = state || place.display_name.split(',')[0].trim();
+    this.workspace.feedBetaScope.set({
+      areaId,
+      location: label,
+      country: country || label,
+      hood: place.display_name.split(',')[0].trim(),
+      category: 'around',
+      freeform: true,
+    });
+  }
+
+  private searchNominatim(query: string): void {
+    this.nominatimAbort?.abort();
+    this.nominatimAbort = new AbortController();
+    const { signal } = this.nominatimAbort;
+
+    const url =
+      `https://nominatim.openstreetmap.org/search?` +
+      `q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=6`;
+
+    fetch(url, {
+      signal,
+      headers: { 'Accept-Language': 'en', 'User-Agent': 'Tagmate/1.0' },
+    })
+      .then((r) => r.json())
+      .then((results: NominatimPlace[]) => {
+        if (signal.aborted) return;
+        // Deduplicate by state+country so we don't show 6 rows for "Mumbai".
+        const seen = new Set<string>();
+        const deduped = results.filter((place) => {
+          const key = `${place.address?.state ?? ''}::${place.address?.country ?? ''}`;
+          if (seen.has(key) || !key.replace('::', '')) return false;
+          seen.add(key);
+          return true;
         });
-      },
-      error: () => {
-        this.results.set(this.quickActions(query));
-        this.isSearching.set(false);
-      },
-    });
-  }
-
-  private loadHomeOptions(): void {
-    this.tagRepo?.getPaginated(100, 0).subscribe({
-      next: (posts) => {
-        this.workspace.setHomeDistrictOptions(this.toHomeDistrictOptions(posts));
-        this.workspace.setHomeTagOptions(
-          posts.map((post) => post.tag).filter((tag) => tag && tag !== 'bulletin'),
-        );
-      },
-    });
-  }
-
-  private toHomeDistrictOptions(posts: Tag[], query = ''): HomeDistrictOption[] {
-    const currentHood = this.hood();
-    const options = new Map<string, HomeDistrictOption>();
-    const normalizedQuery = query.trim().toLowerCase();
-
-    if (
-      currentHood?.name &&
-      (!normalizedQuery || currentHood.name.toLowerCase().includes(normalizedQuery))
-    ) {
-      const key = this.slug(currentHood.name);
-      options.set(key, {
-        key,
-        name: currentHood.name,
-        country: currentHood.country || 'India',
+        this.nominatimResults.set(deduped);
+        this.isNominatimLoading.set(false);
+      })
+      .catch(() => {
+        if (!signal.aborted) this.isNominatimLoading.set(false);
       });
-    }
-
-    for (const post of posts) {
-      const name = post.hoodId?.trim();
-      if (!name || (normalizedQuery && !name.toLowerCase().includes(normalizedQuery))) continue;
-      const key = this.slug(name);
-      if (!options.has(key)) {
-        options.set(key, {
-          key,
-          name,
-          country: post.country?.trim() || currentHood?.country || 'India',
-        });
-      }
-    }
-
-    return Array.from(options.values());
   }
 
-  private quickActions(query = ''): CommandResult[] {
-    const suffix = query ? ` for "${query}"` : '';
-    return [
-      {
-        id: 'qa-feed',
-        title: `Search Feed${suffix}`,
-        subtitle: 'Scan nearby posts and neighborhood updates',
-        route: ['/feed'],
-        icon: 'bi-list-ul',
-      },
-      {
-        id: 'qa-map',
-        title: 'Open Map Workspace',
-        subtitle: 'View tags, heatmaps, filters, and local context',
-        route: ['/hood'],
-        icon: 'bi-map',
-      },
-      {
-        id: 'qa-report',
-        title: 'Review Reports',
-        subtitle: 'Open moderation queue and hidden content',
-        route: ['/reports'],
-        icon: 'bi-flag',
-      },
-    ];
-  }
-
-  private toCommandResult(post: Tag): CommandResult {
-    const id = post.id ?? `${post.userId}-${post.createdAt}`;
-    return {
-      id,
-      title: post.highlight || 'Untitled post',
-      subtitle: `${post.hoodId || 'Nearby'} - #${post.tag || 'tag'} - ${post.username || 'Anonymous'}`,
-      route: ['/posts', id],
-      icon: post.tag === 'alert' ? 'bi-exclamation-triangle' : 'bi-geo-alt',
-    };
-  }
-
-  private toProfileResult(profile: SocialProfile): CommandResult {
-    return {
-      id: `user-${profile.uid}`,
-      title: profile.name,
-      subtitle: `${profile.reputation} reputation · Neighbor profile`,
-      route: ['/users', profile.uid],
-      icon: 'bi-person',
-    };
-  }
-
-  private slug(value: string): string {
-    return (
-      value
+  private toAreaId(state: string, country: string): string {
+    const slug = (v: string) =>
+      v
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'nearby'
-    );
+        .replace(/^-|-$/g, '');
+    if (state && country) return slug(`${state}::${country}`);
+    if (country) return slug(country);
+    return '';
   }
 }

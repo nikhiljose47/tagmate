@@ -71,6 +71,16 @@ export class SupabaseTagRepository implements ITagRepository {
   update(id: string, partial: Partial<Omit<Tag, 'id' | 'userId' | 'createdAt'>>): Observable<Tag> {
     const row: Partial<TagRow> = {};
     if (partial.username !== undefined) row.username = partial.username;
+    if (partial.businessName !== undefined) row.business_name = partial.businessName;
+    if (partial.businessPhone !== undefined) row.business_phone = partial.businessPhone;
+    if (partial.businessWebsite !== undefined) row.business_website = partial.businessWebsite;
+    if (partial.postType !== undefined) row.post_type = partial.postType;
+    if (partial.intent !== undefined) row.intent = partial.intent;
+    if (partial.price !== undefined) row.price = partial.price;
+    if (partial.originalPrice !== undefined) row.original_price = partial.originalPrice;
+    if (partial.availabilityNote !== undefined) row.availability_note = partial.availabilityNote;
+    if (partial.cta !== undefined) row.cta = partial.cta;
+    if (partial.productLink !== undefined) row.product_link = partial.productLink;
     if (partial.highlight !== undefined) row.highlight = partial.highlight;
     if (partial.lat !== undefined) row.lat = partial.lat;
     if (partial.lng !== undefined) row.lng = partial.lng;

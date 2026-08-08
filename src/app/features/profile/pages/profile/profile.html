@@ -66,6 +66,16 @@
           <label class="edit-label">Bio</label>
           <textarea class="tm-input mb-3" rows="3" [value]="editBio()" (input)="editBio.set($any($event.target).value)" maxlength="280" placeholder="Tell your hood about yourself..."></textarea>
           <small class="edit-count">{{ editBio().length }}/280</small>
+
+          @if (isBusinessAccount()) {
+            <label class="edit-label">Shop / business name</label>
+            <input class="tm-input mb-3" type="text" [value]="editBusinessName()" (input)="editBusinessName.set($any($event.target).value)" maxlength="60" placeholder="Shown as the author on your business posts" />
+            <label class="edit-label">Phone (optional)</label>
+            <input class="tm-input mb-3" type="tel" [value]="editBusinessPhone()" (input)="editBusinessPhone.set($any($event.target).value)" placeholder="Shown on business posts" />
+            <label class="edit-label">Website (optional)</label>
+            <input class="tm-input mb-3" type="url" [value]="editBusinessWebsite()" (input)="editBusinessWebsite.set($any($event.target).value)" placeholder="https://…" />
+          }
+
           <button class="tm-btn tm-btn-primary w-full" type="button" [disabled]="profileSaving()" (click)="saveProfile()">{{ profileSaving() ? 'Saving…' : 'Save' }}</button>
         </div>
       }
@@ -118,12 +128,14 @@
 
       <!-- Posts Tab -->
       @if (activeTab() === 'posts') {
-        @if (myTags(); as tags) {
-          @if (tags.length === 0) {
-            <tm-empty-state icon="+" title="No posts yet" subtitle="You haven't posted anything yet." />
-          }
-          <div class="posts-grid">
-            @for (tag of tags; track tag.id) {
+        @if (myTags().length === 0) {
+          <tm-empty-state icon="+" title="No posts yet" subtitle="You haven't posted anything yet." />
+        }
+
+        @if (activePosts().length > 0) {
+          <h3 class="posts-section-title">Active</h3>
+          <div class="posts-grid posts-grid--lifecycle">
+            @for (tag of activePosts(); track tag.id) {
               <div class="post-card" [style.background]="tag.tag | tagGradient">
                 <div class="post-card-media">
                   @if (tag.images[0]) {
@@ -145,6 +157,40 @@
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
+                </div>
+                <div class="post-card-lifecycle">
+                  <button type="button" class="pcl-btn" (click)="extendPost(tag, 240)">Extend +4h</button>
+                  <button type="button" class="pcl-btn" (click)="markSoldOrFull(tag)">Mark Sold/Full</button>
+                  <button type="button" class="pcl-btn pcl-btn--danger" (click)="endPostNow(tag)">End Now</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @if (expiredPosts().length > 0) {
+          <h3 class="posts-section-title">Expired</h3>
+          <div class="posts-grid posts-grid--lifecycle">
+            @for (tag of expiredPosts(); track tag.id) {
+              <div class="post-card post-card--expired" [style.background]="tag.tag | tagGradient">
+                <div class="post-card-media">
+                  @if (tag.images[0]) {
+                    <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+                  } @else {
+                    <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+                  }
+                </div>
+                <div class="post-card-overlay">
+                  <p class="post-card-text">{{ tag.highlight }}</p>
+                  <div class="post-card-actions">
+                    <button class="pca-btn danger" type="button" (click)="deleteTag(tag)" aria-label="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="post-card-lifecycle">
+                  <button type="button" class="pcl-btn pcl-btn--primary" (click)="postAgain(tag)">Post Again</button>
+                  <button type="button" class="pcl-btn" (click)="editAndPost(tag)">Edit & Post</button>
                 </div>
               </div>
             }
@@ -217,6 +263,103 @@
             </label>
           </div>
           
+          <div class="settings-hood-group">
+            <div class="flex items-center">
+              <i class="bi bi-house-fill text-xl text-[var(--tm-primary-text)] mr-4"></i>
+              <div class="flex-1">
+                <p class="settings-title">Home hood</p>
+                @if (currentHood(); as h) {
+                  <p class="settings-sub">
+                    {{ h.place || h.district }}, {{ h.state }}, {{ h.country }}
+                  </p>
+                } @else {
+                  <p class="settings-sub">Not set</p>
+                }
+              </div>
+              @if (!hoodEditOpen()) {
+                <button
+                  type="button"
+                  class="tm-btn tm-btn-outline"
+                  (click)="openHoodEditor()"
+                  [disabled]="!canChangeHood()"
+                >
+                  Change
+                </button>
+              }
+            </div>
+
+            @if (!canChangeHood() && !hoodEditOpen()) {
+              <p class="settings-sub mt-2">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                You can change your home hood again in {{ hoodDaysRemaining() }} day{{ hoodDaysRemaining() === 1 ? '' : 's' }}.
+              </p>
+            }
+
+            @if (hoodEditOpen()) {
+              <div class="hood-editor mt-3">
+                <div class="hood-search">
+                  <input
+                    type="text"
+                    class="tm-input"
+                    placeholder="Search your city, district or state"
+                    [value]="hoodQuery()"
+                    (input)="onHoodInput($any($event.target).value)"
+                    autocomplete="off"
+                    autofocus
+                  />
+                  @if (hoodResults().length || hoodSearching()) {
+                    <div class="hood-results">
+                      @if (hoodSearching()) {
+                        <div class="hood-result hood-result--loading">Searching…</div>
+                      }
+                      @for (r of hoodResults(); track r.place_id) {
+                        <button type="button" class="hood-result" (click)="selectHood(r)">
+                          <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                          <span>
+                            <strong>{{ r.address.suburb || r.address.neighbourhood || r.address.village || r.address.town || r.address.city || r.address.state_district || r.address.county || r.display_name.split(',')[0] }}</strong>
+                            <small>{{ r.address.state_district || r.address.county || r.address.city_district || r.address.city || r.address.town }}, {{ r.address.state }}, {{ r.address.country }}</small>
+                          </span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+
+                @if (hoodPick(); as pick) {
+                  <div class="hood-chips">
+                    <span class="hood-chip"><small>State</small><strong>{{ pick.state }}</strong></span>
+                    <span class="hood-chip"><small>District</small><strong>{{ pick.district }}</strong></span>
+                    @if (pick.place) {
+                      <span class="hood-chip hood-chip--optional"><small>Place</small><strong>{{ pick.place }}</strong></span>
+                    }
+                  </div>
+                }
+
+                <p class="settings-sub mt-2">
+                  Heads up — you can only change your home hood once every 30 days.
+                </p>
+
+                <div class="hood-actions">
+                  <button type="button" class="tm-btn tm-btn-ghost" (click)="closeHoodEditor()" [disabled]="hoodSaving()">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="tm-btn tm-btn-primary"
+                    (click)="saveHood()"
+                    [disabled]="!hoodPick() || hoodSaving()"
+                  >
+                    @if (!hoodSaving()) { Save }
+                    @else {
+                      <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                      Saving…
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
           <div class="settings-appearance-group">
             <div class="flex items-center">
               <i class="bi bi-palette-fill text-xl text-[var(--tm-primary-text)] mr-4"></i>

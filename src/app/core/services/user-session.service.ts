@@ -2,15 +2,28 @@ import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom, Observable, of, from } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { AppUser } from '../models/app-user.model';
+import { Store } from '@ngrx/store';
+import { AccountType, AppUser } from '../models/app-user.model';
+import { Hood } from '../models/hood.model';
 import { UserModel } from '../models/user.model';
 import { AuthResponse } from '../models/auth-response.model';
 import { SupabaseService } from './supabase.service';
 import { toAppError } from '../models/app-error.model';
+import { setUserPreference } from '../../store/user-preferences/user-preference.actions';
+
+export interface HomeHoodInput {
+  state: string;
+  country: string;
+  district: string;
+  place?: string;
+  lat?: number;
+  lng?: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class UserSessionService {
   private supabase = inject(SupabaseService);
+  private store = inject(Store);
 
   user = signal<AppUser | null>(null);
 
@@ -47,21 +60,58 @@ export class UserSessionService {
             session.user.email?.split('@')[0] ??
             'User';
           const isGuest = session.user.is_anonymous ?? false;
+          const metaAccountType =
+            session.user.user_metadata?.['account_type'] === 'business' ? 'business' : 'personal';
+          const metaBusinessName = session.user.user_metadata?.['business_name'] as
+            | string
+            | undefined;
+          const metaBusinessPhone = session.user.user_metadata?.['business_phone'] as
+            | string
+            | undefined;
+          const metaBusinessWebsite = session.user.user_metadata?.['business_website'] as
+            | string
+            | undefined;
           const fallbackUser: AppUser = {
             uid,
             name,
             isGuest,
             email: session.user.email ?? undefined,
+            accountType: metaAccountType,
+            businessName: metaBusinessName,
+            businessPhone: metaBusinessPhone,
+            businessWebsite: metaBusinessWebsite,
           };
+
+          const metaHood = session.user.user_metadata?.['home_hood'] as
+            | HomeHoodInput
+            | undefined;
 
           return this.supabase.getUserById(uid).pipe(
             switchMap((appUser) => {
               if (appUser) {
-                // Email is sourced from the authenticated session, never from
-                // the public profile row returned for arbitrary users.
                 return of({ ...appUser, email: session.user.email ?? undefined });
               }
 
+              // First-authenticated-session insert. If metadata carries a hood
+              // (signup path), persist it now — otherwise fall back to Marathahalli
+              // so the NOT NULL constraint is satisfied.
+              const hoodRow = metaHood
+                ? {
+                    home_state: metaHood.state,
+                    home_country: metaHood.country,
+                    home_district: metaHood.district,
+                    home_place: metaHood.place ?? null,
+                    home_lat: metaHood.lat ?? null,
+                    home_lng: metaHood.lng ?? null,
+                  }
+                : {
+                    home_state: 'Karnataka',
+                    home_country: 'India',
+                    home_district: 'Bangalore Urban',
+                    home_place: 'Marathahalli',
+                    home_lat: 12.952,
+                    home_lng: 77.7,
+                  };
               return from(
                 this.supabase.upsertRow('users', {
                   uid,
@@ -69,19 +119,77 @@ export class UserSessionService {
                   is_guest: isGuest,
                   email: session.user.email ?? null,
                   created_at: new Date().toISOString(),
+                  account_type: metaAccountType,
+                  business_name: metaBusinessName ?? null,
+                  business_phone: metaBusinessPhone ?? null,
+                  business_website: metaBusinessWebsite ?? null,
+                  ...hoodRow,
                 }),
-              ).pipe(map(() => fallbackUser));
+              ).pipe(
+                map(() => ({
+                  ...fallbackUser,
+                  hood: new Hood({
+                    name: hoodRow.home_place || hoodRow.home_district || hoodRow.home_state,
+                    state: hoodRow.home_state,
+                    country: hoodRow.home_country,
+                    district: hoodRow.home_district,
+                    place: hoodRow.home_place || '',
+                    coords: {
+                      lat: hoodRow.home_lat ?? 0,
+                      lng: hoodRow.home_lng ?? 0,
+                    },
+                    updatedAt: new Date().toISOString(),
+                  }),
+                })),
+              );
             }),
-            // If getUserById or upsert fails (e.g. network error), fall back to
-            // the session metadata so the subscription stays alive and the user
-            // is not left in a permanently-guest state.
             catchError(() => of(fallbackUser)),
           );
         }),
       )
       .subscribe((appUser) => {
         this.user.set(appUser);
+        if (appUser?.hood) {
+          this.store.dispatch(setUserPreference({ pref: { hood: appUser.hood } }));
+        }
       });
+  }
+
+  /**
+   * Update the home hood in Supabase. Rejects when the DB trigger determines
+   * the last change was less than 30 days ago (error message contains
+   * `HOME_HOOD_COOLDOWN`).
+   */
+  async updateHomeHood(hood: HomeHoodInput): Promise<AuthResponse> {
+    const current = this.user();
+    if (!current) return { ok: false, code: 'no-user', message: 'Not signed in.' };
+    try {
+      await firstValueFrom(
+        this.supabase.upsertRow('users', {
+          uid: current.uid,
+          home_state: hood.state,
+          home_country: hood.country,
+          home_district: hood.district,
+          home_place: hood.place ?? null,
+          home_lat: hood.lat ?? null,
+          home_lng: hood.lng ?? null,
+        }),
+      );
+      const nextHood = new Hood({
+        name: hood.place || hood.district || hood.state,
+        state: hood.state,
+        country: hood.country,
+        district: hood.district,
+        place: hood.place || '',
+        coords: { lat: hood.lat ?? 0, lng: hood.lng ?? 0 },
+        updatedAt: new Date().toISOString(),
+      });
+      this.user.set({ ...current, hood: nextHood });
+      this.store.dispatch(setUserPreference({ pref: { hood: nextHood } }));
+      return { ok: true, uid: current.uid, email: current.email ?? null, username: current.name };
+    } catch (err: unknown) {
+      return { ok: false, ...toAppError(err, 'update-home-hood') };
+    }
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
@@ -114,7 +222,16 @@ export class UserSessionService {
   async signup(
     email: string,
     password: string,
-    metadata: { username: string; fullName: string; birthday: string },
+    metadata: {
+      username: string;
+      fullName: string;
+      birthday: string;
+      hood: HomeHoodInput;
+      accountType?: AccountType;
+      businessName?: string;
+      businessPhone?: string;
+      businessWebsite?: string;
+    },
   ): Promise<AuthResponse> {
     try {
       const { data, error } = await firstValueFrom(
@@ -122,6 +239,19 @@ export class UserSessionService {
           username: metadata.username,
           full_name: metadata.fullName,
           birthday: metadata.birthday,
+          home_hood: {
+            state: metadata.hood.state,
+            country: metadata.hood.country,
+            district: metadata.hood.district,
+            place: metadata.hood.place ?? '',
+            lat: metadata.hood.lat ?? null,
+            lng: metadata.hood.lng ?? null,
+          },
+          account_type: metadata.accountType ?? 'personal',
+          business_name: metadata.accountType === 'business' ? metadata.businessName ?? '' : '',
+          business_phone: metadata.accountType === 'business' ? metadata.businessPhone ?? '' : '',
+          business_website:
+            metadata.accountType === 'business' ? metadata.businessWebsite ?? '' : '',
         }),
       );
       if (error) {
@@ -136,6 +266,11 @@ export class UserSessionService {
         uid: u.id,
         email: u.email ?? null,
         username: metadata.username,
+        // Supabase issues a user record immediately either way, but only
+        // hands back a session once the address is confirmed (when the
+        // project has "Confirm email" turned on) — no session here means
+        // the mailbox check is still pending.
+        needsEmailConfirmation: !data.session,
       };
     } catch (err: unknown) {
       return {
@@ -147,6 +282,15 @@ export class UserSessionService {
 
   isUsernameTaken(username: string): Promise<boolean> {
     return firstValueFrom(this.supabase.isUsernameTaken(username));
+  }
+
+  async resendConfirmationEmail(email: string): Promise<boolean> {
+    try {
+      const { error } = await firstValueFrom(this.supabase.resendSignupConfirmation(email));
+      return !error;
+    } catch {
+      return false;
+    }
   }
 
   logout() {
@@ -194,7 +338,7 @@ export class UserSessionService {
           created_at: new Date().toISOString(),
         }),
       );
-      this.user.set({ uid, name: username, isGuest: false, email });
+      this.user.set({ uid, name: username, isGuest: false, email, accountType: 'personal' });
       return {
         ok: true,
         uid,
@@ -215,5 +359,37 @@ export class UserSessionService {
 
   updatePassword(password: string) {
     return firstValueFrom(this.supabase.updatePassword(password));
+  }
+
+  /**
+   * Business-account contact info — separate from `updateOwnProfile` (name/bio)
+   * since those go through a fixed RPC. Writes straight to `public.users`.
+   */
+  async updateBusinessProfile(fields: {
+    businessName: string;
+    businessPhone: string;
+    businessWebsite: string;
+  }): Promise<boolean> {
+    const current = this.user();
+    if (!current) return false;
+    try {
+      await firstValueFrom(
+        this.supabase.upsertRow('users', {
+          uid: current.uid,
+          business_name: fields.businessName.trim() || null,
+          business_phone: fields.businessPhone.trim() || null,
+          business_website: fields.businessWebsite.trim() || null,
+        }),
+      );
+      this.user.set({
+        ...current,
+        businessName: fields.businessName.trim() || undefined,
+        businessPhone: fields.businessPhone.trim() || undefined,
+        businessWebsite: fields.businessWebsite.trim() || undefined,
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

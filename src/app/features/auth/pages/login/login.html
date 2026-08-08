@@ -97,6 +97,27 @@
           <i class="bi bi-exclamation-circle"></i> {{ error() }}
         </div>
       }
+
+      @if (unconfirmedEmail()) {
+        @if (resendSent()) {
+          <div class="error-msg error-msg--info" role="status">
+            <i class="bi bi-check-circle"></i> Confirmation email resent — check your inbox (and spam folder).
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="resend-confirm-btn"
+            [disabled]="resendingEmail()"
+            (click)="resendConfirmationEmail()"
+          >
+            @if (!resendingEmail()) {
+              Resend confirmation email
+            } @else {
+              Resending…
+            }
+          </button>
+        }
+      }
     </div>
 
     <p class="signup-hint">
