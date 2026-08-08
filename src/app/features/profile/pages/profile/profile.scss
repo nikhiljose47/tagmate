@@ -270,6 +270,66 @@
   color: var(--tm-danger);
 }
 
+/* ── My Posts — Active/Expired sections & lifecycle actions ──── */
+.posts-section-title {
+  margin: 14px 10px 0;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tm-muted);
+}
+
+.posts-grid--lifecycle {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.post-card--expired {
+  opacity: 0.72;
+}
+
+.post-card-lifecycle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  background: var(--tm-surface);
+  border-top: 1px solid var(--tm-border);
+}
+
+.pcl-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid var(--tm-border);
+  border-radius: 6px;
+  background: var(--tm-bg);
+  color: var(--tm-text);
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: color-mix(in srgb, var(--tm-primary) 10%, var(--tm-bg));
+  }
+
+  &.pcl-btn--primary {
+    border-color: var(--tm-primary);
+    background: var(--tm-primary);
+    color: #fff;
+  }
+
+  &.pcl-btn--danger:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--tm-danger);
+    border-color: var(--tm-danger);
+  }
+}
+
 /* ── Empty Tab ──────────────────────────── */
 .empty-tab {
   padding: 56px 24px;

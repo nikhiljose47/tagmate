@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
+import { AccountType } from '../../../../core/models/app-user.model';
 
 const MIN_AGE = 13;
 const MONTHS = [
@@ -65,6 +66,13 @@ export class SignupPage implements OnInit {
   fullName = signal('');
   username = signal('');
 
+  /** Personal is the default — business accounts also give a shop/business name shown on their posts. */
+  accountType = signal<AccountType>('personal');
+  businessName = signal('');
+  /** Optional — shown on business post cards when set. */
+  businessPhone = signal('');
+  businessWebsite = signal('');
+
   birthMonth = signal('');
   birthDay = signal('');
   birthYear = signal('');
@@ -80,6 +88,12 @@ export class SignupPage implements OnInit {
   error = signal('');
   loading = signal(false);
   showPassword = signal(false);
+
+  /** Set once signup succeeds but the account still needs email confirmation. */
+  awaitingEmailConfirmation = signal(false);
+  resendingEmail = signal(false);
+  resendSent = signal(false);
+  resendError = signal('');
 
   usernameChecking = signal(false);
   usernameTaken = signal(false);
@@ -105,8 +119,13 @@ export class SignupPage implements OnInit {
     !!this.fullName().trim() &&
     this.username().trim().length >= 3 &&
     !this.usernameTaken() &&
-    !this.usernameChecking(),
+    !this.usernameChecking() &&
+    (this.accountType() === 'personal' || !!this.businessName().trim()),
   );
+
+  selectAccountType(type: AccountType): void {
+    this.accountType.set(type);
+  }
 
   readonly canSubmit = computed(() => {
     const pick = this.hoodPick();
@@ -310,6 +329,14 @@ export class SignupPage implements OnInit {
             lat: pick.lat,
             lng: pick.lng,
           },
+          accountType: this.accountType(),
+          businessName: this.accountType() === 'business' ? this.businessName().trim() : undefined,
+          businessPhone:
+            this.accountType() === 'business' ? this.businessPhone().trim() || undefined : undefined,
+          businessWebsite:
+            this.accountType() === 'business'
+              ? this.businessWebsite().trim() || undefined
+              : undefined,
         }),
         this.timeoutPromise(),
       ]);
@@ -317,7 +344,14 @@ export class SignupPage implements OnInit {
       if (this.destroyed) return;
 
       if (res.ok) {
-        this.router.navigateByUrl('/feed-beta');
+        if (res.needsEmailConfirmation) {
+          // No session yet — the project requires the address to be
+          // confirmed first. Show a "check your inbox" state instead of
+          // sending them into the app as if they were signed in.
+          this.awaitingEmailConfirmation.set(true);
+        } else {
+          this.router.navigateByUrl('/feed-beta');
+        }
       } else {
         this.error.set(res.message ?? 'Signup failed');
       }
@@ -325,6 +359,22 @@ export class SignupPage implements OnInit {
       if (!this.destroyed) {
         this.loading.set(false);
       }
+    }
+  }
+
+  async resendConfirmationEmail(): Promise<void> {
+    if (this.resendingEmail()) return;
+    this.resendError.set('');
+    this.resendingEmail.set(true);
+    try {
+      const ok = await this.session.resendConfirmationEmail(this.email());
+      if (ok) {
+        this.resendSent.set(true);
+      } else {
+        this.resendError.set("Couldn't resend right now — try again in a moment.");
+      }
+    } finally {
+      this.resendingEmail.set(false);
     }
   }
 

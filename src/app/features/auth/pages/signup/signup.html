@@ -65,7 +65,53 @@
         <span class="mobile-wordmark">Tagmate</span>
       </div>
 
+      <!-- ── Check-your-inbox: shown after signup when email confirmation is required ── -->
+      @if (awaitingEmailConfirmation()) {
+        <div class="step-block confirm-email-block">
+          <div class="confirm-email-icon" aria-hidden="true">
+            <i class="bi bi-envelope-check-fill"></i>
+          </div>
+          <h1 class="form-title">Verify your email</h1>
+          <p class="confirm-email-copy">
+            We've sent a confirmation link to <strong>{{ email() }}</strong>.
+            Open it to activate your account — then come back and log in.
+          </p>
+
+          @if (resendSent()) {
+            <div class="confirm-email-resent">
+              <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Email resent — check your inbox (and spam folder).
+            </div>
+          } @else {
+            <button
+              class="tm-btn w-full step-btn"
+              type="button"
+              [disabled]="resendingEmail()"
+              (click)="resendConfirmationEmail()"
+            >
+              @if (!resendingEmail()) {
+                Resend confirmation email
+              } @else {
+                <span class="spinner" aria-hidden="true"></span>
+                Resending…
+              }
+            </button>
+          }
+
+          @if (resendError()) {
+            <div class="error-msg">
+              <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ resendError() }}
+            </div>
+          }
+
+          <p class="login-hint">
+            Wrong email? <a routerLink="/signup" (click)="awaitingEmailConfirmation.set(false)">Sign up again</a> ·
+            Already confirmed? <a routerLink="/login">Log in</a>
+          </p>
+        </div>
+      }
+
       <!-- Step indicator -->
+      @if (!awaitingEmailConfirmation()) {
       <div class="step-track" aria-label="Signup progress">
         <div class="step-node" [class.active]="step() >= 1" [class.done]="step() > 1">
           @if (step() > 1) { <i class="bi bi-check2" aria-hidden="true"></i> } @else { 1 }
@@ -73,9 +119,10 @@
         <div class="step-line" [class.filled]="step() > 1"></div>
         <div class="step-node" [class.active]="step() >= 2">2</div>
       </div>
+      }
 
       <!-- ── Step 1: Account ── -->
-      @if (step() === 1) {
+      @if (!awaitingEmailConfirmation() && step() === 1) {
         <div class="step-block">
           <h1 class="form-title">Create your account</h1>
 
@@ -156,6 +203,74 @@
               </div>
             </div>
 
+            <div class="field-group">
+              <label class="field-label">Account type</label>
+              <div class="account-type-toggle" role="radiogroup" aria-label="Account type">
+                <button
+                  type="button"
+                  class="account-type-option"
+                  [class.account-type-option--active]="accountType() === 'personal'"
+                  [disabled]="loading()"
+                  (click)="selectAccountType('personal')"
+                >
+                  <i class="bi bi-person-heart" aria-hidden="true"></i>
+                  <span>
+                    <strong>Personal</strong>
+                    <small>For everyday posts and hanging out nearby</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="account-type-option"
+                  [class.account-type-option--active]="accountType() === 'business'"
+                  [disabled]="loading()"
+                  (click)="selectAccountType('business')"
+                >
+                  <i class="bi bi-shop" aria-hidden="true"></i>
+                  <span>
+                    <strong>Business</strong>
+                    <small>For shops and services posting as your business</small>
+                  </span>
+                </button>
+              </div>
+              @if (accountType() === 'business') {
+                <input
+                  type="text"
+                  class="tm-input"
+                  style="margin-top: 8px;"
+                  placeholder="Shop / business name"
+                  [value]="businessName()"
+                  (input)="businessName.set($any($event.target).value)"
+                  [disabled]="loading()"
+                  autocomplete="organization"
+                />
+                @if (!businessName().trim()) {
+                  <span class="field-hint">Shown as the author name on your business posts.</span>
+                }
+                <div class="field-row" style="margin-top: 8px;">
+                  <input
+                    type="tel"
+                    class="tm-input"
+                    placeholder="Phone (optional)"
+                    [value]="businessPhone()"
+                    (input)="businessPhone.set($any($event.target).value)"
+                    [disabled]="loading()"
+                    autocomplete="tel"
+                  />
+                  <input
+                    type="url"
+                    class="tm-input"
+                    placeholder="Website (optional)"
+                    [value]="businessWebsite()"
+                    (input)="businessWebsite.set($any($event.target).value)"
+                    [disabled]="loading()"
+                    autocomplete="url"
+                  />
+                </div>
+                <span class="field-hint">Shown on your business posts when filled in — leave blank to skip.</span>
+              }
+            </div>
+
             <button
               class="tm-btn tm-btn-primary w-full step-btn"
               type="button"
@@ -174,7 +289,7 @@
       }
 
       <!-- ── Step 2: Birthday + Location ── -->
-      @if (step() === 2) {
+      @if (!awaitingEmailConfirmation() && step() === 2) {
         <div class="step-block">
           <h1 class="form-title">A few more details</h1>
 

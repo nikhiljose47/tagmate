@@ -1,9 +1,10 @@
 import { tagGradient, tagEmoji, avatarBg, avatarInitials, coverGradient } from './color.utils';
+import { TAG_EMOJIS } from '../../core/enums/tag-category.enum';
 
 describe('color.utils', () => {
   describe('tagGradient', () => {
     it('returns a gradient string', () => {
-      expect(tagGradient('news')).toContain('linear-gradient');
+      expect(tagGradient('notice')).toContain('linear-gradient');
     });
     it('returns default gradient for unknown tag', () => {
       expect(tagGradient('unknown')).toContain('linear-gradient');
@@ -12,8 +13,8 @@ describe('color.utils', () => {
 
   describe('tagEmoji', () => {
     it('returns correct emoji for known tag', () => {
-      expect(tagEmoji('news')).toBe('📰');
-      expect(tagEmoji('food')).toBe('🍜');
+      expect(tagEmoji('notice')).toBe(TAG_EMOJIS['notice']);
+      expect(tagEmoji('food')).toBe(TAG_EMOJIS['food']);
     });
     it('returns pin emoji for unknown tag', () => {
       expect(tagEmoji('unknown')).toBe('📌');

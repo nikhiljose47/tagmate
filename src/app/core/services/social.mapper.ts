@@ -21,6 +21,10 @@ export interface UserRow {
   home_lat?: number | null;
   home_lng?: number | null;
   home_updated_at?: string | null;
+  account_type?: string | null;
+  business_name?: string | null;
+  business_phone?: string | null;
+  business_website?: string | null;
 }
 
 /** `post_comments` row (snake_case, matches the Supabase table). */

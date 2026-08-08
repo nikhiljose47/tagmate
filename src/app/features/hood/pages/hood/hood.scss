@@ -2,7 +2,7 @@
 .map-wrapper {
   position: relative;
   width: 100%;
-  height: calc(100dvh - 68px - env(safe-area-inset-bottom));
+  height: calc(100dvh - 50px - env(safe-area-inset-bottom));
   min-height: 500px;
   overflow: hidden;
   background: var(--tm-bg);
@@ -734,7 +734,9 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 
   &:hover {
     background: rgba(15, 23, 42, 0.95);
@@ -887,7 +889,7 @@
 
 @media (max-width: 768px) {
   .map-wrapper {
-    height: calc(100dvh - 60px - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 88px - 64px - env(safe-area-inset-bottom));
     min-height: 440px;
   }
 

@@ -104,6 +104,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
         if (this.social.isHidden(post)) return false;
         if (this.platform.isBlocked(post.userId)) return false;
         if (category !== 'all' && post.tag !== category) return false;
+        if (!this.isPostLive(post)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -364,6 +365,14 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '') || 'nearby'
     );
+  }
+
+  /** Not expired and not manually ended by its owner — same rule as feed-beta. */
+  private isPostLive(post: Tag): boolean {
+    if (post.currentStatus && post.currentStatus !== 'active') return false;
+    const createdMs = new Date(post.createdAt).getTime();
+    if (Number.isNaN(createdMs)) return true;
+    return createdMs + post.expiresIn * 60_000 > Date.now();
   }
 
   private distanceFromProximityOrigin(post: Tag): number {

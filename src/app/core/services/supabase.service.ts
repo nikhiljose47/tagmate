@@ -33,6 +33,10 @@ export class SupabaseService {
     return this.auth.isUsernameTaken(username);
   }
 
+  resendSignupConfirmation(email: string) {
+    return this.auth.resendSignupConfirmation(email);
+  }
+
   signInAnonymously() {
     return this.auth.signInAnonymously();
   }

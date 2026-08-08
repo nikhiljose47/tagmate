@@ -2,7 +2,7 @@ import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { of, switchMap } from 'rxjs';
+import { firstValueFrom, of, switchMap } from 'rxjs';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { UserSessionService } from '../../../../core/services/user-session.service';
@@ -106,6 +106,9 @@ export class ProfilePage implements OnInit {
   editMode = signal(false);
   editName = signal('');
   editBio = signal('');
+  editBusinessName = signal('');
+  editBusinessPhone = signal('');
+  editBusinessWebsite = signal('');
   profileSaving = signal(false);
   allTags = signal<Tag[]>([]);
   settings = signal<ProfileSettings>(DEFAULT_PROFILE_SETTINGS);
@@ -192,12 +195,17 @@ export class ProfilePage implements OnInit {
   setTab(tab: ProfileTab): void {
     this.activeTab.set(tab);
   }
+  readonly isBusinessAccount = computed(() => this.sessionService.user()?.accountType === 'business');
+
   toggleEditProfile(): void {
     const opening = !this.editMode();
     if (opening) {
       const user = this.sessionService.user();
       this.editName.set(user?.name ?? '');
       this.editBio.set(user?.bio ?? '');
+      this.editBusinessName.set(user?.businessName ?? '');
+      this.editBusinessPhone.set(user?.businessPhone ?? '');
+      this.editBusinessWebsite.set(user?.businessWebsite ?? '');
     }
     this.editMode.set(opening);
   }
@@ -207,7 +215,14 @@ export class ProfilePage implements OnInit {
       return;
     }
     this.profileSaving.set(true);
-    const saved = await this.platform.updateOwnProfile(this.editName(), this.editBio());
+    let saved = await this.platform.updateOwnProfile(this.editName(), this.editBio());
+    if (saved && this.isBusinessAccount()) {
+      saved = await this.sessionService.updateBusinessProfile({
+        businessName: this.editBusinessName(),
+        businessPhone: this.editBusinessPhone(),
+        businessWebsite: this.editBusinessWebsite(),
+      });
+    }
     this.profileSaving.set(false);
     if (saved) {
       this.editMode.set(false);
@@ -228,6 +243,104 @@ export class ProfilePage implements OnInit {
       writeLocalStorage(this.profileSettingsKey(), next);
       return next;
     });
+  }
+
+  /** Not expired and not manually ended — same rule the live feeds use. */
+  private isPostLive(tag: Tag): boolean {
+    if (tag.currentStatus && tag.currentStatus !== 'active') return false;
+    const createdMs = new Date(tag.createdAt).getTime();
+    if (Number.isNaN(createdMs)) return true;
+    return createdMs + tag.expiresIn * 60_000 > Date.now();
+  }
+
+  readonly activePosts = computed(() => this.myTags().filter((t) => this.isPostLive(t)));
+  readonly expiredPosts = computed(() => this.myTags().filter((t) => !this.isPostLive(t)));
+
+  private patchMyTag(id: string, patch: Partial<Tag>): void {
+    this.myTags.update((tags) => tags.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
+
+  async extendPost(tag: Tag, addMinutes: number): Promise<void> {
+    if (!tag.id) return;
+    try {
+      const updated = await firstValueFrom(
+        this.tagRepo.update(tag.id, {
+          expiresIn: tag.expiresIn + addMinutes,
+          currentStatus: 'active',
+        }),
+      );
+      this.patchMyTag(tag.id, updated);
+      this.toast.show('Post extended.', 'success');
+    } catch (err) {
+      this.logger.error('Failed to extend post', err);
+      this.toast.show('Could not extend the post.', 'danger');
+    }
+  }
+
+  async markSoldOrFull(tag: Tag): Promise<void> {
+    const ok = await this.platform.setPostStatus(tag, 'resolved', '');
+    if (ok && tag.id) {
+      this.patchMyTag(tag.id, { currentStatus: 'resolved' });
+      this.toast.show('Marked sold/full.', 'success');
+    }
+  }
+
+  async endPostNow(tag: Tag): Promise<void> {
+    const ok = await this.platform.setPostStatus(tag, 'cancelled', '');
+    if (ok && tag.id) {
+      this.patchMyTag(tag.id, { currentStatus: 'cancelled' });
+      this.toast.show('Post ended.', 'success');
+    }
+  }
+
+  /**
+   * Prefills the composer from an old post (text/price/availability/tag/etc.)
+   * and jumps straight to the Details step so the owner only has to tweak
+   * what changed — price, availability, expiry — then publish as a NEW post.
+   * Photos aren't carried over (the old ones are already-uploaded URLs, not
+   * re-uploadable local files) — the owner re-attaches them if needed.
+   */
+  /**
+   * Prefills the composer from an old post and republishes it as a NEW post.
+   * `resumeStep: 'preview'` → "Post Again" (nothing to review, one tap to publish);
+   * `resumeStep: 'details'` → "Edit & Post" (review/tweak price, availability, etc. first).
+   * Photos aren't carried over (the old ones are already-uploaded URLs, not
+   * re-uploadable local files) — the owner re-attaches them if needed.
+   */
+  private prefillFromPost(tag: Tag, resumeStep: 'details' | 'preview'): void {
+    this.shared.updateCoordinates(tag.lat, tag.lng);
+    this.shared.updateText(tag.hoodId || tag.highlight || 'Selected post');
+    this.shared.updateRegion(tag.state ?? '', tag.country ?? '');
+    this.shared.locationType.set(tag.locationType ?? 'pinpoint');
+    this.shared.postDraft.set({
+      postType: tag.postType ?? 'personal',
+      headline: tag.highlight,
+      expiresIn: tag.expiresIn,
+      tag: tag.tag,
+      intent: tag.intent ?? '',
+      price: tag.price?.toString() ?? '',
+      originalPrice: tag.originalPrice?.toString() ?? '',
+      availabilityNote: tag.availabilityNote ?? '',
+      cta: tag.cta ?? 'message',
+      productLink: tag.productLink ?? '',
+      isEvent: !!(tag.eventStart || tag.eventEnd),
+      eventStart: tag.eventStart ?? '',
+      eventEnd: tag.eventEnd ?? '',
+      pollOptions: tag.pollOptions?.length ? [...tag.pollOptions] : ['', ''],
+      templateValues: {},
+      media: [],
+      resumeStep,
+    });
+    this.toast.show('Pre-filled from your last post — re-attach photos if needed.', 'success');
+    void this.router.navigate(['/post']);
+  }
+
+  postAgain(tag: Tag): void {
+    this.prefillFromPost(tag, 'preview');
+  }
+
+  editAndPost(tag: Tag): void {
+    this.prefillFromPost(tag, 'details');
   }
 
   viewOnMap(tag: Tag): void {

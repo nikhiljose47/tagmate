@@ -49,7 +49,8 @@ export class TagDataService {
         .from('users')
         .select(
           'uid,name,is_guest,reputation,bio,created_at,updated_at,' +
-            'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at',
+            'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at,' +
+            'account_type,business_name,business_phone,business_website',
         )
         .eq('uid', uid)
         .single<UserRow>(),
@@ -80,6 +81,10 @@ export class TagDataService {
           createdAt: data.created_at ?? undefined,
           updatedAt: data.updated_at ?? undefined,
           hood,
+          accountType: data.account_type === 'business' ? 'business' : 'personal',
+          businessName: data.business_name ?? undefined,
+          businessPhone: data.business_phone ?? undefined,
+          businessWebsite: data.business_website ?? undefined,
         };
       }),
     );
@@ -185,9 +190,11 @@ export class TagDataService {
       .range(offset, offset + limit - 1);
 
     if (search) {
-      const searchTerm = `%${search}%`;
+      const sanitized = search.replace(/[,()%]/g, '').trim();
+      if (!sanitized) return of({ data: [], error: null });
+      const searchTerm = `%${sanitized}%`;
       query = query.or(
-        `highlight.ilike.${searchTerm},username.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`,
+        `highlight.ilike.${searchTerm},username.ilike.${searchTerm},business_name.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`,
       );
     }
 

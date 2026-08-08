@@ -1,9 +1,19 @@
-import { Tag } from '../models/tag.model';
+import { PostCta, PostIntent, Tag } from '../models/tag.model';
 
 /** Database row shape (snake_case) that matches the Supabase `tags` table. */
 export interface TagRow {
   id?: string;
   username: string;
+  business_name?: string | null;
+  business_phone?: string | null;
+  business_website?: string | null;
+  post_type?: 'personal' | 'business' | null;
+  intent?: string | null;
+  price?: number | null;
+  original_price?: number | null;
+  availability_note?: string | null;
+  cta?: string | null;
+  product_link?: string | null;
   user_id: string;
   highlight: string;
   lat: number;
@@ -33,6 +43,16 @@ export interface TagRow {
 export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
   return {
     username: tag.username,
+    business_name: tag.businessName ?? null,
+    business_phone: tag.businessPhone ?? null,
+    business_website: tag.businessWebsite ?? null,
+    post_type: tag.postType ?? 'personal',
+    intent: tag.intent ?? null,
+    price: tag.price ?? null,
+    original_price: tag.originalPrice ?? null,
+    availability_note: tag.availabilityNote ?? null,
+    cta: tag.cta ?? null,
+    product_link: tag.productLink ?? null,
     user_id: tag.userId,
     highlight: tag.highlight,
     lat: tag.lat,
@@ -58,6 +78,16 @@ export function rowToTag(row: TagRow): Tag {
   return {
     id: row.id,
     username: row.username,
+    businessName: row.business_name ?? undefined,
+    businessPhone: row.business_phone ?? undefined,
+    businessWebsite: row.business_website ?? undefined,
+    postType: row.post_type === 'business' ? 'business' : 'personal',
+    intent: (row.intent as PostIntent) ?? undefined,
+    price: row.price ?? undefined,
+    originalPrice: row.original_price ?? undefined,
+    availabilityNote: row.availability_note ?? undefined,
+    cta: (row.cta as PostCta) ?? undefined,
+    productLink: row.product_link ?? undefined,
     userId: row.user_id,
     highlight: row.highlight,
     lat: row.lat,

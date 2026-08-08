@@ -50,6 +50,10 @@ export class AuthService implements OnDestroy {
     return from(this.client.auth.signUp({ email, password, options: { data: metadata } }));
   }
 
+  resendSignupConfirmation(email: string) {
+    return from(this.client.auth.resend({ type: 'signup', email }));
+  }
+
   isUsernameTaken(username: string): Observable<boolean> {
     return from(this.client.from('users').select('uid').ilike('name', username).limit(1)).pipe(
       map(({ data, error }) => {

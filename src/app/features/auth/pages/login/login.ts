@@ -25,6 +25,11 @@ export class LoginPage implements OnInit {
   loading = signal(false);
   showPassword = signal(false);
 
+  /** True when the last login attempt failed specifically because the email address hasn't been confirmed yet. */
+  unconfirmedEmail = signal(false);
+  resendingEmail = signal(false);
+  resendSent = signal(false);
+
   private destroyed = false;
 
   constructor() {
@@ -43,6 +48,8 @@ export class LoginPage implements OnInit {
 
   async login(): Promise<void> {
     this.error.set('');
+    this.unconfirmedEmail.set(false);
+    this.resendSent.set(false);
     const em = this.email().trim();
     if (!em || !em.includes('@') || !em.includes('.')) {
       this.error.set('Please enter a valid email address (e.g. name@example.com) to log in.');
@@ -62,11 +69,26 @@ export class LoginPage implements OnInit {
         this.router.navigateByUrl('/feed-beta');
       } else {
         this.error.set(res.message ?? 'Login failed');
+        // Supabase's own error text/code for this case is "Email not confirmed" / 'email_not_confirmed'.
+        if (res.code === 'email_not_confirmed' || /email.*not.*confirm/i.test(res.message ?? '')) {
+          this.unconfirmedEmail.set(true);
+        }
       }
     } finally {
       if (!this.destroyed) {
         this.loading.set(false);
       }
+    }
+  }
+
+  async resendConfirmationEmail(): Promise<void> {
+    if (this.resendingEmail()) return;
+    this.resendingEmail.set(true);
+    try {
+      const ok = await this.session.resendConfirmationEmail(this.email().trim());
+      if (ok) this.resendSent.set(true);
+    } finally {
+      this.resendingEmail.set(false);
     }
   }
 

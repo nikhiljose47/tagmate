@@ -28,8 +28,13 @@
         <div class="fb-first-post fb-first-post--hot-now">
           <span class="fb-first-post-icon">🔥</span>
           <strong>No hot now or emergency posts</strong>
-          <p>All quiet in {{ workspace.feedBetaScope()?.location || 'your area' }}. When someone flags a post as Hot Now, it will show up here for 2 hours.</p>
-          <a class="fb-first-post-btn fb-first-post-btn--hot-now" routerLink="/post">Post an urgent update</a>
+          <p>
+            All quiet in {{ workspace.feedBetaScope()?.location || 'your area' }}. When someone
+            flags a post as Hot Now, it will show up here for 2 hours.
+          </p>
+          <a class="fb-first-post-btn fb-first-post-btn--hot-now" routerLink="/post"
+            >Post an urgent update</a
+          >
         </div>
       } @else if (workspace.feedBetaScope()?.freeform) {
         <div class="fb-first-post">
@@ -48,7 +53,12 @@
     </div>
   } @else {
     @for (slide of slides(); track slide.key) {
-      <article class="fb-slide" #slideEl [attr.data-key]="slide.key">
+      <article
+        class="fb-slide"
+        [class.fb-slide--business]="slide.post.postType === 'business'"
+        #slideEl
+        [attr.data-key]="slide.key"
+      >
         <div class="fb-body">
           <header class="fb-card-header">
             <a
@@ -59,11 +69,26 @@
               <tm-avatar [username]="slide.username" [size]="36" />
             </a>
             <div class="fb-card-author">
-              <a
-                class="fb-card-name"
-                [routerLink]="slide.isMine ? ['/profile'] : ['/users', slide.post.userId]"
-                >{{ slide.username }}</a
-              >
+              <div class="fb-card-name-row">
+                <a
+                  class="fb-card-name"
+                  [routerLink]="slide.isMine ? ['/profile'] : ['/users', slide.post.userId]"
+                >
+                  @if (slide.post.postType === 'business' && slide.post.businessName) {
+                    <i class="bi bi-shop-window fb-card-shop-icon" aria-hidden="true"></i>
+                    {{ slide.post.businessName }}
+                  } @else {
+                    {{ slide.username }}
+                  }
+                </a>
+                @if (slide.shortLocation) {
+                  <span class="fb-card-location">
+                    <span class="fb-card-location-dot" aria-hidden="true">&middot;</span>
+                    <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                    {{ slide.shortLocation }}
+                  </span>
+                }
+              </div>
               <span class="fb-card-meta">
                 <i class="bi bi-clock" aria-hidden="true"></i>
                 {{ slide.post.createdAt | timeAgo }}
@@ -77,26 +102,30 @@
               [attr.aria-label]="'Open map for ' + slide.location"
             >
               <i class="bi bi-map" aria-hidden="true"></i>
-              <span>Map</span>
+              <span>View Map</span>
             </button>
           </header>
 
-          <div class="fb-media" [style.background]="slide.post.tag | tagGradient">
-            @if (slide.imageUrls.length) {
-              @if (isLive(slide.key)) {
+          @if (slide.post.postType === 'business') {
+            <!-- Business post: content-first listing card — description reads as the
+                 main body, photos (if any) sit inline within the same content block
+                 rather than as a full-bleed hero. Shown alongside personal-style posts
+                 in the same feed, styled per-post rather than by a global toggle. -->
+            <div class="fb-business-body">
+              @if (slide.imageUrls.length && isLive(slide.key)) {
                 <div
-                  class="fb-media-strip"
+                  class="fb-business-media"
                   [class.single]="slide.imageUrls.length === 1"
                   (scroll)="onImageStripScroll(slide.key, $event, slide.imageUrls.length)"
                 >
                   @for (image of slide.imageUrls; track image; let i = $index) {
                     <a
-                      class="fb-media-frame"
+                      class="fb-business-media-frame"
                       [routerLink]="['/posts', slide.key]"
                       [attr.aria-label]="'Open post image ' + (i + 1)"
                     >
                       <img
-                        class="fb-media-img"
+                        class="fb-business-media-img"
                         [src]="image"
                         [alt]="slide.post.highlight || 'Post image'"
                         decoding="async"
@@ -105,24 +134,132 @@
                   }
                 </div>
                 @if (slide.imageUrls.length > 1) {
-                  <div class="fb-media-dots" aria-label="Image position">
+                  <div class="fb-media-dots fb-media-dots--business" aria-label="Image position">
                     @for (image of slide.imageUrls; track image; let i = $index) {
-                      <span class="fb-media-dot" [class.active]="imageIndex(slide.key) === i"></span>
+                      <span
+                        class="fb-media-dot"
+                        [class.active]="imageIndex(slide.key) === i"
+                      ></span>
                     }
                   </div>
                 }
               }
-            } @else {
-              <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
-            }
-          </div>
+              <div class="fb-business-content">
+                <div class="fb-business-badges">
+                  @if (slide.post.intent) {
+                    <span class="fb-business-intent">{{ intentLabel(slide.post.intent) }}</span>
+                  }
+                  <span class="fb-business-time">
+                    <i class="bi bi-clock-fill" aria-hidden="true"></i>
+                    {{ timeRemainingLabel(slide.post) }}
+                  </span>
+                </div>
 
-          <div class="fb-caption">
-            <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
-            @if (slide.post.tag) {
-              <span class="fb-caption-tag">#{{ slide.post.tag }}</span>
-            }
-          </div>
+                @if (slide.post.tag) {
+                  <span class="fb-business-tag"
+                    >{{ slide.post.tag | tagEmoji }} #{{ slide.post.tag }}</span
+                  >
+                }
+                <p class="fb-business-text">{{ slide.post.highlight || 'Untitled post' }}</p>
+
+                @if (slide.post.price || slide.post.availabilityNote) {
+                  <div class="fb-business-price-row">
+                    @if (slide.post.price) {
+                      <span class="fb-business-price">₹{{ slide.post.price }}</span>
+                    }
+                    @if (slide.post.originalPrice) {
+                      <span class="fb-business-price-original">₹{{ slide.post.originalPrice }}</span>
+                    }
+                    @if (slide.post.availabilityNote) {
+                      <span class="fb-business-availability">{{ slide.post.availabilityNote }}</span>
+                    }
+                  </div>
+                }
+
+                @if (slide.post.businessPhone || slide.post.businessWebsite) {
+                  <div class="fb-business-contact">
+                    @if (slide.post.businessPhone) {
+                      <a class="fb-business-contact-link" [href]="'tel:' + slide.post.businessPhone">
+                        <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                        {{ slide.post.businessPhone }}
+                      </a>
+                    }
+                    @if (slide.post.businessWebsite) {
+                      <a
+                        class="fb-business-contact-link"
+                        [href]="slide.post.businessWebsite"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <i class="bi bi-globe2" aria-hidden="true"></i>
+                        {{ slide.post.businessWebsite }}
+                      </a>
+                    }
+                  </div>
+                }
+
+                <div class="fb-business-cta-row">
+                  @if (ctaHref(slide.post); as href) {
+                    <a class="fb-business-cta" [href]="href" target="_blank" rel="noopener noreferrer">
+                      <i class="bi" [class]="ctaIcon(slide.post)" aria-hidden="true"></i>
+                      {{ ctaLabel(slide.post) }}
+                    </a>
+                  } @else {
+                    <a class="fb-business-cta" [routerLink]="['/posts', slide.key]">
+                      <i class="bi" [class]="ctaIcon(slide.post)" aria-hidden="true"></i>
+                      {{ ctaLabel(slide.post) }}
+                    </a>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="fb-media" [style.background]="slide.post.tag | tagGradient">
+              @if (slide.imageUrls.length) {
+                @if (isLive(slide.key)) {
+                  <div
+                    class="fb-media-strip"
+                    [class.single]="slide.imageUrls.length === 1"
+                    (scroll)="onImageStripScroll(slide.key, $event, slide.imageUrls.length)"
+                  >
+                    @for (image of slide.imageUrls; track image; let i = $index) {
+                      <a
+                        class="fb-media-frame"
+                        [routerLink]="['/posts', slide.key]"
+                        [attr.aria-label]="'Open post image ' + (i + 1)"
+                      >
+                        <img
+                          class="fb-media-img"
+                          [src]="image"
+                          [alt]="slide.post.highlight || 'Post image'"
+                          decoding="async"
+                        />
+                      </a>
+                    }
+                  </div>
+                  @if (slide.imageUrls.length > 1) {
+                    <div class="fb-media-dots" aria-label="Image position">
+                      @for (image of slide.imageUrls; track image; let i = $index) {
+                        <span
+                          class="fb-media-dot"
+                          [class.active]="imageIndex(slide.key) === i"
+                        ></span>
+                      }
+                    </div>
+                  }
+                }
+              } @else {
+                <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
+              }
+            </div>
+
+            <div class="fb-caption">
+              <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
+              @if (slide.post.tag) {
+                <span class="fb-caption-tag">#{{ slide.post.tag }}</span>
+              }
+            </div>
+          }
 
           <footer class="fb-card-footer">
             <div class="fb-card-actions">
@@ -161,7 +298,8 @@
               </button>
             </div>
             <p class="fb-card-counts">
-              {{ social.likeCount(slide.post) }} likes · {{ social.commentCount(slide.post) }} comments
+              {{ social.likeCount(slide.post) }} likes ·
+              {{ social.commentCount(slide.post) }} comments
             </p>
           </footer>
         </div>
@@ -195,7 +333,7 @@
       <div>
         <span class="fb-map-drawer-kicker">Post location</span>
         <h2>{{ mapped.location }}</h2>
-        <p>{{ mapped.post.highlight || ('#' + mapped.post.tag) }}</p>
+        <p>{{ mapped.post.highlight || '#' + mapped.post.tag }}</p>
       </div>
       <button type="button" (click)="closeLocation()" aria-label="Close location map" autofocus>
         <i class="bi bi-x-lg" aria-hidden="true"></i>

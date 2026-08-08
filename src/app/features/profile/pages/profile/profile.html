@@ -66,6 +66,16 @@
           <label class="edit-label">Bio</label>
           <textarea class="tm-input mb-3" rows="3" [value]="editBio()" (input)="editBio.set($any($event.target).value)" maxlength="280" placeholder="Tell your hood about yourself..."></textarea>
           <small class="edit-count">{{ editBio().length }}/280</small>
+
+          @if (isBusinessAccount()) {
+            <label class="edit-label">Shop / business name</label>
+            <input class="tm-input mb-3" type="text" [value]="editBusinessName()" (input)="editBusinessName.set($any($event.target).value)" maxlength="60" placeholder="Shown as the author on your business posts" />
+            <label class="edit-label">Phone (optional)</label>
+            <input class="tm-input mb-3" type="tel" [value]="editBusinessPhone()" (input)="editBusinessPhone.set($any($event.target).value)" placeholder="Shown on business posts" />
+            <label class="edit-label">Website (optional)</label>
+            <input class="tm-input mb-3" type="url" [value]="editBusinessWebsite()" (input)="editBusinessWebsite.set($any($event.target).value)" placeholder="https://…" />
+          }
+
           <button class="tm-btn tm-btn-primary w-full" type="button" [disabled]="profileSaving()" (click)="saveProfile()">{{ profileSaving() ? 'Saving…' : 'Save' }}</button>
         </div>
       }
@@ -118,12 +128,14 @@
 
       <!-- Posts Tab -->
       @if (activeTab() === 'posts') {
-        @if (myTags(); as tags) {
-          @if (tags.length === 0) {
-            <tm-empty-state icon="+" title="No posts yet" subtitle="You haven't posted anything yet." />
-          }
-          <div class="posts-grid">
-            @for (tag of tags; track tag.id) {
+        @if (myTags().length === 0) {
+          <tm-empty-state icon="+" title="No posts yet" subtitle="You haven't posted anything yet." />
+        }
+
+        @if (activePosts().length > 0) {
+          <h3 class="posts-section-title">Active</h3>
+          <div class="posts-grid posts-grid--lifecycle">
+            @for (tag of activePosts(); track tag.id) {
               <div class="post-card" [style.background]="tag.tag | tagGradient">
                 <div class="post-card-media">
                   @if (tag.images[0]) {
@@ -145,6 +157,40 @@
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
+                </div>
+                <div class="post-card-lifecycle">
+                  <button type="button" class="pcl-btn" (click)="extendPost(tag, 240)">Extend +4h</button>
+                  <button type="button" class="pcl-btn" (click)="markSoldOrFull(tag)">Mark Sold/Full</button>
+                  <button type="button" class="pcl-btn pcl-btn--danger" (click)="endPostNow(tag)">End Now</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @if (expiredPosts().length > 0) {
+          <h3 class="posts-section-title">Expired</h3>
+          <div class="posts-grid posts-grid--lifecycle">
+            @for (tag of expiredPosts(); track tag.id) {
+              <div class="post-card post-card--expired" [style.background]="tag.tag | tagGradient">
+                <div class="post-card-media">
+                  @if (tag.images[0]) {
+                    <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+                  } @else {
+                    <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+                  }
+                </div>
+                <div class="post-card-overlay">
+                  <p class="post-card-text">{{ tag.highlight }}</p>
+                  <div class="post-card-actions">
+                    <button class="pca-btn danger" type="button" (click)="deleteTag(tag)" aria-label="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="post-card-lifecycle">
+                  <button type="button" class="pcl-btn pcl-btn--primary" (click)="postAgain(tag)">Post Again</button>
+                  <button type="button" class="pcl-btn" (click)="editAndPost(tag)">Edit & Post</button>
                 </div>
               </div>
             }

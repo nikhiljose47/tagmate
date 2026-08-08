@@ -57,6 +57,8 @@ interface BetaSlide {
   readonly post: Tag;
   readonly username: string;
   readonly location: string;
+  /** Compact one-word/short-phrase area name for the author line, e.g. "Sampangirama Nagar". */
+  readonly shortLocation: string;
   readonly imageUrls: readonly string[];
   readonly mapTiles: readonly MapTile[];
   readonly isMine: boolean;
@@ -158,9 +160,23 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       if (post.tag === 'bulletin') return false;
       if (this.social.isHidden(post)) return false;
       if (this.platform.isBlocked(post.userId)) return false;
+      if (!this.isPostLive(post)) return false;
       return true;
     }),
   );
+
+  /**
+   * True while a post still belongs in the normal active feed: not expired
+   * (`created_at + expires_in` hasn't passed) and not manually ended by its
+   * owner (status still 'active'). Expired/ended posts stay in the DB for
+   * "My Posts" history — this only hides them from the live feed.
+   */
+  private isPostLive(post: Tag): boolean {
+    if (post.currentStatus && post.currentStatus !== 'active') return false;
+    const createdMs = new Date(post.createdAt).getTime();
+    if (Number.isNaN(createdMs)) return true;
+    return createdMs + post.expiresIn * 60_000 > Date.now();
+  }
 
   private readonly syncFeedScope = effect(() => {
     const candidates = this.feedCandidates();
@@ -226,6 +242,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
         post,
         username: post.username || 'Anonymous',
         location: this.locationLabel(post),
+        shortLocation: this.shortLocationLabel(post),
         imageUrls: post.images?.filter(Boolean) ?? [],
         mapTiles: this.mapTilesFor(post),
         isMine: post.userId === myUid,
@@ -307,6 +324,85 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   /** True while the slide is near enough to the viewport to load its imagery. */
   protected isLive(key: string): boolean {
     return this.eagerKeys().has(key) || this.liveKeys().has(key);
+  }
+
+  // ── Business card helpers ────────────────────────────────────────────────
+
+  private static readonly INTENT_LABELS: Record<string, string> = {
+    offer: 'Offer',
+    available_now: 'Available Now',
+    open_slot: 'Open Slot',
+    happening: 'Happening',
+    looking_for: 'Looking For',
+    sell_give: 'Sell / Give',
+  };
+
+  private static readonly CTA_LABELS: Record<string, string> = {
+    message: 'Message',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    directions: 'Directions',
+    visit_shop: 'Visit Shop',
+    view_product: 'View Product',
+    book: 'Book',
+    join: 'Join',
+    interested: 'Interested',
+  };
+
+  private static readonly CTA_ICONS: Record<string, string> = {
+    message: 'bi-chat-dots-fill',
+    call: 'bi-telephone-fill',
+    whatsapp: 'bi-whatsapp',
+    directions: 'bi-signpost-2-fill',
+    visit_shop: 'bi-shop-window',
+    view_product: 'bi-box-arrow-up-right',
+    book: 'bi-calendar2-check-fill',
+    join: 'bi-people-fill',
+    interested: 'bi-hand-thumbs-up-fill',
+  };
+
+  protected intentLabel(intent: string | undefined): string {
+    return intent ? (FeedBetaPage.INTENT_LABELS[intent] ?? intent) : '';
+  }
+
+  protected ctaLabel(post: Tag): string {
+    return FeedBetaPage.CTA_LABELS[post.cta ?? 'message'] ?? 'Message';
+  }
+
+  protected ctaIcon(post: Tag): string {
+    return FeedBetaPage.CTA_ICONS[post.cta ?? 'message'] ?? 'bi-chat-dots-fill';
+  }
+
+  /** External URL for the CTA when one applies — null means "open the post" (safe universal fallback). */
+  protected ctaHref(post: Tag): string | null {
+    switch (post.cta) {
+      case 'call':
+        return post.businessPhone ? `tel:${post.businessPhone}` : null;
+      case 'whatsapp':
+        return post.businessPhone
+          ? `https://wa.me/${post.businessPhone.replace(/\D/g, '')}`
+          : null;
+      case 'directions':
+        return Number.isFinite(post.lat) && Number.isFinite(post.lng)
+          ? `https://www.google.com/maps/dir/?api=1&destination=${post.lat},${post.lng}`
+          : null;
+      case 'visit_shop':
+        return post.businessWebsite || null;
+      case 'view_product':
+        return post.productLink || post.businessWebsite || null;
+      default:
+        return null;
+    }
+  }
+
+  /** "3h left" / "42m left" / "Expired" — same rule as `isPostLive`, just a label. */
+  protected timeRemainingLabel(post: Tag): string {
+    const createdMs = new Date(post.createdAt).getTime();
+    const remainingMs = createdMs + post.expiresIn * 60_000 - Date.now();
+    if (Number.isNaN(createdMs) || remainingMs <= 0) return 'Expired';
+    const hours = Math.floor(remainingMs / 3_600_000);
+    if (hours >= 1) return `${hours}h left`;
+    return `${Math.max(1, Math.floor(remainingMs / 60_000))}m left`;
   }
 
   protected imageIndex(key: string): number {
@@ -614,6 +710,24 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     return 'Location unavailable';
   }
 
+  /**
+   * Compact neighbourhood-level text for the author line, e.g. turns
+   * "Kasturba Road, Sampangirama Nagar, Bengaluru, Karnataka" into
+   * "Sampangirama Nagar" — `hoodId` is sometimes a full comma-joined address
+   * (map-pick flow) and sometimes already a clean area name (current-location
+   * flow), so this normalizes both to a single short phrase.
+   */
+  private shortLocationLabel(post: Tag): string {
+    const raw = this.locationLabel(post);
+    const parts = raw
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length <= 1) return parts[0] ?? raw;
+    // The first segment is usually a street/road; the second is the neighbourhood.
+    return parts[1];
+  }
+
   private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {
     if (!scope) return false;
     if (this.areaIdFor(post) !== scope.areaId) return false;
@@ -746,28 +860,24 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     const tag = post.tag?.trim().toLowerCase();
 
     if (tag === 'hot-now') return 'hot-now';
-    if (tag === 'dating' || tag === 'network') return 'dating';
-    if (tag === 'game' || tag === 'sports' || tag === 'fitness' || tag === 'entertainment') {
-      return 'game';
-    }
-    if (tag === 'job' || tag === 'business' || tag === 'startup' || tag === 'tech') return 'job';
+    if (tag === 'dating') return 'dating';
+    if (tag === 'game' || tag === 'fitness') return 'game';
+    if (tag === 'job' || tag === 'biz') return 'job';
 
     if (
       tag === 'around' ||
-      tag === 'news' ||
-      tag === 'weather' ||
+      tag === 'shop' ||
+      tag === 'help' ||
       tag === 'food' ||
-      tag === 'event' ||
-      tag === 'sale' ||
-      tag === 'traffic' ||
-      tag === 'alert' ||
-      tag === 'environment' ||
-      tag === 'art' ||
       tag === 'health' ||
-      tag === 'market' ||
-      tag === 'utility' ||
-      tag === 'shopping' ||
-      tag === 'question'
+      tag === 'learn' ||
+      tag === 'space' ||
+      tag === 'travel' ||
+      tag === 'event' ||
+      tag === 'notice' ||
+      tag === 'bulletin' ||
+      tag === 'alert' ||
+      tag === 'poll'
     ) {
       return 'around';
     }

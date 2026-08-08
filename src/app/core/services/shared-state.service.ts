@@ -4,14 +4,24 @@ export type SelectedCoordinates = readonly [lat: number, lng: number] | null;
 
 /** In-progress post form, kept alive while the user detours to the map to pick a location. */
 export interface PostDraft {
+  postType: 'personal' | 'business';
   headline: string;
   expiresIn: number;
   tag: string;
+  intent: string;
+  price: string;
+  originalPrice: string;
+  availabilityNote: string;
+  cta: string;
+  productLink: string;
   isEvent: boolean;
   eventStart: string;
   eventEnd: string;
   pollOptions: string[];
+  templateValues: Record<string, string>;
   media: { file: File; previewUrl: string; type: 'image' | 'video' }[];
+  /** Where to land when this draft is restored — 'preview' for "Post Again" (nothing to review). */
+  resumeStep?: 'details' | 'preview';
 }
 
 @Injectable({ providedIn: 'root' })

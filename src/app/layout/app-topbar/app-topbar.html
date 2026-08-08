@@ -1,293 +1,132 @@
 <header class="app-topbar">
-  <!-- ── Brand (left) ── -->
-  <a class="topbar-brand" routerLink="/feed-beta" aria-label="Tagmate home">
-    <img class="topbar-logo" src="assets/tagmate-logo.svg" alt="" width="28" height="28" />
-    <span class="topbar-wordmark">Tagmate</span>
-  </a>
+  <!-- ── Brand + hood/place (left) ── -->
+  <div class="topbar-left">
+    <a class="topbar-brand" routerLink="/feed-beta" aria-label="Tagmate home">
+      <img class="topbar-logo" src="assets/tagmate-logo.svg" alt="" width="28" height="28" />
+      <span class="topbar-wordmark">Tagmate</span>
+    </a>
+
+    <button
+      type="button"
+      class="hood-chip"
+      (click)="openHoodModal()"
+      [attr.title]="hoodChipLabel()"
+      [attr.aria-label]="'Change your hood or place — currently ' + hoodChipLabel()"
+    >
+      <span class="hood-chip-code" aria-hidden="true">{{ hoodChipCode() }}</span>
+    </button>
+  </div>
 
   <!-- ── Nav icons (desktop only, like Facebook) ── -->
   <nav class="topbar-nav" aria-label="Main navigation">
-    <a
-      class="topbar-nav-btn"
-      routerLink="/feed-beta"
-      routerLinkActive="active"
-      aria-label="Home"
-    >
+    <a class="topbar-nav-btn" routerLink="/feed-beta" routerLinkActive="active" aria-label="Home">
       <i class="bi bi-house" aria-hidden="true"></i>
     </a>
-    <a
-      class="topbar-nav-btn"
-      routerLink="/hood"
-      routerLinkActive="active"
-      aria-label="Map"
-    >
+    <a class="topbar-nav-btn" routerLink="/hood" routerLinkActive="active" aria-label="Map">
       <i class="bi bi-map" aria-hidden="true"></i>
     </a>
-    <a
-      class="topbar-nav-btn"
-      routerLink="/post"
-      routerLinkActive="active"
-      aria-label="Post"
-    >
+    <a class="topbar-nav-btn" routerLink="/post" routerLinkActive="active" aria-label="Post">
       <i class="bi bi-plus-square" aria-hidden="true"></i>
     </a>
   </nav>
 
-  <!-- ── Center section ── -->
+  <!-- ── Center section: Google-Maps-style post/tag search within the hood ── -->
   <div class="topbar-center">
-    @if (isHome()) {
+    <div class="topbar-search-row">
       <div
-        class="home-location-picker"
-        [class.active]="homeDistrictSearchOpen() || homeTagMenuOpen()"
-        [class.home-location-picker--beta]="isFeedBeta()"
-        [tmClickOutsideEnabled]="homeDistrictSearchOpen() || homeTagMenuOpen()"
-        (tmClickOutside)="closeHomeScopeMenus()"
-      >
-        <div class="home-location-main">
-          @if (homeDistrictSearchOpen()) {
-            <i class="bi bi-search" aria-hidden="true"></i>
-            <input
-              type="search"
-              [placeholder]="isFeedBeta() ? 'Search regions or country' : 'Search districts'"
-              [ngModel]="homeDistrictQuery()"
-              (ngModelChange)="searchDistricts($event)"
-              (keydown.enter)="selectFirstHomeDistrict()"
-              (blur)="closeHomeDistrictSearch()"
-              [attr.aria-label]="isFeedBeta() ? 'Search countries' : 'Search districts'"
-              autofocus
-            />
-          } @else {
-            <button
-              type="button"
-              class="home-location-display"
-              (click)="openHomeDistrictSearch()"
-              [attr.aria-label]="
-                isFeedBeta() ? 'Search and change country' : 'Search and change district'
-              "
-            >
-              <i class="bi bi-geo-alt" aria-hidden="true"></i>
-              <span>
-                <strong>{{ isFeedBeta() ? feedBetaCountryLabel() : homeDistrictLabel() }}</strong>
-                <small>{{ isFeedBeta() ? feedBetaCountryMeta() : homeDistrictCountry() }}</small>
-              </span>
-            </button>
-          }
-        </div>
-
-        <button
-          type="button"
-          class="home-filter-trigger"
-          [class.home-filter-trigger--tag]="isFeedBeta()"
-          [class.active]="homeTagMenuOpen()"
-          (click)="toggleHomeTagMenu()"
-          [attr.aria-label]="isFeedBeta() ? 'Filter feed posts by tag' : 'Filter Home posts by tag'"
-          [attr.aria-expanded]="homeTagMenuOpen()"
-        >
-          <i class="bi" [class]="isFeedBeta() ? 'bi-hash' : 'bi-funnel'" aria-hidden="true"></i>
-          <span>{{ homeTagLabel() }}</span>
-          @if (isFeedBeta()) {
-            <small class="home-filter-count">{{ feedBetaSelectedTagCount() }}</small>
-          }
-        </button>
-
-        @if (isFeedBeta()) {
-          <button
-            type="button"
-            class="home-hot-now-chip"
-            [class.active]="workspace.feedBetaScope()?.category === 'hot-now'"
-            [class.has-badge]="hotNowBadgeCount() > 0"
-            (click)="openHomeHoodFeed()"
-            [attr.aria-label]="'Hot now in ' + (hood().state || 'your home hood') + (hotNowBadgeCount() > 0 ? ' — ' + hotNowBadgeCount() + ' new' : '')"
-            [attr.title]="'Hot now in ' + (hood().state || 'your home hood') + ' — urgent posts, last 2 hours'"
-          >
-            <span aria-hidden="true">🔥</span>
-            <span class="home-hot-now-label">Hot Now</span>
-            @if (hotNowBadgeCount() > 0) {
-              <span class="home-hot-now-badge" aria-hidden="true">{{ hotNowBadgeCount() > 9 ? '9+' : hotNowBadgeCount() }}</span>
-            }
-          </button>
-        }
-
-        @if (homeDistrictSearchOpen()) {
-          <section
-            class="home-district-results"
-            [attr.aria-label]="isFeedBeta() ? 'Region search results' : 'District search results'"
-          >
-            @if (isFeedBeta()) {
-              @for (area of feedBetaCountryResults(); track area.id) {
-                <button
-                  type="button"
-                  class="home-district-result"
-                  (mousedown)="$event.preventDefault()"
-                  (click)="selectFeedBetaCountry(area.id)"
-                >
-                  <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                  <span>
-                    <strong>
-                      {{ area.label }}
-                      @if (isUserHood(area.label, area.country)) {
-                        <em class="home-district-hood-badge">(Home)</em>
-                      }
-                    </strong>
-                    <small>{{ area.label !== area.country ? area.country : 'Country feed' }}</small>
-                  </span>
-                  <span class="home-district-count">{{ area.postCount }}</span>
-                </button>
-              }
-              @if (isNominatimLoading()) {
-                <div class="home-district-loading">
-                  <span class="search-spinner" aria-label="Searching worldwide"></span>
-                  <small>Searching worldwide…</small>
-                </div>
-              }
-              @if (nominatimSuggestions().length) {
-                <div class="home-district-section-label">Global search</div>
-                @for (place of nominatimSuggestions(); track place.place_id) {
-                  <button
-                    type="button"
-                    class="home-district-result home-district-result--new"
-                    (mousedown)="$event.preventDefault()"
-                    (click)="selectFeedBetaFromNominatim(place)"
-                  >
-                    <i class="bi bi-globe" aria-hidden="true"></i>
-                    <span>
-                      <strong>
-                        {{ place.address.state || place.display_name.split(',')[0] }}
-                        @if (isUserHood(place.address.state, place.address.country)) {
-                          <em class="home-district-hood-badge">(Home)</em>
-                        }
-                      </strong>
-                      <small>{{ place.address.country || '' }}</small>
-                    </span>
-                    <span class="home-district-new-badge">New</span>
-                  </button>
-                }
-              }
-              @if (!feedBetaCountryResults().length && !nominatimSuggestions().length && !isNominatimLoading()) {
-                <div class="home-district-empty">
-                  <strong>No regions found</strong>
-                  <span>Try a city, state, or country name.</span>
-                </div>
-              }
-            } @else {
-              @for (district of homeDistrictResults(); track district.key) {
-                <button
-                  type="button"
-                  class="home-district-result"
-                  (mousedown)="$event.preventDefault()"
-                  (click)="selectHomeDistrict(district)"
-                >
-                  <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                  <span>
-                    <strong>{{ district.name }}</strong>
-                    <small>{{ district.country }}</small>
-                  </span>
-                </button>
-              } @empty {
-                <div class="home-district-empty">
-                  <strong>No districts found</strong>
-                  <span>Try a district name from the list.</span>
-                </div>
-              }
-            }
-          </section>
-        }
-
-        @if (homeTagMenuOpen()) {
-          <section
-            class="home-tag-menu"
-            [class.home-tag-menu--beta]="isFeedBeta()"
-            aria-label="Tag filters"
-          >
-            @if (!isFeedBeta()) {
-              <button
-                type="button"
-                [class.active]="workspace.homeTag() === 'all'"
-                (click)="selectHomeTag('all')"
-              >
-                <i class="bi bi-grid" aria-hidden="true"></i>
-                All tags
-              </button>
-            }
-            @for (
-              tag of isFeedBeta() ? feedBetaTagOptions() : workspace.homeTagOptions();
-              track tag
-            ) {
-              <button
-                type="button"
-                [class.active]="
-                  isFeedBeta()
-                    ? workspace.feedBetaScope()?.category === tag
-                    : workspace.homeTag() === tag
-                "
-                (click)="selectHomeTag(tag)"
-              >
-                <i class="bi bi-hash" aria-hidden="true"></i>
-                <span>{{ tag | titlecase }}</span>
-                @if (isFeedBeta()) {
-                  <small>{{ feedBetaTagCount(tag) }}</small>
-                }
-              </button>
-            }
-          </section>
-        }
-      </div>
-    } @else {
-      <div
-        class="topbar-search"
-        [class.active]="workspace.commandOpen()"
-        [tmClickOutsideEnabled]="workspace.commandOpen()"
-        (tmClickOutside)="closeCommand()"
+        class="hood-search"
+        [class.active]="postSearchOpen()"
+        [tmClickOutsideEnabled]="postSearchOpen()"
+        (tmClickOutside)="closePostSearch()"
       >
         <i class="bi bi-search" aria-hidden="true"></i>
         <input
           type="search"
-          placeholder="Search posts, neighborhoods, users, alerts..."
-          [ngModel]="query()"
-          (focus)="openCommand()"
-          (ngModelChange)="onQueryChange($event)"
-          aria-label="Command search"
+          [placeholder]="'Search posts or tags in ' + hoodChipLabel()"
+          [ngModel]="postSearchQuery()"
+          (focus)="openPostSearch()"
+          (ngModelChange)="onPostSearchChange($event)"
+          aria-label="Search posts and tags in your hood"
         />
-        @if (isSearching()) {
+        @if (isPostSearching()) {
           <span class="search-spinner" aria-label="Searching"></span>
         }
 
-        @if (workspace.commandOpen()) {
-          <section class="command-results" aria-label="Command results">
-            <div class="command-results-head">
-              <span>Command center</span>
-              <button type="button" (click)="closeCommand()" aria-label="Close command search">
-                <i class="bi bi-x-lg" aria-hidden="true"></i>
-              </button>
-            </div>
-
-            @if (results().length === 0 && query().trim().length >= 2 && !isSearching()) {
-              <div class="command-empty">
+        @if (postSearchOpen()) {
+          <section class="hood-search-results" aria-label="Search results">
+            @if (postSearchQuery().trim().length < 2) {
+              <div class="hood-search-hint">
+                <i class="bi bi-signpost-split" aria-hidden="true"></i>
+                <span>Type a phrase to find posts and tags near {{ hoodChipLabel() }}</span>
+              </div>
+            } @else if (postSearchResults().length === 0 && !isPostSearching()) {
+              <div class="hood-search-empty">
                 <strong>No matches found</strong>
-                <span>Try a neighborhood, alert, category, or author.</span>
+                <span>Try a different word, tag, or phrase.</span>
               </div>
             }
 
-            @for (result of results(); track result.id) {
-              <button type="button" class="command-result" (click)="goTo(result)">
-                <span class="command-icon"
-                  ><i class="bi" [class]="result.icon" aria-hidden="true"></i
-                ></span>
-                <span>
+            @for (result of postSearchResults(); track result.id) {
+              <button type="button" class="hood-search-result" (click)="goToSearchResult(result)">
+                <span class="hood-search-result-icon">
+                  <i class="bi bi-hash" aria-hidden="true"></i>
+                </span>
+                <span class="hood-search-result-body">
                   <strong>{{ result.title }}</strong>
-                  <small>{{ result.subtitle }}</small>
+                  <small>#{{ result.tag }} · {{ result.location }} · {{ result.username }}</small>
                 </span>
               </button>
             }
           </section>
         }
       </div>
-    }
+
+      @if (isFeedBeta()) {
+        <span class="home-hot-now-wrap">
+          <button
+            type="button"
+            class="home-hot-now-chip"
+            [class.active]="workspace.feedBetaScope()?.category === 'hot-now'"
+            [class.has-badge]="hotNowBadgeCount() > 0"
+            (click)="onHotNowChipClick()"
+            [attr.aria-label]="
+              'Hot now in ' +
+              (hood().state || 'your home hood') +
+              (hotNowBadgeCount() > 0 ? ' new posts' : '')
+            "
+            [attr.title]="
+              'Hot now in ' + (hood().state || 'your home hood') + ' - urgent posts, last 2 hours'
+            "
+          >
+            <span class="home-hot-now-label">
+              <span>Hot</span>
+              <span>Now</span>
+            </span>
+            <i class="bi bi-fire home-hot-now-icon" aria-hidden="true"></i>
+            @if (hotNowBadgeCount() > 0) {
+              <span class="home-hot-now-badge" aria-hidden="true">{{
+                hotNowBadgeCount() > 9 ? '9+' : hotNowBadgeCount()
+              }}</span>
+            }
+          </button>
+          @if (hotNowInfoOpen()) {
+            <span class="home-hot-now-info" role="status">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              No hot news around
+            </span>
+          }
+        </span>
+      }
+    </div>
   </div>
 
   <!-- ── Actions (right) ── -->
   <div class="topbar-actions">
-    <a class="topbar-icon-btn topbar-icon-btn--messages" routerLink="/messages" aria-label="Open messages">
+    <a
+      class="topbar-icon-btn topbar-icon-btn--messages"
+      routerLink="/messages"
+      aria-label="Open messages"
+    >
       <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
     </a>
 
@@ -328,7 +167,9 @@
             }}</span>
             <span class="user-menu-info">
               <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
-              <small>{{ session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace' }}</small>
+              <small>{{
+                session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace'
+              }}</small>
             </span>
           </div>
 
@@ -361,3 +202,136 @@
     </div>
   </div>
 </header>
+
+<!--
+  Hood/place picker modal (Apple/Mac-style: search, pick, Save, close).
+  Deliberately a SIBLING of <header>, not a child: .app-topbar uses
+  backdrop-filter, which creates a CSS containing block for `position: fixed`
+  descendants — nesting the modal inside it would trap the dialog inside the
+  topbar box instead of centering over the full viewport.
+-->
+@if (hoodModalOpen()) {
+    <div class="hood-modal-backdrop" (click)="closeHoodModal()"></div>
+    <div class="hood-modal" role="dialog" aria-modal="true" aria-label="Change your hood or place">
+      <header class="hood-modal-head">
+        <h2>Change your hood/place</h2>
+        <button
+          type="button"
+          class="hood-modal-close"
+          (click)="closeHoodModal()"
+          aria-label="Close"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="hood-modal-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input
+          type="search"
+          placeholder="Search state, city, or country"
+          [ngModel]="hoodModalQuery()"
+          (ngModelChange)="onHoodModalQueryChange($event)"
+          (keydown.enter)="pickFirstHoodModalResult()"
+          aria-label="Search for a hood or place"
+          autofocus
+        />
+      </div>
+
+      <div class="hood-modal-results">
+        @for (area of hoodModalAreaResults(); track area.id) {
+          <button
+            type="button"
+            class="hood-modal-result"
+            [class.selected]="isPendingArea(area.id)"
+            (click)="pickHoodArea(area)"
+          >
+            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+            <span>
+              <strong>
+                {{ area.label }}
+                @if (isUserHood(area.label, area.country)) {
+                  <em class="home-district-hood-badge">(Home)</em>
+                }
+              </strong>
+              <small>{{ area.label !== area.country ? area.country : 'Country feed' }}</small>
+            </span>
+            <span class="hood-modal-count">{{ area.postCount }}</span>
+            @if (isPendingArea(area.id)) {
+              <i class="bi bi-check-circle-fill hood-modal-check" aria-hidden="true"></i>
+            }
+          </button>
+        }
+        @if (isNominatimLoading()) {
+          <div class="home-district-loading">
+            <span class="search-spinner" aria-label="Searching worldwide"></span>
+            <small>Searching worldwide…</small>
+          </div>
+        }
+        @if (nominatimSuggestions().length) {
+          <div class="home-district-section-label">Global search</div>
+          @for (place of nominatimSuggestions(); track place.place_id) {
+            <button
+              type="button"
+              class="hood-modal-result"
+              [class.selected]="isPendingNominatim(place.place_id)"
+              (click)="pickHoodNominatim(place)"
+            >
+              <i class="bi bi-globe" aria-hidden="true"></i>
+              <span>
+                <strong>
+                  {{ place.address.state || place.display_name.split(',')[0] }}
+                  @if (isUserHood(place.address.state, place.address.country)) {
+                    <em class="home-district-hood-badge">(Home)</em>
+                  }
+                </strong>
+                <small>{{ place.address.country || '' }}</small>
+              </span>
+              @if (isPendingNominatim(place.place_id)) {
+                <i class="bi bi-check-circle-fill hood-modal-check" aria-hidden="true"></i>
+              } @else {
+                <span class="home-district-new-badge">New</span>
+              }
+            </button>
+          }
+        }
+        @if (
+          !hoodModalAreaResults().length &&
+          !nominatimSuggestions().length &&
+          !isNominatimLoading()
+        ) {
+          <div class="home-district-empty">
+            <strong>No regions found</strong>
+            <span>Try a city, state, or country name.</span>
+          </div>
+        }
+      </div>
+
+      <footer class="hood-modal-actions">
+        @if (hoodModalSelectionLabel()) {
+          <span class="hood-modal-pending">
+            Selected: <strong>{{ hoodModalSelectionLabel() }}</strong>
+            @if (hoodModalSelectionMeta()) {
+              <small>{{ hoodModalSelectionMeta() }}</small>
+            }
+          </span>
+        } @else {
+          <span class="hood-modal-pending hood-modal-pending--empty"
+            >Pick a hood or place below</span
+          >
+        }
+        <div class="hood-modal-buttons">
+          <button type="button" class="hood-modal-cancel" (click)="closeHoodModal()">Cancel</button>
+          <button
+            type="button"
+            class="hood-modal-submit"
+            [disabled]="!hoodModalSelectionLabel()"
+            (click)="submitHoodModal()"
+          >
+            Save
+          </button>
+        </div>
+      </footer>
+    </div>
+  }
+

@@ -1,6 +1,23 @@
 export interface Tag {
   id?: string;
   username: string;
+  /** Snapshot of the poster's shop/business name at post time — set only for business accounts. */
+  businessName?: string;
+  /** Snapshot of optional business contact info at post time — set only for business accounts. */
+  businessPhone?: string;
+  businessWebsite?: string;
+  /** How the post was composed. Business posts may be created by any account type. */
+  postType?: 'personal' | 'business';
+  /** Lightweight business intent — simpler than the tag category, shown as the headline chip. */
+  intent?: PostIntent;
+  price?: number;
+  /** Shown struck through next to `price` when set (discount display). */
+  originalPrice?: number;
+  /** Free text — "3 slots left", "Fully booked", etc. */
+  availabilityNote?: string;
+  cta?: PostCta;
+  /** External or internal product/service page. */
+  productLink?: string;
   userId: string;
   highlight: string;
   lat: number;
@@ -31,6 +48,25 @@ export interface Tag {
 }
 
 export type PostStatus = 'active' | 'resolved' | 'cancelled' | 'closed';
+
+export type PostIntent =
+  | 'offer'
+  | 'available_now'
+  | 'open_slot'
+  | 'happening'
+  | 'looking_for'
+  | 'sell_give';
+
+export type PostCta =
+  | 'message'
+  | 'call'
+  | 'whatsapp'
+  | 'directions'
+  | 'visit_shop'
+  | 'view_product'
+  | 'book'
+  | 'join'
+  | 'interested';
 
 export interface ThreadedComment {
   id: string;
