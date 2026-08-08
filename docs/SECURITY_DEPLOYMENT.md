@@ -5,7 +5,7 @@ Supabase and Cloudflare in sync with the Angular guards.
 
 ## Supabase
 
-- Apply `supabase/migrations/20260710000000_security_hardening.sql`.
+- Apply `supabase/migrations/20260710000000_security_hardening.sql` and `supabase/migrations/20260802000000_storage_bucket_limits.sql`.
 - Resolve duplicate usernames before applying the case-insensitive unique index.
 - Assign administrators only through trusted `app_metadata.role = "admin"`.
   Users must never be able to update this claim themselves.
@@ -13,8 +13,7 @@ Supabase and Cloudflare in sync with the Angular guards.
   for `direct_messages`, owner-only reads for `notifications`, and per-user rows
   such as saved/hidden posts. The client-side checks are only UX safeguards.
 - Restrict the `tag-images` bucket by authenticated owner/path policies and
-  validate MIME type and file-size limits in storage policies or a server upload
-  endpoint.
+  enforce 50MB size limits and MIME restrictions via `20260802000000_storage_bucket_limits.sql`.
 
 ## Cloudflare and public browser keys
 

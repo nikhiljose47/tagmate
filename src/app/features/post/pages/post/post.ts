@@ -72,6 +72,19 @@ interface MediaItem {
 
 const MAX_MEDIA = 5;
 
+export const MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
+export const MAX_VIDEO_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
+export const MAX_VIDEO_DURATION_SEC = 30; // 30 seconds
+export const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+];
+
 /** Rotating compose prompts — a little nudge to start typing. */
 const COMPOSE_PROMPTS = [
   "What's buzzing in your hood right now?",
@@ -408,19 +421,71 @@ export class PostPage {
 
   // ── Media selection ──────────────────────────────────────────────────────
 
-  onFileSelect(event: Event): void {
+  async onFileSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = ''; // reset so same file can be re-added after removal
 
     for (const file of files) {
-      if (this.mediaItems().length >= MAX_MEDIA) break;
+      if (this.mediaItems().length >= MAX_MEDIA) {
+        this.toast.show(`You can attach up to ${MAX_MEDIA} files per post.`, 'warning');
+        break;
+      }
 
-      const type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+      if (file.type && !ALLOWED_MIME_TYPES.includes(file.type)) {
+        this.toast.show(`"${file.name}" has an unsupported media format.`, 'warning');
+        continue;
+      }
+
+      const isVid = file.type.startsWith('video/');
+
+      if (isVid && file.size > MAX_VIDEO_SIZE_BYTES) {
+        this.toast.show(`Video "${file.name}" exceeds maximum size of 30 MB.`, 'warning');
+        continue;
+      }
+
+      if (!isVid && file.size > MAX_IMAGE_SIZE_BYTES) {
+        this.toast.show(`Image "${file.name}" exceeds maximum size of 15 MB.`, 'warning');
+        continue;
+      }
+
+      if (isVid) {
+        const isValidDuration = await this.validateVideoDuration(file);
+        if (!isValidDuration) {
+          this.toast.show(
+            `Video "${file.name}" exceeds maximum duration of 30 seconds.`,
+            'warning',
+          );
+          continue;
+        }
+      }
+
+      const type: 'image' | 'video' = isVid ? 'video' : 'image';
       // Object URL gives an instant preview without any FileReader roundtrip.
       const previewUrl = URL.createObjectURL(file);
       this.mediaItems.update((items) => [...items, { file, previewUrl, type }]);
     }
+  }
+
+  private validateVideoDuration(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      const objectUrl = URL.createObjectURL(file);
+
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(video.duration <= MAX_VIDEO_DURATION_SEC);
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        // Fallback to true if browser/environment cannot parse metadata
+        resolve(true);
+      };
+
+      video.src = objectUrl;
+    });
   }
 
   removeMedia(index: number): void {
@@ -593,8 +658,8 @@ export class PostPage {
 
       for (const item of this.mediaItems()) {
         try {
-          // Shrink images before upload (videos pass through untouched) so we
-          // save bandwidth on the upload and on every future download.
+          // Compress images (WebP) and videos (native GPU MediaRecorder) before upload so we
+          // save bandwidth on upload and on every future download.
           const { file } = await this.media.compress(item.file);
           const ext = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
           const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;

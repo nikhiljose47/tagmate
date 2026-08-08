@@ -5,6 +5,11 @@
 import { test, expect } from '@playwright/test';
 import { testUsers, protectedRoutes } from './helpers/test-users';
 import { loginAs, navigateAndGetUrl } from './helpers/auth.helpers';
+import { setupHermeticNetworkMocks } from './helpers/network-mocks';
+
+test.beforeEach(async ({ page }) => {
+  await setupHermeticNetworkMocks(page);
+});
 
 // ─── UNAUTHENTICATED → REDIRECT TO /LOGIN × 7 routes = 7 tests ───────────────
 test.describe('Routing Guards: Unauthenticated Access → /login Redirect', () => {

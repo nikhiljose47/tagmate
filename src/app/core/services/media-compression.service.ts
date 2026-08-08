@@ -68,8 +68,19 @@ export class MediaCompressionService {
       didCompress: f !== file,
     });
 
-    // Only compress raster images in a browser; everything else passes through.
+    // Handle browser media compression
     if (!isPlatformBrowser(this.platformId)) return passthrough(file);
+
+    if (file.type.startsWith('video/')) {
+      try {
+        const compressedVideo = await this.compressVideo(file);
+        return passthrough(compressedVideo);
+      } catch (err) {
+        this.logger.warn('Video compression failed — uploading original video.', err);
+        return passthrough(file);
+      }
+    }
+
     if (!this.isCompressibleImage(file)) return passthrough(file);
     if (file.size < opts.skipUnderBytes) return passthrough(file);
 
@@ -218,5 +229,110 @@ export class MediaCompressionService {
 
   private kb(bytes: number): string {
     return `${(bytes / 1024).toFixed(0)} KB`;
+  }
+
+  /**
+   * Hardware-accelerated browser video compression using MediaRecorder API.
+   * Targets 2.0 Mbps bitrate ceiling. Returns original file safely on any unsupported browser/failure.
+   */
+  async compressVideo(file: File): Promise<File> {
+    if (typeof MediaRecorder === 'undefined') return file;
+
+    let mimeType = 'video/webm;codecs=vp9';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'video/webm';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/mp4';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          return file;
+        }
+      }
+    }
+
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+
+      const url = URL.createObjectURL(file);
+      video.src = url;
+
+      let mediaRecorder: MediaRecorder | null = null;
+      const chunks: Blob[] = [];
+
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        video.onloadeddata = null;
+        video.onended = null;
+        video.onerror = null;
+        video.pause();
+        video.src = '';
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(file); // Timeout fallback
+      }, 35000);
+
+      video.onloadeddata = async () => {
+        try {
+          const captureStreamFn = (video as any).captureStream || (video as any).mozCaptureStream;
+          if (!captureStreamFn) {
+            clearTimeout(timer);
+            cleanup();
+            return resolve(file);
+          }
+
+          const stream: MediaStream = captureStreamFn.call(video);
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond: 2_000_000,
+          });
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              chunks.push(e.data);
+            }
+          };
+
+          mediaRecorder.onstop = () => {
+            clearTimeout(timer);
+            cleanup();
+            if (chunks.length === 0) return resolve(file);
+
+            const blob = new Blob(chunks, { type: mimeType.split(';')[0] });
+            if (!blob.size || blob.size >= file.size) return resolve(file);
+
+            const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+            const baseName = file.name.replace(/\.[^/.]+$/, '');
+            const compressedFile = new File([blob], `${baseName}-compressed.${ext}`, {
+              type: mimeType.split(';')[0],
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          };
+
+          mediaRecorder.start();
+          await video.play();
+        } catch {
+          clearTimeout(timer);
+          cleanup();
+          resolve(file);
+        }
+      };
+
+      video.onended = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+      };
+
+      video.onerror = () => {
+        clearTimeout(timer);
+        cleanup();
+        resolve(file);
+      };
+    });
   }
 }

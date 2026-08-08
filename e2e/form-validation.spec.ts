@@ -253,8 +253,15 @@ test.describe('Form Validation: Post Composer — Poll Option Edge Cases', () =>
     // Try adding 6+ options
     const addBtn = page.getByRole('button', { name: 'Add Option' });
     for (let i = 0; i < 10; i++) {
-      if (await addBtn.isVisible()) await addBtn.click();
-      else break;
+      if (await addBtn.isVisible().catch(() => false)) {
+        try {
+          await addBtn.click({ timeout: 1000 });
+        } catch {
+          break;
+        }
+      } else {
+        break;
+      }
     }
     const optInputs = page.locator('.poll-options input[type="text"]');
     const finalCount = await optInputs.count();
