@@ -1,4 +1,12 @@
-import { Component, EventEmitter, Output, signal, inject, computed } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  OnDestroy,
+  signal,
+  inject,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
@@ -101,7 +109,7 @@ const COMPOSE_PROMPTS = [
   templateUrl: './post.html',
   styleUrls: ['./post.scss'],
 })
-export class PostPage {
+export class PostPage implements OnDestroy {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<Tag>();
 
@@ -809,5 +817,20 @@ export class PostPage {
     this.shakeLocation.set(false);
     setTimeout(() => this.shakeLocation.set(true));
     setTimeout(() => this.shakeLocation.set(false), 450);
+  }
+
+  /**
+   * A saved draft is only meant to survive the "pick location on the map"
+   * round-trip (`onPickLocation`/`onSearchPlace` set `pickModeActive` right
+   * before navigating away). If this component is destroyed for any other
+   * reason — closing the composer, tapping another nav item, browser back —
+   * `pickModeActive` is still false, so drop the draft. Otherwise the next
+   * time someone opens /post it silently resumes here on the details step
+   * instead of starting fresh on the tag step.
+   */
+  ngOnDestroy(): void {
+    if (!this.shared.pickModeActive()) {
+      this.shared.postDraft.set(null);
+    }
   }
 }
