@@ -41,16 +41,28 @@ function isRateLimited(ip) {
 }
 
 function jsonResponse(body, status = 200) {
+  const cacheHeader = status >= 200 && status < 300 ? 'public, max-age=3600' : 'no-store';
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': cacheHeader,
     },
   });
 }
 
 export async function onRequest(context) {
+  if (context.request.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: {
+        Allow: 'GET',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
   const url = new URL(context.request.url);
 
   // Derive which Nominatim endpoint to call from the path segment after /api/nominatim/
@@ -59,17 +71,33 @@ export async function onRequest(context) {
   let proxyUrl;
   if (segment === 'search') {
     const q = url.searchParams.get('q') ?? '';
+    if (!q.trim() || q.length > 200) return jsonResponse({ error: 'Invalid search query.' }, 400);
     proxyUrl = `${NOMINATIM_BASE}/search?format=jsonv2&q=${encodeURIComponent(q)}`;
   } else if (segment === 'boundary') {
     const q = url.searchParams.get('q') ?? '';
-    proxyUrl = `${NOMINATIM_BASE}/search?format=jsonv2&polygon_geojson=1&q=${encodeURIComponent(q)}`;
+    if (!q.trim() || q.length > 200) return jsonResponse({ error: 'Invalid boundary query.' }, 400);
+    proxyUrl = `${NOMINATIM_BASE}/search?format=jsonv2&polygon_geojson=1&addressdetails=1&q=${encodeURIComponent(q)}`;
   } else if (segment === 'lookup') {
     const ids = url.searchParams.get('osm_ids') ?? '';
+    if (!ids.trim() || ids.length > 1000)
+      return jsonResponse({ error: 'Invalid OSM id list.' }, 400);
     proxyUrl = `${NOMINATIM_BASE}/lookup?format=jsonv2&polygon_geojson=1&osm_ids=${encodeURIComponent(ids)}`;
   } else if (segment === 'reverse') {
     const lat = url.searchParams.get('lat') ?? '';
     const lon = url.searchParams.get('lon') ?? '';
-    proxyUrl = `${NOMINATIM_BASE}/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+    const latitude = Number(lat);
+    const longitude = Number(lon);
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return jsonResponse({ error: 'Invalid coordinates.' }, 400);
+    }
+    proxyUrl = `${NOMINATIM_BASE}/reverse?format=jsonv2&lat=${encodeURIComponent(String(latitude))}&lon=${encodeURIComponent(String(longitude))}`;
   } else {
     return jsonResponse({ error: 'Not Found' }, 404);
   }
@@ -82,10 +110,13 @@ export async function onRequest(context) {
   try {
     const upstream = await fetch(proxyUrl, {
       headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(8000),
     });
+    const cacheHeader =
+      upstream.status >= 200 && upstream.status < 300 ? 'public, max-age=3600' : 'no-store';
     return new Response(upstream.body, {
       status: upstream.status,
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': cacheHeader },
     });
   } catch {
     return jsonResponse({ error: 'Bad Gateway', message: 'Geocoding service unreachable.' }, 502);

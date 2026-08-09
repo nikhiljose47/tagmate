@@ -9,6 +9,7 @@ import {
 export interface UserRow {
   uid: string;
   name: string;
+  email?: string | null;
   is_guest: boolean;
   reputation: number | null;
   bio: string | null;

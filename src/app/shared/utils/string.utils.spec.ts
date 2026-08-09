@@ -19,7 +19,7 @@ describe('escapeHtml', () => {
 
   it('should return empty string for null, undefined, or empty values', () => {
     expect(escapeHtml('')).toBe('');
-    expect(escapeHtml(null as any)).toBe('');
-    expect(escapeHtml(undefined as any)).toBe('');
+    expect(escapeHtml(null as unknown as string)).toBe('');
+    expect(escapeHtml(undefined as unknown as string)).toBe('');
   });
 });

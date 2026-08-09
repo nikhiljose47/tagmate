@@ -1,6 +1,7 @@
 import { AppEnvironment } from './environment.model';
 
 export const environment: AppEnvironment = {
+  environmentName: 'development',
   production: false,
   mapTilerApiKey: '1hAbQJYYNfEOl5YZkol6',
   supabaseUrl: 'https://peiriuszdvhtwewydgte.supabase.co',

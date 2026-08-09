@@ -1,4 +1,12 @@
-import { Component, OnInit, signal, computed, inject, DestroyRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  signal,
+  computed,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -56,6 +64,7 @@ interface HoodPick {
 @Component({
   selector: 'app-signup',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './signup.html',
   styleUrls: ['./signup.scss'],
@@ -113,14 +122,15 @@ export class SignupPage implements OnInit {
     return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
   }
 
-  readonly canProceedStep1 = computed(() =>
-    !!this.email() &&
-    this.isPasswordStrong(this.password()) &&
-    !!this.fullName().trim() &&
-    this.username().trim().length >= 3 &&
-    !this.usernameTaken() &&
-    !this.usernameChecking() &&
-    (this.accountType() === 'personal' || !!this.businessName().trim()),
+  readonly canProceedStep1 = computed(
+    () =>
+      !!this.email() &&
+      this.isPasswordStrong(this.password()) &&
+      !!this.fullName().trim() &&
+      this.username().trim().length >= 3 &&
+      !this.usernameTaken() &&
+      !this.usernameChecking() &&
+      (this.accountType() === 'personal' || !!this.businessName().trim()),
   );
 
   selectAccountType(type: AccountType): void {
@@ -194,8 +204,8 @@ export class SignupPage implements OnInit {
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=8`,
       { signal, headers: { 'Accept-Language': 'en' } },
     )
-      .then((r) => r.json())
-      .then((results: NominatimResult[]) => {
+      .then(async (res) => {
+        const results = (await res.json()) as NominatimResult[];
         if (signal.aborted) return;
         // Keep any result that has a state AND some district-like admin level.
         // Nominatim's tagging varies by country — for big metros the district
@@ -213,14 +223,7 @@ export class SignupPage implements OnInit {
   }
 
   private static districtOf(addr: NominatimAddress): string {
-    return (
-      addr.state_district ||
-      addr.county ||
-      addr.city_district ||
-      addr.city ||
-      addr.town ||
-      ''
-    );
+    return addr.state_district || addr.county || addr.city_district || addr.city || addr.town || '';
   }
 
   selectHood(r: NominatimResult): void {
@@ -234,7 +237,8 @@ export class SignupPage implements OnInit {
       addr.village ||
       addr.town ||
       addr.city ||
-      r.display_name.split(',')[0].trim();
+      r.display_name.split(',')[0]?.trim() ||
+      '';
     const place = rawPlace && rawPlace !== district ? rawPlace : '';
 
     this.hoodPick.set({
@@ -332,7 +336,9 @@ export class SignupPage implements OnInit {
           accountType: this.accountType(),
           businessName: this.accountType() === 'business' ? this.businessName().trim() : undefined,
           businessPhone:
-            this.accountType() === 'business' ? this.businessPhone().trim() || undefined : undefined,
+            this.accountType() === 'business'
+              ? this.businessPhone().trim() || undefined
+              : undefined,
           businessWebsite:
             this.accountType() === 'business'
               ? this.businessWebsite().trim() || undefined

@@ -31,8 +31,12 @@ describe('SocialPlatformService', () => {
       ],
       { session$: of(null) },
     );
-    supabase.addRow.and.returnValue(of({ data: {}, error: null }) as any);
-    supabase.deleteRowsWhere.and.returnValue(of({ data: null, error: null }) as any);
+    supabase.addRow.and.returnValue(
+      of({ data: {}, error: null }) as unknown as ReturnType<typeof of>,
+    );
+    supabase.deleteRowsWhere.and.returnValue(
+      of({ data: null, error: null }) as unknown as ReturnType<typeof of>,
+    );
     supabase.liveInserts.and.returnValue(EMPTY);
     supabase.liveDeletes.and.returnValue(EMPTY);
     supabase.liveUpdates.and.returnValue(EMPTY);

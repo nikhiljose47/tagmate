@@ -10,7 +10,6 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideStore } from '@ngrx/store';
 
 import { routes } from './app.routes';
-import { toggleReducer } from './store/toggle/toggle.state';
 import {
   userPrefReducer,
   hoodPersistMetaReducer,
@@ -34,10 +33,7 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideClientHydration(withEventReplay()),
-    provideStore(
-      { toggle: toggleReducer, userPref: userPrefReducer },
-      { metaReducers: [hoodPersistMetaReducer] },
-    ),
+    provideStore({ userPref: userPrefReducer }, { metaReducers: [hoodPersistMetaReducer] }),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     { provide: TAG_REPOSITORY, useClass: SupabaseTagRepository },
     { provide: USER_REPOSITORY, useClass: SupabaseUserRepository },

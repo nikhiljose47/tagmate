@@ -16,6 +16,17 @@ export interface TelemetryEventMap {
 
 export type TelemetryEvent = keyof TelemetryEventMap;
 
+interface TelemetryWindow extends Window {
+  Sentry?: {
+    captureException(error: unknown, context?: Record<string, unknown>): void;
+    captureMessage(message: string, context?: Record<string, unknown>): void;
+  };
+  LogRocket?: {
+    captureException(error: Error, context?: Record<string, unknown>): void;
+    log(message: string, context?: Record<string, unknown>): void;
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -38,7 +49,7 @@ export class TelemetryService {
       return;
     }
 
-    const win = window as any;
+    const win = window as TelemetryWindow;
 
     // Report to Sentry if initialized via CDN/global window object
     if (win.Sentry && typeof win.Sentry.captureException === 'function') {
@@ -77,7 +88,7 @@ export class TelemetryService {
       return;
     }
 
-    const win = window as any;
+    const win = window as TelemetryWindow;
 
     // Send message to Sentry
     if (win.Sentry && typeof win.Sentry.captureMessage === 'function') {

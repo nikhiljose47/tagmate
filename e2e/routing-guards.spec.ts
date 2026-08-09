@@ -4,7 +4,7 @@
 
 import { test, expect } from '@playwright/test';
 import { testUsers, protectedRoutes } from './helpers/test-users';
-import { loginAs, navigateAndGetUrl } from './helpers/auth.helpers';
+import { loginAs } from './helpers/auth.helpers';
 import { setupHermeticNetworkMocks } from './helpers/network-mocks';
 
 test.beforeEach(async ({ page }) => {

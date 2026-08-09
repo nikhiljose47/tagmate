@@ -145,7 +145,9 @@ export class InMemoryTagRepository implements ITagRepository {
       throw new Error(`Tag not found: ${id}`);
     }
 
-    const updated: Tag = { ...current[index], ...partial };
+    const existing = current[index];
+    if (!existing) throw new Error(`Tag not found: ${id}`);
+    const updated: Tag = { ...existing, ...partial };
     const newList = [...current];
     newList[index] = updated;
 

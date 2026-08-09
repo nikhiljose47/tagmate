@@ -3,8 +3,8 @@
 // expiry options, edit, delete, character limits, location validation, and preview.
 
 import { test, expect } from '@playwright/test';
-import { testUsers, postCategories, expiryOptions } from './helpers/test-users';
-import { loginAs, signOut } from './helpers/auth.helpers';
+import { testUsers, postCategories } from './helpers/test-users';
+import { loginAs } from './helpers/auth.helpers';
 import { createPost, deleteCurrentPost, navigateToPost } from './helpers/post.helpers';
 
 // ─── POST CREATION: 7 categories × 5 users = 35 tests ───────────────────────

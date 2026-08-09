@@ -5,8 +5,8 @@ import { of } from 'rxjs';
 
 describe('SocialDataService', () => {
   let service: SocialDataService;
-  let clientServiceMock: any;
-  let fromMock: any;
+  let clientServiceMock: { client: { from: jasmine.Spy; rpc: jasmine.Spy } };
+  let fromMock: Record<string, jasmine.Spy>;
 
   beforeEach(() => {
     fromMock = {

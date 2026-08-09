@@ -108,7 +108,6 @@ test.describe('Form Validation: Signup — Existing Username Rejected', () => {
         await usernameInput.fill(user.name.toLowerCase());
         // Wait for availability check debounce
         await page.waitForTimeout(2000);
-        const takenHint = page.locator('.field-hint-error:has-text("taken")');
         // Either "taken" message appears or the field check has a visual indicator
         await expect(page).not.toHaveURL(/error/);
       }

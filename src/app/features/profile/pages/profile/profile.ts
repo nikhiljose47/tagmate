@@ -1,4 +1,12 @@
-import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -72,6 +80,7 @@ const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
 @Component({
   selector: 'app-profile',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, TagGradientPipe, TagEmojiPipe, EmptyStateComponent],
   templateUrl: './profile.html',
   styleUrls: ['./profile.scss'],
@@ -144,6 +153,7 @@ export class ProfilePage implements OnInit {
   readonly canChangeHood = computed(() => this.hoodDaysRemaining() === 0);
 
   ngOnInit(): void {
+    this.social.activateRealtime();
     this.settings.set(this.readProfileSettings());
     this.tagRepo
       .getAll()
@@ -195,7 +205,9 @@ export class ProfilePage implements OnInit {
   setTab(tab: ProfileTab): void {
     this.activeTab.set(tab);
   }
-  readonly isBusinessAccount = computed(() => this.sessionService.user()?.accountType === 'business');
+  readonly isBusinessAccount = computed(
+    () => this.sessionService.user()?.accountType === 'business',
+  );
 
   toggleEditProfile(): void {
     const opening = !this.editMode();
@@ -398,9 +410,10 @@ export class ProfilePage implements OnInit {
         this.convertError.set(res.message);
         this.toast.show(res.message, 'danger');
       }
-    } catch (err: any) {
-      this.convertError.set(err?.message ?? 'Conversion failed');
-      this.toast.show(err?.message ?? 'Conversion failed', 'danger');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Conversion failed';
+      this.convertError.set(message);
+      this.toast.show(message, 'danger');
     } finally {
       this.convertLoading.set(false);
     }
@@ -452,8 +465,8 @@ export class ProfilePage implements OnInit {
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=8`,
       { signal, headers: { 'Accept-Language': 'en' } },
     )
-      .then((r) => r.json())
-      .then((results: NominatimResult[]) => {
+      .then(async (res) => {
+        const results = (await res.json()) as NominatimResult[];
         if (signal.aborted) return;
         const filtered = results.filter(
           (r) => !!r.address?.state && !!ProfilePage.districtOf(r.address),
@@ -467,14 +480,7 @@ export class ProfilePage implements OnInit {
   }
 
   private static districtOf(addr: NominatimAddress): string {
-    return (
-      addr.state_district ||
-      addr.county ||
-      addr.city_district ||
-      addr.city ||
-      addr.town ||
-      ''
-    );
+    return addr.state_district || addr.county || addr.city_district || addr.city || addr.town || '';
   }
 
   selectHood(r: NominatimResult): void {
@@ -486,7 +492,8 @@ export class ProfilePage implements OnInit {
       addr.village ||
       addr.town ||
       addr.city ||
-      r.display_name.split(',')[0].trim();
+      r.display_name.split(',')[0]?.trim() ||
+      '';
     const place = rawPlace && rawPlace !== district ? rawPlace : '';
 
     this.hoodPick.set({

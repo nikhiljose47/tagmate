@@ -65,7 +65,6 @@ test.describe('Quests: Progress Indicator Renders — Each Quest × Each User', 
         // Quest progress bar or counter
         const progressEl = page.locator('.quest-progress, .quest-steps, [class*="progress"]').first();
         if (await progressEl.isVisible()) {
-          const text = await progressEl.textContent() ?? '';
           // Should show a number or fraction like "2/5"
           await expect(page).not.toHaveURL(/error/);
         }
@@ -97,11 +96,6 @@ test.describe('Quests: Guest Mode Uses localStorage', () => {
     await page.goto(NEIGHBORHOOD_URL);
     await page.waitForTimeout(2000);
     // Check localStorage for any quest-related keys
-    const localStorageKeys = await page.evaluate(() => {
-      return Object.keys(localStorage).filter((k) =>
-        k.toLowerCase().includes('quest') || k.toLowerCase().includes('progress') || k.toLowerCase().includes('tagmate')
-      );
-    });
     // Guest quests should use localStorage (we won't mandate which key)
     await expect(page).not.toHaveURL(/error/);
   });

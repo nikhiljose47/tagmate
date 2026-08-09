@@ -82,11 +82,9 @@ export class UserSessionService {
             businessWebsite: metaBusinessWebsite,
           };
 
-          const metaHood = session.user.user_metadata?.['home_hood'] as
-            | HomeHoodInput
-            | undefined;
+          const metaHood = session.user.user_metadata?.['home_hood'] as HomeHoodInput | undefined;
 
-          return this.supabase.getUserById(uid).pipe(
+          return this.supabase.getCurrentUserById(uid).pipe(
             switchMap((appUser) => {
               if (appUser) {
                 return of({ ...appUser, email: session.user.email ?? undefined });
@@ -248,10 +246,10 @@ export class UserSessionService {
             lng: metadata.hood.lng ?? null,
           },
           account_type: metadata.accountType ?? 'personal',
-          business_name: metadata.accountType === 'business' ? metadata.businessName ?? '' : '',
-          business_phone: metadata.accountType === 'business' ? metadata.businessPhone ?? '' : '',
+          business_name: metadata.accountType === 'business' ? (metadata.businessName ?? '') : '',
+          business_phone: metadata.accountType === 'business' ? (metadata.businessPhone ?? '') : '',
           business_website:
-            metadata.accountType === 'business' ? metadata.businessWebsite ?? '' : '',
+            metadata.accountType === 'business' ? (metadata.businessWebsite ?? '') : '',
         }),
       );
       if (error) {

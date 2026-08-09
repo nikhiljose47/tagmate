@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -19,6 +26,7 @@ interface ActivityRow {
 @Component({
   selector: 'app-admin',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, EmptyStateComponent, TimeAgoPipe],
   templateUrl: './admin.html',
   styleUrl: './admin.scss',
@@ -79,6 +87,7 @@ export class AdminPage implements OnInit {
   );
 
   ngOnInit(): void {
+    this.social.activateRealtime();
     this.loadAdmin();
   }
 

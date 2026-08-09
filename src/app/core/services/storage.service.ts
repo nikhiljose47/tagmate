@@ -19,7 +19,7 @@ export class StorageService {
   }
 
   async uploadImageBase64(path: string, base64Data: string): Promise<string> {
-    const [header, raw] = base64Data.split(',');
+    const [header = '', raw = ''] = base64Data.split(',');
     const mimeMatch = header.match(/data:([^;]+);base64/);
     const contentType = mimeMatch?.[1] ?? 'image/jpeg';
 

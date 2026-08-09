@@ -31,7 +31,7 @@ describe('PostPage', () => {
     await component.onFileSelect(event);
 
     expect(component.mediaItems().length).toBe(1);
-    expect(component.mediaItems()[0].type).toBe('image');
+    expect(component.mediaItems()[0]!.type).toBe('image');
   });
 
   it('should reject an oversized image file (> 15MB)', async () => {

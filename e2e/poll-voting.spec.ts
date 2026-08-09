@@ -42,9 +42,6 @@ test.describe('Poll Voting: Each User Votes for Each Option', () => {
         await pollBtns.nth(optIdx).click();
         await page.waitForTimeout(1000);
         // The selected option should show ring-2 (ring/highlighted class)
-        const isSelected = await pollBtns.nth(optIdx).evaluate(
-          (el) => el.classList.contains('ring-2') || el.classList.contains('ring-indigo-500')
-        );
         // Even if already voted, app should not error
         await expect(page).not.toHaveURL(/error/);
       });
@@ -65,13 +62,11 @@ test.describe('Poll Voting: Vote Lock-In — No Duplicate Votes', () => {
       if ((await pollBtns.count()) === 0) { test.skip(true, 'No poll options found'); return; }
       const firstBtn = pollBtns.first();
       // Get percentage before
-      const pctBefore = await firstBtn.locator('.text-xs').textContent() ?? '0%';
       // Vote twice
       await firstBtn.click();
       await page.waitForTimeout(500);
       await firstBtn.click();
       await page.waitForTimeout(500);
-      const pctAfter = await firstBtn.locator('.text-xs').textContent() ?? '0%';
       // The percentage should not have double-incremented wildly
       await expect(page).not.toHaveURL(/error/);
     });

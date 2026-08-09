@@ -1,8 +1,8 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, inject } from '@angular/core';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom, filter } from 'rxjs';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { SocialDataService } from '../../../../core/services/social-data.service';
@@ -30,18 +30,18 @@ interface ChatThread {
 @Component({
   selector: 'app-dm-inbox',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, TimeAgoPipe, RouterLink],
   templateUrl: './dm-inbox.html',
   styleUrls: ['./dm-inbox.scss'],
 })
-export class DmInboxComponent implements OnInit {
+export class DmInboxComponent {
   private readonly session = inject(UserSessionService);
   private readonly socialData = inject(SocialDataService);
   private readonly tagData = inject(TagDataService);
   protected readonly social = inject(SocialInteractionsService);
   private readonly logger = inject(LoggerService);
   private readonly toast = inject(ToastService);
-  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly platform = inject(SocialPlatformService);
   private readonly confirmDialog = inject(ConfirmDialogService);
@@ -71,6 +71,7 @@ export class DmInboxComponent implements OnInit {
   });
 
   constructor() {
+    this.social.activateRealtime();
     toObservable(this.session.user)
       .pipe(
         filter((user): user is NonNullable<typeof user> => !!user),
@@ -80,8 +81,6 @@ export class DmInboxComponent implements OnInit {
         this.loadInbox(user.uid);
       });
   }
-
-  ngOnInit(): void {}
 
   private async loadInbox(uid: string): Promise<void> {
     try {

@@ -2,11 +2,20 @@ import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
 import { SupabaseClientService } from './supabase-client.service';
 import { firstValueFrom, of } from 'rxjs';
+import { Session } from '@supabase/supabase-js';
+
+type AuthMock = {
+  getSession: jasmine.Spy;
+  onAuthStateChange: jasmine.Spy;
+  signInWithPassword: jasmine.Spy;
+  signUp: jasmine.Spy;
+  signOut: jasmine.Spy;
+};
 
 describe('AuthService', () => {
   let service: AuthService;
-  let clientServiceMock: any;
-  let authMock: any;
+  let clientServiceMock: { client: { auth: AuthMock; from: jasmine.Spy } };
+  let authMock: AuthMock;
 
   beforeEach(() => {
     authMock = {
@@ -66,7 +75,7 @@ describe('AuthService', () => {
   });
 
   it('should emit the restored session instead of a placeholder null', async () => {
-    const restored = { user: { id: 'returning-user' } } as any;
+    const restored = { user: { id: 'returning-user' } } as unknown as Session;
     TestBed.resetTestingModule();
     const freshAuth = {
       ...authMock,

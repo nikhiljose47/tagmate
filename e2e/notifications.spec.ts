@@ -135,8 +135,6 @@ test.describe('Notifications: Badge Count Persists Across Page Navigations', () 
       await loginAs(page, user);
       await page.goto('/feed');
       await page.waitForTimeout(1500);
-      const badgeBefore = page.locator('.notification-badge, .notif-count');
-      const countBefore = await badgeBefore.isVisible() ? (await badgeBefore.textContent()) ?? '0' : '0';
       // Navigate away and back
       await page.goto('/messages');
       await page.waitForTimeout(1000);
@@ -160,11 +158,10 @@ test.describe('Notifications: Notification Type Display', () => {
       await openNotifications(page);
       const notifItems = page.locator('.notification-item');
       const count = await notifItems.count();
-      let found = false;
       for (let i = 0; i < count && i < 20; i++) {
         const text = (await notifItems.nth(i).textContent()) ?? '';
         if (text.toLowerCase().includes(keyword.toLowerCase())) {
-          found = true;
+          await expect(notifItems.nth(i)).toBeVisible();
           break;
         }
       }

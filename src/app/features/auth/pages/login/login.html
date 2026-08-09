@@ -67,14 +67,11 @@
         </div>
 
         <button class="tm-btn tm-btn-primary w-full" [disabled]="loading()" (click)="login()">
-          @if (!loading()) {
-            Log In
-          } @else {
-            <span
-              class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
-            ></span>
-            Signing in...
-          }
+          @if (!loading()) { Log In } @else {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+          ></span>
+          Signing in... }
         </button>
       </div>
 
@@ -82,42 +79,33 @@
 
       <button class="guest-btn" [disabled]="loading()" (click)="loginGuest()">
         @if (!loading()) {
-          <i class="bi bi-incognito"></i>
-          Continue as Guest
-        } @else {
-          <span
-            class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
-          ></span>
-          Please wait...
-        }
+        <i class="bi bi-incognito"></i>
+        Continue as Guest } @else {
+        <span
+          class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
+        ></span>
+        Please wait... }
       </button>
 
       @if (error()) {
-        <div class="error-msg" role="alert">
-          <i class="bi bi-exclamation-circle"></i> {{ error() }}
-        </div>
-      }
-
-      @if (unconfirmedEmail()) {
-        @if (resendSent()) {
-          <div class="error-msg error-msg--info" role="status">
-            <i class="bi bi-check-circle"></i> Confirmation email resent — check your inbox (and spam folder).
-          </div>
-        } @else {
-          <button
-            type="button"
-            class="resend-confirm-btn"
-            [disabled]="resendingEmail()"
-            (click)="resendConfirmationEmail()"
-          >
-            @if (!resendingEmail()) {
-              Resend confirmation email
-            } @else {
-              Resending…
-            }
-          </button>
-        }
-      }
+      <div class="error-msg" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ error() }}
+      </div>
+      } @if (unconfirmedEmail()) { @if (resendSent()) {
+      <div class="error-msg error-msg--info" role="status">
+        <i class="bi bi-check-circle"></i> Confirmation email resent — check your inbox (and spam
+        folder).
+      </div>
+      } @else {
+      <button
+        type="button"
+        class="resend-confirm-btn"
+        [disabled]="resendingEmail()"
+        (click)="resendConfirmationEmail()"
+      >
+        @if (!resendingEmail()) { Resend confirmation email } @else { Resending… }
+      </button>
+      } }
     </div>
 
     <p class="signup-hint">

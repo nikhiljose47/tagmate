@@ -8,13 +8,14 @@ export default tseslint.config(
     ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'worker-configuration.d.ts'],
   },
   {
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.ts', 'e2e/**/*.ts'],
     extends: [tseslint.configs.recommended],
     plugins: { '@angular-eslint': angular },
     rules: {
-      '@typescript-eslint/no-unused-vars': 'warn',
+      ...angular.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-unused-expressions': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   {

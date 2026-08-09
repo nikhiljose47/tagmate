@@ -137,7 +137,6 @@ test.describe('Bulletin Board: Like Sticky Note — Each User', () => {
       await goToBoard(page);
       const likeBtn = page.locator('.note-like-btn').first();
       if (await likeBtn.isVisible()) {
-        const countBefore = await likeBtn.locator('.text-xs').textContent() ?? '0';
         await likeBtn.click();
         await page.waitForTimeout(800);
         await expect(page).not.toHaveURL(/error/);

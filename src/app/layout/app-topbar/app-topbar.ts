@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, OnDestroy, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  OnDestroy,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -8,11 +16,7 @@ import { AppTheme, ThemeService } from '../../core/services/theme.service';
 import { UserSessionService } from '../../core/services/user-session.service';
 import { TAG_REPOSITORY } from '../../core/repositories/repository.tokens';
 import { Tag } from '../../core/models/tag.model';
-import {
-  FEED_BETA_MAIN_CATEGORIES,
-  FeedBetaArea,
-  WorkspaceStateService,
-} from '../workspace/workspace-state.service';
+import { FeedBetaArea, WorkspaceStateService } from '../workspace/workspace-state.service';
 import { SocialInteractionsService } from '../../core/services/social-interactions.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Store } from '@ngrx/store';
@@ -55,6 +59,7 @@ interface HoodSearchResult {
 @Component({
   selector: 'app-topbar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, ClickOutsideDirective],
   templateUrl: './app-topbar.html',
   styleUrl: './app-topbar.scss',
@@ -105,9 +110,9 @@ export class AppTopbarComponent implements OnDestroy {
 
     const h = this.hood();
     const norm = (s: string) => s.trim().toLowerCase();
-    const area = this.workspace.feedBetaAreas().find((a) =>
-      h?.state ? norm(a.label) === norm(h.state) : false,
-    );
+    const area = this.workspace
+      .feedBetaAreas()
+      .find((a) => (h?.state ? norm(a.label) === norm(h.state) : false));
     return area?.categoryCounts['hot-now'] ?? 0;
   });
 
@@ -120,9 +125,9 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly hasHotNowActivity = computed(() => {
     const h = this.hood();
     const norm = (s: string) => s.trim().toLowerCase();
-    const area = this.workspace.feedBetaAreas().find((a) =>
-      h?.state ? norm(a.label) === norm(h.state) : false,
-    );
+    const area = this.workspace
+      .feedBetaAreas()
+      .find((a) => (h?.state ? norm(a.label) === norm(h.state) : false));
     return (area?.categoryCounts['hot-now'] ?? 0) > 0;
   });
 
@@ -149,8 +154,12 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly hoodModalOpen = signal(false);
   protected readonly hoodModalQuery = signal('');
   private readonly hoodModalSelection = signal<HoodModalSelection | null>(null);
-  protected readonly hoodModalSelectionLabel = computed(() => this.hoodModalSelection()?.label ?? null);
-  protected readonly hoodModalSelectionMeta = computed(() => this.hoodModalSelection()?.meta ?? null);
+  protected readonly hoodModalSelectionLabel = computed(
+    () => this.hoodModalSelection()?.label ?? null,
+  );
+  protected readonly hoodModalSelectionMeta = computed(
+    () => this.hoodModalSelection()?.meta ?? null,
+  );
 
   /** Feed areas matching the modal's search box; unfiltered list when it's empty. */
   protected readonly hoodModalAreaResults = computed(() => {
@@ -247,12 +256,17 @@ export class AppTopbarComponent implements OnDestroy {
 
   /** Marks a known feed area as the pending (not-yet-saved) pick. */
   protected pickHoodArea(area: FeedBetaArea): void {
-    this.hoodModalSelection.set({ kind: 'area', label: area.label, meta: area.country, payload: area });
+    this.hoodModalSelection.set({
+      kind: 'area',
+      label: area.label,
+      meta: area.country,
+      payload: area,
+    });
   }
 
   /** Marks a Nominatim global-search result as the pending pick. */
   protected pickHoodNominatim(place: NominatimPlace): void {
-    const label = place.address?.state || place.display_name.split(',')[0].trim();
+    const label = place.address?.state || place.display_name.split(',')[0]?.trim() || '';
     this.hoodModalSelection.set({
       kind: 'nominatim',
       label,
@@ -275,7 +289,8 @@ export class AppTopbarComponent implements OnDestroy {
   protected submitHoodModal(): void {
     const sel = this.hoodModalSelection();
     if (sel?.kind === 'area') this.applyFeedBetaArea((sel.payload as FeedBetaArea).id);
-    else if (sel?.kind === 'nominatim') this.applyFeedBetaFromNominatim(sel.payload as NominatimPlace);
+    else if (sel?.kind === 'nominatim')
+      this.applyFeedBetaFromNominatim(sel.payload as NominatimPlace);
 
     this.closeHoodModal();
   }
@@ -371,7 +386,7 @@ export class AppTopbarComponent implements OnDestroy {
       .map((part) => part.trim())
       .filter(Boolean);
     if (parts.length <= 1) return parts[0] ?? trimmed;
-    return parts[1];
+    return parts[1]!;
   }
 
   /** Commits a known feed area as the active scope. */
@@ -434,7 +449,11 @@ export class AppTopbarComponent implements OnDestroy {
       });
     } else {
       const slug = (v: string) =>
-        v.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        v
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
       const areaId =
         h.state && h.country ? slug(`${h.state}::${h.country}`) : slug(h.country || h.state);
       this.workspace.feedBetaScope.set({
@@ -494,12 +513,12 @@ export class AppTopbarComponent implements OnDestroy {
       return;
     }
 
-    const label = state || place.display_name.split(',')[0].trim();
+    const label = state || place.display_name.split(',')[0]?.trim() || '';
     this.workspace.feedBetaScope.set({
       areaId,
       location: label,
       country: country || label,
-      hood: place.display_name.split(',')[0].trim(),
+      hood: place.display_name.split(',')[0]?.trim() || '',
       category: 'around',
       freeform: true,
     });
@@ -518,8 +537,8 @@ export class AppTopbarComponent implements OnDestroy {
       signal,
       headers: { 'Accept-Language': 'en', 'User-Agent': 'Tagmate/1.0' },
     })
-      .then((r) => r.json())
-      .then((results: NominatimPlace[]) => {
+      .then(async (res) => {
+        const results = (await res.json()) as NominatimPlace[];
         if (signal.aborted) return;
         // Deduplicate by state+country so we don't show 6 rows for "Mumbai".
         const seen = new Set<string>();

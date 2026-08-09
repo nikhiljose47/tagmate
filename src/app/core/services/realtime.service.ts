@@ -34,28 +34,56 @@ export class RealtimeService {
         return undefined;
       }
 
-      // Supabase channels cannot add postgres callbacks after subscribe(). Each
-      // observable therefore gets its own channel, even when two consumers
-      // watch the same table/event (for example inbox state and message cache).
-      const baseName = filter
-        ? `${table}-${event.toLowerCase()}:${filter}`
-        : `${table}-${event.toLowerCase()}`;
-      const channelName = `${baseName}:${++this.channelSequence}`;
-      const channel = this.client
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          { event, schema: 'public', table, ...(filter ? { filter } : {}) },
-          (payload) => subscriber.next((event === 'DELETE' ? payload.old : payload.new) as T),
-        )
-        .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR') {
-            subscriber.error(new Error(`Realtime channel failed for ${table}`));
+      let activeChannel: ReturnType<typeof this.client.channel> | null = null;
+      let retryTimer: ReturnType<typeof setTimeout> | null = null;
+      let retryCount = 0;
+      let stopped = false;
+
+      const subscribeChannel = () => {
+        if (stopped) return;
+        const baseName = filter
+          ? `${table}-${event.toLowerCase()}:${filter}`
+          : `${table}-${event.toLowerCase()}`;
+        const channelName = `${baseName}:${++this.channelSequence}`;
+
+        const channel = this.client
+          .channel(channelName)
+          .on(
+            'postgres_changes',
+            { event, schema: 'public', table, ...(filter ? { filter } : {}) },
+            (payload) => {
+              if (!stopped && activeChannel === channel) {
+                subscriber.next((event === 'DELETE' ? payload.old : payload.new) as T);
+              }
+            },
+          );
+        activeChannel = channel;
+        channel.subscribe((status) => {
+          if (stopped || activeChannel !== channel) return;
+          if (status === 'SUBSCRIBED') {
+            retryCount = 0;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            activeChannel = null;
+            void this.client.removeChannel(channel);
+            retryCount = Math.min(retryCount + 1, 6);
+            const delayMs = Math.min(1000 * Math.pow(2, retryCount - 1), 30000);
+            retryTimer = setTimeout(() => {
+              retryTimer = null;
+              subscribeChannel();
+            }, delayMs);
           }
         });
+      };
+
+      subscribeChannel();
 
       return () => {
-        void this.client.removeChannel(channel);
+        stopped = true;
+        if (retryTimer) clearTimeout(retryTimer);
+        if (activeChannel) {
+          void this.client.removeChannel(activeChannel);
+          activeChannel = null;
+        }
       };
     });
   }

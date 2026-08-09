@@ -4,14 +4,13 @@ import { SupabaseClientService } from './supabase-client.service';
 
 describe('RealtimeService', () => {
   let service: RealtimeService;
-  let clientServiceMock: any;
-  let channelMock: any;
+  let clientServiceMock: { client: { channel: jasmine.Spy; removeChannel: jasmine.Spy } };
+  let channelMock: Record<string, jasmine.Spy>;
 
   beforeEach(() => {
     channelMock = {
-      on: jasmine.createSpy('on').and.returnValue({
-        subscribe: jasmine.createSpy('subscribe').and.returnValue({}),
-      }),
+      on: jasmine.createSpy('on').and.callFake(() => channelMock),
+      subscribe: jasmine.createSpy('subscribe').and.callFake(() => channelMock),
     };
 
     clientServiceMock = {
@@ -41,5 +40,17 @@ describe('RealtimeService', () => {
     );
     first.unsubscribe();
     second.unsubscribe();
+  });
+
+  it('supports liveDeletes streams', () => {
+    const deletes = service.liveDeletes('post_likes').subscribe();
+    expect(clientServiceMock.client.channel.calls.count()).toBe(1);
+    deletes.unsubscribe();
+  });
+
+  it('removes channel from client upon unsubscription', () => {
+    const sub = service.liveInserts('notifications').subscribe();
+    sub.unsubscribe();
+    expect(clientServiceMock.client.removeChannel).toHaveBeenCalledWith(channelMock);
   });
 });

@@ -1,5 +1,4 @@
 <div class="signup-split">
-
   <!-- ── Theme toggle ── -->
   <button
     class="theme-toggle-btn"
@@ -14,7 +13,7 @@
         'bi-moon-fill': theme.currentTheme() === 'dark',
         'bi-moon-stars-fill': theme.currentTheme() === 'midnight',
         'bi-tree-fill': theme.currentTheme() === 'forest',
-        'bi-cup-hot-fill': theme.currentTheme() === 'sepia'
+        'bi-cup-hot-fill': theme.currentTheme() === 'sepia',
       }"
     ></i>
   </button>
@@ -22,15 +21,16 @@
   <!-- ════════════════ Left hero panel ════════════════ -->
   <div class="signup-hero" aria-hidden="true">
     <div class="hero-inner">
-
       <div class="hero-brand">
         <img src="assets/tagmate-logo.svg" class="hero-logo" alt="Tagmate" width="36" height="36" />
         <span class="hero-wordmark">Tagmate</span>
       </div>
 
       <div class="hero-copy">
-        <h2 class="hero-headline">Your neighborhood,<br>right in your pocket.</h2>
-        <p class="hero-sub">Tag places, share moments, and stay connected with people who live where you do.</p>
+        <h2 class="hero-headline">Your neighborhood,<br />right in your pocket.</h2>
+        <p class="hero-sub">
+          Tag places, share moments, and stay connected with people who live where you do.
+        </p>
       </div>
 
       <ul class="hero-features">
@@ -51,14 +51,12 @@
       <div class="hero-illustration">
         <img src="assets/illustrations/signup_selfie.svg" alt="" width="380" />
       </div>
-
     </div>
   </div>
 
   <!-- ════════════════ Right form panel ════════════════ -->
   <div class="signup-form-panel">
     <div class="signup-form-inner">
-
       <!-- Mobile-only brand -->
       <div class="mobile-brand">
         <img src="assets/tagmate-logo.svg" class="mobile-logo" alt="" width="28" height="28" />
@@ -67,54 +65,53 @@
 
       <!-- ── Check-your-inbox: shown after signup when email confirmation is required ── -->
       @if (awaitingEmailConfirmation()) {
-        <div class="step-block confirm-email-block">
-          <div class="confirm-email-icon" aria-hidden="true">
-            <i class="bi bi-envelope-check-fill"></i>
-          </div>
-          <h1 class="form-title">Verify your email</h1>
-          <p class="confirm-email-copy">
-            We've sent a confirmation link to <strong>{{ email() }}</strong>.
-            Open it to activate your account — then come back and log in.
-          </p>
-
-          @if (resendSent()) {
-            <div class="confirm-email-resent">
-              <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Email resent — check your inbox (and spam folder).
-            </div>
-          } @else {
-            <button
-              class="tm-btn w-full step-btn"
-              type="button"
-              [disabled]="resendingEmail()"
-              (click)="resendConfirmationEmail()"
-            >
-              @if (!resendingEmail()) {
-                Resend confirmation email
-              } @else {
-                <span class="spinner" aria-hidden="true"></span>
-                Resending…
-              }
-            </button>
-          }
-
-          @if (resendError()) {
-            <div class="error-msg">
-              <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ resendError() }}
-            </div>
-          }
-
-          <p class="login-hint">
-            Wrong email? <a routerLink="/signup" (click)="awaitingEmailConfirmation.set(false)">Sign up again</a> ·
-            Already confirmed? <a routerLink="/login">Log in</a>
-          </p>
+      <div class="step-block confirm-email-block">
+        <div class="confirm-email-icon" aria-hidden="true">
+          <i class="bi bi-envelope-check-fill"></i>
         </div>
+        <h1 class="form-title">Verify your email</h1>
+        <p class="confirm-email-copy">
+          We've sent a confirmation link to <strong>{{ email() }}</strong>. Open it to activate your
+          account — then come back and log in.
+        </p>
+
+        @if (resendSent()) {
+        <div class="confirm-email-resent">
+          <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Email resent — check your inbox
+          (and spam folder).
+        </div>
+        } @else {
+        <button
+          class="tm-btn w-full step-btn"
+          type="button"
+          [disabled]="resendingEmail()"
+          (click)="resendConfirmationEmail()"
+        >
+          @if (!resendingEmail()) { Resend confirmation email } @else {
+          <span class="spinner" aria-hidden="true"></span>
+          Resending… }
+        </button>
+        } @if (resendError()) {
+        <div class="error-msg">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ resendError() }}
+        </div>
+        }
+
+        <p class="login-hint">
+          Wrong email?
+          <a routerLink="/signup" (click)="awaitingEmailConfirmation.set(false)">Sign up again</a>
+          · Already confirmed? <a routerLink="/login">Log in</a>
+        </p>
+      </div>
       }
 
       <!-- Step indicator -->
       @if (!awaitingEmailConfirmation()) {
       <div class="step-track" aria-label="Signup progress">
         <div class="step-node" [class.active]="step() >= 1" [class.done]="step() > 1">
-          @if (step() > 1) { <i class="bi bi-check2" aria-hidden="true"></i> } @else { 1 }
+          @if (step() > 1) {
+          <i class="bi bi-check2" aria-hidden="true"></i>
+          } @else { 1 }
         </div>
         <div class="step-line" [class.filled]="step() > 1"></div>
         <div class="step-node" [class.active]="step() >= 2">2</div>
@@ -123,296 +120,309 @@
 
       <!-- ── Step 1: Account ── -->
       @if (!awaitingEmailConfirmation() && step() === 1) {
-        <div class="step-block">
-          <h1 class="form-title">Create your account</h1>
+      <div class="step-block">
+        <h1 class="form-title">Create your account</h1>
 
-          <div class="login-fields">
-
-            <div class="field-row">
-              <div class="field-group">
-                <label class="field-label">Email address</label>
-                <input
-                  type="email"
-                  class="tm-input"
-                  placeholder="you@example.com"
-                  [value]="email()"
-                  (input)="email.set($any($event.target).value)"
-                  [disabled]="loading()"
-                  autocomplete="email"
-                />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Password</label>
-                <div class="password-field">
-                  <input
-                    [type]="showPassword() ? 'text' : 'password'"
-                    class="tm-input"
-                    placeholder="Min. 8 characters"
-                    [value]="password()"
-                    (input)="password.set($any($event.target).value)"
-                    [disabled]="loading()"
-                    autocomplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    class="password-toggle"
-                    (click)="showPassword.set(!showPassword())"
-                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
-                    tabindex="-1"
-                  >
-                    <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
-                  </button>
-                </div>
-                @if (password() && !isPasswordStrong(password())) {
-                  <span class="field-hint field-hint-error">Min. 8 chars with uppercase, lowercase and a number.</span>
-                }
-              </div>
-            </div>
-
-            <div class="field-row">
-              <div class="field-group">
-                <label class="field-label">Full name</label>
-                <input
-                  type="text"
-                  class="tm-input"
-                  placeholder="Your display name"
-                  [value]="fullName()"
-                  (input)="fullName.set($any($event.target).value)"
-                  [disabled]="loading()"
-                  autocomplete="name"
-                />
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Username</label>
-                <input
-                  type="text"
-                  class="tm-input"
-                  placeholder="@handle"
-                  [value]="username()"
-                  (input)="onUsernameInput($any($event.target).value)"
-                  [disabled]="loading()"
-                  autocomplete="username"
-                />
-                @if (usernameChecking()) {
-                  <span class="field-hint">Checking availability…</span>
-                } @else if (usernameTaken()) {
-                  <span class="field-hint field-hint-error">That username is taken.</span>
-                }
-              </div>
+        <div class="login-fields">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Email address</label>
+              <input
+                type="email"
+                class="tm-input"
+                placeholder="you@example.com"
+                [value]="email()"
+                (input)="email.set($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="email"
+              />
             </div>
 
             <div class="field-group">
-              <label class="field-label">Account type</label>
-              <div class="account-type-toggle" role="radiogroup" aria-label="Account type">
+              <label class="field-label">Password</label>
+              <div class="password-field">
+                <input
+                  [type]="showPassword() ? 'text' : 'password'"
+                  class="tm-input"
+                  placeholder="Min. 8 characters"
+                  [value]="password()"
+                  (input)="password.set($any($event.target).value)"
+                  [disabled]="loading()"
+                  autocomplete="new-password"
+                />
                 <button
                   type="button"
-                  class="account-type-option"
-                  [class.account-type-option--active]="accountType() === 'personal'"
-                  [disabled]="loading()"
-                  (click)="selectAccountType('personal')"
+                  class="password-toggle"
+                  (click)="showPassword.set(!showPassword())"
+                  [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                  tabindex="-1"
                 >
-                  <i class="bi bi-person-heart" aria-hidden="true"></i>
-                  <span>
-                    <strong>Personal</strong>
-                    <small>For everyday posts and hanging out nearby</small>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  class="account-type-option"
-                  [class.account-type-option--active]="accountType() === 'business'"
-                  [disabled]="loading()"
-                  (click)="selectAccountType('business')"
-                >
-                  <i class="bi bi-shop" aria-hidden="true"></i>
-                  <span>
-                    <strong>Business</strong>
-                    <small>For shops and services posting as your business</small>
-                  </span>
+                  <i
+                    class="bi"
+                    [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"
+                  ></i>
                 </button>
               </div>
-              @if (accountType() === 'business') {
-                <input
-                  type="text"
-                  class="tm-input"
-                  style="margin-top: 8px;"
-                  placeholder="Shop / business name"
-                  [value]="businessName()"
-                  (input)="businessName.set($any($event.target).value)"
-                  [disabled]="loading()"
-                  autocomplete="organization"
-                />
-                @if (!businessName().trim()) {
-                  <span class="field-hint">Shown as the author name on your business posts.</span>
-                }
-                <div class="field-row" style="margin-top: 8px;">
-                  <input
-                    type="tel"
-                    class="tm-input"
-                    placeholder="Phone (optional)"
-                    [value]="businessPhone()"
-                    (input)="businessPhone.set($any($event.target).value)"
-                    [disabled]="loading()"
-                    autocomplete="tel"
-                  />
-                  <input
-                    type="url"
-                    class="tm-input"
-                    placeholder="Website (optional)"
-                    [value]="businessWebsite()"
-                    (input)="businessWebsite.set($any($event.target).value)"
-                    [disabled]="loading()"
-                    autocomplete="url"
-                  />
-                </div>
-                <span class="field-hint">Shown on your business posts when filled in — leave blank to skip.</span>
+              @if (password() && !isPasswordStrong(password())) {
+              <span class="field-hint field-hint-error"
+                >Min. 8 chars with uppercase, lowercase and a number.</span
+              >
               }
             </div>
-
-            <button
-              class="tm-btn tm-btn-primary w-full step-btn"
-              type="button"
-              [disabled]="!canProceedStep1()"
-              (click)="nextStep()"
-            >
-              Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
-            </button>
-
           </div>
 
-          <p class="login-hint">
-            Already have an account? <a routerLink="/login">Log in</a>
-          </p>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Full name</label>
+              <input
+                type="text"
+                class="tm-input"
+                placeholder="Your display name"
+                [value]="fullName()"
+                (input)="fullName.set($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="name"
+              />
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Username</label>
+              <input
+                type="text"
+                class="tm-input"
+                placeholder="@handle"
+                [value]="username()"
+                (input)="onUsernameInput($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="username"
+              />
+              @if (usernameChecking()) {
+              <span class="field-hint">Checking availability…</span>
+              } @else if (usernameTaken()) {
+              <span class="field-hint field-hint-error">That username is taken.</span>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Account type</label>
+            <div class="account-type-toggle" role="radiogroup" aria-label="Account type">
+              <button
+                type="button"
+                class="account-type-option"
+                [class.account-type-option--active]="accountType() === 'personal'"
+                [disabled]="loading()"
+                (click)="selectAccountType('personal')"
+              >
+                <i class="bi bi-person-heart" aria-hidden="true"></i>
+                <span>
+                  <strong>Personal</strong>
+                  <small>For everyday posts and hanging out nearby</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="account-type-option"
+                [class.account-type-option--active]="accountType() === 'business'"
+                [disabled]="loading()"
+                (click)="selectAccountType('business')"
+              >
+                <i class="bi bi-shop" aria-hidden="true"></i>
+                <span>
+                  <strong>Business</strong>
+                  <small>For shops and services posting as your business</small>
+                </span>
+              </button>
+            </div>
+            @if (accountType() === 'business') {
+            <input
+              type="text"
+              class="tm-input"
+              style="margin-top: 8px"
+              placeholder="Shop / business name"
+              [value]="businessName()"
+              (input)="businessName.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="organization"
+            />
+            @if (!businessName().trim()) {
+            <span class="field-hint">Shown as the author name on your business posts.</span>
+            }
+            <div class="field-row" style="margin-top: 8px">
+              <input
+                type="tel"
+                class="tm-input"
+                placeholder="Phone (optional)"
+                [value]="businessPhone()"
+                (input)="businessPhone.set($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="tel"
+              />
+              <input
+                type="url"
+                class="tm-input"
+                placeholder="Website (optional)"
+                [value]="businessWebsite()"
+                (input)="businessWebsite.set($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="url"
+              />
+            </div>
+            <span class="field-hint"
+              >Shown on your business posts when filled in — leave blank to skip.</span
+            >
+            }
+          </div>
+
+          <button
+            class="tm-btn tm-btn-primary w-full step-btn"
+            type="button"
+            [disabled]="!canProceedStep1()"
+            (click)="nextStep()"
+          >
+            Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
         </div>
+
+        <p class="login-hint">Already have an account? <a routerLink="/login">Log in</a></p>
+      </div>
       }
 
       <!-- ── Step 2: Birthday + Location ── -->
       @if (!awaitingEmailConfirmation() && step() === 2) {
-        <div class="step-block">
-          <h1 class="form-title">A few more details</h1>
+      <div class="step-block">
+        <h1 class="form-title">A few more details</h1>
 
-          <div class="login-fields">
-
-            <div class="field-group">
-              <label class="field-label">Birthday</label>
-              <div class="birthday-row">
-                <select
-                  class="tm-input"
-                  [value]="birthMonth()"
-                  (change)="birthMonth.set($any($event.target).value)"
-                  [disabled]="loading()"
-                >
-                  <option value="" disabled selected>Month</option>
-                  @for (m of months; track m; let i = $index) {
-                    <option [value]="i + 1">{{ m }}</option>
-                  }
-                </select>
-                <select
-                  class="tm-input"
-                  [value]="birthDay()"
-                  (change)="birthDay.set($any($event.target).value)"
-                  [disabled]="loading()"
-                >
-                  <option value="" disabled selected>Day</option>
-                  @for (d of days; track d) {
-                    <option [value]="d">{{ d }}</option>
-                  }
-                </select>
-                <select
-                  class="tm-input"
-                  [value]="birthYear()"
-                  (change)="birthYear.set($any($event.target).value)"
-                  [disabled]="loading()"
-                >
-                  <option value="" disabled selected>Year</option>
-                  @for (y of years; track y) {
-                    <option [value]="y">{{ y }}</option>
-                  }
-                </select>
-              </div>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">Home location <span class="required">*</span></label>
-              <div class="hood-search">
-                <input
-                  type="text"
-                  class="tm-input"
-                  placeholder="Search your city, district or state"
-                  [value]="hoodQuery()"
-                  (input)="onHoodInput($any($event.target).value)"
-                  (focus)="hoodOpen.set(true)"
-                  [disabled]="loading()"
-                  autocomplete="off"
-                />
-                @if (hoodOpen() && (hoodResults().length || hoodSearching())) {
-                  <div class="hood-results">
-                    @if (hoodSearching()) {
-                      <div class="hood-result hood-result--loading">Searching…</div>
-                    }
-                    @for (r of hoodResults(); track r.place_id) {
-                      <button type="button" class="hood-result" (click)="selectHood(r)">
-                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                        <span>
-                          <strong>{{ r.address.suburb || r.address.neighbourhood || r.address.village || r.address.town || r.address.city || r.address.state_district || r.address.county || r.display_name.split(',')[0] }}</strong>
-                          <small>{{ r.address.state_district || r.address.county || r.address.city_district || r.address.city || r.address.town }}, {{ r.address.state }}, {{ r.address.country }}</small>
-                        </span>
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-              @if (hoodPick(); as pick) {
-                <div class="hood-chips">
-                  <span class="hood-chip"><small>State</small><strong>{{ pick.state }}</strong></span>
-                  <span class="hood-chip"><small>District</small><strong>{{ pick.district }}</strong></span>
-                  @if (pick.place) {
-                    <span class="hood-chip hood-chip--optional"><small>Place</small><strong>{{ pick.place }}</strong></span>
-                  }
-                  <button type="button" class="hood-chip-clear" (click)="clearHood()" aria-label="Clear location">
-                    <i class="bi bi-x-lg" aria-hidden="true"></i>
-                  </button>
-                </div>
-                <span class="field-hint">You can change this once every 30 days.</span>
-              }
-            </div>
-
-            <div class="step-actions">
-              <button class="tm-btn back-btn" type="button" (click)="prevStep()">
-                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back
-              </button>
-              <button
-                class="tm-btn tm-btn-primary step-btn"
-                type="button"
-                [disabled]="!canSubmit()"
-                (click)="signup()"
+        <div class="login-fields">
+          <div class="field-group">
+            <label class="field-label">Birthday</label>
+            <div class="birthday-row">
+              <select
+                class="tm-input"
+                [value]="birthMonth()"
+                (change)="birthMonth.set($any($event.target).value)"
+                [disabled]="loading()"
               >
-                @if (!loading()) {
-                  Create account
-                } @else {
-                  <span class="spinner" aria-hidden="true"></span>
-                  Creating…
+                <option value="" disabled selected>Month</option>
+                @for (m of months; track m; let i = $index) {
+                <option [value]="i + 1">{{ m }}</option>
                 }
-              </button>
+              </select>
+              <select
+                class="tm-input"
+                [value]="birthDay()"
+                (change)="birthDay.set($any($event.target).value)"
+                [disabled]="loading()"
+              >
+                <option value="" disabled selected>Day</option>
+                @for (d of days; track d) {
+                <option [value]="d">{{ d }}</option>
+                }
+              </select>
+              <select
+                class="tm-input"
+                [value]="birthYear()"
+                (change)="birthYear.set($any($event.target).value)"
+                [disabled]="loading()"
+              >
+                <option value="" disabled selected>Year</option>
+                @for (y of years; track y) {
+                <option [value]="y">{{ y }}</option>
+                }
+              </select>
             </div>
-
           </div>
 
-          @if (error()) {
-            <div class="error-msg">
-              <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ error() }}
+          <div class="field-group">
+            <label class="field-label">Home location <span class="required">*</span></label>
+            <div class="hood-search">
+              <input
+                type="text"
+                class="tm-input"
+                placeholder="Search your city, district or state"
+                [value]="hoodQuery()"
+                (input)="onHoodInput($any($event.target).value)"
+                (focus)="hoodOpen.set(true)"
+                [disabled]="loading()"
+                autocomplete="off"
+              />
+              @if (hoodOpen() && (hoodResults().length || hoodSearching())) {
+              <div class="hood-results">
+                @if (hoodSearching()) {
+                <div class="hood-result hood-result--loading">Searching…</div>
+                } @for (r of hoodResults(); track r.place_id) {
+                <button type="button" class="hood-result" (click)="selectHood(r)">
+                  <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                  <span>
+                    <strong
+                      >{{ r.address.suburb || r.address.neighbourhood || r.address.village ||
+                      r.address.town || r.address.city || r.address.state_district ||
+                      r.address.county || r.display_name.split(',')[0] }}</strong
+                    >
+                    <small
+                      >{{ r.address.state_district || r.address.county || r.address.city_district ||
+                      r.address.city || r.address.town }}, {{ r.address.state }}, {{
+                      r.address.country }}</small
+                    >
+                  </span>
+                </button>
+                }
+              </div>
+              }
             </div>
-          }
+            @if (hoodPick(); as pick) {
+            <div class="hood-chips">
+              <span class="hood-chip"><small>State</small><strong>{{ pick.state }}</strong></span>
+              <span class="hood-chip"
+                ><small>District</small><strong>{{ pick.district }}</strong></span
+              >
+              @if (pick.place) {
+              <span class="hood-chip hood-chip--optional"
+                ><small>Place</small><strong>{{ pick.place }}</strong></span
+              >
+              }
+              <button
+                type="button"
+                class="hood-chip-clear"
+                (click)="clearHood()"
+                aria-label="Clear location"
+              >
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+              </button>
+            </div>
+            <span class="field-hint">You can change this once every 30 days.</span>
+            }
+          </div>
 
-          <p class="legal-text">
-            By signing up, you agree to our <a href="#">Terms</a>, <a href="#">Privacy Policy</a> and <a href="#">Cookies Policy</a>.
-          </p>
+          <div class="step-actions">
+            <button class="tm-btn back-btn" type="button" (click)="prevStep()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Back
+            </button>
+            <button
+              class="tm-btn tm-btn-primary step-btn"
+              type="button"
+              [disabled]="!canSubmit()"
+              (click)="signup()"
+            >
+              @if (!loading()) { Create account } @else {
+              <span class="spinner" aria-hidden="true"></span>
+              Creating… }
+            </button>
+          </div>
         </div>
-      }
 
+        @if (error()) {
+        <div class="error-msg">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ error() }}
+        </div>
+        }
+
+        <p class="legal-text">
+          By signing up, you agree to our <a href="#">Terms</a>, <a href="#">Privacy Policy</a> and
+          <a href="#">Cookies Policy</a>.
+        </p>
+      </div>
+      }
     </div>
   </div>
-
 </div>

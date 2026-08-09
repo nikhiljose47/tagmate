@@ -277,14 +277,19 @@ export class MediaCompressionService {
 
       video.onloadeddata = async () => {
         try {
-          const captureStreamFn = (video as any).captureStream || (video as any).mozCaptureStream;
+          const videoWithCapture = video as HTMLVideoElement & {
+            captureStream?: () => MediaStream;
+            mozCaptureStream?: () => MediaStream;
+          };
+          const captureStreamFn =
+            videoWithCapture.captureStream ?? videoWithCapture.mozCaptureStream;
           if (!captureStreamFn) {
             clearTimeout(timer);
             cleanup();
             return resolve(file);
           }
 
-          const stream: MediaStream = captureStreamFn.call(video);
+          const stream: MediaStream = captureStreamFn.call(videoWithCapture);
           mediaRecorder = new MediaRecorder(stream, {
             mimeType,
             videoBitsPerSecond: 2_000_000,

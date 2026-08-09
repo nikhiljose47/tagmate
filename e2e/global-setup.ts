@@ -4,9 +4,10 @@
 // reducing Supabase auth calls from ~969 to just 5.
 
 import { chromium, FullConfig } from '@playwright/test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -27,8 +28,17 @@ const testUsers: TestUser[] = [
 ];
 
 export const SESSION_DIR = path.resolve(process.cwd(), 'e2e/.sessions');
+const execFileAsync = promisify(execFile);
 
 async function globalSetup(config: FullConfig) {
+  if (process.env['E2E_SEED'] !== 'false') {
+    console.log('  â†’ Seeding deterministic E2E posts and profiles...');
+    await execFileAsync(process.execPath, ['scripts/seed-e2e.mjs'], {
+      cwd: process.cwd(),
+      env: process.env,
+    });
+  }
+
   // Ensure session directory exists
   if (!fs.existsSync(SESSION_DIR)) {
     fs.mkdirSync(SESSION_DIR, { recursive: true });

@@ -17,7 +17,7 @@ export class TagDataService {
     return result;
   }
 
-  addRow<T extends Record<string, unknown>>(table: string, data: T) {
+  addRow<T>(table: string, data: Record<string, unknown>) {
     return from(this.client.from(table).insert(data).select().single<T>()).pipe(
       map((result) => this.requireSuccess(result)),
     );
@@ -46,48 +46,69 @@ export class TagDataService {
   getUserById(uid: string): Observable<AppUser | null> {
     return from(
       this.client
-        .from('users')
+        .from('public_user_profiles')
         .select(
-          'uid,name,is_guest,reputation,bio,created_at,updated_at,' +
+          'uid,name,is_guest,reputation,bio,created_at,updated_at,account_type,business_name,business_website',
+        )
+        .eq('uid', uid)
+        .maybeSingle<UserRow>(),
+    ).pipe(
+      map((result) => {
+        const { data } = this.requireSuccess(result);
+        return data ? this.mapUser(data) : null;
+      }),
+    );
+  }
+
+  getCurrentUserById(uid: string): Observable<AppUser | null> {
+    return from(
+      this.client
+        .from('my_user_profile')
+        .select(
+          'uid,name,email,is_guest,reputation,bio,created_at,updated_at,' +
             'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at,' +
             'account_type,business_name,business_phone,business_website',
         )
         .eq('uid', uid)
-        .single<UserRow>(),
+        .maybeSingle<UserRow>(),
     ).pipe(
       map((result) => {
         const { data } = this.requireSuccess(result);
-        if (!data) return null;
-        const hood = data.home_state
-          ? new Hood({
-              name: data.home_place || data.home_district || data.home_state,
-              state: data.home_state,
-              country: data.home_country || 'India',
-              district: data.home_district || '',
-              place: data.home_place || '',
-              coords: {
-                lat: data.home_lat ?? 0,
-                lng: data.home_lng ?? 0,
-              },
-              updatedAt: data.home_updated_at || '',
-            })
-          : undefined;
-        return {
-          uid: data.uid,
-          name: data.name,
-          isGuest: !!data.is_guest,
-          reputation: data.reputation ?? 0,
-          bio: data.bio ?? '',
-          createdAt: data.created_at ?? undefined,
-          updatedAt: data.updated_at ?? undefined,
-          hood,
-          accountType: data.account_type === 'business' ? 'business' : 'personal',
-          businessName: data.business_name ?? undefined,
-          businessPhone: data.business_phone ?? undefined,
-          businessWebsite: data.business_website ?? undefined,
-        };
+        return data ? this.mapUser(data) : null;
       }),
     );
+  }
+
+  private mapUser(data: UserRow): AppUser {
+    const hood = data.home_state
+      ? new Hood({
+          name: data.home_place || data.home_district || data.home_state,
+          state: data.home_state,
+          country: data.home_country || 'India',
+          district: data.home_district || '',
+          place: data.home_place || '',
+          coords: {
+            lat: data.home_lat ?? 0,
+            lng: data.home_lng ?? 0,
+          },
+          updatedAt: data.home_updated_at || '',
+        })
+      : undefined;
+    return {
+      uid: data.uid,
+      name: data.name,
+      isGuest: !!data.is_guest,
+      email: data.email ?? undefined,
+      reputation: data.reputation ?? 0,
+      bio: data.bio ?? '',
+      createdAt: data.created_at ?? undefined,
+      updatedAt: data.updated_at ?? undefined,
+      hood,
+      accountType: data.account_type === 'business' ? 'business' : 'personal',
+      businessName: data.business_name ?? undefined,
+      businessPhone: data.business_phone ?? undefined,
+      businessWebsite: data.business_website ?? undefined,
+    };
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {
@@ -118,8 +139,7 @@ export class TagDataService {
       this.client
         .from(table)
         .update(data as Record<string, unknown>)
-        .match(matchers)
-        .select(),
+        .match(matchers),
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 
@@ -128,11 +148,12 @@ export class TagDataService {
     if (!sanitized) return of({ data: [], error: null });
     return from(
       this.client
-        .from('users')
+        .from('public_user_profiles')
         .select('uid,name,is_guest,bio,reputation,created_at,updated_at')
         .ilike('name', `%${sanitized}%`)
         .eq('is_guest', false)
-        .limit(limit),
+        .limit(limit)
+        .overrideTypes<UserRow[]>(),
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 

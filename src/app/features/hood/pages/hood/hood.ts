@@ -36,7 +36,6 @@ import { PlaceBoundary, Utils } from '../../../../core/services/utils.service';
 import { setUserPreference } from '../../../../store/user-preferences/user-preference.actions';
 import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { PreloadService } from '../../../../core/services/preload.service';
-import { escapeHtml } from '../../../../shared/utils/string.utils';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
@@ -313,6 +312,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   async ngAfterViewInit(): Promise<void> {
+    this.social.activateRealtime();
     if (typeof window === 'undefined') return;
     if (!this.supportsWebGl()) {
       this.showUserError('This browser cannot start the map because WebGL is unavailable.');
@@ -1017,6 +1017,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     }
 
     const first = res[0];
+    if (!first) return;
     const lat = Number.parseFloat(first.lat);
     const lng = Number.parseFloat(first.lon);
     if (!this.isValidCoordinate(lat, lng)) {
@@ -1260,10 +1261,6 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private emptyBoundaryCollection(): FeatureCollection<HoodBoundaryGeometry> {
     return { type: 'FeatureCollection', features: [] };
-  }
-
-  private escapeHtml(value: string): string {
-    return escapeHtml(value);
   }
 
   private showUserError(message: string): void {

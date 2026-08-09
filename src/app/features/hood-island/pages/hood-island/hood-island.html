@@ -28,27 +28,27 @@
       </div>
 
       @if (searching()) {
-        <div class="island-search-spinner"></div>
+      <div class="island-search-spinner"></div>
       }
     </label>
 
     @if (searchOpen() && searchResults().length > 0) {
-      <div class="island-search-results" role="listbox" (mousedown)="$event.preventDefault()">
-        @for (r of searchResults(); track r.displayName) {
-          <button
-            type="button"
-            class="island-search-result"
-            role="option"
-            (click)="pickSearchResult(r)"
-          >
-            <i class="bi bi-geo-alt" aria-hidden="true"></i>
-            <span class="island-result-text">
-              <strong>{{ r.shortName }}</strong>
-              <small>{{ r.type }}</small>
-            </span>
-          </button>
-        }
-      </div>
+    <div class="island-search-results" role="listbox" (mousedown)="$event.preventDefault()">
+      @for (r of searchResults(); track r.displayName) {
+      <button
+        type="button"
+        class="island-search-result"
+        role="option"
+        (click)="pickSearchResult(r)"
+      >
+        <i class="bi bi-geo-alt" aria-hidden="true"></i>
+        <span class="island-result-text">
+          <strong>{{ r.shortName }}</strong>
+          <small>{{ r.type }}</small>
+        </span>
+      </button>
+      }
+    </div>
     }
   </div>
 
@@ -72,69 +72,69 @@
     <!-- Advanced config button -->
     <!-- Quick settings panel -->
     @if (settingsOpen()) {
-      <div class="island-settings-panel">
-        <span class="island-settings-title">Map Style</span>
-        <div class="island-mode-grid cols-3">
-          @for (s of baseStyles; track s.key) {
-            <button
-              type="button"
-              class="island-mode-btn compact"
-              [class.active]="baseStyle() === s.key"
-              (click)="setBaseStyle(s.key)"
-            >
-              {{ s.label }}
-            </button>
-          }
-        </div>
-
-        <span class="island-settings-title">Ocean Style</span>
-        <div class="island-mode-grid">
-          @for (mode of oceanModes; track mode.key) {
-            <button
-              type="button"
-              class="island-mode-btn"
-              [class.active]="currentMode() === mode.key"
-              (click)="applyMode(mode.key)"
-            >
-              <span class="island-mode-swatch" [style.background]="mode.swatch"></span>
-              <span>{{ mode.label }}</span>
-            </button>
-          }
-        </div>
-
-        <span class="island-settings-title">Camera Tilt</span>
-        <div class="island-mode-grid cols-4">
-          @for (t of tiltOptions; track t.pitch) {
-            <button
-              type="button"
-              class="island-mode-btn compact"
-              [class.active]="tilt() === t.pitch"
-              (click)="setTilt(t.pitch)"
-            >
-              {{ t.label }}
-            </button>
-          }
-        </div>
-
+    <div class="island-settings-panel">
+      <span class="island-settings-title">Map Style</span>
+      <div class="island-mode-grid cols-3">
+        @for (s of baseStyles; track s.key) {
         <button
           type="button"
-          class="island-toggle-row"
-          (click)="toggleBuildings3d()"
-          [attr.aria-pressed]="buildings3d()"
+          class="island-mode-btn compact"
+          [class.active]="baseStyle() === s.key"
+          (click)="setBaseStyle(s.key)"
         >
-          <span>3D Buildings</span>
-          <span class="island-switch" [class.on]="buildings3d()"></span>
+          {{ s.label }}
         </button>
+        }
       </div>
+
+      <span class="island-settings-title">Ocean Style</span>
+      <div class="island-mode-grid">
+        @for (mode of oceanModes; track mode.key) {
+        <button
+          type="button"
+          class="island-mode-btn"
+          [class.active]="currentMode() === mode.key"
+          (click)="applyMode(mode.key)"
+        >
+          <span class="island-mode-swatch" [style.background]="mode.swatch"></span>
+          <span>{{ mode.label }}</span>
+        </button>
+        }
+      </div>
+
+      <span class="island-settings-title">Camera Tilt</span>
+      <div class="island-mode-grid cols-4">
+        @for (t of tiltOptions; track t.pitch) {
+        <button
+          type="button"
+          class="island-mode-btn compact"
+          [class.active]="tilt() === t.pitch"
+          (click)="setTilt(t.pitch)"
+        >
+          {{ t.label }}
+        </button>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="island-toggle-row"
+        (click)="toggleBuildings3d()"
+        [attr.aria-pressed]="buildings3d()"
+      >
+        <span>3D Buildings</span>
+        <span class="island-switch" [class.on]="buildings3d()"></span>
+      </button>
+    </div>
     }
   </div>
 
   <!-- Loading overlay -->
   @if (loading()) {
-    <div class="island-loading" aria-live="polite">
-      <div class="island-spinner"></div>
-      <span>Loading district…</span>
-    </div>
+  <div class="island-loading" aria-live="polite">
+    <div class="island-spinner"></div>
+    <span>Loading district…</span>
+  </div>
   }
 
   <!-- ── Marker legend ──────────────────────────────────────────────────────── -->
@@ -152,10 +152,10 @@
 
   <!-- Error state -->
   @if (errorMsg()) {
-    <div class="island-error" role="alert">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>{{ errorMsg() }}</span>
-      <button type="button" (click)="router.navigateByUrl('/hood')">Go to Map</button>
-    </div>
+  <div class="island-error" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ errorMsg() }}</span>
+    <button type="button" (click)="router.navigateByUrl('/hood')">Go to Map</button>
+  </div>
   }
 </div>

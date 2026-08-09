@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  ChangeDetectionStrategy,
   OnInit,
   OnDestroy,
   ViewChild,
@@ -38,6 +39,7 @@ import { FeatureFlagsService } from '../../../../core/services/feature-flags.ser
   imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe, TagGradientPipe, TimeAgoPipe],
   templateUrl: './neighborhood.html',
   styleUrl: './neighborhood.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NeighborhoodPage implements OnInit, OnDestroy {
   @ViewChild('hoodMapEl', { static: true }) private hoodMapEl?: ElementRef<HTMLDivElement>;
@@ -136,7 +138,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   ];
 
   protected getNoteColorClass(index: number): string {
-    return this.bulletinColors[index % this.bulletinColors.length];
+    return this.bulletinColors[index % this.bulletinColors.length]!;
   }
 
   private readonly AI_KEYWORDS = {
@@ -340,6 +342,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.social.activateRealtime();
     const requestedTab = this.route.snapshot.queryParamMap.get('tab');
     if (
       requestedTab === 'map' ||
@@ -349,7 +352,9 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       requestedTab === 'bulletin' ||
       requestedTab === 'chat'
     ) {
-      this.activeTab.set(requestedTab as any);
+      this.activeTab.set(
+        requestedTab as 'map' | 'overview' | 'ai' | 'leaderboard' | 'bulletin' | 'chat',
+      );
       if (requestedTab === 'chat') {
         this.loadGroupChat();
       }
@@ -515,7 +520,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     } else if (matchesTraffic) {
       const matches = activePosts.filter((p) => p.tag === 'alert');
       if (matches.length > 0) {
-        const item = matches[0];
+        const item = matches[0]!;
         replyText = `Yes, neighbor! There's a road update posted by @${item.username}: "${item.highlight}". I've linked it below so you can locate it on the map.`;
         foundPost = item;
       } else {
@@ -524,7 +529,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     } else if (matchesSales) {
       const matches = activePosts.filter((p) => p.tag === 'shop');
       if (matches.length > 0) {
-        const item = matches[0];
+        const item = matches[0]!;
         replyText = `Here's a deal! @${item.username} posted a sale: "${item.highlight}". Check the attachment link below to find it!`;
         foundPost = item;
       } else {
@@ -533,7 +538,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     } else if (matchesEvents) {
       const matches = activePosts.filter((p) => p.tag === 'event');
       if (matches.length > 0) {
-        const item = matches[0];
+        const item = matches[0]!;
         replyText = `Mark your calendar! We have an event coming up: "${item.highlight}" hosted by @${item.username}. Click the link below to RSVP!`;
         foundPost = item;
       } else {
@@ -542,7 +547,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     } else if (matchesFood) {
       const matches = activePosts.filter((p) => p.tag === 'food');
       if (matches.length > 0) {
-        const item = matches[0];
+        const item = matches[0]!;
         replyText = `Hungry? @${item.username} recommended: "${item.highlight}". I've linked it below so you can check out the spot!`;
         foundPost = item;
       } else {
@@ -551,7 +556,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     } else if (matchesQuestions) {
       const matches = activePosts.filter((p) => p.tag === 'poll');
       if (matches.length > 0) {
-        const item = matches[0];
+        const item = matches[0]!;
         replyText = `A neighbor is asking: "${item.highlight}". Click the link below to cast your vote or answer their question!`;
         foundPost = item;
       } else {
@@ -803,13 +808,5 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       bulletin: '📌',
     };
     return map[tag] ?? '📍';
-  }
-
-  private esc(s: string): string {
-    return s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 }

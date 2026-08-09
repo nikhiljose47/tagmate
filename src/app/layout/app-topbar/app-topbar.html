@@ -49,73 +49,69 @@
           aria-label="Search posts and tags in your hood"
         />
         @if (isPostSearching()) {
-          <span class="search-spinner" aria-label="Searching"></span>
-        }
-
-        @if (postSearchOpen()) {
-          <section class="hood-search-results" aria-label="Search results">
-            @if (postSearchQuery().trim().length < 2) {
-              <div class="hood-search-hint">
-                <i class="bi bi-signpost-split" aria-hidden="true"></i>
-                <span>Type a phrase to find posts and tags near {{ hoodChipLabel() }}</span>
-              </div>
-            } @else if (postSearchResults().length === 0 && !isPostSearching()) {
-              <div class="hood-search-empty">
-                <strong>No matches found</strong>
-                <span>Try a different word, tag, or phrase.</span>
-              </div>
-            }
-
-            @for (result of postSearchResults(); track result.id) {
-              <button type="button" class="hood-search-result" (click)="goToSearchResult(result)">
-                <span class="hood-search-result-icon">
-                  <i class="bi bi-hash" aria-hidden="true"></i>
-                </span>
-                <span class="hood-search-result-body">
-                  <strong>{{ result.title }}</strong>
-                  <small>#{{ result.tag }} · {{ result.location }} · {{ result.username }}</small>
-                </span>
-              </button>
-            }
-          </section>
+        <span class="search-spinner" aria-label="Searching"></span>
+        } @if (postSearchOpen()) {
+        <section class="hood-search-results" aria-label="Search results">
+          @if (postSearchQuery().trim().length < 2) {
+          <div class="hood-search-hint">
+            <i class="bi bi-signpost-split" aria-hidden="true"></i>
+            <span>Type a phrase to find posts and tags near {{ hoodChipLabel() }}</span>
+          </div>
+          } @else if (postSearchResults().length === 0 && !isPostSearching()) {
+          <div class="hood-search-empty">
+            <strong>No matches found</strong>
+            <span>Try a different word, tag, or phrase.</span>
+          </div>
+          } @for (result of postSearchResults(); track result.id) {
+          <button type="button" class="hood-search-result" (click)="goToSearchResult(result)">
+            <span class="hood-search-result-icon">
+              <i class="bi bi-hash" aria-hidden="true"></i>
+            </span>
+            <span class="hood-search-result-body">
+              <strong>{{ result.title }}</strong>
+              <small>#{{ result.tag }} · {{ result.location }} · {{ result.username }}</small>
+            </span>
+          </button>
+          }
+        </section>
         }
       </div>
 
       @if (isFeedBeta()) {
-        <span class="home-hot-now-wrap">
-          <button
-            type="button"
-            class="home-hot-now-chip"
-            [class.active]="workspace.feedBetaScope()?.category === 'hot-now'"
-            [class.has-badge]="hotNowBadgeCount() > 0"
-            (click)="onHotNowChipClick()"
-            [attr.aria-label]="
+      <span class="home-hot-now-wrap">
+        <button
+          type="button"
+          class="home-hot-now-chip"
+          [class.active]="workspace.feedBetaScope()?.category === 'hot-now'"
+          [class.has-badge]="hotNowBadgeCount() > 0"
+          (click)="onHotNowChipClick()"
+          [attr.aria-label]="
               'Hot now in ' +
               (hood().state || 'your home hood') +
               (hotNowBadgeCount() > 0 ? ' new posts' : '')
             "
-            [attr.title]="
+          [attr.title]="
               'Hot now in ' + (hood().state || 'your home hood') + ' - urgent posts, last 2 hours'
             "
+        >
+          <span class="home-hot-now-label">
+            <span>Hot</span>
+            <span>Now</span>
+          </span>
+          <i class="bi bi-fire home-hot-now-icon" aria-hidden="true"></i>
+          @if (hotNowBadgeCount() > 0) {
+          <span class="home-hot-now-badge" aria-hidden="true"
+            >{{ hotNowBadgeCount() > 9 ? '9+' : hotNowBadgeCount() }}</span
           >
-            <span class="home-hot-now-label">
-              <span>Hot</span>
-              <span>Now</span>
-            </span>
-            <i class="bi bi-fire home-hot-now-icon" aria-hidden="true"></i>
-            @if (hotNowBadgeCount() > 0) {
-              <span class="home-hot-now-badge" aria-hidden="true">{{
-                hotNowBadgeCount() > 9 ? '9+' : hotNowBadgeCount()
-              }}</span>
-            }
-          </button>
-          @if (hotNowInfoOpen()) {
-            <span class="home-hot-now-info" role="status">
-              <i class="bi bi-info-circle" aria-hidden="true"></i>
-              No hot news around
-            </span>
           }
+        </button>
+        @if (hotNowInfoOpen()) {
+        <span class="home-hot-now-info" role="status">
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          No hot news around
         </span>
+        }
+      </span>
       }
     </div>
   </div>
@@ -138,7 +134,7 @@
     >
       <i class="bi bi-bell" aria-hidden="true"></i>
       @if (social.unreadNotifications()) {
-        <span class="notification-badge">{{ social.unreadNotifications() }}</span>
+      <span class="notification-badge">{{ social.unreadNotifications() }}</span>
       }
     </button>
 
@@ -154,50 +150,50 @@
         aria-haspopup="menu"
         [attr.aria-expanded]="userMenuOpen()"
       >
-        <span class="user-avatar">{{
-          (session.user()?.name || 'TM').slice(0, 2).toUpperCase()
-        }}</span>
+        <span class="user-avatar"
+          >{{ (session.user()?.name || 'TM').slice(0, 2).toUpperCase() }}</span
+        >
       </button>
 
       @if (userMenuOpen()) {
-        <section class="user-menu" role="menu">
-          <div class="user-menu-profile">
-            <span class="user-avatar user-avatar--lg">{{
-              (session.user()?.name || 'TM').slice(0, 2).toUpperCase()
-            }}</span>
-            <span class="user-menu-info">
-              <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
-              <small>{{
-                session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace'
-              }}</small>
-            </span>
-          </div>
+      <section class="user-menu" role="menu">
+        <div class="user-menu-profile">
+          <span class="user-avatar user-avatar--lg"
+            >{{ (session.user()?.name || 'TM').slice(0, 2).toUpperCase() }}</span
+          >
+          <span class="user-menu-info">
+            <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
+            <small
+              >{{ session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace' }}</small
+            >
+          </span>
+        </div>
 
-          <a routerLink="/profile" role="menuitem" (click)="userMenuOpen.set(false)">
-            <i class="bi bi-person" aria-hidden="true"></i>
-            Profile
-          </a>
+        <a routerLink="/profile" role="menuitem" (click)="userMenuOpen.set(false)">
+          <i class="bi bi-person" aria-hidden="true"></i>
+          Profile
+        </a>
 
-          <div class="theme-section" aria-label="Theme options">
-            <p>Theme</p>
-            @for (item of visibleThemes(); track item.key) {
-              <button
-                type="button"
-                role="menuitem"
-                [class.active]="theme.currentTheme() === item.key"
-                (click)="setTheme(item.key)"
-              >
-                <i class="bi" [class]="item.icon" aria-hidden="true"></i>
-                {{ item.label }}
-              </button>
-            }
-          </div>
-
-          <button type="button" role="menuitem" class="danger" (click)="logout()">
-            <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-            Sign out
+        <div class="theme-section" aria-label="Theme options">
+          <p>Theme</p>
+          @for (item of visibleThemes(); track item.key) {
+          <button
+            type="button"
+            role="menuitem"
+            [class.active]="theme.currentTheme() === item.key"
+            (click)="setTheme(item.key)"
+          >
+            <i class="bi" [class]="item.icon" aria-hidden="true"></i>
+            {{ item.label }}
           </button>
-        </section>
+          }
+        </div>
+
+        <button type="button" role="menuitem" class="danger" (click)="logout()">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+          Sign out
+        </button>
+      </section>
       }
     </div>
   </div>
@@ -211,127 +207,111 @@
   topbar box instead of centering over the full viewport.
 -->
 @if (hoodModalOpen()) {
-    <div class="hood-modal-backdrop" (click)="closeHoodModal()"></div>
-    <div class="hood-modal" role="dialog" aria-modal="true" aria-label="Change your hood or place">
-      <header class="hood-modal-head">
-        <h2>Change your hood/place</h2>
-        <button
-          type="button"
-          class="hood-modal-close"
-          (click)="closeHoodModal()"
-          aria-label="Close"
-        >
-          <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
-      </header>
+<div class="hood-modal-backdrop" (click)="closeHoodModal()"></div>
+<div class="hood-modal" role="dialog" aria-modal="true" aria-label="Change your hood or place">
+  <header class="hood-modal-head">
+    <h2>Change your hood/place</h2>
+    <button type="button" class="hood-modal-close" (click)="closeHoodModal()" aria-label="Close">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </header>
 
-      <div class="hood-modal-search">
-        <i class="bi bi-search" aria-hidden="true"></i>
-        <input
-          type="search"
-          placeholder="Search state, city, or country"
-          [ngModel]="hoodModalQuery()"
-          (ngModelChange)="onHoodModalQueryChange($event)"
-          (keydown.enter)="pickFirstHoodModalResult()"
-          aria-label="Search for a hood or place"
-          autofocus
-        />
-      </div>
+  <div class="hood-modal-search">
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input
+      type="search"
+      placeholder="Search state, city, or country"
+      [ngModel]="hoodModalQuery()"
+      (ngModelChange)="onHoodModalQueryChange($event)"
+      (keydown.enter)="pickFirstHoodModalResult()"
+      aria-label="Search for a hood or place"
+      autofocus
+    />
+  </div>
 
-      <div class="hood-modal-results">
-        @for (area of hoodModalAreaResults(); track area.id) {
-          <button
-            type="button"
-            class="hood-modal-result"
-            [class.selected]="isPendingArea(area.id)"
-            (click)="pickHoodArea(area)"
-          >
-            <i class="bi bi-geo-alt" aria-hidden="true"></i>
-            <span>
-              <strong>
-                {{ area.label }}
-                @if (isUserHood(area.label, area.country)) {
-                  <em class="home-district-hood-badge">(Home)</em>
-                }
-              </strong>
-              <small>{{ area.label !== area.country ? area.country : 'Country feed' }}</small>
-            </span>
-            <span class="hood-modal-count">{{ area.postCount }}</span>
-            @if (isPendingArea(area.id)) {
-              <i class="bi bi-check-circle-fill hood-modal-check" aria-hidden="true"></i>
-            }
-          </button>
-        }
-        @if (isNominatimLoading()) {
-          <div class="home-district-loading">
-            <span class="search-spinner" aria-label="Searching worldwide"></span>
-            <small>Searching worldwide…</small>
-          </div>
-        }
-        @if (nominatimSuggestions().length) {
-          <div class="home-district-section-label">Global search</div>
-          @for (place of nominatimSuggestions(); track place.place_id) {
-            <button
-              type="button"
-              class="hood-modal-result"
-              [class.selected]="isPendingNominatim(place.place_id)"
-              (click)="pickHoodNominatim(place)"
-            >
-              <i class="bi bi-globe" aria-hidden="true"></i>
-              <span>
-                <strong>
-                  {{ place.address.state || place.display_name.split(',')[0] }}
-                  @if (isUserHood(place.address.state, place.address.country)) {
-                    <em class="home-district-hood-badge">(Home)</em>
-                  }
-                </strong>
-                <small>{{ place.address.country || '' }}</small>
-              </span>
-              @if (isPendingNominatim(place.place_id)) {
-                <i class="bi bi-check-circle-fill hood-modal-check" aria-hidden="true"></i>
-              } @else {
-                <span class="home-district-new-badge">New</span>
-              }
-            </button>
+  <div class="hood-modal-results">
+    @for (area of hoodModalAreaResults(); track area.id) {
+    <button
+      type="button"
+      class="hood-modal-result"
+      [class.selected]="isPendingArea(area.id)"
+      (click)="pickHoodArea(area)"
+    >
+      <i class="bi bi-geo-alt" aria-hidden="true"></i>
+      <span>
+        <strong>
+          {{ area.label }} @if (isUserHood(area.label, area.country)) {
+          <em class="home-district-hood-badge">(Home)</em>
           }
-        }
-        @if (
-          !hoodModalAreaResults().length &&
-          !nominatimSuggestions().length &&
-          !isNominatimLoading()
-        ) {
-          <div class="home-district-empty">
-            <strong>No regions found</strong>
-            <span>Try a city, state, or country name.</span>
-          </div>
-        }
-      </div>
-
-      <footer class="hood-modal-actions">
-        @if (hoodModalSelectionLabel()) {
-          <span class="hood-modal-pending">
-            Selected: <strong>{{ hoodModalSelectionLabel() }}</strong>
-            @if (hoodModalSelectionMeta()) {
-              <small>{{ hoodModalSelectionMeta() }}</small>
-            }
-          </span>
-        } @else {
-          <span class="hood-modal-pending hood-modal-pending--empty"
-            >Pick a hood or place below</span
-          >
-        }
-        <div class="hood-modal-buttons">
-          <button type="button" class="hood-modal-cancel" (click)="closeHoodModal()">Cancel</button>
-          <button
-            type="button"
-            class="hood-modal-submit"
-            [disabled]="!hoodModalSelectionLabel()"
-            (click)="submitHoodModal()"
-          >
-            Save
-          </button>
-        </div>
-      </footer>
+        </strong>
+        <small>{{ area.label !== area.country ? area.country : 'Country feed' }}</small>
+      </span>
+      <span class="hood-modal-count">{{ area.postCount }}</span>
+      @if (isPendingArea(area.id)) {
+      <i class="bi bi-check-circle-fill hood-modal-check" aria-hidden="true"></i>
+      }
+    </button>
+    } @if (isNominatimLoading()) {
+    <div class="home-district-loading">
+      <span class="search-spinner" aria-label="Searching worldwide"></span>
+      <small>Searching worldwide…</small>
     </div>
-  }
+    } @if (nominatimSuggestions().length) {
+    <div class="home-district-section-label">Global search</div>
+    @for (place of nominatimSuggestions(); track place.place_id) {
+    <button
+      type="button"
+      class="hood-modal-result"
+      [class.selected]="isPendingNominatim(place.place_id)"
+      (click)="pickHoodNominatim(place)"
+    >
+      <i class="bi bi-globe" aria-hidden="true"></i>
+      <span>
+        <strong>
+          {{ place.address.state || place.display_name.split(',')[0] }} @if
+          (isUserHood(place.address.state, place.address.country)) {
+          <em class="home-district-hood-badge">(Home)</em>
+          }
+        </strong>
+        <small>{{ place.address.country || '' }}</small>
+      </span>
+      @if (isPendingNominatim(place.place_id)) {
+      <i class="bi bi-check-circle-fill hood-modal-check" aria-hidden="true"></i>
+      } @else {
+      <span class="home-district-new-badge">New</span>
+      }
+    </button>
+    } } @if ( !hoodModalAreaResults().length && !nominatimSuggestions().length &&
+    !isNominatimLoading() ) {
+    <div class="home-district-empty">
+      <strong>No regions found</strong>
+      <span>Try a city, state, or country name.</span>
+    </div>
+    }
+  </div>
 
+  <footer class="hood-modal-actions">
+    @if (hoodModalSelectionLabel()) {
+    <span class="hood-modal-pending">
+      Selected: <strong>{{ hoodModalSelectionLabel() }}</strong>
+      @if (hoodModalSelectionMeta()) {
+      <small>{{ hoodModalSelectionMeta() }}</small>
+      }
+    </span>
+    } @else {
+    <span class="hood-modal-pending hood-modal-pending--empty">Pick a hood or place below</span>
+    }
+    <div class="hood-modal-buttons">
+      <button type="button" class="hood-modal-cancel" (click)="closeHoodModal()">Cancel</button>
+      <button
+        type="button"
+        class="hood-modal-submit"
+        [disabled]="!hoodModalSelectionLabel()"
+        (click)="submitHoodModal()"
+      >
+        Save
+      </button>
+    </div>
+  </footer>
+</div>
+}

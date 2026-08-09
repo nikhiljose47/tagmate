@@ -7,8 +7,8 @@
 
 import { test, expect, Page } from '@playwright/test';
 import { testUsers } from './helpers/test-users';
-import { loginAs, signOut } from './helpers/auth.helpers';
-import { getLikeCount, getCommentCount } from './helpers/post.helpers';
+import { loginAs } from './helpers/auth.helpers';
+import { getLikeCount } from './helpers/post.helpers';
 
 // ─── Utility: navigate to a known public post (feed) ─────────────────────────
 async function getFirstPostUrl(page: Page): Promise<string | null> {

@@ -174,13 +174,6 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
    * owner (status still 'active'). Expired/ended posts stay in the DB for
    * "My Posts" history — this only hides them from the live feed.
    */
-  private isPostLive(post: Tag): boolean {
-    if (post.currentStatus && post.currentStatus !== 'active') return false;
-    const createdMs = new Date(post.createdAt).getTime();
-    if (Number.isNaN(createdMs)) return true;
-    return createdMs + post.expiresIn * 60_000 > Date.now();
-  }
-
   private readonly syncFeedScope = effect(() => {
     const candidates = this.feedCandidates();
     const areas = this.areasFor(candidates);
@@ -217,8 +210,12 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const randomPost = candidates[Math.floor(Math.random() * candidates.length)];
-    const randomArea = areas.find((area) => area.id === this.areaIdFor(randomPost)) ?? areas[0];
-    this.workspace.feedBetaScope.set(this.toScope(randomArea, randomArea.categories[0]));
+    const randomArea =
+      areas.find((area) => randomPost && area.id === this.areaIdFor(randomPost)) ?? areas[0];
+    if (!randomArea) return;
+    this.workspace.feedBetaScope.set(
+      this.toScope(randomArea, randomArea.categories[0] ?? 'around'),
+    );
   });
 
   private readonly scrollScopeToTop = effect(() => {
@@ -252,7 +249,13 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       }));
   });
 
+  constructor() {
+    void this.syncFeedScope;
+    void this.scrollScopeToTop;
+  }
+
   ngOnInit(): void {
+    this.social.activateRealtime();
     this.loadPosts(true);
 
     this.tagRepo
@@ -294,7 +297,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.observer = new IntersectionObserver(
       (entries) => {
         if (
-          entries[0].isIntersecting &&
+          entries[0]?.isIntersecting &&
           this.hasMore() &&
           !this.isLoadingMore() &&
           !this.isLoading()
@@ -382,9 +385,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       case 'call':
         return post.businessPhone ? `tel:${post.businessPhone}` : null;
       case 'whatsapp':
-        return post.businessPhone
-          ? `https://wa.me/${post.businessPhone.replace(/\D/g, '')}`
-          : null;
+        return post.businessPhone ? `https://wa.me/${post.businessPhone.replace(/\D/g, '')}` : null;
       case 'directions':
         return Number.isFinite(post.lat) && Number.isFinite(post.lng)
           ? `https://www.google.com/maps/dir/?api=1&destination=${post.lat},${post.lng}`
@@ -728,7 +729,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       .filter(Boolean);
     if (parts.length <= 1) return parts[0] ?? raw;
     // The first segment is usually a street/road; the second is the neighbourhood.
-    return parts[1];
+    return parts[1]!;
   }
 
   private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {

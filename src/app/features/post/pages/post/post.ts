@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   Output,
@@ -105,6 +106,7 @@ const COMPOSE_PROMPTS = [
 @Component({
   selector: 'app-post',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, TagEmojiPipe],
   templateUrl: './post.html',
   styleUrls: ['./post.scss'],
@@ -122,11 +124,11 @@ export class PostPage implements OnDestroy {
   private readonly telemetry = inject(TelemetryService);
   private readonly workspace = inject(WorkspaceStateService);
 
-  constructor(
-    public shared: SharedStateService,
-    private router: Router,
-    private toast: ToastService,
-  ) {
+  public readonly shared = inject(SharedStateService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+
+  constructor() {
     // Restore the draft after the pick-location round-trip to the map —
     // navigation destroys this component, so the draft lives in SharedStateService.
     const draft = this.shared.postDraft();
@@ -499,7 +501,8 @@ export class PostPage implements OnDestroy {
   removeMedia(index: number): void {
     this.mediaItems.update((items) => {
       // Revoke the object URL to free browser memory.
-      URL.revokeObjectURL(items[index].previewUrl);
+      const item = items[index];
+      if (item) URL.revokeObjectURL(item.previewUrl);
       return items.filter((_, i) => i !== index);
     });
   }
@@ -532,7 +535,9 @@ export class PostPage implements OnDestroy {
 
         try {
           const res = await fetch(`/api/nominatim/reverse?lat=${lat}&lon=${lng}`);
-          const data = res.ok ? await res.json() : null;
+          const data = res.ok
+            ? ((await res.json()) as { display_name?: string; address?: Record<string, string> })
+            : null;
           if (data) {
             this.shared.updateText(this.extractPlaceName(data));
             this.shared.updateRegion(
@@ -701,10 +706,14 @@ export class PostPage implements OnDestroy {
         originalPrice:
           this.postType() === 'business' ? toNumber(this.formData.originalPrice) : undefined,
         availabilityNote:
-          this.postType() === 'business' ? this.formData.availabilityNote.trim() || undefined : undefined,
+          this.postType() === 'business'
+            ? this.formData.availabilityNote.trim() || undefined
+            : undefined,
         cta: this.postType() === 'business' ? this.formData.cta : undefined,
         productLink:
-          this.postType() === 'business' ? this.formData.productLink.trim() || undefined : undefined,
+          this.postType() === 'business'
+            ? this.formData.productLink.trim() || undefined
+            : undefined,
         userId: uid,
         highlight: this.formData.headline,
         lat: coords[0],

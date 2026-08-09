@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   OnDestroy,
   OnInit,
@@ -38,6 +39,7 @@ type FeedMode = 'latest' | 'nearby' | 'following';
 @Component({
   selector: 'app-feed',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -73,7 +75,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected readonly showScrollTop = signal(false);
   private offset = 0;
   private readonly PAGE_SIZE = 25;
-  private searchTimeout: any;
+  private searchTimeout?: ReturnType<typeof setTimeout>;
 
   @ViewChild('scrollSentinel') sentinel?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
@@ -126,6 +128,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     return posts.find((post) => this.postKey(post) === this.postKey(selected)) ?? posts[0];
   });
   ngOnInit(): void {
+    this.social.activateRealtime();
     const topic = this.route.snapshot.queryParamMap.get('topic');
     if (topic) this.selectedCategory.set(topic.toLowerCase());
     this.loadPosts();
@@ -158,7 +161,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       this.observer = new IntersectionObserver(
         (entries) => {
           if (
-            entries[0].isIntersecting &&
+            entries[0]?.isIntersecting &&
             this.hasMore() &&
             !this.isLoadingMore() &&
             !this.isLoading()
@@ -370,13 +373,6 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Not expired and not manually ended by its owner — same rule as feed-beta. */
-  private isPostLive(post: Tag): boolean {
-    if (post.currentStatus && post.currentStatus !== 'active') return false;
-    const createdMs = new Date(post.createdAt).getTime();
-    if (Number.isNaN(createdMs)) return true;
-    return createdMs + post.expiresIn * 60_000 > Date.now();
-  }
-
   private distanceFromProximityOrigin(post: Tag): number {
     const fallbackLat = this.hood()?.coords?.lat ?? 0;
     const fallbackLng = this.hood()?.coords?.lng ?? 0;

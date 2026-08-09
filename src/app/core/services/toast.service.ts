@@ -32,6 +32,7 @@ export class ToastService {
     }
 
     const nextToast = this.queue[0];
+    if (!nextToast) return;
     this.message.set(nextToast);
 
     const duration = nextToast.durationMs ?? 3600;

@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { PostCommentRow } from './social.mapper';
 
 export interface CreateCommentInput {
   post_id: string | undefined;
@@ -16,7 +17,7 @@ export class CommentService {
   private readonly supabase = inject(SupabaseService);
 
   create(input: CreateCommentInput) {
-    return this.supabase.addRow('post_comments', { ...input });
+    return this.supabase.addRow<PostCommentRow>('post_comments', { ...input });
   }
 
   update(commentId: string, text: string, updatedAt: string) {

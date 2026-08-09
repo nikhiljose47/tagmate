@@ -63,8 +63,8 @@ export class SupabaseService {
 
   // ---------- DATA ----------
 
-  addRow<T extends Record<string, unknown>>(table: string, data: T) {
-    return this.tagData.addRow(table, data);
+  addRow<T>(table: string, data: Record<string, unknown>) {
+    return this.tagData.addRow<T>(table, data);
   }
 
   getRows<T>(
@@ -80,6 +80,10 @@ export class SupabaseService {
 
   getUserById(uid: string): Observable<AppUser | null> {
     return this.tagData.getUserById(uid);
+  }
+
+  getCurrentUserById(uid: string): Observable<AppUser | null> {
+    return this.tagData.getCurrentUserById(uid);
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {

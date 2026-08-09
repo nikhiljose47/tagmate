@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { UserSessionService } from '../../../../core/services/user-session.service';
@@ -6,6 +6,7 @@ import { UserSessionService } from '../../../../core/services/user-session.servi
 @Component({
   selector: 'app-not-found',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   templateUrl: './not-found.html',
   styleUrls: ['./not-found.scss'],

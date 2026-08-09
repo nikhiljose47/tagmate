@@ -36,17 +36,17 @@ ALTER TABLE public.tags
 DROP POLICY IF EXISTS "authors insert own tags" ON public.tags;
 CREATE POLICY "authors insert own tags"
   ON public.tags FOR INSERT TO authenticated
-  WITH CHECK (auth.uid()::text = user_id);
+  WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "authors update own tags" ON public.tags;
 CREATE POLICY "authors update own tags"
   ON public.tags FOR UPDATE TO authenticated
-  USING (auth.uid()::text = user_id)
-  WITH CHECK (auth.uid()::text = user_id);
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "authors delete own tags" ON public.tags;
 CREATE POLICY "authors delete own tags"
   ON public.tags FOR DELETE TO authenticated
-  USING (auth.uid()::text = user_id);
+  USING (auth.uid() = user_id);
 
 COMMIT;

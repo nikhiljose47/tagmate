@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -38,6 +46,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
   ],
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PostDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -52,6 +61,7 @@ export class PostDetailPage implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
 
   protected readonly post = signal<Tag | null>(null);
+  protected readonly currentImage = computed(() => this.post()?.images[this.mediaIndex()] ?? null);
   protected readonly relatedPosts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly commentText = signal('');
@@ -83,12 +93,24 @@ export class PostDetailPage implements OnInit {
     );
   });
 
+  protected readonly repliesByComment = computed<Record<string, ThreadedComment[]>>(() => {
+    const post = this.post();
+    if (!post) return {};
+    const grouped: Record<string, ThreadedComment[]> = {};
+    for (const reply of this.social.commentsFor(post)) {
+      if (!reply.parentId || this.platform.isBlocked(reply.authorUid)) continue;
+      grouped[reply.parentId] = [...(grouped[reply.parentId] ?? []), reply];
+    }
+    return grouped;
+  });
+
   protected readonly postKey = computed(() => {
     const post = this.post();
     return post ? this.social.postKey(post) : '';
   });
 
   ngOnInit(): void {
+    this.social.activateRealtime();
     const id = decodeURIComponent(this.route.snapshot.paramMap.get('id') ?? '');
     if (!id) {
       this.isLoading.set(false);
@@ -179,24 +201,6 @@ export class PostDetailPage implements OnInit {
     if (post) this.social.upvoteComment(post, commentId);
   }
 
-  protected repliesFor(commentId: string): ThreadedComment[] {
-    const post = this.post();
-    if (!post) return [];
-    const replies = this.social
-      .repliesFor(post, commentId)
-      .filter((reply) => !this.platform.isBlocked(reply.authorUid));
-    return this.expandedThreads().has(commentId) ? replies : replies.slice(0, 3);
-  }
-
-  protected replyCount(commentId: string): number {
-    const post = this.post();
-    return post
-      ? this.social
-          .repliesFor(post, commentId)
-          .filter((reply) => !this.platform.isBlocked(reply.authorUid)).length
-      : 0;
-  }
-
   protected toggleThread(commentId: string): void {
     this.expandedThreads.update((current) => {
       const next = new Set(current);
@@ -249,7 +253,7 @@ export class PostDetailPage implements OnInit {
       return;
     }
     void this.platform
-      .searchProfiles(match[1], 5)
+      .searchProfiles(match[1] ?? '', 5)
       .then((profiles) => this.mentionSuggestions.set(profiles));
   }
 

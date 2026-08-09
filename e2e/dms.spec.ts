@@ -3,7 +3,7 @@
 // character limits, empty message blocking, search, mute/report.
 
 import { test, expect, Page } from '@playwright/test';
-import { testUsers, userPairs } from './helpers/test-users';
+import { testUsers } from './helpers/test-users';
 import { loginAs } from './helpers/auth.helpers';
 
 async function goToMessages(page: Page): Promise<void> {

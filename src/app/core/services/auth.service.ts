@@ -55,7 +55,9 @@ export class AuthService implements OnDestroy {
   }
 
   isUsernameTaken(username: string): Observable<boolean> {
-    return from(this.client.from('users').select('uid').ilike('name', username).limit(1)).pipe(
+    return from(
+      this.client.from('public_user_profiles').select('uid').ilike('name', username).limit(1),
+    ).pipe(
       map(({ data, error }) => {
         if (error) throw error;
         return !!data && data.length > 0;

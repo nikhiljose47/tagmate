@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, WritableSignal, OnDestroy } from '@angular/core';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, tap } from 'rxjs/operators';
 import {
   DirectMessage,
   LocalNotification,
@@ -105,9 +105,11 @@ export class SocialInteractionsService implements OnDestroy {
 
   // ---- identity ----
   private readonly currentUid = signal<string | null>(null);
+  private readonly currentIsAnonymous = signal(true);
   private readonly currentIsAdmin = signal(false);
   private currentUsername = 'Guest';
   private lastHydratedUid: string | null = null;
+  private realtimeRequested = false;
 
   // ---- personal / viewer-specific state ----
   readonly likedPosts = signal(new Set<string>());
@@ -150,6 +152,7 @@ export class SocialInteractionsService implements OnDestroy {
     setClientState: (state: boolean) => void,
     updateDelta: (finalDelta: number) => void,
     onFailureMessage: string,
+    onSuccess?: () => void,
   ) {
     let state = this.inFlightToggles.get(typeKey);
     if (!state) {
@@ -173,6 +176,7 @@ export class SocialInteractionsService implements OnDestroy {
             this.inFlightToggles.delete(typeKey);
           }
         }
+        onSuccess?.();
       },
       error: (err) => {
         this.logger.error(`Toggle operation failed for ${typeKey}`, err);
@@ -195,11 +199,15 @@ export class SocialInteractionsService implements OnDestroy {
   constructor() {
     this.supabase.session$.pipe(takeUntil(this.destroy$)).subscribe((session) => {
       const uid = session?.user?.id ?? null;
+      const isAnonymous = session?.user?.is_anonymous ?? false;
       this.currentUid.set(uid);
+      this.currentIsAnonymous.set(!uid || isAnonymous);
       this.currentIsAdmin.set(session?.user?.app_metadata?.['role'] === 'admin');
-      if (uid && uid !== this.lastHydratedUid) {
+      if (uid && !isAnonymous && uid !== this.lastHydratedUid) {
+        this.stopRealtime();
         this.lastHydratedUid = uid;
         this.hydratePersonalData(uid);
+        if (this.realtimeRequested) this.ensureRealtimeRegistered();
 
         // Sync quests from metadata if they exist
         const metadataQuests = session?.user?.user_metadata?.['completed_quests'] as
@@ -209,7 +217,11 @@ export class SocialInteractionsService implements OnDestroy {
           this.completedQuests.set(new Set(metadataQuests));
           this.writeJson(QUESTS_KEY, metadataQuests);
         }
+      } else if (isAnonymous) {
+        this.stopRealtime();
+        this.lastHydratedUid = null;
       } else if (!uid) {
+        this.stopRealtime();
         this.lastHydratedUid = null;
         this.resetPersonalSignals();
       }
@@ -221,13 +233,18 @@ export class SocialInteractionsService implements OnDestroy {
     });
 
     this.completedQuests.set(new Set(this.readJson<string[]>(QUESTS_KEY, [])));
-
-    this.registerRealtime();
   }
 
   ngOnDestroy(): void {
+    this.stopRealtime();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** Starts live table feeds only after a mounted feature asks for them. */
+  activateRealtime(): void {
+    this.realtimeRequested = true;
+    if (this.currentUid() && !this.currentIsAnonymous()) this.ensureRealtimeRegistered();
   }
 
   postKey(post: Tag): string {
@@ -266,23 +283,27 @@ export class SocialInteractionsService implements OnDestroy {
     this.toggleInSet(this.likedPosts, key, nowLiked);
     this.bumpDelta(this.likeDeltas, key, nowLiked ? 1 : -1);
 
-    const write$ = nowLiked
+    const write$: Observable<unknown> = nowLiked
       ? this.supabase.addRow('post_likes', { post_id: post.id, user_id: uid })
       : this.supabase.deleteRowsWhere('post_likes', { post_id: post.id, user_id: uid });
+    const trackedWrite$ = write$.pipe(
+      tap(() => {
+        if (nowLiked) {
+          this.completeQuest('love');
+          this.telemetry.track('activation.interaction', { kind: 'like' });
+        }
+      }),
+    );
 
     this.runToggleWithReconciliation(
       `like:${key}`,
-      write$,
+      trackedWrite$,
       wasLiked,
       (state) => this.toggleInSet(this.likedPosts, key, state),
       (delta) => this.likeDeltas.update((d) => ({ ...d, [key]: delta })),
       'Could not update like — please try again.',
     );
 
-    if (nowLiked) {
-      this.completeQuest('love');
-      this.telemetry.track('activation.interaction', { kind: 'like' });
-    }
     return nowLiked;
   }
 
@@ -418,7 +439,9 @@ export class SocialInteractionsService implements OnDestroy {
     if (this.isOffline('comment')) return;
 
     const key = this.postKey(post);
-    const mentions = Array.from(trimmed.matchAll(/@([a-z0-9_.-]+)/gi)).map((m) => m[1]);
+    const mentions = Array.from(trimmed.matchAll(/@([a-z0-9_.-]+)/gi))
+      .map((m) => m[1])
+      .filter((mention): mention is string => !!mention);
     const optimisticId = `optimistic-${Date.now()}`;
     const optimisticComment: LocalComment = {
       id: optimisticId,
@@ -447,13 +470,12 @@ export class SocialInteractionsService implements OnDestroy {
       .then(({ data, error }) => {
         if (error) throw error;
         if (!data) throw new Error('addComment: no row returned');
-        const commentRow = data as unknown as PostCommentRow;
         this.comments.update((c) => ({
           ...c,
-          [key]: (c[key] ?? []).map((cm) =>
-            cm.id === optimisticId ? rowToComment(commentRow) : cm,
-          ),
+          [key]: (c[key] ?? []).map((cm) => (cm.id === optimisticId ? rowToComment(data) : cm)),
         }));
+        this.completeQuest('comment');
+        this.telemetry.track('activation.interaction', { kind: 'comment' });
       })
       .catch((err) => {
         this.logger.error('addComment failed, rolling back', err);
@@ -464,9 +486,6 @@ export class SocialInteractionsService implements OnDestroy {
         this.bumpDelta(this.commentDeltas, key, -1);
         this.toast.show('Could not post your comment — please try again.', 'danger');
       });
-
-    this.completeQuest('comment');
-    this.telemetry.track('activation.interaction', { kind: 'comment' });
   }
 
   upvoteComment(post: Tag, commentId: string): void {
@@ -566,19 +585,19 @@ export class SocialInteractionsService implements OnDestroy {
     this.pollVotes.update((v) => ({ ...v, [postKey]: nextForPost }));
 
     void this.fireAndForget(
-      this.supabase.upsertRow(
-        'post_poll_votes',
-        { post_id: postKey, option_index: optionIndex, user_id: uid },
-        'post_id,user_id',
-      ),
+      this.supabase
+        .upsertRow(
+          'post_poll_votes',
+          { post_id: postKey, option_index: optionIndex, user_id: uid },
+          'post_id,user_id',
+        )
+        .pipe(tap(() => this.completeQuest('poll'))),
       (err) => {
         this.logger.error('votePoll failed, rolling back', err);
         this.pollVotes.update((v) => ({ ...v, [postKey]: prevForPost }));
         this.toast.show('Could not record your vote — please try again.', 'danger');
       },
     );
-
-    this.completeQuest('poll');
   }
 
   hasVotedPoll(postKey: string, optionIndex: number): boolean {
@@ -622,22 +641,24 @@ export class SocialInteractionsService implements OnDestroy {
     this.toggleInSet(this.rsvps, key, nowAttending);
     this.bumpDelta(this.rsvpDeltas, key, nowAttending ? 1 : -1);
 
-    const write$ = nowAttending
+    const write$: Observable<unknown> = nowAttending
       ? this.supabase.addRow('post_rsvps', { post_id: post.id, user_id: uid })
       : this.supabase.deleteRowsWhere('post_rsvps', { post_id: post.id, user_id: uid });
+    const trackedWrite$ = write$.pipe(
+      tap(() => {
+        if (nowAttending) this.completeQuest('rsvp');
+      }),
+    );
 
     this.runToggleWithReconciliation(
       `rsvp:${key}`,
-      write$,
+      trackedWrite$,
       wasAttending,
       (state) => this.toggleInSet(this.rsvps, key, state),
       (delta) => this.rsvpDeltas.update((d) => ({ ...d, [key]: delta })),
       'Could not update RSVP status.',
     );
 
-    if (nowAttending) {
-      this.completeQuest('rsvp');
-    }
     return nowAttending;
   }
 
@@ -803,19 +824,22 @@ export class SocialInteractionsService implements OnDestroy {
   // Trigger-maintained server-side (bumped by likes on a user's posts) — the
   // client never writes this directly, only reads it, keyed by uid.
 
+  hydrateTrustScore(uid: string): void {
+    if (!uid || uid in this.reputationCache() || this.hydratingReputation.has(uid)) return;
+    this.hydratingReputation.add(uid);
+    this.supabase.getUserById(uid).subscribe({
+      next: (user) => this.reputationCache.update((c) => ({ ...c, [uid]: user?.reputation ?? 0 })),
+      error: (err) => {
+        this.logger.warn('trustScore hydrate failed', err);
+        this.reputationCache.update((c) => ({ ...c, [uid]: 0 }));
+      },
+    });
+  }
+
   trustScore(uid: string): number {
     if (!uid) return 0;
-    const cache = this.reputationCache();
-    if (!(uid in cache) && !this.hydratingReputation.has(uid)) {
-      this.hydratingReputation.add(uid);
-      this.supabase.getUserById(uid).subscribe({
-        next: (user) =>
-          this.reputationCache.update((c) => ({ ...c, [uid]: user?.reputation ?? 0 })),
-        error: (err) => {
-          this.logger.warn('trustScore hydrate failed', err);
-          this.reputationCache.update((c) => ({ ...c, [uid]: 0 }));
-        },
-      });
+    if (!(uid in this.reputationCache())) {
+      this.hydrateTrustScore(uid);
     }
     return this.reputationCache()[uid] ?? 0;
   }
@@ -846,14 +870,13 @@ export class SocialInteractionsService implements OnDestroy {
         `You completed the "${QUEST_NAMES[questId] ?? questId}" quest!`,
       );
       this.toast.show(
-        `Quest Completed: "${QUEST_NAMES[questId] ?? questId}"! +5 Reputation`,
+        `Quest Completed: "${QUEST_NAMES[questId] ?? questId}"! Reputation is updated securely.`,
         'quest',
         5000,
       );
 
       const uid = this.currentUid();
       if (uid) {
-        this.reputationCache.update((c) => ({ ...c, [uid]: (c[uid] ?? 0) + 5 }));
         const currentQuests = Array.from(this.completedQuests());
         void this.fireAndForget(
           this.supabase.updateUserMetadata({ completed_quests: currentQuests }),
@@ -869,15 +892,10 @@ export class SocialInteractionsService implements OnDestroy {
   }
 
   resetQuests(): void {
-    const prevCount = this.completedQuests().size;
     this.completedQuests.set(new Set());
     this.writeJson(QUESTS_KEY, []);
     const uid = this.currentUid();
     if (uid) {
-      this.reputationCache.update((c) => ({
-        ...c,
-        [uid]: Math.max(0, (c[uid] ?? 0) - prevCount * 5),
-      }));
       void this.fireAndForget(this.supabase.updateUserMetadata({ completed_quests: [] }), (err) =>
         this.logger.warn('Failed to reset quest metadata in Supabase', err),
       );
@@ -1110,10 +1128,27 @@ export class SocialInteractionsService implements OnDestroy {
 
   // ---------- private: realtime ----------
 
+  private realtimeRegistered = false;
+  private realtimeStop$ = new Subject<void>();
+
+  private ensureRealtimeRegistered(): void {
+    if (this.realtimeRegistered) return;
+    this.realtimeRegistered = true;
+    this.registerRealtime();
+  }
+
+  private stopRealtime(): void {
+    if (!this.realtimeRegistered) return;
+    this.realtimeStop$.next();
+    this.realtimeStop$.complete();
+    this.realtimeStop$ = new Subject<void>();
+    this.realtimeRegistered = false;
+  }
+
   private registerRealtime(): void {
     this.supabase
       .liveInserts<LikeRow>('post_likes')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         if (row.user_id === this.currentUid() && this.hydratedLikeRsvp.has(row.post_id)) {
           this.likedPosts.update((s) => new Set([...s, row.post_id]));
@@ -1122,7 +1157,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveInserts<RsvpRow>('post_rsvps')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         if (row.user_id === this.currentUid() && this.hydratedLikeRsvp.has(row.post_id)) {
           this.rsvps.update((s) => new Set([...s, row.post_id]));
@@ -1131,7 +1166,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveInserts<PostCommentRow>('post_comments')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         if (!this.hydratingComments.has(row.post_id)) return;
         this.comments.update((c) => ({
@@ -1145,13 +1180,13 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveInserts<PollVoteRow>('post_poll_votes')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         if (!this.hydratingPoll.has(row.post_id)) return;
         this.pollVotes.update((v) => {
           const forPost = { ...(v[row.post_id] ?? {}) };
           for (const k of Object.keys(forPost))
-            forPost[k] = forPost[k].filter((u) => u !== row.user_id);
+            forPost[k] = (forPost[k] ?? []).filter((u) => u !== row.user_id);
           const optKey = row.option_index.toString();
           forPost[optKey] = [...(forPost[optKey] ?? []), row.user_id];
           return { ...v, [row.post_id]: forPost };
@@ -1160,7 +1195,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveInserts<DirectMessageRow>('direct_messages')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         // RLS scopes delivery to thread participants only — no client-side filtering needed for privacy.
         if (!this.hydratingThreads.has(row.thread_id)) return;
@@ -1176,7 +1211,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveInserts<NotificationRow>('notifications')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         // RLS scopes delivery to `user_id = auth.uid()` — already "mine only" over the wire.
         this.notifications.update((current) => [rowToNotification(row), ...current].slice(0, 25));
@@ -1184,7 +1219,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveUpdates<PostCommentRow>('post_comments')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         const current = this.comments()[row.post_id];
         if (!current) return;
@@ -1196,7 +1231,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveDeletes<{ id: string; post_id: string }>('post_comments')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         const current = this.comments()[row.post_id];
         if (!current) return;
@@ -1208,7 +1243,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveUpdates<DirectMessageRow>('direct_messages')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         const current = this.messages()[row.thread_id];
         if (!current) return;
@@ -1221,7 +1256,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveUpdates<NotificationRow>('notifications')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         this.notifications.update((current) =>
           current.map((item) => (item.id === row.id ? rowToNotification(row) : item)),
@@ -1230,7 +1265,7 @@ export class SocialInteractionsService implements OnDestroy {
 
     this.supabase
       .liveInserts<HoodMessageRow>('hood_messages')
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), takeUntil(this.realtimeStop$))
       .subscribe((row) => {
         if (row.hood_id === this.activeChatHoodId()) {
           this.activeChatMessages.update((msgs) => {
@@ -1310,6 +1345,7 @@ export class SocialInteractionsService implements OnDestroy {
   private async fireAndForget(
     obs: Observable<unknown>,
     onError: (err: unknown) => void,
+    onSuccess?: () => void,
   ): Promise<void> {
     try {
       const result = await firstValueFrom(obs);
@@ -1321,6 +1357,7 @@ export class SocialInteractionsService implements OnDestroy {
       ) {
         throw (result as { error: unknown }).error;
       }
+      onSuccess?.();
     } catch (err) {
       onError(err);
     }
