@@ -104,7 +104,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
         if (this.social.isHidden(post)) return false;
         if (this.platform.isBlocked(post.userId)) return false;
         if (category !== 'all' && post.tag !== category) return false;
-        if (!this.isPostLive(post)) return false;
+        // Temporarily disabled — see feed-beta.ts for context. `isPostLive()`
+        // is still defined below, just not enforced here for now.
+        // if (!this.isPostLive(post)) return false;
         return true;
       })
       .sort((a, b) => {

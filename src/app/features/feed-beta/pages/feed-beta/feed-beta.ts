@@ -160,7 +160,10 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       if (post.tag === 'bulletin') return false;
       if (this.social.isHidden(post)) return false;
       if (this.platform.isBlocked(post.userId)) return false;
-      if (!this.isPostLive(post)) return false;
+      // Temporarily disabled — expiry filtering was hiding most of the
+      // existing test data. `isPostLive()` is still defined below (used by
+      // the "time left" label and My Posts) — just not enforced here.
+      // if (!this.isPostLive(post)) return false;
       return true;
     }),
   );
