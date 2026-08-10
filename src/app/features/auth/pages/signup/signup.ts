@@ -272,6 +272,10 @@ export class SignupPage implements OnInit {
       try {
         const taken = await this.session.isUsernameTaken(candidate);
         if (this.username().trim() === candidate) this.usernameTaken.set(taken);
+      } catch {
+        if (this.username().trim() === candidate) {
+          this.error.set('Could not check username availability. Please try again.');
+        }
       } finally {
         this.usernameChecking.set(false);
       }
@@ -295,6 +299,15 @@ export class SignupPage implements OnInit {
     return age >= MIN_AGE;
   }
 
+  resetSignupForm(): void {
+    this.awaitingEmailConfirmation.set(false);
+    this.error.set('');
+    this.resendError.set('');
+    this.resendSent.set(false);
+    this.step.set(1);
+    this.loading.set(false);
+  }
+
   async signup(): Promise<void> {
     this.error.set('');
 
@@ -305,13 +318,6 @@ export class SignupPage implements OnInit {
 
     this.loading.set(true);
     try {
-      const taken = await this.session.isUsernameTaken(this.username().trim());
-      if (taken) {
-        this.usernameTaken.set(true);
-        this.error.set('That username is already taken.');
-        return;
-      }
-
       const birthday = `${this.birthYear()}-${String(this.birthMonth()).padStart(2, '0')}-${String(this.birthDay()).padStart(2, '0')}`;
 
       const pick = this.hoodPick();
@@ -351,15 +357,21 @@ export class SignupPage implements OnInit {
 
       if (res.ok) {
         if (res.needsEmailConfirmation) {
-          // No session yet — the project requires the address to be
-          // confirmed first. Show a "check your inbox" state instead of
-          // sending them into the app as if they were signed in.
           this.awaitingEmailConfirmation.set(true);
         } else {
           this.router.navigateByUrl('/feed-beta');
         }
       } else {
+        if ('code' in res && res.code === 'username_taken') this.usernameTaken.set(true);
         this.error.set(res.message ?? 'Signup failed');
+      }
+    } catch (error) {
+      if (!this.destroyed) {
+        this.error.set(
+          error instanceof Error
+            ? error.message
+            : 'Could not validate your account details. Please try again.',
+        );
       }
     } finally {
       if (!this.destroyed) {

@@ -190,10 +190,12 @@ export class UserSessionService {
     }
   }
 
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(emailOrUsername: string, password: string): Promise<AuthResponse> {
     try {
       const { data, error } = await firstValueFrom(
-        this.supabase.signInWithPassword(email, password),
+        emailOrUsername.trim().includes('@')
+          ? this.supabase.signInWithPassword(emailOrUsername.trim(), password)
+          : this.supabase.signInWithUsername(emailOrUsername.trim(), password),
       );
       if (error) {
         return {
@@ -232,6 +234,23 @@ export class UserSessionService {
     },
   ): Promise<AuthResponse> {
     try {
+      const availability = await this.checkSignupAvailability(email, metadata.username);
+      if (availability.emailTaken) {
+        return {
+          ok: false,
+          code: 'email_taken',
+          message: 'Entered email address is already in use',
+        };
+      }
+
+      if (availability.usernameTaken) {
+        return {
+          ok: false,
+          code: 'username_taken',
+          message: 'username already in use',
+        };
+      }
+
       const { data, error } = await firstValueFrom(
         this.supabase.signUp(email, password, {
           username: metadata.username,
@@ -250,24 +269,48 @@ export class UserSessionService {
           business_phone: metadata.accountType === 'business' ? (metadata.businessPhone ?? '') : '',
           business_website:
             metadata.accountType === 'business' ? (metadata.businessWebsite ?? '') : '',
+          email_opt_out_token: this.createEmailOptOutToken(),
         }),
       );
       if (error) {
+        // A competing signup can win after the initial availability check.
+        // Re-check once so Auth's intentionally generic trigger error becomes
+        // the same actionable message as the normal validation path.
+        const conflict = await this.checkSignupAvailability(email, metadata.username).catch(
+          () => null,
+        );
+        if (conflict?.usernameTaken || this.isUsernameUniqueViolation(error)) {
+          return { ok: false, code: 'username_taken', message: 'Username is already in use.' };
+        }
+        if (conflict?.emailTaken) {
+          return {
+            ok: false,
+            code: 'email_taken',
+            message: 'Entered email address is already in use',
+          };
+        }
         return {
           ok: false,
           ...toAppError(error, 'signup'),
         };
       }
       const u = data.user!;
+      // Supabase deliberately obscures duplicate-signup attempts when email
+      // confirmation is enabled. The empty identities array is the documented
+      // duplicate response shape, so turn it into the same useful validation
+      // result as the availability check above.
+      if (u.identities?.length === 0) {
+        return {
+          ok: false,
+          code: 'email_taken',
+          message: 'Entered email address is already in use',
+        };
+      }
       return {
         ok: true,
         uid: u.id,
         email: u.email ?? null,
         username: metadata.username,
-        // Supabase issues a user record immediately either way, but only
-        // hands back a session once the address is confirmed (when the
-        // project has "Confirm email" turned on) — no session here means
-        // the mailbox check is still pending.
         needsEmailConfirmation: !data.session,
       };
     } catch (err: unknown) {
@@ -282,9 +325,24 @@ export class UserSessionService {
     return firstValueFrom(this.supabase.isUsernameTaken(username));
   }
 
-  async resendConfirmationEmail(email: string): Promise<boolean> {
+  isEmailTaken(email: string): Promise<boolean> {
+    return firstValueFrom(this.supabase.isEmailTaken(email));
+  }
+
+  async checkSignupAvailability(email: string, username: string) {
+    return firstValueFrom(this.supabase.checkSignupAvailability(email, username));
+  }
+
+  async resendConfirmationEmail(emailOrUsername: string): Promise<boolean> {
     try {
-      const { error } = await firstValueFrom(this.supabase.resendSignupConfirmation(email));
+      const value = emailOrUsername.trim();
+      if (value.includes('@')) {
+        const { error } = await firstValueFrom(this.supabase.resendSignupConfirmation(value));
+        return !error;
+      }
+      const { error } = await firstValueFrom(
+        this.supabase.resendSignupConfirmationForUsername(value),
+      );
       return !error;
     } catch {
       return false;
@@ -389,5 +447,20 @@ export class UserSessionService {
     } catch {
       return false;
     }
+  }
+
+  private createEmailOptOutToken(): string {
+    if (typeof crypto === 'undefined' || typeof crypto.randomUUID !== 'function') {
+      throw new Error('This browser cannot securely create an email preference token.');
+    }
+    return crypto.randomUUID();
+  }
+
+  private isUsernameUniqueViolation(error: unknown): boolean {
+    const source = error as { code?: unknown; message?: unknown };
+    return (
+      String(source?.code ?? '') === '23505' &&
+      /users_name_ci_unique|users.*name/i.test(String(source?.message ?? ''))
+    );
   }
 }

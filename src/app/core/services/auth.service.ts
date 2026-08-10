@@ -5,6 +5,13 @@ import { Observable, ReplaySubject, from, map } from 'rxjs';
 import { SupabaseClientService } from './supabase-client.service';
 import { clearUserStorage } from '../utils/local-storage.util';
 
+export interface SignupAvailability {
+  emailTaken: boolean;
+  usernameTaken: boolean;
+}
+
+type EdgeAuthError = Error & { code?: string };
+
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly clientService = inject(SupabaseClientService);
@@ -46,6 +53,14 @@ export class AuthService implements OnDestroy {
     return from(this.client.auth.signInWithPassword({ email, password }));
   }
 
+  /**
+   * Resolves a username and exchanges the password on the server, so an email
+   * address is never returned to the browser merely to support username login.
+   */
+  signInWithUsername(username: string, password: string) {
+    return from(this.signInWithUsernameRequest(username, password));
+  }
+
   signUp(email: string, password: string, metadata: Record<string, unknown>) {
     return from(this.client.auth.signUp({ email, password, options: { data: metadata } }));
   }
@@ -54,13 +69,29 @@ export class AuthService implements OnDestroy {
     return from(this.client.auth.resend({ type: 'signup', email }));
   }
 
-  isUsernameTaken(username: string): Observable<boolean> {
+  resendSignupConfirmationForUsername(username: string) {
     return from(
-      this.client.from('public_user_profiles').select('uid').ilike('name', username).limit(1),
-    ).pipe(
-      map(({ data, error }) => {
-        if (error) throw error;
-        return !!data && data.length > 0;
+      this.requestAuthEndpoint<{ ok: boolean }>('/api/auth/resend-confirmation', { username }).then(
+        () => ({ data: { user: null, session: null }, error: null }),
+      ),
+    );
+  }
+
+  isUsernameTaken(username: string): Observable<boolean> {
+    return this.checkSignupAvailability(undefined, username).pipe(
+      map((result) => result.usernameTaken),
+    );
+  }
+
+  isEmailTaken(email: string): Observable<boolean> {
+    return this.checkSignupAvailability(email, undefined).pipe(map((result) => result.emailTaken));
+  }
+
+  checkSignupAvailability(email?: string, username?: string): Observable<SignupAvailability> {
+    return from(
+      this.requestAuthEndpoint<SignupAvailability>('/api/auth/availability', {
+        ...(email?.trim() ? { email: email.trim() } : {}),
+        ...(username?.trim() ? { username: username.trim() } : {}),
       }),
     );
   }
@@ -96,5 +127,37 @@ export class AuthService implements OnDestroy {
 
   updateUserMetadata(metadata: Record<string, unknown>) {
     return from(this.client.auth.updateUser({ data: metadata }));
+  }
+
+  private async signInWithUsernameRequest(username: string, password: string) {
+    const credentials = await this.requestAuthEndpoint<{
+      access_token: string;
+      refresh_token: string;
+    }>('/api/auth/login', { username: username.trim(), password });
+    return this.client.auth.setSession({
+      access_token: credentials.access_token,
+      refresh_token: credentials.refresh_token,
+    });
+  }
+
+  private async requestAuthEndpoint<T>(path: string, body: Record<string, string>): Promise<T> {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      code?: string;
+    };
+    if (!response.ok) {
+      const error: EdgeAuthError = new Error(
+        payload.error || 'Authentication service unavailable.',
+      );
+      error.code = payload.code;
+      throw error;
+    }
+    return payload as T;
   }
 }

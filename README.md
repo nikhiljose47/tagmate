@@ -11,6 +11,7 @@ More project notes live in `docs/`:
 - `docs/GAMIFICATION.md` - quests, reputation, and contributor features.
 - `docs/SOCIAL_SUITE.md` - messaging, comments, RSVPs, polls, and notifications.
 - `docs/AESTHETICS.md` - visual themes and UI treatment.
+- `docs/AUTH_EMAIL_SETUP.md` - Cloudflare auth-function secrets and confirmation-email preferences.
 
 ## Versions Used
 

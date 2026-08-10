@@ -273,7 +273,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   protected async toggleTopicFollow(): Promise<void> {
     const tag = this.selectedCategory();
     if (tag === 'all') return;
+    const wasFollowing = this.platform.isFollowingTopic(tag);
     const enabled = await this.platform.toggleFollowTopic(tag);
+    if (enabled === wasFollowing) return;
     this.toast.show(enabled ? `Following #${tag}.` : `Unfollowed #${tag}.`, 'success');
   }
 

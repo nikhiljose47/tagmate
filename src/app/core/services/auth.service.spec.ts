@@ -10,6 +10,7 @@ type AuthMock = {
   signInWithPassword: jasmine.Spy;
   signUp: jasmine.Spy;
   signOut: jasmine.Spy;
+  setSession: jasmine.Spy;
 };
 
 describe('AuthService', () => {
@@ -32,6 +33,9 @@ describe('AuthService', () => {
         .createSpy('signUp')
         .and.returnValue(Promise.resolve({ data: {}, error: null })),
       signOut: jasmine.createSpy('signOut').and.returnValue(Promise.resolve({ error: null })),
+      setSession: jasmine
+        .createSpy('setSession')
+        .and.returnValue(Promise.resolve({ data: {}, error: null })),
     };
 
     clientServiceMock = {
@@ -72,6 +76,39 @@ describe('AuthService', () => {
       password: 'password123',
       options: { data: { username: 'testuser' } },
     });
+  });
+
+  it('signs in by username without exposing the resolved email to the browser', async () => {
+    const fetchSpy = spyOn(window, 'fetch').and.resolveTo(
+      new Response(JSON.stringify({ access_token: 'access', refresh_token: 'refresh' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await firstValueFrom(service.signInWithUsername('neighbor', 'password123'));
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/auth/login',
+      jasmine.objectContaining({ method: 'POST' }),
+    );
+    expect(authMock.setSession).toHaveBeenCalledWith({
+      access_token: 'access',
+      refresh_token: 'refresh',
+    });
+  });
+
+  it('checks signup availability through the protected same-origin endpoint', async () => {
+    spyOn(window, 'fetch').and.resolveTo(
+      new Response(JSON.stringify({ emailTaken: true, usernameTaken: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expectAsync(firstValueFrom(service.isEmailTaken('taken@example.com'))).toBeResolvedTo(
+      true,
+    );
   });
 
   it('should emit the restored session instead of a placeholder null', async () => {

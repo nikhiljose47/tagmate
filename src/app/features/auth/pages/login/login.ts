@@ -59,8 +59,8 @@ export class LoginPage implements OnInit {
     this.unconfirmedEmail.set(false);
     this.resendSent.set(false);
     const em = this.email().trim();
-    if (!em || !em.includes('@') || !em.includes('.')) {
-      this.error.set('Please enter a valid email address (e.g. name@example.com) to log in.');
+    if (!em) {
+      this.error.set('Please enter your email address or username to log in.');
       return;
     }
     this.loading.set(true);

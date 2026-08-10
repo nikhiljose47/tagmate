@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { PostPage, MAX_IMAGE_SIZE_BYTES, MAX_VIDEO_SIZE_BYTES } from './post';
+import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { testProviders } from '../../../../test-providers';
 import { ToastService } from '../../../../core/services/toast.service';
 
@@ -82,6 +83,30 @@ describe('PostPage', () => {
     expect(component.mediaItems().length).toBe(0);
     expect(toastSpy.show).toHaveBeenCalledWith(
       jasmine.stringMatching(/unsupported media format/i),
+      'warning',
+    );
+  });
+
+  it('normalizes an M4V attachment to the storage-supported MIME type', () => {
+    const fixture = TestBed.createComponent(PostPage);
+    const component = fixture.componentInstance;
+    const file = new File(['video'], 'clip.m4v', { type: 'application/octet-stream' });
+
+    const normalized = (component as any).normalizeMediaFile(file);
+
+    expect(normalized.type).toBe('video');
+    expect(normalized.file.type).toBe('video/x-m4v');
+  });
+
+  it('rejects a poll with blank options before publishing', () => {
+    const fixture = TestBed.createComponent(PostPage);
+    const component = fixture.componentInstance as any;
+    component.formData.tag = TagCategory.Poll;
+    component.formData.pollOptions = ['One option', ''];
+
+    expect(component.validPollOptions()).toBeNull();
+    expect(toastSpy.show).toHaveBeenCalledWith(
+      jasmine.stringMatching(/non-empty poll options/i),
       'warning',
     );
   });

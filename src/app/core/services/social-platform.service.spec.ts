@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { EMPTY, of } from 'rxjs';
+import { EMPTY, of, throwError } from 'rxjs';
 import { SocialPlatformService } from './social-platform.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
@@ -75,5 +75,16 @@ describe('SocialPlatformService', () => {
 
     expect(service.isBlocked('neighbor')).toBeTrue();
     expect(service.isFollowingUser('neighbor')).toBeFalse();
+  });
+
+  it('rolls back a follow when the database write fails', async () => {
+    supabase.addRow.and.returnValue(throwError(() => new Error('write failed')) as any);
+
+    const enabled = await service.toggleFollowHood('Downtown');
+
+    expect(enabled).toBeFalse();
+    expect(service.isFollowingHood('Downtown')).toBeFalse();
+    const toast = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
+    expect(toast.show).toHaveBeenCalledWith('Could not save that change.', 'danger');
   });
 });

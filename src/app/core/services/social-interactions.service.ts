@@ -128,7 +128,7 @@ export class SocialInteractionsService implements OnDestroy {
 
   // Optimistic overlays on top of the trigger-maintained aggregate columns on
   // `tags` — keeps counts instant on click without an extra query per toggle.
-  private readonly likeDeltas = signal<Record<string, number>>({});
+  private readonly likeOverlays = signal<Record<string, { baseCount: number; delta: number }>>({});
   private readonly commentDeltas = signal<Record<string, number>>({});
   private readonly rsvpDeltas = signal<Record<string, number>>({});
   private readonly reputationCache = signal<Record<string, number>>({});
@@ -266,7 +266,13 @@ export class SocialInteractionsService implements OnDestroy {
 
   likeCount(post: Tag): number {
     const key = this.postKey(post);
-    return Math.max(0, (post.likeCount ?? 0) + (this.likeDeltas()[key] ?? 0));
+    const baseCount = post.likeCount ?? 0;
+    const overlay = this.likeOverlays()[key];
+    if (!overlay || overlay.delta === 0) return Math.max(0, baseCount);
+    const aggregateCaughtUp =
+      (overlay.delta > 0 && baseCount > overlay.baseCount) ||
+      (overlay.delta < 0 && baseCount < overlay.baseCount);
+    return Math.max(0, aggregateCaughtUp ? baseCount : baseCount + overlay.delta);
   }
 
   toggleLike(post: Tag): boolean {
@@ -281,7 +287,7 @@ export class SocialInteractionsService implements OnDestroy {
     const wasLiked = this.likedPosts().has(key);
     const nowLiked = !wasLiked;
     this.toggleInSet(this.likedPosts, key, nowLiked);
-    this.bumpDelta(this.likeDeltas, key, nowLiked ? 1 : -1);
+    this.setLikeOverlay(key, post.likeCount ?? 0, nowLiked ? 1 : -1);
 
     const write$: Observable<unknown> = nowLiked
       ? this.supabase.addRow('post_likes', { post_id: post.id, user_id: uid })
@@ -300,7 +306,7 @@ export class SocialInteractionsService implements OnDestroy {
       trackedWrite$,
       wasLiked,
       (state) => this.toggleInSet(this.likedPosts, key, state),
-      (delta) => this.likeDeltas.update((d) => ({ ...d, [key]: delta })),
+      (delta) => this.setLikeOverlay(key, post.likeCount ?? 0, delta),
       'Could not update like — please try again.',
     );
 
@@ -498,31 +504,30 @@ export class SocialInteractionsService implements OnDestroy {
   }
 
   canEditComment(comment: LocalComment): boolean {
-    return !!this.currentUid() && comment.authorUid === this.currentUid() && !comment.deletedAt;
+    const uid = this.currentUid();
+    return !!uid && !comment.deletedAt && comment.authorUid === uid;
   }
 
   async editComment(post: Tag, comment: LocalComment, text: string): Promise<boolean> {
     const trimmed = text.trim();
     if (!trimmed || !this.canEditComment(comment)) return false;
     const key = this.postKey(post);
-    const previous = comment.text;
+    const previous = this.comments()[key]?.find((item) => item.id === comment.id);
+    if (!previous) return false;
+    const updatedAt = new Date().toISOString();
     this.comments.update((state) => ({
       ...state,
       [key]: (state[key] ?? []).map((item) =>
-        item.id === comment.id
-          ? { ...item, text: trimmed, updatedAt: new Date().toISOString() }
-          : item,
+        item.id === comment.id ? { ...item, text: trimmed, updatedAt } : item,
       ),
     }));
     try {
-      await firstValueFrom(this.commentsApi.update(comment.id, trimmed, new Date().toISOString()));
+      await firstValueFrom(this.commentsApi.update(comment.id, trimmed, updatedAt));
       return true;
     } catch (error) {
       this.comments.update((state) => ({
         ...state,
-        [key]: (state[key] ?? []).map((item) =>
-          item.id === comment.id ? { ...item, text: previous } : item,
-        ),
+        [key]: (state[key] ?? []).map((item) => (item.id === comment.id ? previous : item)),
       }));
       this.logger.error('Comment edit failed', error);
       this.toast.show('Could not edit comment.', 'danger');
@@ -533,7 +538,8 @@ export class SocialInteractionsService implements OnDestroy {
   async deleteComment(post: Tag, comment: LocalComment): Promise<boolean> {
     if (!this.canEditComment(comment)) return false;
     const key = this.postKey(post);
-    const existing = this.comments()[key] ?? [];
+    const previous = this.comments()[key]?.find((item) => item.id === comment.id);
+    if (!previous) return false;
     const deletedAt = new Date().toISOString();
     this.comments.update((state) => ({
       ...state,
@@ -545,14 +551,16 @@ export class SocialInteractionsService implements OnDestroy {
       await firstValueFrom(this.commentsApi.softDelete(comment.id, deletedAt));
       return true;
     } catch (error) {
-      this.comments.update((state) => ({ ...state, [key]: existing }));
-      this.logger.error('Comment removal failed', error);
+      this.comments.update((state) => ({
+        ...state,
+        [key]: (state[key] ?? []).map((item) => (item.id === comment.id ? previous : item)),
+      }));
+      this.logger.error('Comment deletion failed', error);
       this.toast.show('Could not delete comment.', 'danger');
       return false;
     }
   }
 
-  /** Known limitation carried over unchanged: no per-user dedup, same as before ("just increment"). */
   toggleLoveComment(postKey: string, commentId: string): void {
     const wasReacted = this.platform.isCommentReacted(commentId);
     this.bumpCommentUpvote(postKey, commentId, wasReacted ? -1 : 1);
@@ -944,7 +952,7 @@ export class SocialInteractionsService implements OnDestroy {
     this.pollVotes.set({});
     this.comments.set({});
     this.messages.set({});
-    this.likeDeltas.set({});
+    this.likeOverlays.set({});
     this.commentDeltas.set({});
     this.rsvpDeltas.set({});
     this.hydratedLikeRsvp.clear();
@@ -1382,6 +1390,22 @@ export class SocialInteractionsService implements OnDestroy {
     amount: number,
   ): void {
     sig.update((d) => ({ ...d, [key]: (d[key] ?? 0) + amount }));
+  }
+
+  private setLikeOverlay(key: string, baseCount: number, amount: number): void {
+    this.likeOverlays.update((current) => {
+      const prior = current[key];
+      const delta = (prior?.delta ?? 0) + amount;
+      if (delta === 0) {
+        const remaining = { ...current };
+        delete remaining[key];
+        return remaining;
+      }
+      return {
+        ...current,
+        [key]: { baseCount: prior?.baseCount ?? baseCount, delta },
+      };
+    });
   }
 
   private readJson<T>(key: string, fallback: T): T {

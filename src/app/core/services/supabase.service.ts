@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { AuthService, SignupAvailability } from './auth.service';
 import { TagDataService } from './tag-data.service';
 import { SocialDataService } from './social-data.service';
 import { StorageService } from './storage.service';
@@ -33,8 +33,24 @@ export class SupabaseService {
     return this.auth.isUsernameTaken(username);
   }
 
+  isEmailTaken(email: string): Observable<boolean> {
+    return this.auth.isEmailTaken(email);
+  }
+
+  checkSignupAvailability(email?: string, username?: string): Observable<SignupAvailability> {
+    return this.auth.checkSignupAvailability(email, username);
+  }
+
   resendSignupConfirmation(email: string) {
     return this.auth.resendSignupConfirmation(email);
+  }
+
+  resendSignupConfirmationForUsername(username: string) {
+    return this.auth.resendSignupConfirmationForUsername(username);
+  }
+
+  signInWithUsername(username: string, password: string) {
+    return this.auth.signInWithUsername(username, password);
   }
 
   signInAnonymously() {

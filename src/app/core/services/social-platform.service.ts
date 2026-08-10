@@ -612,11 +612,8 @@ export class SocialPlatformService implements OnDestroy {
       else await firstValueFrom(this.supabase.addRow(table, insertRow));
       return !enabled;
     } catch (error) {
-      if (enabled) {
-        this.addToSet(state, key);
-      } else {
-        this.removeFromSet(state, key);
-      }
+      if (enabled) this.addToSet(state, key);
+      else this.removeFromSet(state, key);
       this.logger.error(`Toggle failed for ${table}`, error);
       this.toast.show('Could not save that change.', 'danger');
       return enabled;

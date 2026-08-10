@@ -32,12 +32,12 @@
         <input
           type="text"
           class="tm-input"
-          placeholder="Email address"
-          aria-label="Email address"
+          placeholder="Email address or username"
+          aria-label="Email address or username"
           [value]="email()"
           (input)="email.set($any($event.target).value)"
           [disabled]="loading()"
-          autocomplete="email"
+          autocomplete="username"
         />
         <div class="password-field">
           <input

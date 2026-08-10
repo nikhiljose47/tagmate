@@ -23,4 +23,9 @@ export const AUTH_ROUTES: Routes = [
       import('./pages/update-password/update-password').then((m) => m.UpdatePasswordComponent),
     title: 'Update Password',
   },
+  {
+    path: 'opt-out',
+    loadComponent: () => import('./pages/opt-out/opt-out').then((m) => m.OptOutComponent),
+    title: 'Email Opt-Out',
+  },
 ];

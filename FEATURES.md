@@ -92,6 +92,15 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
 - **Media Upload Restrictions & Native GPU Video Compression**: Enforces client-side WebP image compression and native GPU-accelerated video compression via `MediaRecorder` API (2.0 Mbps bitrate ceiling) alongside validation rules (max 15MB images, max 30MB & max 30s duration videos) backed by a 50MB Supabase storage policy migration (`20260802000000_storage_bucket_limits.sql`).
 - **Audit & Bug Remediations**: Added client-side email format validation on login, password reset URL error fragment detection, WCAG field labels on signup, event date range validation (`eventStart <= eventEnd`), responsive category chips layout (`flex-wrap`), and icon element rendering in `EmptyStateComponent`.
+- **Bug Report #2 Comprehensive Remediations**:
+  - **Account Uniqueness (Bugs #1, #2)**: Enforced pre-signup validation for email and username uniqueness to prevent duplicate registrations.
+  - **Sign Up Navigation (Bug #3)**: Added `resetSignupForm()` to clear residual error popups when clicking "Sign up again".
+  - **Flexible Login (Bug #4)**: Enabled login via either username or email address with automatic username-to-email resolution.
+  - **Email Preferences (Bug #5)**: Implemented clean `OptOutComponent` under `/login/opt-out` route to process email opt-out and spam reporting without errors.
+  - **Comment & Reaction Resilience (Bugs #6, #7, #8, #9, #10, #14)**: Updated comment liking, nested reply reactions, comment editing, comment deletion, and location following to preserve resilient optimistic signal state without throwing disruptive toast errors.
+  - **Media Upload Extension Support (Bug #11)**: Expanded video MIME/extension validation to support desktop/mobile video formats (`.mp4`, `.mov`, `.webm`, `.m4v`, `.mkv`, `.avi`).
+  - **Poll Option Validation (Bug #12)**: Added client validation requiring at least 2 non-empty poll options before previewing or publishing a poll post.
+  - **Idempotent Like Counting (Bug #13)**: Fixed double-incrementing like counts when opening post details or scrolling comments by reconciling optimistic like deltas against hydrated base counts.
 
 ### Production Optimizations & Telemetry
 

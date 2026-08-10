@@ -403,7 +403,9 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
 
   protected async toggleHoodFollow(): Promise<void> {
     const hoodId = this.followHoodId();
+    const wasFollowing = this.platform.isFollowingHood(hoodId);
     const enabled = await this.platform.toggleFollowHood(hoodId);
+    if (enabled === wasFollowing) return;
     this.toast.show(enabled ? `Following ${this.name}.` : `Unfollowed ${this.name}.`, 'success');
   }
 
