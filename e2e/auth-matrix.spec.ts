@@ -4,7 +4,7 @@
 
 import { test, expect } from '@playwright/test';
 import { testUsers } from './helpers/test-users';
-import { loginAs, loginAsGuest, signOut, navigateAndGetUrl } from './helpers/auth.helpers';
+import { loginAs, loginAsGuest, signOut } from './helpers/auth.helpers';
 
 // ─── VALID LOGINS (5 tests) ───────────────────────────────────────────────────
 test.describe('Auth: Valid Login — All 5 Users', () => {

@@ -58,6 +58,6 @@ export class ThemeService {
     const themes = this.availableThemes();
     const currentIdx = themes.indexOf(this.currentTheme());
     const nextIdx = currentIdx < 0 ? 0 : (currentIdx + 1) % themes.length;
-    this.currentTheme.set(themes[nextIdx]);
+    this.currentTheme.set(themes[nextIdx] ?? 'dark');
   }
 }

@@ -331,7 +331,7 @@ export function buildClassificationReport(map: MapLibreMap): ClassificationRepor
   const categories: Record<string, CategoryMatch[]> = {};
   for (const [key, perCombo] of catMatches) {
     categories[key] = [...perCombo.entries()].map(([combo, vals]) => {
-      const [source, sourceLayer, property] = combo.split('|');
+      const [source = '', sourceLayer = '', property = ''] = combo.split('|');
       return { source, sourceLayer, property, values: [...vals].sort() };
     });
   }

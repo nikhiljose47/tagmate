@@ -25,7 +25,6 @@ export async function createPost(page: Page, data: PostData): Promise<string | n
   await page.locator('textarea[name="headline"]').fill(data.headline);
 
   // Select category chip
-  const categoryLabel = data.category.charAt(0).toUpperCase() + data.category.slice(1);
   const chips = page.locator('[aria-label="Post category"] button');
   const count = await chips.count();
   for (let i = 0; i < count; i++) {

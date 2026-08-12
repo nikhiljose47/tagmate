@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { EMPTY, of } from 'rxjs';
+import { EMPTY, of, throwError } from 'rxjs';
 import { SocialPlatformService } from './social-platform.service';
 import { SupabaseService } from './supabase.service';
 import { UserSessionService } from './user-session.service';
@@ -31,8 +31,12 @@ describe('SocialPlatformService', () => {
       ],
       { session$: of(null) },
     );
-    supabase.addRow.and.returnValue(of({ data: {}, error: null }) as any);
-    supabase.deleteRowsWhere.and.returnValue(of({ data: null, error: null }) as any);
+    supabase.addRow.and.returnValue(
+      of({ data: {}, error: null }) as unknown as ReturnType<typeof of>,
+    );
+    supabase.deleteRowsWhere.and.returnValue(
+      of({ data: null, error: null }) as unknown as ReturnType<typeof of>,
+    );
     supabase.liveInserts.and.returnValue(EMPTY);
     supabase.liveDeletes.and.returnValue(EMPTY);
     supabase.liveUpdates.and.returnValue(EMPTY);
@@ -71,5 +75,18 @@ describe('SocialPlatformService', () => {
 
     expect(service.isBlocked('neighbor')).toBeTrue();
     expect(service.isFollowingUser('neighbor')).toBeFalse();
+  });
+
+  it('rolls back a follow when the database write fails', async () => {
+    supabase.addRow.and.returnValue(
+      throwError(() => new Error('write failed')) as ReturnType<typeof supabase.addRow>,
+    );
+
+    const enabled = await service.toggleFollowHood('Downtown');
+
+    expect(enabled).toBeFalse();
+    expect(service.isFollowingHood('Downtown')).toBeFalse();
+    const toast = TestBed.inject(ToastService) as jasmine.SpyObj<ToastService>;
+    expect(toast.show).toHaveBeenCalledWith('Could not save that change.', 'danger');
   });
 });

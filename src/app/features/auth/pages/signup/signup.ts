@@ -1,4 +1,12 @@
-import { Component, OnInit, signal, computed, inject, DestroyRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  signal,
+  computed,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -6,6 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { AccountType } from '../../../../core/models/app-user.model';
+import { isValidUsername, normalizeUsername } from '../../../../core/utils/auth-identifier.utils';
 
 const MIN_AGE = 13;
 const MONTHS = [
@@ -56,6 +65,7 @@ interface HoodPick {
 @Component({
   selector: 'app-signup',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './signup.html',
   styleUrls: ['./signup.scss'],
@@ -113,14 +123,15 @@ export class SignupPage implements OnInit {
     return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
   }
 
-  readonly canProceedStep1 = computed(() =>
-    !!this.email() &&
-    this.isPasswordStrong(this.password()) &&
-    !!this.fullName().trim() &&
-    this.username().trim().length >= 3 &&
-    !this.usernameTaken() &&
-    !this.usernameChecking() &&
-    (this.accountType() === 'personal' || !!this.businessName().trim()),
+  readonly canProceedStep1 = computed(
+    () =>
+      !!this.email() &&
+      this.isPasswordStrong(this.password()) &&
+      !!this.fullName().trim() &&
+      isValidUsername(this.username()) &&
+      !this.usernameTaken() &&
+      !this.usernameChecking() &&
+      (this.accountType() === 'personal' || !!this.businessName().trim()),
   );
 
   selectAccountType(type: AccountType): void {
@@ -194,8 +205,8 @@ export class SignupPage implements OnInit {
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=8`,
       { signal, headers: { 'Accept-Language': 'en' } },
     )
-      .then((r) => r.json())
-      .then((results: NominatimResult[]) => {
+      .then(async (res) => {
+        const results = (await res.json()) as NominatimResult[];
         if (signal.aborted) return;
         // Keep any result that has a state AND some district-like admin level.
         // Nominatim's tagging varies by country — for big metros the district
@@ -213,14 +224,7 @@ export class SignupPage implements OnInit {
   }
 
   private static districtOf(addr: NominatimAddress): string {
-    return (
-      addr.state_district ||
-      addr.county ||
-      addr.city_district ||
-      addr.city ||
-      addr.town ||
-      ''
-    );
+    return addr.state_district || addr.county || addr.city_district || addr.city || addr.town || '';
   }
 
   selectHood(r: NominatimResult): void {
@@ -234,7 +238,8 @@ export class SignupPage implements OnInit {
       addr.village ||
       addr.town ||
       addr.city ||
-      r.display_name.split(',')[0].trim();
+      r.display_name.split(',')[0]?.trim() ||
+      '';
     const place = rawPlace && rawPlace !== district ? rawPlace : '';
 
     this.hoodPick.set({
@@ -256,18 +261,22 @@ export class SignupPage implements OnInit {
   }
 
   onUsernameInput(value: string): void {
-    this.username.set(value);
+    const candidate = normalizeUsername(value);
+    this.username.set(candidate);
     this.usernameTaken.set(false);
 
     clearTimeout(this.usernameCheckTimer);
-    const candidate = value.trim();
-    if (candidate.length < 3) return;
+    if (!isValidUsername(candidate)) return;
 
     this.usernameCheckTimer = setTimeout(async () => {
       this.usernameChecking.set(true);
       try {
         const taken = await this.session.isUsernameTaken(candidate);
-        if (this.username().trim() === candidate) this.usernameTaken.set(taken);
+        if (this.username() === candidate) this.usernameTaken.set(taken);
+      } catch {
+        if (this.username() === candidate) {
+          this.error.set('Could not check username availability. Please try again.');
+        }
       } finally {
         this.usernameChecking.set(false);
       }
@@ -291,6 +300,15 @@ export class SignupPage implements OnInit {
     return age >= MIN_AGE;
   }
 
+  resetSignupForm(): void {
+    this.awaitingEmailConfirmation.set(false);
+    this.error.set('');
+    this.resendError.set('');
+    this.resendSent.set(false);
+    this.step.set(1);
+    this.loading.set(false);
+  }
+
   async signup(): Promise<void> {
     this.error.set('');
 
@@ -301,13 +319,6 @@ export class SignupPage implements OnInit {
 
     this.loading.set(true);
     try {
-      const taken = await this.session.isUsernameTaken(this.username().trim());
-      if (taken) {
-        this.usernameTaken.set(true);
-        this.error.set('That username is already taken.');
-        return;
-      }
-
       const birthday = `${this.birthYear()}-${String(this.birthMonth()).padStart(2, '0')}-${String(this.birthDay()).padStart(2, '0')}`;
 
       const pick = this.hoodPick();
@@ -332,7 +343,9 @@ export class SignupPage implements OnInit {
           accountType: this.accountType(),
           businessName: this.accountType() === 'business' ? this.businessName().trim() : undefined,
           businessPhone:
-            this.accountType() === 'business' ? this.businessPhone().trim() || undefined : undefined,
+            this.accountType() === 'business'
+              ? this.businessPhone().trim() || undefined
+              : undefined,
           businessWebsite:
             this.accountType() === 'business'
               ? this.businessWebsite().trim() || undefined
@@ -345,15 +358,21 @@ export class SignupPage implements OnInit {
 
       if (res.ok) {
         if (res.needsEmailConfirmation) {
-          // No session yet — the project requires the address to be
-          // confirmed first. Show a "check your inbox" state instead of
-          // sending them into the app as if they were signed in.
           this.awaitingEmailConfirmation.set(true);
         } else {
           this.router.navigateByUrl('/feed-beta');
         }
       } else {
+        if ('code' in res && res.code === 'username_taken') this.usernameTaken.set(true);
         this.error.set(res.message ?? 'Signup failed');
+      }
+    } catch (error) {
+      if (!this.destroyed) {
+        this.error.set(
+          error instanceof Error
+            ? error.message
+            : 'Could not validate your account details. Please try again.',
+        );
       }
     } finally {
       if (!this.destroyed) {

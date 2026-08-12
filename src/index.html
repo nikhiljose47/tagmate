@@ -1,35 +1,56 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Tagmate</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tagmate — Your Neighbourhood, Live</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Hyperlocal community bulletin board and live neighborhood social network. Discover local news, events, safety alerts, and neighborhood chat."
+    />
+    <meta name="theme-color" content="#2563eb" />
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <!-- Open Graph / Social Media Meta -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tagmate — Your Neighbourhood, Live" />
+    <meta
+      property="og:description"
+      content="Hyperlocal community bulletin board and live neighborhood social network."
+    />
+    <meta property="og:site_name" content="Tagmate" />
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
 
-  <link rel="manifest" href="manifest.webmanifest">
-</head>
-<body>
-  <!-- Splash shown before Angular boots; removed by AppComponent after prefetch window -->
-  <div id="tm-splash" aria-hidden="true">
-    <div class="tm-splash-body">
-      <img src="assets/tagmate-logo.svg" alt="" class="tm-splash-logo" width="72" height="72">
-      <span class="tm-splash-wordmark">tagmate</span>
-      <span class="tm-splash-tagline">your neighbourhood, live</span>
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="manifest" href="manifest.webmanifest" />
+  </head>
+  <body>
+    <!-- Splash shown before Angular boots; removed by AppComponent after prefetch window -->
+    <div id="tm-splash" aria-hidden="true">
+      <div class="tm-splash-body">
+        <img src="assets/tagmate-logo.svg" alt="" class="tm-splash-logo" width="72" height="72" />
+        <span class="tm-splash-wordmark">tagmate</span>
+        <span class="tm-splash-tagline">your neighbourhood, live</span>
+      </div>
+      <div class="tm-splash-dots">
+        <span class="tm-splash-dot"></span>
+        <span class="tm-splash-dot"></span>
+        <span class="tm-splash-dot"></span>
+      </div>
     </div>
-    <div class="tm-splash-dots">
-      <span class="tm-splash-dot"></span>
-      <span class="tm-splash-dot"></span>
-      <span class="tm-splash-dot"></span>
-    </div>
-  </div>
 
-  <app-root></app-root>
-  <noscript>Please enable JavaScript to continue using this application.</noscript>
-</body>
+    <app-root></app-root>
+    <noscript>Please enable JavaScript to continue using this application.</noscript>
+  </body>
 </html>

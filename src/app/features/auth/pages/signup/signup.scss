@@ -174,7 +174,9 @@
   gap: 10px;
 }
 
-.mobile-logo { flex-shrink: 0; }
+.mobile-logo {
+  flex-shrink: 0;
+}
 
 .mobile-wordmark {
   font-size: 20px;
@@ -203,7 +205,10 @@
   color: var(--tm-muted);
   font-size: 12px;
   font-weight: 800;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
 
   &.active {
     border-color: var(--tm-primary);
@@ -302,7 +307,9 @@
   background: transparent;
   color: var(--tm-muted);
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 
   &:hover {
     color: var(--tm-text);
@@ -310,18 +317,36 @@
   }
 }
 
-.password-toggle i { display: inline-block; }
+.password-toggle i {
+  display: inline-block;
+}
 
-.password-toggle i.bi-eye-fill { animation: eye-pop-open 0.2s ease; }
-.password-toggle i.bi-eye-slash-fill { animation: eye-pop-closed 0.2s ease; }
+.password-toggle i.bi-eye-fill {
+  animation: eye-pop-open 0.2s ease;
+}
+.password-toggle i.bi-eye-slash-fill {
+  animation: eye-pop-closed 0.2s ease;
+}
 
 @keyframes eye-pop-open {
-  from { opacity: 0; transform: scale(0.6) rotate(-8deg); }
-  to   { opacity: 1; transform: scale(1) rotate(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
 }
 @keyframes eye-pop-closed {
-  from { opacity: 0; transform: scale(0.6) rotate(8deg); }
-  to   { opacity: 1; transform: scale(1) rotate(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
 }
 
 /* ── Birthday ─────────────────────────────────────────── */
@@ -364,7 +389,9 @@
   color: var(--tm-text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
 
   i {
     font-size: 18px;
@@ -455,7 +482,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Check-your-inbox (post-signup, email confirmation pending) ─────── */
@@ -531,7 +560,9 @@
   a {
     color: var(--tm-primary-text);
     text-decoration: none;
-    &:hover { text-decoration: underline; }
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
@@ -545,7 +576,9 @@
     color: var(--tm-primary-text);
     font-weight: 700;
     text-decoration: none;
-    &:hover { text-decoration: underline; }
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 
@@ -592,15 +625,36 @@
   min-height: 44px;
   font: inherit;
 
-  &:hover { background: color-mix(in srgb, var(--tm-primary) 8%, transparent); }
+  &:hover {
+    background: color-mix(in srgb, var(--tm-primary) 8%, transparent);
+  }
 
-  > i { flex: 0 0 auto; color: var(--tm-muted); font-size: 15px; }
+  > i {
+    flex: 0 0 auto;
+    color: var(--tm-muted);
+    font-size: 15px;
+  }
 
-  span { display: grid; gap: 1px; min-width: 0; }
+  span {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+  }
 
-  strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  strong {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-  small { color: var(--tm-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  small {
+    color: var(--tm-muted);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .hood-result--loading {
@@ -627,8 +681,18 @@
   border: 1px solid color-mix(in srgb, var(--tm-primary) 20%, transparent);
   line-height: 1.15;
 
-  small { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tm-muted); }
-  strong { font-size: 12px; color: var(--tm-text); font-weight: 700; }
+  small {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tm-muted);
+  }
+  strong {
+    font-size: 12px;
+    color: var(--tm-text);
+    font-weight: 700;
+  }
 }
 
 .hood-chip--optional {
@@ -676,10 +740,14 @@
     background: color-mix(in srgb, var(--tm-text) 8%, transparent);
     border-color: var(--tm-border);
     color: var(--tm-text);
-    &:hover { background: color-mix(in srgb, var(--tm-text) 14%, transparent); }
+    &:hover {
+      background: color-mix(in srgb, var(--tm-text) 14%, transparent);
+    }
   }
 
-  .mobile-brand { display: flex; }
+  .mobile-brand {
+    display: flex;
+  }
 
   .signup-form-inner {
     padding: 36px 24px 48px;
@@ -697,5 +765,7 @@
     padding: max(28px, env(safe-area-inset-top)) 18px 40px;
   }
 
-  .form-title { font-size: 20px; }
+  .form-title {
+    font-size: 20px;
+  }
 }

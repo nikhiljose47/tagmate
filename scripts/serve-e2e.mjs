@@ -18,8 +18,15 @@ const mimeTypes = {
 };
 
 const server = createServer(async (request, response) => {
-  const pathname = decodeURIComponent(new URL(request.url ?? '/', `http://${request.headers.host}`).pathname);
-  const candidate = resolve(root, `.${normalize(pathname)}`);
+  let rawPathname = '/';
+  try {
+    rawPathname = new URL(request.url ?? '/', `http://${request.headers.host}`).pathname;
+    rawPathname = decodeURIComponent(rawPathname);
+  } catch {
+    rawPathname = '/';
+  }
+
+  const candidate = resolve(root, `.${normalize(rawPathname)}`);
   const isWithinRoot = candidate === root || candidate.startsWith(`${root}\\`) || candidate.startsWith(`${root}/`);
   const file = isWithinRoot && existsSync(candidate) && (await stat(candidate)).isFile() ? candidate : index;
 

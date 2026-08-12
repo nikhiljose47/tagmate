@@ -73,6 +73,6 @@ export function placeCode(name: string | undefined | null): string {
   if (known) return known;
 
   const words = trimmed.split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  if (words.length >= 2) return (words[0]![0]! + words[1]![0]!).toUpperCase();
   return trimmed.slice(0, 2).toUpperCase();
 }

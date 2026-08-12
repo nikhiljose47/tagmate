@@ -2,6 +2,7 @@ import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
+import { Database } from '../models/database.types';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseClientService {
@@ -18,7 +19,7 @@ export class SupabaseClientService {
     return undefined;
   }
 
-  readonly client: SupabaseClient = createClient(
+  readonly client: SupabaseClient<Database> = createClient<Database>(
     environment.supabaseUrl,
     environment.supabaseAnonKey,
     {

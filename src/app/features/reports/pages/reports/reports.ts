@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -22,6 +29,7 @@ interface SocialReport {
 @Component({
   selector: 'app-reports',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, EmptyStateComponent, TimeAgoPipe],
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
@@ -67,6 +75,7 @@ export class ReportsPage implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.social.activateRealtime();
     this.loadReports();
     void this.loadSocialReports();
   }

@@ -93,6 +93,16 @@ function applySecurityHeaders(res: Response, nonce?: string): Response {
   });
 }
 
+function jsonResponse(body: unknown, status: number, cacheControl = 'no-store'): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': cacheControl,
+    },
+  });
+}
+
 /**
  * This is a request handler used by the Angular CLI (dev-server and during build).
  */
@@ -106,15 +116,25 @@ export const reqHandler = createRequestHandler(async (req) => {
     url.pathname === '/api/nominatim/lookup' ||
     url.pathname === '/api/nominatim/reverse'
   ) {
+    if (req.method !== 'GET') {
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+          status: 405,
+          headers: {
+            Allow: 'GET',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+          },
+        }),
+      );
+    }
+
     const ip = getClientIp(req);
     if (isRateLimited(ip)) {
       return applySecurityHeaders(
-        new Response(
-          JSON.stringify({
-            error: 'Too Many Requests',
-            message: 'Rate limit exceeded. Please try again later.',
-          }),
-          { status: 429, headers: { 'Content-Type': 'application/json' } },
+        jsonResponse(
+          { error: 'Too Many Requests', message: 'Rate limit exceeded. Please try again later.' },
+          429,
         ),
       );
     }
@@ -122,37 +142,59 @@ export const reqHandler = createRequestHandler(async (req) => {
     let proxyUrl = '';
     if (url.pathname === '/api/nominatim/search') {
       const q = url.searchParams.get('q') || '';
+      if (!q.trim() || q.length > 200) {
+        return applySecurityHeaders(jsonResponse({ error: 'Invalid search query.' }, 400));
+      }
       proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`;
     } else if (url.pathname === '/api/nominatim/boundary') {
       const q = url.searchParams.get('q') || '';
+      if (!q.trim() || q.length > 200) {
+        return applySecurityHeaders(jsonResponse({ error: 'Invalid boundary query.' }, 400));
+      }
       proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&addressdetails=1&q=${encodeURIComponent(q)}`;
     } else if (url.pathname === '/api/nominatim/lookup') {
       const osmIds = url.searchParams.get('osm_ids') || '';
+      if (!osmIds.trim() || osmIds.length > 1000) {
+        return applySecurityHeaders(jsonResponse({ error: 'Invalid OSM id list.' }, 400));
+      }
       proxyUrl = `https://nominatim.openstreetmap.org/lookup?format=jsonv2&polygon_geojson=1&osm_ids=${encodeURIComponent(osmIds)}`;
     } else {
       const lat = url.searchParams.get('lat') || '';
       const lon = url.searchParams.get('lon') || '';
-      proxyUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+      const latitude = Number(lat);
+      const longitude = Number(lon);
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        return applySecurityHeaders(jsonResponse({ error: 'Invalid coordinates.' }, 400));
+      }
+      proxyUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(String(latitude))}&lon=${encodeURIComponent(String(longitude))}`;
     }
 
     try {
       const response = await fetch(proxyUrl, {
         headers: { 'User-Agent': 'TagmateApp/1.0 (Contact: admin@tagmate.com)' },
+        signal: AbortSignal.timeout(8000),
       });
       return applySecurityHeaders(
         new Response(response.body, {
           status: response.status,
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': response.ok ? 'public, max-age=3600' : 'no-store',
+          },
         }),
       );
-    } catch (err) {
+    } catch {
       return applySecurityHeaders(
-        new Response(
-          JSON.stringify({
-            error: 'Bad Gateway',
-            message: 'Failed to fetch from geocoding service.',
-          }),
-          { status: 502, headers: { 'Content-Type': 'application/json' } },
+        jsonResponse(
+          { error: 'Bad Gateway', message: 'Failed to fetch from geocoding service.' },
+          502,
         ),
       );
     }

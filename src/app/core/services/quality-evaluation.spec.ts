@@ -68,7 +68,7 @@ describe('quality evaluation suite', () => {
     boxes.forEach((box, index) =>
       it(`creates a closed, correctly ordered fallback polygon ${index + 1}`, () => {
         const geometry = Utils.createRectangleGeometry(box);
-        const ring = geometry.coordinates[0];
+        const ring = geometry.coordinates[0]!;
         expect(ring.length).toBe(5);
         expect(ring[0]).toEqual(ring[4]);
         expect(ring[0]).toEqual([Number(box[2]), Number(box[0])]);
@@ -82,7 +82,7 @@ describe('quality evaluation suite', () => {
       const ring: Position[] = [];
       for (let index = 0; index < points; index++)
         ring.push([index / points, index % 2 ? 0.000001 : 0]);
-      ring.push([1, 1], [0, 1], ring[0]);
+      ring.push([1, 1], [0, 1], ring[0]!);
       return ring;
     };
 
@@ -90,8 +90,8 @@ describe('quality evaluation suite', () => {
       it(`reduces a ${points}-vertex noisy boundary without opening it`, () => {
         const original: Polygon = { type: 'Polygon', coordinates: [denseRing(points)] };
         const simplified = Utils.simplifyBoundary(original, 0.0001) as Polygon;
-        const ring = simplified.coordinates[0];
-        expect(ring.length).toBeLessThan(original.coordinates[0].length);
+        const ring = simplified.coordinates[0]!;
+        expect(ring.length).toBeLessThan(original.coordinates[0]!.length);
         expect(ring.length).toBeGreaterThanOrEqual(4);
         expect(ring[0]).toEqual(ring[ring.length - 1]);
       });
@@ -109,10 +109,9 @@ describe('quality evaluation suite', () => {
         const geometry: Polygon = { type: 'Polygon', coordinates: [ring] };
         const simplified = Utils.simplifyBoundary(geometry, 0.1) as Polygon;
         expect(simplified.type).toBe('Polygon');
-        expect(simplified.coordinates[0].length).toBeGreaterThanOrEqual(4);
-        expect(simplified.coordinates[0][0]).toEqual(
-          simplified.coordinates[0][simplified.coordinates[0].length - 1],
-        );
+        const simplifiedRing = simplified.coordinates[0]!;
+        expect(simplifiedRing.length).toBeGreaterThanOrEqual(4);
+        expect(simplifiedRing[0]).toEqual(simplifiedRing[simplifiedRing.length - 1]);
         expect(points).toBeGreaterThan(3);
       });
     });
@@ -135,9 +134,10 @@ describe('quality evaluation suite', () => {
         const simplified = Utils.simplifyBoundary(geometry) as MultiPolygon;
         expect(simplified.type).toBe('MultiPolygon');
         expect(simplified.coordinates.length).toBe(index + 1);
-        simplified.coordinates.forEach((member) =>
-          expect(member[0][0]).toEqual(member[0][member[0].length - 1]),
-        );
+        simplified.coordinates.forEach((member) => {
+          const memberRing = member[0]!;
+          expect(memberRing[0]).toEqual(memberRing[memberRing.length - 1]);
+        });
       });
     });
   });

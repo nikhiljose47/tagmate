@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -9,6 +9,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './forgot-password.html',
   styleUrls: ['./forgot-password.scss'],
@@ -33,15 +34,15 @@ export class ForgotPasswordComponent {
     this.error.set('');
     this.loading.set(true);
     try {
-      const { error } = (await this.session.resetPassword(emailVal)) as any;
+      const { error } = await this.session.resetPassword(emailVal);
       if (error) {
         this.error.set(error.message || 'Reset failed');
       } else {
         this.success.set(true);
         this.toast.show('Password reset link sent!', 'success');
       }
-    } catch (err: any) {
-      this.error.set(err?.message ?? 'Something went wrong');
+    } catch (err: unknown) {
+      this.error.set(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       this.loading.set(false);
     }

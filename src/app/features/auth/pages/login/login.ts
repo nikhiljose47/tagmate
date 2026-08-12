@@ -1,4 +1,11 @@
-import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  signal,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -9,6 +16,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-login',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './login.html',
   styleUrls: ['./login.scss'],
@@ -51,14 +59,14 @@ export class LoginPage implements OnInit {
     this.unconfirmedEmail.set(false);
     this.resendSent.set(false);
     const em = this.email().trim();
-    if (!em || !em.includes('@') || !em.includes('.')) {
-      this.error.set('Please enter a valid email address (e.g. name@example.com) to log in.');
+    if (!em) {
+      this.error.set('Please enter your email address or username to log in.');
       return;
     }
     this.loading.set(true);
 
     try {
-      const res: any = await Promise.race([
+      const res = await Promise.race([
         this.session.login(this.email(), this.password()),
         this.timeoutPromise(),
       ]);
@@ -68,9 +76,12 @@ export class LoginPage implements OnInit {
       if (res.ok) {
         this.router.navigateByUrl('/feed-beta');
       } else {
-        this.error.set(res.message ?? 'Login failed');
+        this.error.set(res.message || 'Login failed');
         // Supabase's own error text/code for this case is "Email not confirmed" / 'email_not_confirmed'.
-        if (res.code === 'email_not_confirmed' || /email.*not.*confirm/i.test(res.message ?? '')) {
+        if (
+          ('code' in res && res.code === 'email_not_confirmed') ||
+          /email.*not.*confirm/i.test(res.message ?? '')
+        ) {
           this.unconfirmedEmail.set(true);
         }
       }
@@ -101,14 +112,16 @@ export class LoginPage implements OnInit {
 
       if (this.destroyed) return;
 
-      if (res && (res as any).ok === false) {
-        this.error.set((res as any).message);
+      if (res && typeof res === 'object' && 'ok' in res && res.ok === false) {
+        this.error.set(
+          'message' in res && typeof res.message === 'string' ? res.message : 'Guest login failed',
+        );
         return;
       }
       this.router.navigateByUrl('/feed-beta');
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (!this.destroyed) {
-        this.error.set(err?.message ?? 'Guest login failed');
+        this.error.set(err instanceof Error ? err.message : 'Guest login failed');
       }
     } finally {
       if (!this.destroyed) {

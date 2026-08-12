@@ -10,7 +10,7 @@ This document tracks all implemented core features of Tagmate, outlines proposed
 
 ### V1 Pre-Release MVP Scope & Feature Flags
 
-To prevent channel fragmentation and ensure maximum activity around core location posts upon initial launch, secondary channels and extra customizations are managed by `FeatureFlagsService` ([feature-flags.service.ts](file:///d:/Coding/tagmate/src/app/core/services/feature-flags.service.ts)):
+To prevent channel fragmentation and ensure maximum activity around core location posts upon initial launch, secondary channels and extra customizations are managed by `FeatureFlagsService` ([feature-flags.service.ts](src/app/core/services/feature-flags.service.ts)):
 
 - **Lean MVP Launch Defaults**:
   - `enableChatmateAi`: `false` (AI Concierge tab/drawer hidden for V1)
@@ -20,6 +20,14 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
   - `enableExtraThemes`: `false` (Restricts themes to `Light` & `Dark` for V1 launch clarity)
 - **Zero Code Destruction**: All secondary feature modules remain 100% intact and can be toggled on demand post-launch via signal flags.
 
+### Security, Database RLS & Production Hardening (V0.2.0)
+
+- **Database RLS & Schema Baseline**: Baseline schema migration `20260809000000_baseline_schema.sql` establishes core table definitions. All 7 legacy social tables (`post_likes`, `post_rsvps`, `post_poll_votes`, `post_reports`, `user_saved_posts`, `user_hidden_posts`, `hood_messages`) are protected with RLS and user ownership policies.
+- **PII & Privilege Protection**: Restricted profile SELECT policies to protect user PII (`email`, `business_phone`, `home_lat/lng`). Added database triggers enforcing column-level update restrictions so users cannot self-update `reputation` or `account_type` directly via client REST calls, and authors cannot overwrite post `verified` status.
+- **Storage Object Security**: Added `storage.objects` policies for bucket `tag-images` restricting upload/delete actions to authenticated object owners.
+- **Edge API & Nominatim Hardening**: Standardized geocoding parameters (`addressdetails=1`), added query parameter sanitization (`encodeURIComponent`), enforced fetch request timeout (`AbortSignal.timeout(8000)`), and corrected `Cache-Control` response headers (`no-store` on errors).
+- **PWA & Offline Asset Precache**: Configured Google Fonts domains precaching in `ngsw-config.json` and added complete HTML meta tags (`description`, `og:*`, `theme-color`, `apple-touch-icon`) to `src/index.html`.
+
 ### Location-Based Posting & Map (Hood)
 
 - **Interactive Mapping**: Renders high-performance map styles (Streets, Satellite, Hybrid, Outdoor) powered by MapLibre GL JS and MapTiler.
@@ -28,7 +36,7 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Draggable Location Picker**: A temporary pick marker with geocoding feedback for attaching precise coordinates to new posts.
 - **Heatmap Mode**: Visualization of high-density post areas with adjustable circle paint weights.
 - **Geospatial Query Caching**: Front-end geocoding, reverse-geocoding, and boundary polygons are persisted in `localStorage` to reduce OpenStreetMap API network requests and prevent rate-limiting.
-- _Detailed Guide: [Mapping & Geospatial](file:///d:/Coding/Web/tagmate/docs/MAPPING_AND_GEOSPATIAL.md)_
+- _Detailed Guide: [Mapping & Geospatial](docs/MAPPING_AND_GEOSPATIAL.md)_
 
 ### Neighborhood AI Concierge ("Chatmate AI")
 
@@ -38,14 +46,14 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Quick Action Prompts**: Preset query buttons to summarize activity, check traffic status, or find local bargains in one tap.
 - **Interactive Map Highlights**: Provides recommended tag attachments in the chat flow with direct "Pin on Map" and "Details" action links.
 - **Polished UX**: Smooth typing status animations and distinct user/AI message alignment.
-- _Detailed Guide: [AI Concierge](file:///d:/Coding/Web/tagmate/docs/AI_CONCIERGE.md)_
+- _Detailed Guide: [AI Concierge](docs/AI_CONCIERGE.md)_
 
 ### Hood Champion & Gamification
 
 - **Reputation & Ranks**: Tracks user contribution points ("Reputation") and assigns status badges (`New`, `Rising`, `Helpful`, `Trusted`).
 - **Weekly Civic Quests**: Interactive checklists that reward contribution with reputation (Civic Love, Chatty Neighbor, Active Citizen, Vocal Resident). Authenticated users have their quest progress synced to Supabase Auth metadata across devices, while guest users fallback to browser `localStorage`.
 - **Top Contributors Leaderboard**: Dynamic ranking of top neighbors in each neighborhood based on their post counts and trust metrics.
-- _Detailed Guide: [Gamification & Reputation](file:///d:/Coding/Web/tagmate/docs/GAMIFICATION.md)_
+- _Detailed Guide: [Gamification & Reputation](docs/GAMIFICATION.md)_
 
 ### Social Interaction Suite
 
@@ -55,7 +63,7 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Event RSVPs**: Attending/declining status tracking for posts of kind `event`.
 - **Question Polls**: Custom question creation with up to 5 poll options, live percentage updates, and singular vote lock-in.
 - **Rich Notifications**: Local message center notifying users of replies, new alerts, RSVPs, likes, and direct messages.
-- _Detailed Guide: [Social Suite](file:///d:/Coding/Web/tagmate/docs/SOCIAL_SUITE.md)_
+- _Detailed Guide: [Social Suite](docs/SOCIAL_SUITE.md)_
 
 ### Virtual Sticky Bulletin Board
 
@@ -63,14 +71,14 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Responsive Notes Grid**: Renders short text announcements in a grid layout resembling physical colored sticky notes.
 - **Dynamic Content Composer**: Note editing field capped at 160 characters with remaining character counter.
 - **Access Control Deletion**: Deletion permissions enforced to restrict note removal only to the post's author.
-- _Detailed Guide: [Social Suite (includes Bulletin Board)](file:///d:/Coding/Web/tagmate/docs/SOCIAL_SUITE.md)_
+- _Detailed Guide: [Social Suite (includes Bulletin Board)](docs/SOCIAL_SUITE.md)_
 
 ### Aesthetics & Customizations
 
 - **Curated Theme Modes**: Instant switching across custom color schemes: `Light`, `Dark`, `Midnight` (OLED black), `Forest`, and `Sepia`.
 - **Dynamic Gradients**: Color-gradient headers mapping to different post category tags (Alert, Event, Sale, Food, Traffic, Market, Question).
 - **Live Expiration Countdowns**: Active tags display a real-time visual countdown of the remaining minutes before expiration (e.g. "Expires in 42m"), updating every 15 seconds.
-- _Detailed Guide: [Aesthetics & Visual System](file:///d:/Coding/Web/tagmate/docs/AESTHETICS.md)_
+- _Detailed Guide: [Aesthetics & Visual System](docs/AESTHETICS.md)_
 
 ### Post Editing & DM Management
 
@@ -84,6 +92,15 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
 - **Configurable Bounding Box**: Relocates hardcoded country bounding coordinates to an extensible `COUNTRY_BOUNDS` record structure in `hood.ts`.
 - **Media Upload Restrictions & Native GPU Video Compression**: Enforces client-side WebP image compression and native GPU-accelerated video compression via `MediaRecorder` API (2.0 Mbps bitrate ceiling) alongside validation rules (max 15MB images, max 30MB & max 30s duration videos) backed by a 50MB Supabase storage policy migration (`20260802000000_storage_bucket_limits.sql`).
 - **Audit & Bug Remediations**: Added client-side email format validation on login, password reset URL error fragment detection, WCAG field labels on signup, event date range validation (`eventStart <= eventEnd`), responsive category chips layout (`flex-wrap`), and icon element rendering in `EmptyStateComponent`.
+- **Bug Report #2 Comprehensive Remediations**:
+  - **Account Uniqueness (Bugs #1, #2)**: Enforced pre-signup validation for email and username uniqueness to prevent duplicate registrations.
+  - **Sign Up Navigation (Bug #3)**: Added `resetSignupForm()` to clear residual error popups when clicking "Sign up again".
+  - **Flexible Login (Bug #4)**: Enabled login via either username or email address with automatic username-to-email resolution.
+  - **Email Preferences (Bug #5)**: Implemented clean `OptOutComponent` under `/login/opt-out` route to process email opt-out and spam reporting without errors.
+  - **Comment & Reaction Resilience (Bugs #6, #7, #8, #9, #10, #14)**: Updated comment liking, nested reply reactions, comment editing, comment deletion, and location following to preserve resilient optimistic signal state without throwing disruptive toast errors.
+  - **Media Upload Extension Support (Bug #11)**: Expanded video MIME/extension validation to support desktop/mobile video formats (`.mp4`, `.mov`, `.webm`, `.m4v`, `.mkv`, `.avi`).
+  - **Poll Option Validation (Bug #12)**: Added client validation requiring at least 2 non-empty poll options before previewing or publishing a poll post.
+  - **Idempotent Like Counting (Bug #13)**: Fixed double-incrementing like counts when opening post details or scrolling comments by reconciling optimistic like deltas against hydrated base counts.
 
 ### Production Optimizations & Telemetry
 

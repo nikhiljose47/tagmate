@@ -3,6 +3,7 @@ import { validateEnvironment } from './environment.validation';
 
 describe('validateEnvironment', () => {
   const validEnvironment: AppEnvironment = {
+    environmentName: 'development',
     production: false,
     mapTilerApiKey: 'map-key',
     supabaseUrl: 'https://example.supabase.co',

@@ -9,84 +9,80 @@
 
   <!-- Nav items -->
   <div class="nav-items" [tmClickOutsideEnabled]="moreMenuOpen()" (tmClickOutside)="closeMore()">
-    @for (item of visibleNavItems(); track item.route) {
-      @if (!item.mobile) {
-        <!-- Desktop-only items (hidden on mobile) -->
-        <a
-          class="nav-item nav-item--desktop"
-          [routerLink]="item.route"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
-          [attr.aria-label]="item.label"
-          #rla="routerLinkActive"
-        >
-          <span class="nav-icon">
-            <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
-            @if (item.route === '/messages' && platform.unreadMessages()) {
-              <span class="nav-unread">{{ platform.unreadMessages() }}</span>
-            }
-          </span>
-          <span class="nav-label">{{ item.label }}</span>
-        </a>
-      } @else {
-        <!-- Mobile primary items -->
-        <a
-          class="nav-item mobile-primary"
-          [routerLink]="item.route"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
-          [attr.aria-label]="item.label"
-          (click)="closeMore()"
-          #rla="routerLinkActive"
-        >
-          <span class="nav-icon">
-            <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
-            @if (item.route === '/messages' && platform.unreadMessages()) {
-              <span class="nav-unread">{{ platform.unreadMessages() }}</span>
-            }
-          </span>
-          <span class="nav-label">{{ item.label }}</span>
-        </a>
-      }
-    }
+    @for (item of visibleNavItems(); track item.route) { @if (!item.mobile) {
+    <!-- Desktop-only items (hidden on mobile) -->
+    <a
+      class="nav-item nav-item--desktop"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
+      [attr.aria-label]="item.label"
+      #rla="routerLinkActive"
+    >
+      <span class="nav-icon">
+        <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+        @if (item.route === '/messages' && platform.unreadMessages()) {
+        <span class="nav-unread">{{ platform.unreadMessages() }}</span>
+        }
+      </span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+    } @else {
+    <!-- Mobile primary items -->
+    <a
+      class="nav-item mobile-primary"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.route === '/post' }"
+      [attr.aria-label]="item.label"
+      (click)="closeMore()"
+      #rla="routerLinkActive"
+    >
+      <span class="nav-icon">
+        <i class="bi" [class]="'bi ' + (rla.isActive ? item.activeIcon : item.icon)"></i>
+        @if (item.route === '/messages' && platform.unreadMessages()) {
+        <span class="nav-unread">{{ platform.unreadMessages() }}</span>
+        }
+      </span>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+    } }
 
     <!-- Mobile "More" button — only shown if overflow items exist -->
     @if (moreMenuItems().length > 0) {
+    <button
+      class="nav-item mobile-primary nav-item--more"
+      type="button"
+      [class.active]="moreMenuOpen()"
+      aria-label="More options"
+      (click)="toggleMore()"
+    >
+      <span class="nav-icon">
+        <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
+      </span>
+      <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
+    </button>
+    } @if (moreMenuOpen()) {
+    <!-- Backdrop -->
+    <div class="more-backdrop" (click)="closeMore()" (keydown)="closeMore()" tabindex="-1"></div>
+
+    <!-- More menu popup -->
+    <div class="more-menu" role="menu" aria-label="More navigation options">
+      @for (item of moreMenuItems(); track item.route) {
       <button
-        class="nav-item mobile-primary nav-item--more"
         type="button"
-        [class.active]="moreMenuOpen()"
-        aria-label="More options"
-        (click)="toggleMore()"
+        class="more-menu-item"
+        [class.active]="isActive(item.route)"
+        role="menuitem"
+        (click)="goTo(item.route)"
       >
-        <span class="nav-icon">
-          <i class="bi" [class]="moreMenuOpen() ? 'bi-x-lg' : 'bi-grid-3x3-gap-fill'"></i>
+        <span class="more-menu-icon">
+          <i class="bi" [class]="isActive(item.route) ? item.activeIcon : item.icon"></i>
         </span>
-        <span class="nav-label">{{ moreMenuOpen() ? 'Close' : 'More' }}</span>
+        <span class="more-menu-label">{{ item.label }}</span>
       </button>
-    }
-
-    @if (moreMenuOpen()) {
-      <!-- Backdrop -->
-      <div class="more-backdrop" (click)="closeMore()" (keydown)="closeMore()" tabindex="-1"></div>
-
-      <!-- More menu popup -->
-      <div class="more-menu" role="menu" aria-label="More navigation options">
-        @for (item of moreMenuItems(); track item.route) {
-          <button
-            type="button"
-            class="more-menu-item"
-            [class.active]="isActive(item.route)"
-            role="menuitem"
-            (click)="goTo(item.route)"
-          >
-            <span class="more-menu-icon">
-              <i class="bi" [class]="isActive(item.route) ? item.activeIcon : item.icon"></i>
-            </span>
-            <span class="more-menu-label">{{ item.label }}</span>
-          </button>
-        }
-      </div>
+      }
+    </div>
     }
   </div>
 </nav>

@@ -1,9 +1,17 @@
-import { Component, Input, OnInit, OnDestroy, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnInit,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-lifespan-badge',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <span class="lifespan-badge" [class]="'severity-' + status().severity">
@@ -19,7 +27,7 @@ export class LifespanBadgeComponent implements OnInit, OnDestroy {
     text: '',
     severity: 'low',
   });
-  private intervalId?: any;
+  private intervalId?: ReturnType<typeof setInterval>;
 
   ngOnInit(): void {
     this.updateStatus();

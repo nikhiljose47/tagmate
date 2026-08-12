@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { PostPage, MAX_IMAGE_SIZE_BYTES, MAX_VIDEO_SIZE_BYTES } from './post';
+import { PostPage, MAX_IMAGE_SIZE_BYTES, MAX_VIDEO_SIZE_BYTES, mediaStoragePath } from './post';
+import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { testProviders } from '../../../../test-providers';
 import { ToastService } from '../../../../core/services/toast.service';
 
@@ -31,7 +32,7 @@ describe('PostPage', () => {
     await component.onFileSelect(event);
 
     expect(component.mediaItems().length).toBe(1);
-    expect(component.mediaItems()[0].type).toBe('image');
+    expect(component.mediaItems()[0]!.type).toBe('image');
   });
 
   it('should reject an oversized image file (> 15MB)', async () => {
@@ -84,5 +85,40 @@ describe('PostPage', () => {
       jasmine.stringMatching(/unsupported media format/i),
       'warning',
     );
+  });
+
+  it('normalizes an M4V attachment to the storage-supported MIME type', () => {
+    const fixture = TestBed.createComponent(PostPage);
+    const component = fixture.componentInstance;
+    const file = new File(['video'], 'clip.m4v', { type: 'application/octet-stream' });
+
+    const normalized = (
+      component as unknown as {
+        normalizeMediaFile(file: File): { type: string; file: File };
+      }
+    ).normalizeMediaFile(file);
+
+    expect(normalized.type).toBe('video');
+    expect(normalized.file.type).toBe('video/x-m4v');
+  });
+
+  it('rejects a poll with blank options before publishing', () => {
+    const fixture = TestBed.createComponent(PostPage);
+    const component = fixture.componentInstance as unknown as {
+      formData: { tag: TagCategory; pollOptions: string[] };
+      validPollOptions(): string[] | null;
+    };
+    component.formData.tag = TagCategory.Poll;
+    component.formData.pollOptions = ['One option', ''];
+
+    expect(component.validPollOptions()).toBeNull();
+    expect(toastSpy.show).toHaveBeenCalledWith(
+      jasmine.stringMatching(/non-empty poll options/i),
+      'warning',
+    );
+  });
+
+  it('uses the owner directory required by the storage policy', () => {
+    expect(mediaStoragePath('user-123', 'jpg')).toMatch(/^user-123\/tags\/[^/]+\.jpg$/);
   });
 });

@@ -20,6 +20,6 @@ describe('AppTopbarComponent', () => {
     const fixture = TestBed.createComponent(AppTopbarComponent);
     const component = fixture.componentInstance;
     // In Lean MVP mode, theme list is restricted to Light and Dark
-    expect((component as any).themes.length).toBe(2);
+    expect((component as unknown as { themes: { length: number } }).themes.length).toBe(2);
   });
 });

@@ -1,5 +1,3 @@
-import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
 import type { MultiPolygon, Polygon, Position } from 'geojson';
 import type { LngLatBoundsLike } from 'maplibre-gl';
 
@@ -15,58 +13,8 @@ interface NominatimPlace {
   boundingbox?: [string, string, string, string];
 }
 
-/** Miscellaneous utilities: card stream + static geocoding helpers. */
-@Injectable({ providedIn: 'root' })
-export class Utils implements OnDestroy {
-  private allCards: unknown[] = [];
-  private visibleCards = new BehaviorSubject<unknown[]>([]);
-  private randomPopupInterval?: ReturnType<typeof setInterval>;
-
-  cards$ = this.visibleCards.asObservable();
-
-  setAllCards(data: unknown[]): void {
-    this.allCards = data;
-  }
-
-  startRandomPopup(intervalMs = 2000): () => void {
-    this.stopRandomPopup();
-    this.randomPopupInterval = setInterval(() => {
-      if (this.allCards.length > 0) {
-        const randomIndex = Math.floor(Math.random() * this.allCards.length);
-        const randomCard = this.allCards[randomIndex];
-        this.visibleCards.next([...this.visibleCards.getValue(), randomCard]);
-      }
-    }, intervalMs);
-    return () => this.stopRandomPopup();
-  }
-
-  stopRandomPopup(): void {
-    if (!this.randomPopupInterval) return;
-    clearInterval(this.randomPopupInterval);
-    this.randomPopupInterval = undefined;
-  }
-
-  getRandom(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  startTimer(seconds: number, onTick: (s: number) => void, onComplete: () => void): () => void {
-    let remaining = seconds;
-    const interval = setInterval(() => {
-      remaining--;
-      onTick(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-        onComplete();
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }
-
-  ngOnDestroy(): void {
-    this.stopRandomPopup();
-  }
-
+/** Static boundary helpers shared by the map and boundary services. */
+export class Utils {
   static async getPlaceBoundary(query: string): Promise<PlaceBoundary | null> {
     const url = `/api/nominatim/boundary?q=${encodeURIComponent(query)}`;
     const res = await fetch(url);
@@ -76,6 +24,7 @@ export class Utils implements OnDestroy {
     if (!result.length) return null;
 
     const place = result[0];
+    if (!place) return null;
     const bounds = this.getBoundsFromBoundingBox(place.boundingbox);
     if (!bounds) return null;
 
@@ -94,8 +43,9 @@ export class Utils implements OnDestroy {
 
   static getBoundsFromBoundingBox(box: NominatimPlace['boundingbox']): LngLatBoundsLike | null {
     if (!box) return null;
-    const [s, n, w, e] = box.map(Number.parseFloat);
-    if (![s, n, w, e].every(Number.isFinite)) return null;
+    const values = box.map(Number.parseFloat);
+    if (values.length !== 4 || !values.every(Number.isFinite)) return null;
+    const [s, n, w, e] = values as [number, number, number, number];
     return [
       [w, s],
       [e, n],
@@ -104,7 +54,8 @@ export class Utils implements OnDestroy {
 
   static createRectangleGeometry(box: NominatimPlace['boundingbox']): Polygon {
     if (!box) return { type: 'Polygon', coordinates: [[]] };
-    const [s, n, w, e] = box.map(Number.parseFloat);
+    const values = box.map(Number.parseFloat) as [number, number, number, number];
+    const [s, n, w, e] = values;
     return {
       type: 'Polygon',
       coordinates: [
@@ -135,8 +86,9 @@ export class Utils implements OnDestroy {
 
   private static simplifyRing(ring: Position[], tolerance: number): Position[] {
     if (ring.length <= 4) return ring;
-    const closed =
-      ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1];
+    const first = ring[0]!;
+    const last = ring[ring.length - 1]!;
+    const closed = first[0] === last[0] && first[1] === last[1];
     const points = closed ? ring.slice(0, -1) : ring.slice();
     if (points.length < 3) return ring;
 
@@ -151,7 +103,7 @@ export class Utils implements OnDestroy {
       let maxDistance = squaredTolerance;
       let index = -1;
       for (let i = start + 1; i < end; i++) {
-        const distance = this.squaredSegmentDistance(points[i], points[start], points[end]);
+        const distance = this.squaredSegmentDistance(points[i]!, points[start]!, points[end]!);
         if (distance > maxDistance) {
           maxDistance = distance;
           index = i;
@@ -165,23 +117,30 @@ export class Utils implements OnDestroy {
 
     const simplified = points.filter((_, index) => keep[index]);
     // A polygon needs at least three distinct points plus its closing point.
-    return simplified.length >= 3 ? [...simplified, simplified[0]] : ring;
+    return simplified.length >= 3 ? [...simplified, simplified[0]!] : ring;
   }
 
   private static squaredSegmentDistance(point: Position, start: Position, end: Position): number {
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
+    if (point.length < 2 || start.length < 2 || end.length < 2) return 0;
+    const endX = end[0]!;
+    const endY = end[1]!;
+    const startX = start[0]!;
+    const startY = start[1]!;
+    const pointX = point[0]!;
+    const pointY = point[1]!;
+    const dx = endX - startX;
+    const dy = endY - startY;
     if (dx === 0 && dy === 0) {
-      const px = point[0] - start[0];
-      const py = point[1] - start[1];
+      const px = pointX - startX;
+      const py = pointY - startY;
       return px * px + py * py;
     }
     const t = Math.max(
       0,
-      Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / (dx * dx + dy * dy)),
+      Math.min(1, ((pointX - startX) * dx + (pointY - startY) * dy) / (dx * dx + dy * dy)),
     );
-    const px = point[0] - (start[0] + t * dx);
-    const py = point[1] - (start[1] + t * dy);
+    const px = pointX - (startX + t * dx);
+    const py = pointY - (startY + t * dy);
     return px * px + py * py;
   }
 }

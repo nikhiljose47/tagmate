@@ -22,7 +22,6 @@ import type {
 } from 'maplibre-gl';
 import * as maptilersdk from '@maptiler/sdk';
 
-import type { ClassificationReport } from './map-inspector';
 import { environment } from '../../../../environments/environment';
 import { PlaceBoundary, Utils } from '../../../../core/services/utils.service';
 import { TelemetryService } from '../../../../core/services/telemetry.service';
@@ -73,7 +72,6 @@ type LayerFilter = NonNullable<Parameters<MapLibreMap['setFilter']>[1]>;
 
 const GAME_MARKER_COUNT = 70;
 const FEATURED_MARKER_COUNT = 3;
-const FEATURED_ROTATION_MS = 15_000;
 const FALLBACK_MARKER_IMAGE =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
@@ -456,22 +454,28 @@ function buildInverseMask(geometry: DistrictGeometry): Feature<Polygon> {
 function chaikinRing(ring: Position[], iterations: number): Position[] {
   let pts = ring;
   // Nominatim rings repeat the first point at the end — drop it while smoothing.
-  const closed =
-    pts.length > 1 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1];
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  const closed = !!first && !!last && first[0] === last[0] && first[1] === last[1];
   if (closed) pts = pts.slice(0, -1);
 
   for (let it = 0; it < iterations; it++) {
     const next: Position[] = [];
     for (let i = 0; i < pts.length; i++) {
-      const [ax, ay] = pts[i];
-      const [bx, by] = pts[(i + 1) % pts.length];
+      const a = pts[i]!;
+      const b = pts[(i + 1) % pts.length]!;
+      if (a.length < 2 || b.length < 2) continue;
+      const ax = a[0]!;
+      const ay = a[1]!;
+      const bx = b[0]!;
+      const by = b[1]!;
       next.push([ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25]);
       next.push([ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75]);
     }
     pts = next;
   }
 
-  return [...pts, pts[0]]; // re-close the ring
+  return pts.length ? [...pts, pts[0]!] : pts; // re-close the ring
 }
 
 /**
@@ -505,7 +509,10 @@ export function getGeometryBounds(geometry: DistrictGeometry): [number, number, 
   let maxLng = -Infinity,
     maxLat = -Infinity;
 
-  for (const [lng, lat] of allCoords) {
+  for (const point of allCoords) {
+    const lng = point[0];
+    const lat = point[1];
+    if (lng === undefined || lat === undefined) continue;
     if (lng < minLng) minLng = lng;
     if (lat < minLat) minLat = lat;
     if (lng > maxLng) maxLng = lng;
@@ -566,7 +573,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   private featuredMarkerIds: string[] = [];
   private featuredMarkerQueue: string[] = [];
   private featuredMarkerCursor = 0;
-  private featuredRotationTimer?: number;
   private featuredHoverCount = 0;
   private mapStartedAt = 0;
   private firstMarkerTracked = false;
@@ -578,7 +584,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   // built once tiles render. Adaptive layers are added either way — they rely
   // on the report, never on assumed schema.
   private readonly enableMapDataInspector = !environment.production;
-  private classificationReport: ClassificationReport | null = null;
   private classificationDone = false;
   private classificationAttempts = 0;
 
@@ -600,7 +605,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   readonly settingsOpen = signal(false);
   readonly oceanModes = OCEAN_MODES;
   readonly currentModeConfig = computed(
-    () => OCEAN_MODES.find((m) => m.key === this.currentMode()) ?? OCEAN_MODES[0],
+    () => OCEAN_MODES.find((m) => m.key === this.currentMode()) ?? OCEAN_MODES[0]!,
   );
 
   // Map style / camera
@@ -695,7 +700,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     this.destroy$.complete();
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
     this.searchAbort?.abort();
-    this.stopFeaturedRotation();
     this.clearFeaturedMarkers();
     this.unregisterMarkerEvents();
     this.map?.off('click', this.onInspectClick);
@@ -1124,7 +1128,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     while (markers.length < count && attempts < count * 250) {
       attempts++;
       const index = markers.length;
-      const type = types[index % types.length];
+      const type = types[index % types.length]!;
       const longitude = Number((west + Math.random() * (east - west)).toFixed(6));
       const latitude = Number((south + Math.random() * (north - south)).toFixed(6));
       if (!this.pointInDistrict([longitude, latitude], geometry)) continue;
@@ -1135,9 +1139,9 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       const hasImage = index % 5 !== 2; // ~80% have images, every 3rd of 5 has none
       markers.push({
         id: `island-marker-${index + 1}`,
-        title: `${titlePool[index % titlePool.length]} ${index + 1}`,
-        description: descPool[index % descPool.length],
-        imageUrl: hasImage ? imagePool[index % imagePool.length] : '',
+        title: `${titlePool[index % titlePool.length]!} ${index + 1}`,
+        description: descPool[index % descPool.length]!,
+        imageUrl: hasImage ? imagePool[index % imagePool.length]! : '',
         longitude,
         latitude,
         type,
@@ -1205,15 +1209,20 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private pointInPolygon(point: [number, number], rings: Position[][]): boolean {
-    if (!rings.length || !this.pointInRing(point, rings[0])) return false;
+    if (!rings.length || !this.pointInRing(point, rings[0]!)) return false;
     return !rings.slice(1).some((ring) => this.pointInRing(point, ring));
   }
 
   private pointInRing([lng, lat]: [number, number], ring: Position[]): boolean {
     let inside = false;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i];
-      const [xj, yj] = ring[j];
+      const current = ring[i]!;
+      const previous = ring[j]!;
+      if (current.length < 2 || previous.length < 2) continue;
+      const xi = current[0]!;
+      const yi = current[1]!;
+      const xj = previous[0]!;
+      const yj = previous[1]!;
       const intersects = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
       if (intersects) inside = !inside;
     }
@@ -1232,7 +1241,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     const ids = this.cityMarkers.map((marker) => marker.id);
     for (let i = ids.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [ids[i], ids[j]] = [ids[j], ids[i]];
+      [ids[i], ids[j]] = [ids[j]!, ids[i]!];
     }
     return ids;
   }
@@ -1244,7 +1253,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       const id =
         this.featuredMarkerQueue[this.featuredMarkerCursor % this.featuredMarkerQueue.length];
       this.featuredMarkerCursor++;
-      if (!ids.includes(id)) ids.push(id);
+      if (id !== undefined && !ids.includes(id)) ids.push(id);
     }
     return ids;
   }
@@ -1267,12 +1276,14 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     element.setAttribute('aria-label', marker.title);
     const cardWrap = document.createElement('span');
     cardWrap.className = 'game-marker-card-wrap';
-    cardWrap.append(this.createPopupContent(marker));
+    cardWrap.appendChild(this.createPopupContent(marker));
     const stem = document.createElement('span');
     stem.className = 'game-featured-marker__stem';
     const dot = document.createElement('span');
     dot.className = 'game-featured-marker__dot';
-    element.append(cardWrap, stem, dot);
+    element.appendChild(cardWrap);
+    element.appendChild(stem);
+    element.appendChild(dot);
     element.querySelector('img')?.addEventListener('error', (event) => {
       const image = event.currentTarget as HTMLImageElement;
       image.src = FALLBACK_MARKER_IMAGE;
@@ -1304,8 +1315,10 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     const description = document.createElement('p');
     description.className = 'game-marker-card__description';
     description.textContent = marker.description;
-    content.append(shine, title, description);
-    card.append(content);
+    content.appendChild(shine);
+    content.appendChild(title);
+    content.appendChild(description);
+    card.appendChild(content);
 
     if (this.isSafeImageUrl(marker.imageUrl)) {
       const image = document.createElement('img');
@@ -1313,7 +1326,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       image.src = marker.imageUrl!;
       image.alt = marker.title;
       image.loading = 'lazy';
-      card.append(image);
+      card.appendChild(image);
     }
     return card;
   }
@@ -1330,23 +1343,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     nextIds.push(marker.id);
     this.featuredMarkerIds = nextIds;
     this.showFeaturedMarkers();
-  }
-
-  private startFeaturedRotation(): void {
-    this.stopFeaturedRotation();
-    if (typeof window === 'undefined' || this.prefersReducedMotion()) return;
-    this.featuredRotationTimer = window.setInterval(() => {
-      if (this.featuredHoverCount > 0) return;
-      this.featuredMarkerIds = this.nextFeaturedIds(FEATURED_MARKER_COUNT);
-      this.showFeaturedMarkers();
-    }, FEATURED_ROTATION_MS);
-  }
-
-  private stopFeaturedRotation(): void {
-    if (this.featuredRotationTimer !== undefined) {
-      window.clearInterval(this.featuredRotationTimer);
-      this.featuredRotationTimer = undefined;
-    }
   }
 
   private clearFeaturedMarkers(): void {
@@ -1369,15 +1365,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       ['==', ['get', 'type'], type],
       ['==', ['get', 'featured'], false],
     ] as LayerFilter;
-  }
-
-  private markerTypeLabel(type: GameMarkerType): string {
-    return (
-      { alert: 'Alert', connect: 'Connect', opening: 'Opening' } satisfies Record<
-        GameMarkerType,
-        string
-      >
-    )[type];
   }
 
   private updateFeaturedMarkerScreenClasses(): void {
@@ -1539,7 +1526,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       return;
     }
     this.classificationDone = true;
-    this.classificationReport = report;
     if (this.enableMapDataInspector) {
       console.info('[HoodIsland] classification report:', report);
     }
@@ -1585,7 +1571,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
   }
 
   private styleUrl(key: string): string {
-    const style = BASE_STYLES.find((s) => s.key === key) ?? BASE_STYLES[0];
+    const style = BASE_STYLES.find((s) => s.key === key) ?? BASE_STYLES[0]!;
     return `https://api.maptiler.com/maps/${style.path}/style.json?key=${environment.mapTilerApiKey}`;
   }
 
@@ -1711,7 +1697,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
         this.searchResults.set(
           places.slice(0, 6).map((p) => ({
             displayName: p.display_name,
-            shortName: p.name || p.display_name.split(',')[0],
+            shortName: p.name || p.display_name.split(',')[0] || p.display_name,
             type: p.addresstype ?? 'place',
             lat: parseFloat(p.lat),
             lng: parseFloat(p.lon),
@@ -1787,6 +1773,7 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
       }
 
       const place = results[0];
+      if (!place) return;
       const bounds = Utils.getBoundsFromBoundingBox(place.boundingbox);
       if (!bounds) {
         this.ngZone.run(() => {
@@ -1815,51 +1802,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
 
   onSearchBlur(): void {
     setTimeout(() => this.ngZone.run(() => this.searchOpen.set(false)), 200);
-  }
-
-  private async loadDistrictByQuery(
-    query: string,
-    label: string,
-    approxCenter: [number, number],
-  ): Promise<void> {
-    if (!this.map) return;
-    this.currentQuery = query;
-    this.currentLabel = label;
-    this.ngZone.run(() => {
-      this.loading.set(true);
-      this.errorMsg.set('');
-    });
-    try {
-      const cached = this.boundaries.getCached(query);
-
-      if (cached) {
-        this.applyDistrictGeometry(cached.geometry as DistrictGeometry, label);
-        return;
-      }
-
-      this.map.setMaxBounds(null);
-      this.ngZone.runOutsideAngular(() =>
-        this.map!.flyTo({ center: approxCenter, zoom: 13, duration: 500 }),
-      );
-
-      const boundary = await this.boundaries.resolve(query);
-      if (!boundary) {
-        this.ngZone.run(() => {
-          this.errorMsg.set(`Boundary not found for "${label}".`);
-          this.loading.set(false);
-        });
-        return;
-      }
-
-      this.writeCachedBoundary(query, boundary);
-
-      this.applyDistrictGeometry(boundary.geometry as DistrictGeometry, label);
-    } catch {
-      this.ngZone.run(() => {
-        this.errorMsg.set('Failed to load district boundary.');
-        this.loading.set(false);
-      });
-    }
   }
 
   // ── Presets ───────────────────────────────────────────────────────────────────
@@ -2124,12 +2066,6 @@ export class HoodIslandPage implements AfterViewInit, OnDestroy {
     } catch {
       return false;
     }
-  }
-
-  private prefersReducedMotion(): boolean {
-    return (
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
   }
 
   private trackMapTiming(metric: 'map-ready' | 'first-marker' | 'boundary-ready'): void {

@@ -4,8 +4,8 @@ import { SupabaseClientService } from './supabase-client.service';
 
 describe('StorageService', () => {
   let service: StorageService;
-  let clientServiceMock: any;
-  let storageMock: any;
+  let clientServiceMock: { client: { storage: { from: jasmine.Spy } } };
+  let storageMock: { from: jasmine.Spy };
 
   beforeEach(() => {
     storageMock = {

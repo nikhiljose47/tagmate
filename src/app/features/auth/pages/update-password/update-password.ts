@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 @Component({
   selector: 'app-update-password',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   templateUrl: './update-password.html',
   styleUrls: ['./update-password.scss'],
@@ -55,15 +56,15 @@ export class UpdatePasswordComponent implements OnInit {
     this.error.set('');
     this.loading.set(true);
     try {
-      const { error } = (await this.session.updatePassword(pass)) as any;
+      const { error } = await this.session.updatePassword(pass);
       if (error) {
         this.error.set(error.message || 'Update failed');
       } else {
         this.toast.show('Password updated successfully!', 'success');
         void this.router.navigate(['/feed-beta']);
       }
-    } catch (err: any) {
-      this.error.set(err?.message ?? 'Something went wrong');
+    } catch (err: unknown) {
+      this.error.set(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       this.loading.set(false);
     }

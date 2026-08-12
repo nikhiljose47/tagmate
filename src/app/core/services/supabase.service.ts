@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { AuthService, SignupAvailability } from './auth.service';
 import { TagDataService } from './tag-data.service';
 import { SocialDataService } from './social-data.service';
 import { StorageService } from './storage.service';
@@ -33,8 +33,24 @@ export class SupabaseService {
     return this.auth.isUsernameTaken(username);
   }
 
+  isEmailTaken(email: string): Observable<boolean> {
+    return this.auth.isEmailTaken(email);
+  }
+
+  checkSignupAvailability(email?: string, username?: string): Observable<SignupAvailability> {
+    return this.auth.checkSignupAvailability(email, username);
+  }
+
   resendSignupConfirmation(email: string) {
     return this.auth.resendSignupConfirmation(email);
+  }
+
+  resendSignupConfirmationForUsername(username: string) {
+    return this.auth.resendSignupConfirmationForUsername(username);
+  }
+
+  signInWithUsername(username: string, password: string) {
+    return this.auth.signInWithUsername(username, password);
   }
 
   signInAnonymously() {
@@ -63,8 +79,8 @@ export class SupabaseService {
 
   // ---------- DATA ----------
 
-  addRow<T extends Record<string, unknown>>(table: string, data: T) {
-    return this.tagData.addRow(table, data);
+  addRow<T>(table: string, data: Record<string, unknown>) {
+    return this.tagData.addRow<T>(table, data);
   }
 
   getRows<T>(
@@ -80,6 +96,10 @@ export class SupabaseService {
 
   getUserById(uid: string): Observable<AppUser | null> {
     return this.tagData.getUserById(uid);
+  }
+
+  getCurrentUserById(uid: string): Observable<AppUser | null> {
+    return this.tagData.getCurrentUserById(uid);
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {
@@ -114,8 +134,9 @@ export class SupabaseService {
     table: string,
     field: string,
     values: unknown[],
+    columns = '*',
   ): Observable<{ data: T[] | null; error: unknown }> {
-    return this.tagData.getRowsIn<T>(table, field, values);
+    return this.tagData.getRowsIn<T>(table, field, values, columns);
   }
 
   // ---------- GEOSPATIAL ----------

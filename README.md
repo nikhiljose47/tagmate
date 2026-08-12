@@ -11,6 +11,7 @@ More project notes live in `docs/`:
 - `docs/GAMIFICATION.md` - quests, reputation, and contributor features.
 - `docs/SOCIAL_SUITE.md` - messaging, comments, RSVPs, polls, and notifications.
 - `docs/AESTHETICS.md` - visual themes and UI treatment.
+- `docs/AUTH_EMAIL_SETUP.md` - Cloudflare auth-function secrets and confirmation-email preferences.
 
 ## Versions Used
 
@@ -22,8 +23,8 @@ These are the versions currently installed in this workspace:
 | npm             | 11.4.2  |
 | Angular CLI     | 21.2.17 |
 | Angular         | 21.2.17 |
-| TypeScript      | 5.9.3   |
-| RxJS            | 7.8.2   |
+| TypeScript      | 5.9.2   |
+| RxJS            | 7.8.0   |
 | MapTiler SDK    | 4.0.2   |
 | MapLibre GL JS  | 5.24.0  |
 | NgRx            | 21.1.1  |
@@ -183,7 +184,6 @@ The island map layout is tuned for desktop and mobile:
 The application uses Supabase PostgreSQL, Supabase Auth, Storage, Realtime, and PostGIS.
 
 - [View the database architecture and ER diagram](docs/database/database-architecture.md)
-
 
 ## Useful Commands
 

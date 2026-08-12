@@ -105,9 +105,12 @@ export class SupabaseTagRepository implements ITagRepository {
   }
 
   create(tag: Omit<Tag, 'id'>): Observable<Tag> {
-    return this.tagData
-      .addRow('tags', tagToRow(tag as Tag) as Record<string, unknown>)
-      .pipe(map(({ data }) => rowToTag(data as unknown as TagRow)));
+    return this.tagData.addRow<TagRow>('tags', tagToRow(tag)).pipe(
+      map(({ data }) => {
+        if (!data) throw new Error('Create failed: no row returned');
+        return rowToTag(data);
+      }),
+    );
   }
 
   delete(id: string): Observable<void> {

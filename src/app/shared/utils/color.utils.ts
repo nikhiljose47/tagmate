@@ -20,7 +20,7 @@ export function coverGradient(username: string): string {
 
 export function avatarInitials(username: string): string {
   const parts = username.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length >= 2) return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
   return username.trim().slice(0, 2).toUpperCase() || '??';
 }
 
@@ -29,5 +29,5 @@ function hashToItem<T>(input: string, items: readonly T[]): T {
   for (let i = 0; i < input.length; i++) {
     hash = input.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return items[Math.abs(hash) % items.length];
+  return items[Math.abs(hash) % items.length]!;
 }

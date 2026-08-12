@@ -59,214 +59,268 @@
   </section> -->
 
   @if (isLoading()) {
-    <div class="feed-skeletons" aria-label="Loading feed">
-      @for (i of [1, 2]; track i) {
-        <div class="skeleton-card tm-panel">
-          <div class="skeleton-header">
-            <div class="skeleton-avatar skeleton-pulse"></div>
-            <div class="skeleton-text-group">
-              <div class="skeleton-line title skeleton-pulse"></div>
-              <div class="skeleton-line sub skeleton-pulse"></div>
-            </div>
-          </div>
-          <div class="skeleton-media skeleton-pulse"></div>
-          <div class="skeleton-body">
-            <div class="skeleton-line body skeleton-pulse"></div>
-            <div class="skeleton-line body skeleton-pulse" style="width: 75%;"></div>
-          </div>
+  <div class="feed-skeletons" aria-label="Loading feed">
+    @for (i of [1, 2]; track i) {
+    <div class="skeleton-card tm-panel">
+      <div class="skeleton-header">
+        <div class="skeleton-avatar skeleton-pulse"></div>
+        <div class="skeleton-text-group">
+          <div class="skeleton-line title skeleton-pulse"></div>
+          <div class="skeleton-line sub skeleton-pulse"></div>
         </div>
-      }
+      </div>
+      <div class="skeleton-media skeleton-pulse"></div>
+      <div class="skeleton-body">
+        <div class="skeleton-line body skeleton-pulse"></div>
+        <div class="skeleton-line body skeleton-pulse" style="width: 75%"></div>
+      </div>
     </div>
+    }
+  </div>
   } @else if (loadError()) {
-    <tm-empty-state
-      icon="!"
-      title="Could not load feed"
-      subtitle="Check your connection and try again."
-      actionText="Retry"
-      (actionClicked)="retryFeed()"
-    />
+  <tm-empty-state
+    icon="!"
+    title="Could not load feed"
+    subtitle="Check your connection and try again."
+    actionText="Retry"
+    (actionClicked)="retryFeed()"
+  />
   } @else if (visiblePosts().length === 0) {
-    <tm-empty-state
-      icon="+"
-      title="No posts here yet"
-      subtitle="Try another filter or start the neighborhood thread."
-      actionText="Create post"
-      (actionClicked)="createPost()"
-    />
+  <tm-empty-state
+    icon="+"
+    title="No posts here yet"
+    subtitle="Try another filter or start the neighborhood thread."
+    actionText="Create post"
+    (actionClicked)="createPost()"
+  />
   } @else {
-    <section class="post-list feed-workspace-list" aria-label="Feed posts">
-      <header class="workspace-pane-header">
-        <div>
-          <p>Queue</p>
-          <h2>{{ visiblePosts().length }} active posts</h2>
-        </div>
-        <a class="tm-btn tm-btn-primary" routerLink="/post">
-          <i class="bi bi-plus-lg" aria-hidden="true"></i>
-          New
+  <section class="post-list feed-workspace-list" aria-label="Feed posts">
+    <header class="workspace-pane-header">
+      <div>
+        <p>Queue</p>
+        <h2>{{ visiblePosts().length }} active posts</h2>
+      </div>
+      <a class="tm-btn tm-btn-primary" routerLink="/post">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        New
+      </a>
+    </header>
+    @for (post of visiblePosts(); track postKey(post)) {
+    <article
+      class="post-card"
+      [class.selected]="isSelected(post)"
+      [class.critical]="post.tag === 'alert'"
+      (click)="selectPost(post)"
+    >
+      <header class="post-card-header">
+        <a
+          class="avatar-link"
+          [routerLink]="
+                post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
+              "
+          aria-label="Open profile"
+        >
+          <tm-avatar [username]="post.username || 'Anonymous'" [size]="42" />
         </a>
-      </header>
-      @for (post of visiblePosts(); track postKey(post)) {
-        <article class="post-card" [class.selected]="isSelected(post)" [class.critical]="post.tag === 'alert'" (click)="selectPost(post)">
-          <header class="post-card-header">
-            <a class="avatar-link" [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]" aria-label="Open profile">
-              <tm-avatar [username]="post.username || 'Anonymous'" [size]="42" />
-            </a>
-            <div class="post-author">
-              <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]">{{ post.username || 'Anonymous' }}</a>
-              <a class="post-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
-                <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }}
-                @if (post.expiresIn) {
-                  <app-lifespan-badge [createdAt]="post.createdAt" [expiresIn]="post.expiresIn" />
-                }
-              </a>
-            </div>
-            <app-post-menu
-              [canDelete]="social.canDelete(post)"
-              (deletePost)="deletePost(post)"
-              (reportPost)="reportPost(post)"
-            />
-          </header>
-
-          <a class="post-media" [routerLink]="['/posts', postKey(post)]" [style.background]="post.tag | tagGradient">
-            @if (post.images[0]) {
-              <img [src]="post.images[0]" alt="Tag post image" loading="lazy" decoding="async" />
-            } @else {
-              <span>{{ post.tag | tagEmoji }}</span>
+        <div class="post-author">
+          <a
+            [routerLink]="
+                  post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
+                "
+            >{{ post.username || 'Anonymous' }}</a
+          >
+          <a class="post-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
+            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+            {{ post.hoodId || 'Nearby' }} · {{ post.createdAt | timeAgo }} @if (post.expiresIn) {
+            <app-lifespan-badge [createdAt]="post.createdAt" [expiresIn]="post.expiresIn" />
             }
           </a>
+        </div>
+        <app-post-menu
+          [canDelete]="social.canDelete(post)"
+          (deletePost)="deletePost(post)"
+          (reportPost)="reportPost(post)"
+        />
+      </header>
 
-          <div class="post-body">
-            <div class="post-action-row">
-              <button type="button" [class.active]="social.isLiked(post)" (click)="toggleLike(post)" aria-label="Like post">
-                <i class="bi" [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
-              </button>
-              <a [routerLink]="['/posts', postKey(post)]" aria-label="Open comments">
-                <i class="bi bi-chat" aria-hidden="true"></i>
-              </a>
-              <button type="button" (click)="sharePost(post)" aria-label="Share post">
-                <i class="bi bi-send" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="push-right" (click)="openMap(post)" aria-label="Open on map">
-                <i class="bi bi-map" aria-hidden="true"></i>
-              </button>
-              <button type="button" [class.active]="social.isSaved(post)" (click)="toggleSave(post)" aria-label="Save post">
-                <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
-              </button>
+      <a
+        class="post-media"
+        [routerLink]="['/posts', postKey(post)]"
+        [style.background]="post.tag | tagGradient"
+      >
+        @if (post.images[0]) {
+        <img [src]="post.images[0]" alt="Tag post image" loading="lazy" decoding="async" />
+        } @else {
+        <span>{{ post.tag | tagEmoji }}</span>
+        }
+      </a>
+
+      <div class="post-body">
+        <div class="post-action-row">
+          <button
+            type="button"
+            [class.active]="social.isLiked(post)"
+            (click)="toggleLike(post)"
+            aria-label="Like post"
+          >
+            <i
+              class="bi"
+              [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'"
+              aria-hidden="true"
+            ></i>
+          </button>
+          <a [routerLink]="['/posts', postKey(post)]" aria-label="Open comments">
+            <i class="bi bi-chat" aria-hidden="true"></i>
+          </a>
+          <button type="button" (click)="sharePost(post)" aria-label="Share post">
+            <i class="bi bi-send" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="push-right" (click)="openMap(post)" aria-label="Open on map">
+            <i class="bi bi-map" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            [class.active]="social.isSaved(post)"
+            (click)="toggleSave(post)"
+            aria-label="Save post"
+          >
+            <i
+              class="bi"
+              [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'"
+              aria-hidden="true"
+            ></i>
+          </button>
+        </div>
+
+        <p class="post-counts">
+          {{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments @if
+          (platform.isActionable(post)) { · {{ post.verificationCount || 0 }} confirmations }
+        </p>
+        @if (platform.isActionable(post)) {
+        <a
+          class="post-status-badge"
+          [routerLink]="['/posts', postKey(post)]"
+          [attr.data-status]="post.currentStatus || 'active'"
+        >
+          {{ post.currentStatus || 'active' }}
+        </a>
+        }
+        <p class="post-caption">
+          <a
+            [routerLink]="
+                  post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
+                "
+            ><strong>{{ post.username || 'Anonymous' }}</strong></a
+          >
+          <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
+        </p>
+
+        @if (post.pollOptions?.length) {
+        <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
+          @for (opt of post.pollOptions; track $index) { @let voted = hasVotedPoll(post, $index);
+          @let pct = getPollPercentage(post, $index);
+          <button
+            class="poll-option-btn relative w-full overflow-hidden rounded-md border border-[var(--tm-border)] p-2 text-left transition hover:border-indigo-300"
+            [class.ring-2]="voted"
+            [class.ring-indigo-500]="voted"
+            (click)="votePoll(post, $index)"
+          >
+            <div
+              class="absolute inset-y-0 left-0 bg-indigo-500/20 transition-all duration-500"
+              [style.width.%]="pct"
+            ></div>
+            <div class="relative z-10 flex justify-between">
+              <span class="font-medium text-sm">{{ opt }}</span>
+              <span class="text-xs text-tm-muted font-semibold">{{ pct }}%</span>
             </div>
+          </button>
+          }
+        </div>
+        }
 
-            <p class="post-counts">
-              {{ social.likeCount(post) }} likes · {{ social.commentCount(post) }} comments
-              @if (platform.isActionable(post)) { · {{ post.verificationCount || 0 }} confirmations }
-            </p>
-            @if (platform.isActionable(post)) {
-              <a class="post-status-badge" [routerLink]="['/posts', postKey(post)]" [attr.data-status]="post.currentStatus || 'active'">
-                {{ post.currentStatus || 'active' }}
-              </a>
-            }
-            <p class="post-caption">
-              <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]"><strong>{{ post.username || 'Anonymous' }}</strong></a>
-              <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
-            </p>
+        <a class="post-tag" [routerLink]="['/posts', postKey(post)]">#{{ post.tag | lowercase }}</a>
+      </div>
+    </article>
+    }
 
-            @if (post.pollOptions?.length) {
-              <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
-                @for (opt of post.pollOptions; track $index) {
-                  @let voted = hasVotedPoll(post, $index);
-                  @let pct = getPollPercentage(post, $index);
-                  <button 
-                    class="poll-option-btn relative w-full overflow-hidden rounded-md border border-[var(--tm-border)] p-2 text-left transition hover:border-indigo-300"
-                    [class.ring-2]="voted"
-                    [class.ring-indigo-500]="voted"
-                    (click)="votePoll(post, $index)"
-                  >
-                    <div 
-                      class="absolute inset-y-0 left-0 bg-indigo-500/20 transition-all duration-500" 
-                      [style.width.%]="pct"
-                    ></div>
-                    <div class="relative z-10 flex justify-between">
-                      <span class="font-medium text-sm">{{ opt }}</span>
-                      <span class="text-xs text-tm-muted font-semibold">{{ pct }}%</span>
-                    </div>
-                  </button>
-                }
-              </div>
-            }
+    <div #scrollSentinel style="height: 1px; visibility: hidden"></div>
+  </section>
 
-            <a class="post-tag" [routerLink]="['/posts', postKey(post)]">#{{ post.tag | lowercase }}</a>
-          </div>
-        </article>
-      }
-      
-      <div #scrollSentinel style="height: 1px; visibility: hidden;"></div>
+  <aside
+    class="feed-context-panel"
+    [class.hidden]="!workspace.rightPanelOpen()"
+    aria-label="Selected post context"
+  >
+    @if (workspace.rightPanelOpen() && selectedPostForPanel(); as post) {
+    <header class="context-header">
+      <div>
+        <p>Selected post</p>
+        <h2>{{ post.highlight || 'Untitled post' }}</h2>
+      </div>
+      <span class="context-status" [class.critical]="post.tag === 'alert'"
+        >#{{ post.tag | lowercase }}</span
+      >
+    </header>
+
+    <section class="context-grid">
+      <div>
+        <span>Author</span>
+        <strong>{{ post.username || 'Anonymous' }}</strong>
+      </div>
+      <div>
+        <span>Neighborhood</span>
+        <a [routerLink]="['/neighborhood', neighborhoodSlug(post)]"
+          >{{ post.hoodId || 'Nearby' }}</a
+        >
+      </div>
+      <div>
+        <span>Engagement</span>
+        <strong
+          >{{ social.likeCount(post) }} likes / {{ social.commentCount(post) }} comments</strong
+        >
+      </div>
+      <div>
+        <span>Coordinates</span>
+        <strong>{{ post.lat | number: '1.4-4' }}, {{ post.lng | number: '1.4-4' }}</strong>
+      </div>
     </section>
 
-    <aside class="feed-context-panel" [class.hidden]="!workspace.rightPanelOpen()" aria-label="Selected post context">
-      @if (workspace.rightPanelOpen() && selectedPostForPanel(); as post) {
-        <header class="context-header">
-          <div>
-            <p>Selected post</p>
-            <h2>{{ post.highlight || 'Untitled post' }}</h2>
-          </div>
-          <span class="context-status" [class.critical]="post.tag === 'alert'">#{{ post.tag | lowercase }}</span>
-        </header>
+    <section class="ai-summary">
+      <p>Operations summary</p>
+      <span>
+        {{ post.tag === 'alert' ? 'High-priority neighborhood alert. Review location, comments, and
+        report status.' : 'Standard neighborhood post. Use the actions below to inspect, map, save,
+        or escalate.' }}
+      </span>
+    </section>
 
-        <section class="context-grid">
-          <div>
-            <span>Author</span>
-            <strong>{{ post.username || 'Anonymous' }}</strong>
-          </div>
-          <div>
-            <span>Neighborhood</span>
-            <a [routerLink]="['/neighborhood', neighborhoodSlug(post)]">{{ post.hoodId || 'Nearby' }}</a>
-          </div>
-          <div>
-            <span>Engagement</span>
-            <strong>{{ social.likeCount(post) }} likes / {{ social.commentCount(post) }} comments</strong>
-          </div>
-          <div>
-            <span>Coordinates</span>
-            <strong>{{ post.lat | number:'1.4-4' }}, {{ post.lng | number:'1.4-4' }}</strong>
-          </div>
-        </section>
-
-        <section class="ai-summary">
-          <p>Operations summary</p>
-          <span>
-            {{ post.tag === 'alert' ? 'High-priority neighborhood alert. Review location, comments, and report status.' : 'Standard neighborhood post. Use the actions below to inspect, map, save, or escalate.' }}
-          </span>
-        </section>
-
-        <section class="context-actions">
-          <a class="tm-btn tm-btn-primary" [routerLink]="['/posts', postKey(post)]">
-            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-            Open detail
-          </a>
-          <button class="tm-btn" type="button" (click)="openMap(post)">
-            <i class="bi bi-map" aria-hidden="true"></i>
-            Map
-          </button>
-          <button class="tm-btn" type="button" (click)="toggleSave(post)">
-            <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
-            {{ social.isSaved(post) ? 'Saved' : 'Save' }}
-          </button>
-          <button class="tm-btn" type="button" (click)="reportPost(post)">
-            <i class="bi bi-flag" aria-hidden="true"></i>
-            Report
-          </button>
-        </section>
-      }
-    </aside>
-  }
-
-  @if (showScrollTop()) {
-    <button
-      class="scroll-top-btn"
-      type="button"
-      (click)="scrollToTop()"
-      aria-label="Scroll to top"
-    >
-      <i class="bi bi-arrow-up" aria-hidden="true"></i>
-    </button>
+    <section class="context-actions">
+      <a class="tm-btn tm-btn-primary" [routerLink]="['/posts', postKey(post)]">
+        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+        Open detail
+      </a>
+      <button class="tm-btn" type="button" (click)="openMap(post)">
+        <i class="bi bi-map" aria-hidden="true"></i>
+        Map
+      </button>
+      <button class="tm-btn" type="button" (click)="toggleSave(post)">
+        <i
+          class="bi"
+          [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'"
+          aria-hidden="true"
+        ></i>
+        {{ social.isSaved(post) ? 'Saved' : 'Save' }}
+      </button>
+      <button class="tm-btn" type="button" (click)="reportPost(post)">
+        <i class="bi bi-flag" aria-hidden="true"></i>
+        Report
+      </button>
+    </section>
+    }
+  </aside>
+  } @if (showScrollTop()) {
+  <button class="scroll-top-btn" type="button" (click)="scrollToTop()" aria-label="Scroll to top">
+    <i class="bi bi-arrow-up" aria-hidden="true"></i>
+  </button>
   }
 </main>

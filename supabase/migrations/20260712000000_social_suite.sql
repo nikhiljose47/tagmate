@@ -409,7 +409,7 @@ as $$
     )
     and (
       exists (select 1 from public.user_follows f where f.follower_id = auth.uid() and f.followed_user_id = t.user_id)
-      or exists (select 1 from public.user_followed_hoods h where h.user_id = auth.uid() and lower(h.hood_id) = lower(t.hood_id))
+      or exists (select 1 from public.user_followed_hoods h where h.user_id = auth.uid() and h.hood_id = t.hood_id)
       or exists (select 1 from public.user_followed_topics ft where ft.user_id = auth.uid() and ft.tag = t.tag)
     )
     and (

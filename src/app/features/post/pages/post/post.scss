@@ -455,7 +455,10 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
 
   i {
     font-size: 12px;
@@ -542,7 +545,10 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
 
   &:hover {
     border-color: var(--tm-primary);

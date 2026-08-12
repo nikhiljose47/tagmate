@@ -5,320 +5,522 @@
   </a>
 
   @if (isLoading()) {
-    <div class="skeleton-box detail-skeleton"></div>
+  <div class="skeleton-box detail-skeleton"></div>
   } @else if (post(); as post) {
-    <section class="detail-shell">
-      <article class="detail-card">
-        <header class="detail-header">
-          <a class="avatar-link" [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]" aria-label="Open profile">
-            <tm-avatar [username]="post.username || 'Anonymous'" [size]="44" />
+  <section class="detail-shell">
+    <article class="detail-card">
+      <header class="detail-header">
+        <a
+          class="avatar-link"
+          [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]"
+          aria-label="Open profile"
+        >
+          <tm-avatar [username]="post.username || 'Anonymous'" [size]="44" />
+        </a>
+        <div>
+          <a
+            [routerLink]="
+                post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
+              "
+            >{{ post.username || 'Anonymous' }}</a
+          >
+          <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
+            {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }} @if (post.expiresIn) {
+            <app-lifespan-badge [createdAt]="post.createdAt" [expiresIn]="post.expiresIn" />
+            }
           </a>
-          <div>
-            <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]">{{ post.username || 'Anonymous' }}</a>
-            <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
-              {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }}
-              @if (post.expiresIn) {
-                <app-lifespan-badge [createdAt]="post.createdAt" [expiresIn]="post.expiresIn" />
-              }
-            </a>
-            <span class="trust-badge">{{ social.trustBadge(post.userId) }} - {{ social.trustScore(post.userId) }} pts</span>
-          </div>
-          <app-post-menu
-            [canDelete]="social.canDelete(post)"
-            (deletePost)="deletePost()"
-            (reportPost)="reportPost()"
-          />
-        </header>
-
-        <div class="detail-media" [style.background]="post.tag | tagGradient">
-          @if (post.images[mediaIndex()]) {
-            @if (isVideoUrl(post.images[mediaIndex()])) {
-              <video [src]="post.images[mediaIndex()]" controls playsinline></video>
-            } @else {
-              <img [src]="post.images[mediaIndex()]" alt="Tag post media" loading="eager" decoding="async" fetchpriority="high" />
-            }
-            @if (post.images.length > 1) {
-              <button class="media-nav media-nav--prev" type="button" aria-label="Previous media" (click)="prevMedia()">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <button class="media-nav media-nav--next" type="button" aria-label="Next media" (click)="nextMedia()">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            }
-          } @else {
-            <span>{{ post.tag | tagEmoji }}</span>
-          }
+          <span class="trust-badge"
+            >{{ social.trustBadge(post.userId) }} - {{ social.trustScore(post.userId) }} pts</span
+          >
         </div>
+        <app-post-menu
+          [canDelete]="social.canDelete(post)"
+          (deletePost)="deletePost()"
+          (reportPost)="reportPost()"
+        />
+      </header>
 
-        @if (post.images.length > 1) {
-          <div class="media-dots" aria-label="Media carousel">
-            @for (image of post.images; track image; let i = $index) {
-              <button type="button" [class.active]="mediaIndex() === i" (click)="selectMedia(i)" [attr.aria-label]="'Show media ' + (i + 1)"></button>
-            }
-          </div>
+      <div class="detail-media" [style.background]="post.tag | tagGradient">
+        @if (currentImage(); as image) { @if (isVideoUrl(image)) {
+        <video [src]="image" controls playsinline></video>
+        } @else {
+        <img
+          [src]="image"
+          alt="Tag post media"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
+        } @if (post.images.length > 1) {
+        <button
+          class="media-nav media-nav--prev"
+          type="button"
+          aria-label="Previous media"
+          (click)="prevMedia()"
+        >
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button
+          class="media-nav media-nav--next"
+          type="button"
+          aria-label="Next media"
+          (click)="nextMedia()"
+        >
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        } } @else {
+        <span>{{ post.tag | tagEmoji }}</span>
         }
+      </div>
 
-        <div class="detail-body">
-          <div class="detail-actions">
-            <button type="button" [class.active]="social.isLiked(post)" [attr.aria-pressed]="social.isLiked(post)" (click)="toggleLike()" aria-label="Like post">
-              <i class="bi" [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'" aria-hidden="true"></i>
-            </button>
-            <button type="button" aria-label="Comment">
-              <i class="bi bi-chat" aria-hidden="true"></i>
-            </button>
-            <button type="button" (click)="sharePost()" aria-label="Share post">
-              <i class="bi bi-send" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="push-right" (click)="openMap()" aria-label="Open on map">
-              <i class="bi bi-map" aria-hidden="true"></i>
-            </button>
-            @if (post.userId !== platform.myUid() && !platform.isBlocked(post.userId)) {
-              <button type="button" (click)="showMessageBox.update(v => !v)" aria-label="Message author"><i class="bi bi-envelope"></i></button>
-            }
-            <button type="button" [class.active]="social.isSaved(post)" [attr.aria-pressed]="social.isSaved(post)" (click)="toggleSave()" aria-label="Save post">
-              <i class="bi" [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'" aria-hidden="true"></i>
-            </button>
-          </div>
-
-          <p class="detail-counts">{{ social.likeCount(post) }} likes - {{ social.commentCount(post) }} comments</p>
-          <p class="detail-caption">
-            <a [routerLink]="post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]"><strong>{{ post.username || 'Anonymous' }}</strong></a>
-            <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
-          </p>
-
-          @if (post.pollOptions?.length) {
-            <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
-              @for (opt of post.pollOptions; track $index) {
-                @let voted = hasVotedPoll($index);
-                @let pct = getPollPercentage($index);
-                <button 
-                  class="poll-option-btn relative w-full overflow-hidden rounded-md border border-[var(--tm-border)] p-2 text-left transition hover:border-indigo-300"
-                  [class.ring-2]="voted"
-                  [class.ring-indigo-500]="voted"
-                  (click)="votePoll($index)"
-                >
-                  <div 
-                    class="absolute inset-y-0 left-0 bg-indigo-500/20 transition-all duration-500" 
-                    [style.width.%]="pct"
-                  ></div>
-                  <div class="relative z-10 flex justify-between">
-                    <span class="font-medium text-sm">{{ opt }}</span>
-                    <span class="text-xs text-tm-muted font-semibold">{{ pct }}%</span>
-                  </div>
-                </button>
-              }
-            </div>
-          }
-          <span class="tm-chip">{{ post.tag | titlecase }}</span>
-
-          @if (post.tag === 'event') {
-            <div class="event-box">
-              <div>
-                <strong>Local event</strong>
-                <span>{{ post.eventStart ? (post.eventStart | date:'medium') : 'Time TBA' }}</span>
-              </div>
-              <button class="tm-btn tm-btn-primary" type="button" (click)="toggleRsvp()">
-                {{ social.isRsvped(post) ? 'Going' : 'RSVP' }} - {{ social.rsvpCount(post) }}
-              </button>
-            </div>
-          }
-
-          <div class="directions-row">
-            <button type="button" (click)="openDirections('walking')"><i class="bi bi-person-walking"></i> Walk</button>
-            <button type="button" (click)="openDirections('driving')"><i class="bi bi-car-front"></i> Drive</button>
-          </div>
-
-          @if (showMessageBox()) {
-            <form class="message-form" (ngSubmit)="sendMessage()">
-              <input
-                class="tm-input"
-                name="message"
-                placeholder="Private message"
-                [ngModel]="messageText()"
-                (ngModelChange)="messageText.set($event)"
-              />
-              <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!messageText().trim()">Send</button>
-            </form>
-          }
-        </div>
-      </article>
-
-      @if (platform.isActionable(post)) {
-        <section class="verification-panel tm-panel">
-          <header>
-            <div>
-              <p>Community verification</p>
-              <h2>{{ confirmationCount(post) }} confirmation{{ confirmationCount(post) === 1 ? '' : 's' }}</h2>
-            </div>
-            <span class="status-pill" [attr.data-status]="post.currentStatus || 'active'">{{ post.currentStatus || 'active' }}</span>
-          </header>
-
-          @if (post.userId !== platform.myUid()) {
-            <button class="tm-btn" [class.tm-btn-primary]="!platform.hasConfirmed(postKey())" type="button" (click)="toggleConfirmation(post)">
-              <i class="bi" [ngClass]="platform.hasConfirmed(postKey()) ? 'bi-patch-check-fill' : 'bi-patch-check'"></i>
-              {{ platform.hasConfirmed(postKey()) ? 'Confirmed' : 'Confirm this update' }}
-            </button>
-          }
-
-          @if (platform.confirmationsFor(postKey()).length) {
-            <details class="confirmers">
-              <summary>See confirming neighbors</summary>
-              <div>
-                @for (confirmation of platform.confirmationsFor(postKey()); track confirmation.userId) {
-                  <a [routerLink]="confirmation.userId === platform.myUid() ? ['/profile'] : ['/users', confirmation.userId]">
-                    {{ confirmation.userName || 'Neighbor' }} <small>{{ confirmation.createdAt | timeAgo }}</small>
-                  </a>
-                }
-              </div>
-            </details>
-          }
-
-          @if (platform.canSetStatus(post)) {
-            <div class="status-editor">
-              <label for="status-note">Add a status note <span>{{ statusNote().length }}/250</span></label>
-              <input id="status-note" class="tm-input" [ngModel]="statusNote()" (ngModelChange)="statusNote.set($event)" maxlength="250" placeholder="Optional context for neighbors" />
-              <div class="status-actions">
-                @for (status of allowedStatuses(post); track status) {
-                  <button class="tm-btn" [class.tm-btn-primary]="status === (post.currentStatus || 'active')" type="button" [disabled]="statusSaving()" (click)="updateStatus(post, status)">{{ status | titlecase }}</button>
-                }
-              </div>
-            </div>
-          }
-
-          @if (platform.statusFor(postKey()).length) {
-            <div class="status-history">
-              <h3>Status history</h3>
-              @for (entry of platform.statusFor(postKey()); track entry.id) {
-                <div><span class="status-dot"></span><p><strong>{{ entry.status | titlecase }}</strong> by {{ entry.actorName || 'Post author' }}<small>{{ entry.createdAt | timeAgo }}</small>@if (entry.note) { <em>{{ entry.note }}</em> }</p></div>
-              }
-            </div>
-          }
-        </section>
+      @if (post.images.length > 1) {
+      <div class="media-dots" aria-label="Media carousel">
+        @for (image of post.images; track image; let i = $index) {
+        <button
+          type="button"
+          [class.active]="mediaIndex() === i"
+          (click)="selectMedia(i)"
+          [attr.aria-label]="'Show media ' + (i + 1)"
+        ></button>
+        }
+      </div>
       }
 
-      <section class="comments-panel tm-panel">
-        <div class="comments-heading">
-          <h2>Comments</h2>
-          <select class="tm-input" [ngModel]="commentSort()" (ngModelChange)="commentSort.set($event)" aria-label="Sort comments">
-            <option value="helpful">Most helpful</option>
-            <option value="newest">Newest</option>
-          </select>
+      <div class="detail-body">
+        <div class="detail-actions">
+          <button
+            type="button"
+            [class.active]="social.isLiked(post)"
+            [attr.aria-pressed]="social.isLiked(post)"
+            (click)="toggleLike()"
+            aria-label="Like post"
+          >
+            <i
+              class="bi"
+              [ngClass]="social.isLiked(post) ? 'bi-heart-fill' : 'bi-heart'"
+              aria-hidden="true"
+            ></i>
+          </button>
+          <button type="button" aria-label="Comment">
+            <i class="bi bi-chat" aria-hidden="true"></i>
+          </button>
+          <button type="button" (click)="sharePost()" aria-label="Share post">
+            <i class="bi bi-send" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="push-right" (click)="openMap()" aria-label="Open on map">
+            <i class="bi bi-map" aria-hidden="true"></i>
+          </button>
+          @if (post.userId !== platform.myUid() && !platform.isBlocked(post.userId)) {
+          <button
+            type="button"
+            (click)="showMessageBox.update(v => !v)"
+            aria-label="Message author"
+          >
+            <i class="bi bi-envelope"></i>
+          </button>
+          }
+          <button
+            type="button"
+            [class.active]="social.isSaved(post)"
+            [attr.aria-pressed]="social.isSaved(post)"
+            (click)="toggleSave()"
+            aria-label="Save post"
+          >
+            <i
+              class="bi"
+              [ngClass]="social.isSaved(post) ? 'bi-bookmark-fill' : 'bi-bookmark'"
+              aria-hidden="true"
+            ></i>
+          </button>
         </div>
 
-        @if ((post.comments?.length || 0) === 0 && social.commentsFor(post).length === 0) {
-          <div class="comment-empty">No comments yet.</div>
-        }
+        <p class="detail-counts">
+          {{ social.likeCount(post) }} likes - {{ social.commentCount(post) }} comments
+        </p>
+        <p class="detail-caption">
+          <a
+            [routerLink]="
+                post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
+              "
+            ><strong>{{ post.username || 'Anonymous' }}</strong></a
+          >
+          <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
+        </p>
 
-        @for (comment of post.comments ?? []; track comment) {
-          <div class="comment-row">
-            <strong>{{ post.username || 'Neighbor' }}</strong>
-            <span>{{ comment }}</span>
-          </div>
-        }
-
-        @for (comment of visibleComments(); track comment.id) {
-          <div class="comment-row" [id]="'comment-' + comment.id">
-            <div class="comment-main">
-              <div class="comment-author-line">
-                <a [routerLink]="comment.authorUid === platform.myUid() ? ['/profile'] : ['/users', comment.authorUid]"><strong>{{ comment.author }}</strong></a>
-                @if (comment.authorUid === post.userId) { <span class="op-badge">OP</span> }
-              </div>
-              @if (editingCommentId() === comment.id) {
-                <div class="comment-edit"><input class="tm-input" [ngModel]="editCommentText()" (ngModelChange)="editCommentText.set($event)" maxlength="1000" /><button class="tm-btn tm-btn-primary" type="button" (click)="saveCommentEdit(comment)">Save</button><button class="tm-btn" type="button" (click)="editingCommentId.set(null)">Cancel</button></div>
-              } @else if (comment.deletedAt) {
-                <span class="deleted-comment">Comment deleted</span>
-              } @else {
-                <span>{{ comment.text }}</span>
-              }
-              @if (comment.mentions.length) {
-                <div class="comment-mentions">
-                  @for (mention of comment.mentions; track mention) {
-                    @if (mentionUid(mention); as uid) { <a [routerLink]="['/users', uid]">&#64;{{ mention }}</a> } @else { <span>&#64;{{ mention }}</span> }
-                  }
-                </div>
-              }
-              <small>{{ comment.createdAt | timeAgo }} @if (comment.updatedAt) { · edited }</small>
+        @if (post.pollOptions?.length) {
+        <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
+          @for (opt of post.pollOptions; track $index) { @let voted = hasVotedPoll($index); @let pct
+          = getPollPercentage($index);
+          <button
+            class="poll-option-btn relative w-full overflow-hidden rounded-md border border-[var(--tm-border)] p-2 text-left transition hover:border-indigo-300"
+            [class.ring-2]="voted"
+            [class.ring-indigo-500]="voted"
+            (click)="votePoll($index)"
+          >
+            <div
+              class="absolute inset-y-0 left-0 bg-indigo-500/20 transition-all duration-500"
+              [style.width.%]="pct"
+            ></div>
+            <div class="relative z-10 flex justify-between">
+              <span class="font-medium text-sm">{{ opt }}</span>
+              <span class="text-xs text-tm-muted font-semibold">{{ pct }}%</span>
             </div>
-            <div class="comment-actions">
-              <button type="button" [class.active]="platform.isCommentReacted(comment.id)" (click)="upvoteComment(comment.id)"><i class="bi bi-arrow-up"></i> {{ comment.upvotes }}</button>
-              @if (!comment.deletedAt) { <button type="button" (click)="replyTo.set(replyTo() === comment.id ? null : comment.id)">Reply</button> }
-              @if (social.canEditComment(comment)) {
-                <button type="button" (click)="beginEdit(comment)">Edit</button>
-                <button type="button" (click)="deleteComment(comment)">Delete</button>
-              } @else if (!comment.deletedAt) {
-                <button type="button" (click)="reportComment(comment)">Report</button>
-              }
-            </div>
-            @for (reply of repliesFor(comment.id); track reply.id) {
-              <div class="comment-row comment-row--reply" [id]="'comment-' + reply.id">
-                <div class="comment-main">
-                  <div class="comment-author-line"><a [routerLink]="reply.authorUid === platform.myUid() ? ['/profile'] : ['/users', reply.authorUid]"><strong>{{ reply.author }}</strong></a>@if (reply.authorUid === post.userId) { <span class="op-badge">OP</span> }</div>
-                  @if (editingCommentId() === reply.id) {
-                    <div class="comment-edit"><input class="tm-input" [ngModel]="editCommentText()" (ngModelChange)="editCommentText.set($event)" /><button class="tm-btn tm-btn-primary" type="button" (click)="saveCommentEdit(reply)">Save</button></div>
-                  } @else if (reply.deletedAt) { <span class="deleted-comment">Comment deleted</span> } @else { <span>{{ reply.text }}</span> }
-                  <small>{{ reply.createdAt | timeAgo }} @if (reply.updatedAt) { · edited }</small>
-                </div>
-                <div class="comment-actions">
-                  <button type="button" [class.active]="platform.isCommentReacted(reply.id)" (click)="upvoteComment(reply.id)"><i class="bi bi-arrow-up"></i> {{ reply.upvotes }}</button>
-                  @if (social.canEditComment(reply)) { <button type="button" (click)="beginEdit(reply)">Edit</button><button type="button" (click)="deleteComment(reply)">Delete</button> } @else if (!reply.deletedAt) { <button type="button" (click)="reportComment(reply)">Report</button> }
-                </div>
-              </div>
-            }
-            @if (replyCount(comment.id) > 3) {
-              <button class="thread-toggle" type="button" (click)="toggleThread(comment.id)">{{ expandedThreads().has(comment.id) ? 'Collapse replies' : 'Show ' + (replyCount(comment.id) - 3) + ' more replies' }}</button>
-            }
-            @if (replyTo() === comment.id) {
-              <form class="comment-form reply-form mention-wrap" (ngSubmit)="addReply(comment.id)">
-                <input
-                  class="tm-input"
-                  name="reply"
-                  placeholder="Reply with @mentions"
-                  [ngModel]="replyText()"
-                  (ngModelChange)="onMentionInput($event, 'reply')"
-                />
-                <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!replyText().trim()">Reply</button>
-                @if (mentionContext() === 'reply' && mentionSuggestions().length) {
-                  <div class="mention-menu">@for (profile of mentionSuggestions(); track profile.uid) { <button type="button" (click)="chooseMention(profile)"><strong>{{ profile.name }}</strong><span>{{ profile.reputation }} rep</span></button> }</div>
-                }
-              </form>
-            }
+          </button>
+          }
+        </div>
+        }
+        <span class="tm-chip">{{ post.tag | titlecase }}</span>
+
+        @if (post.tag === 'event') {
+        <div class="event-box">
+          <div>
+            <strong>Local event</strong>
+            <span>{{ post.eventStart ? (post.eventStart | date: 'medium') : 'Time TBA' }}</span>
           </div>
+          <button class="tm-btn tm-btn-primary" type="button" (click)="toggleRsvp()">
+            {{ social.isRsvped(post) ? 'Going' : 'RSVP' }} - {{ social.rsvpCount(post) }}
+          </button>
+        </div>
         }
 
-        <form class="comment-form mention-wrap" (ngSubmit)="addComment()">
+        <div class="directions-row">
+          <button type="button" (click)="openDirections('walking')">
+            <i class="bi bi-person-walking"></i> Walk
+          </button>
+          <button type="button" (click)="openDirections('driving')">
+            <i class="bi bi-car-front"></i> Drive
+          </button>
+        </div>
+
+        @if (showMessageBox()) {
+        <form class="message-form" (ngSubmit)="sendMessage()">
           <input
             class="tm-input"
-            name="comment"
-            placeholder="Add a comment with @mentions"
-            [ngModel]="commentText()"
-            (ngModelChange)="onMentionInput($event, 'comment')"
+            name="message"
+            placeholder="Private message"
+            [ngModel]="messageText()"
+            (ngModelChange)="messageText.set($event)"
           />
-          <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!commentText().trim()">Post</button>
-          @if (mentionContext() === 'comment' && mentionSuggestions().length) {
-            <div class="mention-menu">@for (profile of mentionSuggestions(); track profile.uid) { <button type="button" (click)="chooseMention(profile)"><strong>{{ profile.name }}</strong><span>{{ profile.reputation }} rep</span></button> }</div>
-          }
+          <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!messageText().trim()">
+            Send
+          </button>
         </form>
-      </section>
+        }
+      </div>
+    </article>
 
-      @if (relatedPosts().length) {
-        <section class="related-panel">
-          <h2>More #{{ post.tag | lowercase }}</h2>
-          <div class="related-grid">
-            @for (related of relatedPosts(); track social.postKey(related)) {
-              <a [routerLink]="['/posts', social.postKey(related)]" [style.background]="related.tag | tagGradient">
-                @if (related.images[0]) {
-                  <img [src]="related.images[0]" alt="" loading="lazy" decoding="async" />
-                } @else {
-                  <span class="related-emoji">{{ related.tag | tagEmoji }}</span>
-                }
-                <span>{{ related.highlight || 'Untitled post' }}</span>
-              </a>
+    @if (platform.isActionable(post)) {
+    <section class="verification-panel tm-panel">
+      <header>
+        <div>
+          <p>Community verification</p>
+          <h2>
+            {{ confirmationCount(post) }} confirmation{{ confirmationCount(post) === 1 ? '' : 's' }}
+          </h2>
+        </div>
+        <span class="status-pill" [attr.data-status]="post.currentStatus || 'active'"
+          >{{ post.currentStatus || 'active' }}</span
+        >
+      </header>
+
+      @if (post.userId !== platform.myUid()) {
+      <button
+        class="tm-btn"
+        [class.tm-btn-primary]="!platform.hasConfirmed(postKey())"
+        type="button"
+        (click)="toggleConfirmation(post)"
+      >
+        <i
+          class="bi"
+          [ngClass]="
+                  platform.hasConfirmed(postKey()) ? 'bi-patch-check-fill' : 'bi-patch-check'
+                "
+        ></i>
+        {{ platform.hasConfirmed(postKey()) ? 'Confirmed' : 'Confirm this update' }}
+      </button>
+      } @if (platform.confirmationsFor(postKey()).length) {
+      <details class="confirmers">
+        <summary>See confirming neighbors</summary>
+        <div>
+          @for ( confirmation of platform.confirmationsFor(postKey()); track confirmation.userId ) {
+          <a
+            [routerLink]="
+                      confirmation.userId === platform.myUid()
+                        ? ['/profile']
+                        : ['/users', confirmation.userId]
+                    "
+          >
+            {{ confirmation.userName || 'Neighbor' }}
+            <small>{{ confirmation.createdAt | timeAgo }}</small>
+          </a>
+          }
+        </div>
+      </details>
+      } @if (platform.canSetStatus(post)) {
+      <div class="status-editor">
+        <label for="status-note"
+          >Add a status note <span>{{ statusNote().length }}/250</span></label
+        >
+        <input
+          id="status-note"
+          class="tm-input"
+          [ngModel]="statusNote()"
+          (ngModelChange)="statusNote.set($event)"
+          maxlength="250"
+          placeholder="Optional context for neighbors"
+        />
+        <div class="status-actions">
+          @for (status of allowedStatuses(post); track status) {
+          <button
+            class="tm-btn"
+            [class.tm-btn-primary]="status === (post.currentStatus || 'active')"
+            type="button"
+            [disabled]="statusSaving()"
+            (click)="updateStatus(post, status)"
+          >
+            {{ status | titlecase }}
+          </button>
+          }
+        </div>
+      </div>
+      } @if (platform.statusFor(postKey()).length) {
+      <div class="status-history">
+        <h3>Status history</h3>
+        @for (entry of platform.statusFor(postKey()); track entry.id) {
+        <div>
+          <span class="status-dot"></span>
+          <p>
+            <strong>{{ entry.status | titlecase }}</strong> by {{ entry.actorName || 'Post author'
+            }}<small>{{ entry.createdAt | timeAgo }}</small>
+            @if (entry.note) {
+            <em>{{ entry.note }}</em>
             }
-          </div>
-        </section>
+          </p>
+        </div>
+        }
+      </div>
       }
     </section>
+    }
+
+    <section class="comments-panel tm-panel">
+      <div class="comments-heading">
+        <h2>Comments</h2>
+        <select
+          class="tm-input"
+          [ngModel]="commentSort()"
+          (ngModelChange)="commentSort.set($event)"
+          aria-label="Sort comments"
+        >
+          <option value="helpful">Most helpful</option>
+          <option value="newest">Newest</option>
+        </select>
+      </div>
+
+      @if ((post.comments?.length || 0) === 0 && social.commentsFor(post).length === 0) {
+      <div class="comment-empty">No comments yet.</div>
+      } @for (comment of post.comments ?? []; track comment) {
+      <div class="comment-row">
+        <strong>{{ post.username || 'Neighbor' }}</strong>
+        <span>{{ comment }}</span>
+      </div>
+      } @for (comment of visibleComments(); track comment.id) {
+      <div class="comment-row" [id]="'comment-' + comment.id">
+        <div class="comment-main">
+          <div class="comment-author-line">
+            <a
+              [routerLink]="
+                    comment.authorUid === platform.myUid()
+                      ? ['/profile']
+                      : ['/users', comment.authorUid]
+                  "
+              ><strong>{{ comment.author }}</strong></a
+            >
+            @if (comment.authorUid === post.userId) {
+            <span class="op-badge">OP</span>
+            }
+          </div>
+          @if (editingCommentId() === comment.id) {
+          <div class="comment-edit">
+            <input
+              class="tm-input"
+              [ngModel]="editCommentText()"
+              (ngModelChange)="editCommentText.set($event)"
+              maxlength="1000"
+            /><button
+              class="tm-btn tm-btn-primary"
+              type="button"
+              (click)="saveCommentEdit(comment)"
+            >
+              Save</button
+            ><button class="tm-btn" type="button" (click)="editingCommentId.set(null)">
+              Cancel
+            </button>
+          </div>
+          } @else if (comment.deletedAt) {
+          <span class="deleted-comment">Comment deleted</span>
+          } @else {
+          <span>{{ comment.text }}</span>
+          } @if (comment.mentions.length) {
+          <div class="comment-mentions">
+            @for (mention of comment.mentions; track mention) { @if (mentionUid(mention); as uid) {
+            <a [routerLink]="['/users', uid]">&#64;{{ mention }}</a>
+            } @else {
+            <span>&#64;{{ mention }}</span>
+            } }
+          </div>
+          }
+          <small>{{ comment.createdAt | timeAgo }} @if (comment.updatedAt) { · edited } </small>
+        </div>
+        <div class="comment-actions">
+          <button
+            type="button"
+            [class.active]="platform.isCommentReacted(comment.id)"
+            (click)="upvoteComment(comment.id)"
+          >
+            <i class="bi bi-arrow-up"></i> {{ comment.upvotes }}
+          </button>
+          @if (!comment.deletedAt) {
+          <button type="button" (click)="replyTo.set(replyTo() === comment.id ? null : comment.id)">
+            Reply
+          </button>
+          } @if (social.canEditComment(comment)) {
+          <button type="button" (click)="beginEdit(comment)">Edit</button>
+          <button type="button" (click)="deleteComment(comment)">Delete</button>
+          } @else if (!comment.deletedAt) {
+          <button type="button" (click)="reportComment(comment)">Report</button>
+          }
+        </div>
+        @for (reply of (repliesByComment()[comment.id] ??
+        []).slice(expandedThreads().has(comment.id) ? 0 : 3); track reply.id) {
+        <div class="comment-row comment-row--reply" [id]="'comment-' + reply.id">
+          <div class="comment-main">
+            <div class="comment-author-line">
+              <a
+                [routerLink]="
+                        reply.authorUid === platform.myUid()
+                          ? ['/profile']
+                          : ['/users', reply.authorUid]
+                      "
+                ><strong>{{ reply.author }}</strong></a
+              >
+              @if (reply.authorUid === post.userId) {
+              <span class="op-badge">OP</span>
+              }
+            </div>
+            @if (editingCommentId() === reply.id) {
+            <div class="comment-edit">
+              <input
+                class="tm-input"
+                [ngModel]="editCommentText()"
+                (ngModelChange)="editCommentText.set($event)"
+              /><button
+                class="tm-btn tm-btn-primary"
+                type="button"
+                (click)="saveCommentEdit(reply)"
+              >
+                Save
+              </button>
+            </div>
+            } @else if (reply.deletedAt) {
+            <span class="deleted-comment">Comment deleted</span>
+            } @else {
+            <span>{{ reply.text }}</span>
+            }
+            <small>{{ reply.createdAt | timeAgo }} @if (reply.updatedAt) { · edited } </small>
+          </div>
+          <div class="comment-actions">
+            <button
+              type="button"
+              [class.active]="platform.isCommentReacted(reply.id)"
+              (click)="upvoteComment(reply.id)"
+            >
+              <i class="bi bi-arrow-up"></i> {{ reply.upvotes }}
+            </button>
+            @if (social.canEditComment(reply)) {
+            <button type="button" (click)="beginEdit(reply)">Edit</button
+            ><button type="button" (click)="deleteComment(reply)">Delete</button>
+            } @else if (!reply.deletedAt) {
+            <button type="button" (click)="reportComment(reply)">Report</button>
+            }
+          </div>
+        </div>
+        } @if ((repliesByComment()[comment.id] ?? []).length > 3) {
+        <button class="thread-toggle" type="button" (click)="toggleThread(comment.id)">
+          {{ expandedThreads().has(comment.id) ? 'Collapse replies' : 'Show ' +
+          ((repliesByComment()[comment.id] ?? []).length - 3) + ' more replies' }}
+        </button>
+        } @if (replyTo() === comment.id) {
+        <form class="comment-form reply-form mention-wrap" (ngSubmit)="addReply(comment.id)">
+          <input
+            class="tm-input"
+            name="reply"
+            placeholder="Reply with @mentions"
+            [ngModel]="replyText()"
+            (ngModelChange)="onMentionInput($event, 'reply')"
+          />
+          <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!replyText().trim()">
+            Reply
+          </button>
+          @if (mentionContext() === 'reply' && mentionSuggestions().length) {
+          <div class="mention-menu">
+            @for (profile of mentionSuggestions(); track profile.uid) {
+            <button type="button" (click)="chooseMention(profile)">
+              <strong>{{ profile.name }}</strong><span>{{ profile.reputation }} rep</span>
+            </button>
+            }
+          </div>
+          }
+        </form>
+        }
+      </div>
+      }
+
+      <form class="comment-form mention-wrap" (ngSubmit)="addComment()">
+        <input
+          class="tm-input"
+          name="comment"
+          placeholder="Add a comment with @mentions"
+          [ngModel]="commentText()"
+          (ngModelChange)="onMentionInput($event, 'comment')"
+        />
+        <button class="tm-btn tm-btn-primary" type="submit" [disabled]="!commentText().trim()">
+          Post
+        </button>
+        @if (mentionContext() === 'comment' && mentionSuggestions().length) {
+        <div class="mention-menu">
+          @for (profile of mentionSuggestions(); track profile.uid) {
+          <button type="button" (click)="chooseMention(profile)">
+            <strong>{{ profile.name }}</strong><span>{{ profile.reputation }} rep</span>
+          </button>
+          }
+        </div>
+        }
+      </form>
+    </section>
+
+    @if (relatedPosts().length) {
+    <section class="related-panel">
+      <h2>More #{{ post.tag | lowercase }}</h2>
+      <div class="related-grid">
+        @for (related of relatedPosts(); track social.postKey(related)) {
+        <a
+          [routerLink]="['/posts', social.postKey(related)]"
+          [style.background]="related.tag | tagGradient"
+        >
+          @if (related.images[0]) {
+          <img [src]="related.images[0]" alt="" loading="lazy" decoding="async" />
+          } @else {
+          <span class="related-emoji">{{ related.tag | tagEmoji }}</span>
+          }
+          <span>{{ related.highlight || 'Untitled post' }}</span>
+        </a>
+        }
+      </div>
+    </section>
+    }
+  </section>
   } @else {
-    <tm-empty-state icon="!" title="Post not found" subtitle="This post may have been removed." />
+  <tm-empty-state icon="!" title="Post not found" subtitle="This post may have been removed." />
   }
 </main>

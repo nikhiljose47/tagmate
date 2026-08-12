@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -14,6 +14,7 @@ import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 @Component({
   selector: 'app-post-edit',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe, TagGradientPipe],
   templateUrl: './post-edit.html',
   styleUrls: ['./post-edit.scss'],

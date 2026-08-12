@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { LocalNotification } from '../../../core/models/tag.model';
 import { SocialInteractionsService } from '../../../core/services/social-interactions.service';
@@ -9,6 +9,7 @@ import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 @Component({
   selector: 'app-notification-drawer',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TimeAgoPipe],
   templateUrl: './notification-drawer.component.html',
   styleUrl: './notification-drawer.component.scss',

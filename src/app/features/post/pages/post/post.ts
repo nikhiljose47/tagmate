@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   Output,
@@ -83,6 +84,11 @@ const MAX_MEDIA = 5;
 export const MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 export const MAX_VIDEO_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
 export const MAX_VIDEO_DURATION_SEC = 30; // 30 seconds
+
+export function mediaStoragePath(uid: string, extension: string): string {
+  return `${uid}/tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+}
+
 export const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -91,7 +97,20 @@ export const ALLOWED_MIME_TYPES = [
   'video/mp4',
   'video/webm',
   'video/quicktime',
+  'video/x-m4v',
 ];
+
+const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  m4v: 'video/x-m4v',
+};
 
 /** Rotating compose prompts — a little nudge to start typing. */
 const COMPOSE_PROMPTS = [
@@ -105,6 +124,7 @@ const COMPOSE_PROMPTS = [
 @Component({
   selector: 'app-post',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, TagEmojiPipe],
   templateUrl: './post.html',
   styleUrls: ['./post.scss'],
@@ -122,11 +142,11 @@ export class PostPage implements OnDestroy {
   private readonly telemetry = inject(TelemetryService);
   private readonly workspace = inject(WorkspaceStateService);
 
-  constructor(
-    public shared: SharedStateService,
-    private router: Router,
-    private toast: ToastService,
-  ) {
+  public readonly shared = inject(SharedStateService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+
+  constructor() {
     // Restore the draft after the pick-location round-trip to the map —
     // navigation destroys this component, so the draft lives in SharedStateService.
     const draft = this.shared.postDraft();
@@ -423,6 +443,22 @@ export class PostPage implements OnDestroy {
     }
   }
 
+  private isPoll(): boolean {
+    return this.formData.tag === TagCategory.Poll || (this.formData.tag as string) === 'poll';
+  }
+
+  private validPollOptions(): string[] | null {
+    const options = (this.formData.pollOptions ?? []).map((option) => option.trim());
+    if (options.length < 2 || options.length > 5 || options.some((option) => !option)) {
+      this.toast.show(
+        'Add between 2 and 5 non-empty poll options before previewing or publishing.',
+        'warning',
+      );
+      return null;
+    }
+    return options;
+  }
+
   trackByIndex(index: number): number {
     return index;
   }
@@ -440,42 +476,58 @@ export class PostPage implements OnDestroy {
         break;
       }
 
-      if (file.type && !ALLOWED_MIME_TYPES.includes(file.type)) {
+      const normalized = this.normalizeMediaFile(file);
+      if (!normalized) {
         this.toast.show(`"${file.name}" has an unsupported media format.`, 'warning');
         continue;
       }
+      const { file: mediaFile, type } = normalized;
+      const isVid = type === 'video';
 
-      const isVid = file.type.startsWith('video/');
-
-      if (isVid && file.size > MAX_VIDEO_SIZE_BYTES) {
+      if (isVid && mediaFile.size > MAX_VIDEO_SIZE_BYTES) {
         this.toast.show(`Video "${file.name}" exceeds maximum size of 30 MB.`, 'warning');
         continue;
       }
 
-      if (!isVid && file.size > MAX_IMAGE_SIZE_BYTES) {
+      if (!isVid && mediaFile.size > MAX_IMAGE_SIZE_BYTES) {
         this.toast.show(`Image "${file.name}" exceeds maximum size of 15 MB.`, 'warning');
         continue;
       }
 
       if (isVid) {
-        const isValidDuration = await this.validateVideoDuration(file);
-        if (!isValidDuration) {
+        const validation = await this.validateVideoDuration(mediaFile);
+        if (validation === 'too-long') {
           this.toast.show(
             `Video "${file.name}" exceeds maximum duration of 30 seconds.`,
             'warning',
           );
           continue;
         }
+        if (validation === 'unreadable') {
+          this.toast.show(`Video "${file.name}" could not be read by this browser.`, 'warning');
+          continue;
+        }
       }
 
-      const type: 'image' | 'video' = isVid ? 'video' : 'image';
       // Object URL gives an instant preview without any FileReader roundtrip.
-      const previewUrl = URL.createObjectURL(file);
-      this.mediaItems.update((items) => [...items, { file, previewUrl, type }]);
+      const previewUrl = URL.createObjectURL(mediaFile);
+      this.mediaItems.update((items) => [...items, { file: mediaFile, previewUrl, type }]);
     }
   }
 
-  private validateVideoDuration(file: File): Promise<boolean> {
+  private normalizeMediaFile(file: File): { file: File; type: 'image' | 'video' } | null {
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const canonicalMime = MIME_TYPE_BY_EXTENSION[extension] ?? file.type.toLowerCase();
+    if (!ALLOWED_MIME_TYPES.includes(canonicalMime)) return null;
+    const type: 'image' | 'video' = canonicalMime.startsWith('video/') ? 'video' : 'image';
+    if (file.type === canonicalMime) return { file, type };
+    return {
+      file: new File([file], file.name, { type: canonicalMime, lastModified: file.lastModified }),
+      type,
+    };
+  }
+
+  private validateVideoDuration(file: File): Promise<'valid' | 'too-long' | 'unreadable'> {
     return new Promise((resolve) => {
       const video = document.createElement('video');
       video.preload = 'metadata';
@@ -483,13 +535,18 @@ export class PostPage implements OnDestroy {
 
       video.onloadedmetadata = () => {
         URL.revokeObjectURL(objectUrl);
-        resolve(video.duration <= MAX_VIDEO_DURATION_SEC);
+        resolve(
+          Number.isFinite(video.duration)
+            ? video.duration <= MAX_VIDEO_DURATION_SEC
+              ? 'valid'
+              : 'too-long'
+            : 'unreadable',
+        );
       };
 
       video.onerror = () => {
         URL.revokeObjectURL(objectUrl);
-        // Fallback to true if browser/environment cannot parse metadata
-        resolve(true);
+        resolve('unreadable');
       };
 
       video.src = objectUrl;
@@ -499,7 +556,8 @@ export class PostPage implements OnDestroy {
   removeMedia(index: number): void {
     this.mediaItems.update((items) => {
       // Revoke the object URL to free browser memory.
-      URL.revokeObjectURL(items[index].previewUrl);
+      const item = items[index];
+      if (item) URL.revokeObjectURL(item.previewUrl);
       return items.filter((_, i) => i !== index);
     });
   }
@@ -532,7 +590,9 @@ export class PostPage implements OnDestroy {
 
         try {
           const res = await fetch(`/api/nominatim/reverse?lat=${lat}&lon=${lng}`);
-          const data = res.ok ? await res.json() : null;
+          const data = res.ok
+            ? ((await res.json()) as { display_name?: string; address?: Record<string, string> })
+            : null;
           if (data) {
             this.shared.updateText(this.extractPlaceName(data));
             this.shared.updateRegion(
@@ -605,6 +665,7 @@ export class PostPage implements OnDestroy {
       this.toast.show('Add a title or a few details before previewing.', 'warning');
       return false;
     }
+    if (this.isPoll() && !this.validPollOptions()) return false;
     if (!this.isTemplateReady()) {
       this.toast.show('Complete the required quick-fill fields.', 'warning');
       return false;
@@ -636,6 +697,12 @@ export class PostPage implements OnDestroy {
       return;
     }
     if (this.step() !== 'preview') return;
+
+    let pollOptions: string[] | undefined;
+    if (this.isPoll()) {
+      pollOptions = this.validPollOptions() ?? undefined;
+      if (!pollOptions) return;
+    }
 
     if (this.formData.isEvent && this.formData.eventStart && this.formData.eventEnd) {
       if (new Date(this.formData.eventStart) > new Date(this.formData.eventEnd)) {
@@ -670,7 +737,7 @@ export class PostPage implements OnDestroy {
           // save bandwidth on upload and on every future download.
           const { file } = await this.media.compress(item.file);
           const ext = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
-          const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+          const path = mediaStoragePath(uid, ext);
           uploadedUrls.push(await this.mediaService.uploadFile(path, file));
         } catch (err) {
           this.logger.error('Media upload failed', err);
@@ -701,10 +768,14 @@ export class PostPage implements OnDestroy {
         originalPrice:
           this.postType() === 'business' ? toNumber(this.formData.originalPrice) : undefined,
         availabilityNote:
-          this.postType() === 'business' ? this.formData.availabilityNote.trim() || undefined : undefined,
+          this.postType() === 'business'
+            ? this.formData.availabilityNote.trim() || undefined
+            : undefined,
         cta: this.postType() === 'business' ? this.formData.cta : undefined,
         productLink:
-          this.postType() === 'business' ? this.formData.productLink.trim() || undefined : undefined,
+          this.postType() === 'business'
+            ? this.formData.productLink.trim() || undefined
+            : undefined,
         userId: uid,
         highlight: this.formData.headline,
         lat: coords[0],
@@ -719,11 +790,8 @@ export class PostPage implements OnDestroy {
         images: uploadedUrls,
         eventStart: this.formData.isEvent ? this.formData.eventStart || undefined : undefined,
         eventEnd: this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
-        pollOptions:
-          this.formData.tag === TagCategory.Poll
-            ? this.formData.pollOptions.filter((o) => o.trim().length > 0)
-            : undefined,
-        pollVotes: this.formData.tag === TagCategory.Poll ? {} : undefined,
+        pollOptions: pollOptions,
+        pollVotes: this.isPoll() ? {} : undefined,
       };
 
       await firstValueFrom(this.tagRepo.create(tagObject));

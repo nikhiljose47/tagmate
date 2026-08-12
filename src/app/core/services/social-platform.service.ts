@@ -376,7 +376,12 @@ export class SocialPlatformService implements OnDestroy {
       const names = new Map<string, string>();
       if (userIds.length) {
         const { data } = await firstValueFrom(
-          this.supabase.getRowsIn<{ uid: string; name: string }>('users', 'uid', userIds),
+          this.supabase.getRowsIn<{ uid: string; name: string }>(
+            'public_user_profiles',
+            'uid',
+            userIds,
+            'uid,name',
+          ),
         );
         for (const row of data ?? []) names.set(row.uid, row.name);
       }
@@ -612,11 +617,8 @@ export class SocialPlatformService implements OnDestroy {
       else await firstValueFrom(this.supabase.addRow(table, insertRow));
       return !enabled;
     } catch (error) {
-      if (enabled) {
-        this.addToSet(state, key);
-      } else {
-        this.removeFromSet(state, key);
-      }
+      if (enabled) this.addToSet(state, key);
+      else this.removeFromSet(state, key);
       this.logger.error(`Toggle failed for ${table}`, error);
       this.toast.show('Could not save that change.', 'danger');
       return enabled;

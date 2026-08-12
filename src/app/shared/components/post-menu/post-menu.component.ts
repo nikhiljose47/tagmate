@@ -1,5 +1,6 @@
 import {
   Component,
+  ChangeDetectionStrategy,
   ElementRef,
   EventEmitter,
   HostListener,
@@ -16,6 +17,7 @@ import {
 @Component({
   selector: 'app-post-menu',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './post-menu.component.html',
   styleUrl: './post-menu.component.scss',
 })

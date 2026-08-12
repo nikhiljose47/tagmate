@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { SocialProfile } from '../../../../core/models/social.model';
@@ -16,6 +16,7 @@ import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 @Component({
   selector: 'app-public-profile',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterLink,
@@ -68,7 +69,9 @@ export class PublicProfilePage implements OnInit {
   protected async toggleFollow(): Promise<void> {
     const profile = this.profile();
     if (!profile) return;
+    const wasFollowing = this.social.isFollowingUser(profile.uid);
     const following = await this.social.toggleFollowUser(profile.uid);
+    if (following === wasFollowing) return;
     this.toast.show(
       following ? `Following ${profile.name}.` : `Unfollowed ${profile.name}.`,
       'success',

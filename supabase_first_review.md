@@ -8,54 +8,54 @@ Live database catalog access was not available from this workspace: there is no 
 
 Visible roles:
 
-| Role | Evidence | Apparent purpose |
-| --- | --- | --- |
-| Guest | `is_guest`, guest auth flows | Can use limited app/session flows; durable social writes generally require authenticated UID. |
+| Role               | Evidence                                                | Apparent purpose                                                                                   |
+| ------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Guest              | `is_guest`, guest auth flows                            | Can use limited app/session flows; durable social writes generally require authenticated UID.      |
 | Authenticated user | RLS policies `to authenticated`; app session UID checks | Create profiles, posts, comments, likes, saves, messages, reports, follows, blocks, notifications. |
-| Administrator | `auth.jwt() -> app_metadata ->> role = 'admin'` | Can read reports and delete tags/posts through admin policy. |
+| Administrator      | `auth.jwt() -> app_metadata ->> role = 'admin'`         | Can read reports and delete tags/posts through admin policy.                                       |
 
 No service-provider, business-owner, booking-manager, or moderator role was visible in the code reviewed.
 
 ## 2. Existing feature summary
 
-| Feature | Status | Main tables/objects |
-| --- | --- | --- |
-| User profiles | Implemented | `users`, `auth.users` via UID convention |
-| Posts/feed/tags | Implemented | `tags`; no separate `posts` table found in code/migrations |
-| Comments/replies | Implemented | `post_comments`, `post_comment_reactions`, `comment_reports` |
-| Likes | Implemented | `post_likes`, triggers update notifications |
-| Polls | Partially implemented | `tags.poll_options`, `tags.poll_votes`, `post_poll_votes` |
-| Event RSVPs | Implemented | `post_rsvps`, triggers update notifications |
-| Saved posts | Implemented | `user_saved_posts` |
-| Hidden posts | Implemented | `user_hidden_posts` |
-| Reports/moderation queue | Implemented | `post_reports`, `comment_reports`, `message_reports`, `user_reports` |
-| Notifications | Implemented | `notifications`, notification trigger functions |
-| Neighbourhood/community posts | Implemented | `tags.hood_id`, `hood_messages`, `user_followed_hoods` |
-| Following/blocking | Implemented | `user_follows`, `user_blocks`, `user_followed_topics`, `muted_threads` |
-| Direct messaging | Implemented | `direct_messages`, `message_reports`, `muted_threads` |
-| Conversation lists | Partially implemented | Derived from `direct_messages.thread_id`; no `conversations` table visible |
-| Group messaging | Referenced but database support is unclear | No group/conversation participant table visible |
-| Message attachments | Not found | No message attachment table or storage bucket usage found |
-| Message read status | Implemented | `direct_messages.read`, `direct_messages.read_at` |
-| Message deletion | Not found | No delete/soft-delete message flow found |
-| Service listings/categories/providers | Not found | No service tables visible |
-| Bookings/availability/pricing/reviews | Not found | No booking/service tables visible |
-| Addresses/payments/refunds | Not found | No service/payment tables visible |
-| Location search | Implemented outside DB | Nominatim edge function/proxy; post lat/lng/hood/state/country fields |
-| Upload files | Implemented for posts | Storage bucket `tag-images` via `StorageService` |
+| Feature                               | Status                                     | Main tables/objects                                                        |
+| ------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------- |
+| User profiles                         | Implemented                                | `users`, `auth.users` via UID convention                                   |
+| Posts/feed/tags                       | Implemented                                | `tags`; no separate `posts` table found in code/migrations                 |
+| Comments/replies                      | Implemented                                | `post_comments`, `post_comment_reactions`, `comment_reports`               |
+| Likes                                 | Implemented                                | `post_likes`, triggers update notifications                                |
+| Polls                                 | Partially implemented                      | `tags.poll_options`, `tags.poll_votes`, `post_poll_votes`                  |
+| Event RSVPs                           | Implemented                                | `post_rsvps`, triggers update notifications                                |
+| Saved posts                           | Implemented                                | `user_saved_posts`                                                         |
+| Hidden posts                          | Implemented                                | `user_hidden_posts`                                                        |
+| Reports/moderation queue              | Implemented                                | `post_reports`, `comment_reports`, `message_reports`, `user_reports`       |
+| Notifications                         | Implemented                                | `notifications`, notification trigger functions                            |
+| Neighbourhood/community posts         | Implemented                                | `tags.hood_id`, `hood_messages`, `user_followed_hoods`                     |
+| Following/blocking                    | Implemented                                | `user_follows`, `user_blocks`, `user_followed_topics`, `muted_threads`     |
+| Direct messaging                      | Implemented                                | `direct_messages`, `message_reports`, `muted_threads`                      |
+| Conversation lists                    | Partially implemented                      | Derived from `direct_messages.thread_id`; no `conversations` table visible |
+| Group messaging                       | Referenced but database support is unclear | No group/conversation participant table visible                            |
+| Message attachments                   | Not found                                  | No message attachment table or storage bucket usage found                  |
+| Message read status                   | Implemented                                | `direct_messages.read`, `direct_messages.read_at`                          |
+| Message deletion                      | Not found                                  | No delete/soft-delete message flow found                                   |
+| Service listings/categories/providers | Not found                                  | No service tables visible                                                  |
+| Bookings/availability/pricing/reviews | Not found                                  | No booking/service tables visible                                          |
+| Addresses/payments/refunds            | Not found                                  | No service/payment tables visible                                          |
+| Location search                       | Implemented outside DB                     | Nominatim edge function/proxy; post lat/lng/hood/state/country fields      |
+| Upload files                          | Implemented for posts                      | Storage bucket `tag-images` via `StorageService`                           |
 
 Simple access summary:
 
-| Action | Apparent access |
-| --- | --- |
-| View profiles | Authenticated users can read public profiles, restricted by block policy. |
-| Create/edit posts | Needs confirmation. Code creates/updates `tags`; migrations shown only include read/delete admin policies, not full owner insert/update policies. |
-| Create comments/likes | Comments: author UID must equal `auth.uid()`. Likes: Needs confirmation for base `post_likes` RLS, not visible in migrations. |
-| Read direct messages | Participants only, via `from_uid = auth.uid()` or `to_uid = auth.uid()`. |
-| Update notifications | Owner only, `user_id = auth.uid()`. |
-| Create service listings | Not found. |
-| Manage bookings | Not found. |
-| Upload files | Needs confirmation. Code uploads to `tag-images`; storage bucket policies were not available. |
+| Action                  | Apparent access                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| View profiles           | Authenticated users can read public profiles, restricted by block policy.                                                                         |
+| Create/edit posts       | Needs confirmation. Code creates/updates `tags`; migrations shown only include read/delete admin policies, not full owner insert/update policies. |
+| Create comments/likes   | Comments: author UID must equal `auth.uid()`. Likes: Needs confirmation for base `post_likes` RLS, not visible in migrations.                     |
+| Read direct messages    | Participants only, via `from_uid = auth.uid()` or `to_uid = auth.uid()`.                                                                          |
+| Update notifications    | Owner only, `user_id = auth.uid()`.                                                                                                               |
+| Create service listings | Not found.                                                                                                                                        |
+| Manage bookings         | Not found.                                                                                                                                        |
+| Upload files            | Needs confirmation. Code uploads to `tag-images`; storage bucket policies were not available.                                                     |
 
 ## 3. Public table summary
 
@@ -130,14 +130,14 @@ Positive findings:
 
 Findings:
 
-| Priority | Affected table/object | Problem | Recommended action |
-| --- | --- | --- | --- |
-| Fix now | `post_likes`, `post_rsvps`, `post_poll_votes`, `post_reports`, `user_saved_posts`, `user_hidden_posts`, `hood_messages` | RLS policies for these legacy tables are not visible in the migrations reviewed. The app writes to them from the frontend. | Run the requested `pg_policies` query and confirm each table has owner/participant policies. Add policies if missing. |
-| Fix now | `tags` | Migrations reviewed show broad authenticated read and admin delete, but not owner insert/update/delete policies for normal users. | Confirm deployed `tags` insert/update/delete RLS. Ensure users can insert/update/delete only their own `user_id = auth.uid()` rows. |
-| Fix now | `users` | `users.uid` to `auth.users.id` relationship is assumed but not visible in reviewed migrations. | Confirm FK or equivalent trigger. Add FK if absent and compatible with existing data. |
-| Improve soon | Public profile read policy | `users` read uses `true` for authenticated users, with a restrictive block policy. This may be acceptable for public profiles but should stay limited to non-sensitive columns in client queries. | Keep sensitive fields such as email out of public selects; consider splitting private profile data if needed. |
-| Improve soon | `direct_messages` | The table stores private text directly; RLS appears participant-limited, but realtime publication status needs live confirmation. | Confirm realtime does not broadcast private messages beyond RLS expectations; keep participant filters in client subscriptions. |
-| Improve soon | Security definer functions | Several notification/count sync functions are `SECURITY DEFINER`. They use `set search_path = public`, which is good. | Confirm function ownership is a trusted DB role and execute grants are minimal. |
+| Priority     | Affected table/object                                                                                                   | Problem                                                                                                                                                                                           | Recommended action                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Fix now      | `post_likes`, `post_rsvps`, `post_poll_votes`, `post_reports`, `user_saved_posts`, `user_hidden_posts`, `hood_messages` | RLS policies for these legacy tables are not visible in the migrations reviewed. The app writes to them from the frontend.                                                                        | Run the requested `pg_policies` query and confirm each table has owner/participant policies. Add policies if missing.               |
+| Fix now      | `tags`                                                                                                                  | Migrations reviewed show broad authenticated read and admin delete, but not owner insert/update/delete policies for normal users.                                                                 | Confirm deployed `tags` insert/update/delete RLS. Ensure users can insert/update/delete only their own `user_id = auth.uid()` rows. |
+| Fix now      | `users`                                                                                                                 | `users.uid` to `auth.users.id` relationship is assumed but not visible in reviewed migrations.                                                                                                    | Confirm FK or equivalent trigger. Add FK if absent and compatible with existing data.                                               |
+| Improve soon | Public profile read policy                                                                                              | `users` read uses `true` for authenticated users, with a restrictive block policy. This may be acceptable for public profiles but should stay limited to non-sensitive columns in client queries. | Keep sensitive fields such as email out of public selects; consider splitting private profile data if needed.                       |
+| Improve soon | `direct_messages`                                                                                                       | The table stores private text directly; RLS appears participant-limited, but realtime publication status needs live confirmation.                                                                 | Confirm realtime does not broadcast private messages beyond RLS expectations; keep participant filters in client subscriptions.     |
+| Improve soon | Security definer functions                                                                                              | Several notification/count sync functions are `SECURITY DEFINER`. They use `set search_path = public`, which is good.                                                                             | Confirm function ownership is a trusted DB role and execute grants are minimal.                                                     |
 
 ## 6. Index and performance findings
 
@@ -155,14 +155,14 @@ Visible indexes:
 
 Likely useful indexes to confirm/add:
 
-| Priority | Affected table/object | Problem | Recommended action |
-| --- | --- | --- | --- |
-| Fix now | `tags` | Feed queries order by `created_at desc`, filter by `user_id`, `hood_id`, `tag`, `country`, `state`, and search text. Only state/country indexes are visible. | Confirm indexes on `tags(created_at desc)`, `tags(user_id)`, `tags(hood_id)`, `tags(tag)`, and useful compound indexes for common feed filters. |
-| Fix now | `direct_messages` | Inbox queries filter `from_uid` or `to_uid` and order by `created_at`; thread read updates filter by `thread_id` and `to_uid`. | Confirm indexes on `from_uid`, `to_uid`, `(thread_id, to_uid)`, and possibly `(thread_id, created_at)`. |
-| Fix now | `post_comments` | Comments are fetched by `post_id`; replies use `parent_id`. | Confirm indexes on `post_id`, `parent_id`, and `created_at` if chronological rendering grows. |
-| Improve soon | `post_likes`, `post_rsvps`, `post_poll_votes` | App batch-loads rows by `post_id`. | Confirm indexes/PKs beginning with `post_id`. |
-| Improve soon | `notifications` | Hydration loads latest notifications and mark-all filters by `user_id`. | Confirm index on `(user_id, created_at desc)` and optionally `(user_id, read)`. |
-| Improve soon | `user_saved_posts`, `user_hidden_posts` | Viewer state hydrates by `user_id`; following feed excludes hidden posts by `(user_id, post_id)`. | Confirm composite keys/indexes on `(user_id, post_id)`. |
+| Priority     | Affected table/object                         | Problem                                                                                                                                                      | Recommended action                                                                                                                              |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fix now      | `tags`                                        | Feed queries order by `created_at desc`, filter by `user_id`, `hood_id`, `tag`, `country`, `state`, and search text. Only state/country indexes are visible. | Confirm indexes on `tags(created_at desc)`, `tags(user_id)`, `tags(hood_id)`, `tags(tag)`, and useful compound indexes for common feed filters. |
+| Fix now      | `direct_messages`                             | Inbox queries filter `from_uid` or `to_uid` and order by `created_at`; thread read updates filter by `thread_id` and `to_uid`.                               | Confirm indexes on `from_uid`, `to_uid`, `(thread_id, to_uid)`, and possibly `(thread_id, created_at)`.                                         |
+| Fix now      | `post_comments`                               | Comments are fetched by `post_id`; replies use `parent_id`.                                                                                                  | Confirm indexes on `post_id`, `parent_id`, and `created_at` if chronological rendering grows.                                                   |
+| Improve soon | `post_likes`, `post_rsvps`, `post_poll_votes` | App batch-loads rows by `post_id`.                                                                                                                           | Confirm indexes/PKs beginning with `post_id`.                                                                                                   |
+| Improve soon | `notifications`                               | Hydration loads latest notifications and mark-all filters by `user_id`.                                                                                      | Confirm index on `(user_id, created_at desc)` and optionally `(user_id, read)`.                                                                 |
+| Improve soon | `user_saved_posts`, `user_hidden_posts`       | Viewer state hydrates by `user_id`; following feed excludes hidden posts by `(user_id, post_id)`.                                                            | Confirm composite keys/indexes on `(user_id, post_id)`.                                                                                         |
 
 ## 7. Messaging design review
 
@@ -225,32 +225,32 @@ If post images are public by design, `tag-images` can be public, but bucket poli
 
 ### Fix now
 
-| Affected table or object | Problem | Recommended action |
-| --- | --- | --- |
-| Legacy social tables | RLS for `post_likes`, `post_rsvps`, `post_poll_votes`, `post_reports`, `user_saved_posts`, `user_hidden_posts`, and `hood_messages` was not visible in migrations. | Run the policy metadata query; add owner/participant policies where absent. |
-| `tags` | Normal user insert/update/delete ownership policies were not visible in reviewed migrations. | Confirm deployed policies ensure `user_id = auth.uid()` on insert/update/delete. |
-| `users` | FK from `users.uid` to `auth.users(id)` was not visible. | Confirm or add FK after data cleanup. |
-| Duplicate interaction tables | Duplicate prevention for likes/saves/RSVPs/poll votes on legacy tables is not proven from repo files. | Confirm composite PK/unique constraints such as `(post_id, user_id)`. |
-| Hot query indexes | Feed, comments, DM, notification indexes are not fully visible. | Confirm/add the indexes listed in the performance section. |
-| Storage policies | Bucket metadata/policies were not available. | Run storage metadata and policy queries; verify upload/read rules for `tag-images`. |
+| Affected table or object     | Problem                                                                                                                                                            | Recommended action                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Legacy social tables         | RLS for `post_likes`, `post_rsvps`, `post_poll_votes`, `post_reports`, `user_saved_posts`, `user_hidden_posts`, and `hood_messages` was not visible in migrations. | Run the policy metadata query; add owner/participant policies where absent.         |
+| `tags`                       | Normal user insert/update/delete ownership policies were not visible in reviewed migrations.                                                                       | Confirm deployed policies ensure `user_id = auth.uid()` on insert/update/delete.    |
+| `users`                      | FK from `users.uid` to `auth.users(id)` was not visible.                                                                                                           | Confirm or add FK after data cleanup.                                               |
+| Duplicate interaction tables | Duplicate prevention for likes/saves/RSVPs/poll votes on legacy tables is not proven from repo files.                                                              | Confirm composite PK/unique constraints such as `(post_id, user_id)`.               |
+| Hot query indexes            | Feed, comments, DM, notification indexes are not fully visible.                                                                                                    | Confirm/add the indexes listed in the performance section.                          |
+| Storage policies             | Bucket metadata/policies were not available.                                                                                                                       | Run storage metadata and policy queries; verify upload/read rules for `tag-images`. |
 
 ### Improve soon
 
-| Affected table or object | Problem | Recommended action |
-| --- | --- | --- |
-| `tags` naming | The post table name `tags` is confusing. | Keep it for now, but consider a `posts` view or future migration only if worth the churn. |
-| Feed search | Current client queries use broad `ilike` filters. | Add trigram/full-text indexes if search volume grows. |
-| Direct messages | One table works for 1:1 chat but is limited. | Add `conversations` and participants when group chat or per-user state is needed. |
-| Realtime | Several tables are subscribed to. | Confirm realtime publication includes only tables that need it; avoid unnecessary high-churn streams. |
-| Public profiles | Authenticated users can read profile rows. | Keep sensitive fields out of public queries or split private user settings into a separate table. |
+| Affected table or object | Problem                                           | Recommended action                                                                                    |
+| ------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `tags` naming            | The post table name `tags` is confusing.          | Keep it for now, but consider a `posts` view or future migration only if worth the churn.             |
+| Feed search              | Current client queries use broad `ilike` filters. | Add trigram/full-text indexes if search volume grows.                                                 |
+| Direct messages          | One table works for 1:1 chat but is limited.      | Add `conversations` and participants when group chat or per-user state is needed.                     |
+| Realtime                 | Several tables are subscribed to.                 | Confirm realtime publication includes only tables that need it; avoid unnecessary high-churn streams. |
+| Public profiles          | Authenticated users can read profile rows.        | Keep sensitive fields out of public queries or split private user settings into a separate table.     |
 
 ### Optional later
 
-| Affected table or object | Problem | Recommended action |
-| --- | --- | --- |
-| Services marketplace | Service features are not implemented. | Add service/provider/booking/payment tables only when product scope requires them. |
-| Message attachments | Not implemented. | Add attachment metadata and private storage only when messaging needs files. |
-| Moderation workflow | Reports exist, but moderation states/escalation may be basic. | Add report status/assignment tables only if moderation workload grows. |
+| Affected table or object | Problem                                                       | Recommended action                                                                 |
+| ------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Services marketplace     | Service features are not implemented.                         | Add service/provider/booking/payment tables only when product scope requires them. |
+| Message attachments      | Not implemented.                                              | Add attachment metadata and private storage only when messaging needs files.       |
+| Moderation workflow      | Reports exist, but moderation states/escalation may be basic. | Add report status/assignment tables only if moderation workload grows.             |
 
 ## Metadata SQL to run in Supabase SQL Editor
 

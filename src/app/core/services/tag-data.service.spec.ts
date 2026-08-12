@@ -3,10 +3,16 @@ import { TagDataService } from './tag-data.service';
 import { SupabaseClientService } from './supabase-client.service';
 import { of } from 'rxjs';
 
+type FromMock = {
+  select: jasmine.Spy;
+  insert: jasmine.Spy;
+  delete: jasmine.Spy;
+};
+
 describe('TagDataService', () => {
   let service: TagDataService;
-  let clientServiceMock: any;
-  let fromMock: any;
+  let clientServiceMock: { client: { from: jasmine.Spy; rpc: jasmine.Spy } };
+  let fromMock: FromMock;
 
   beforeEach(() => {
     fromMock = {
