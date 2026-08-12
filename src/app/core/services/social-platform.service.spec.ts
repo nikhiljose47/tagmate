@@ -78,7 +78,9 @@ describe('SocialPlatformService', () => {
   });
 
   it('rolls back a follow when the database write fails', async () => {
-    supabase.addRow.and.returnValue(throwError(() => new Error('write failed')) as any);
+    supabase.addRow.and.returnValue(
+      throwError(() => new Error('write failed')) as ReturnType<typeof supabase.addRow>,
+    );
 
     const enabled = await service.toggleFollowHood('Downtown');
 

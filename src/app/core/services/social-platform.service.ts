@@ -376,7 +376,12 @@ export class SocialPlatformService implements OnDestroy {
       const names = new Map<string, string>();
       if (userIds.length) {
         const { data } = await firstValueFrom(
-          this.supabase.getRowsIn<{ uid: string; name: string }>('users', 'uid', userIds),
+          this.supabase.getRowsIn<{ uid: string; name: string }>(
+            'public_user_profiles',
+            'uid',
+            userIds,
+            'uid,name',
+          ),
         );
         for (const row of data ?? []) names.set(row.uid, row.name);
       }

@@ -48,7 +48,11 @@ describe('SocialInteractionsService', () => {
 
   it('uses the refreshed aggregate instead of adding the same optimistic like twice', () => {
     const post = { id: 'post-1', likeCount: 1 } as Tag;
-    (service as any).likeOverlays.set({ 'post-1': { baseCount: 1, delta: 1 } });
+    (
+      service as unknown as {
+        likeOverlays: { set(value: Record<string, { baseCount: number; delta: number }>): void };
+      }
+    ).likeOverlays.set({ 'post-1': { baseCount: 1, delta: 1 } });
 
     expect(service.likeCount(post)).toBe(2);
     expect(service.likeCount({ ...post, likeCount: 2 })).toBe(2);

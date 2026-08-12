@@ -68,3 +68,7 @@ export function validEmail(value) {
 export function validUsername(value) {
   return typeof value === 'string' && value.trim().length >= 3 && value.trim().length <= 40;
 }
+
+export function validNewUsername(value) {
+  return validUsername(value) && !value.includes('@');
+}

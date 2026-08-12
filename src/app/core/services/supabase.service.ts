@@ -134,8 +134,9 @@ export class SupabaseService {
     table: string,
     field: string,
     values: unknown[],
+    columns = '*',
   ): Observable<{ data: T[] | null; error: unknown }> {
-    return this.tagData.getRowsIn<T>(table, field, values);
+    return this.tagData.getRowsIn<T>(table, field, values, columns);
   }
 
   // ---------- GEOSPATIAL ----------

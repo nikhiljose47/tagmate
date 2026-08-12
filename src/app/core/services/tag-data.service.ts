@@ -176,12 +176,13 @@ export class TagDataService {
     table: string,
     field: string,
     values: unknown[],
+    columns = '*',
   ): Observable<{ data: T[] | null; error: unknown }> {
     if (!values.length) return of({ data: [], error: null });
     return from(
       this.client
         .from(table)
-        .select('*')
+        .select(columns)
         .in(field, values as (string | number)[]),
     ).pipe(map((result) => this.requireSuccess(result))) as Observable<{
       data: T[] | null;

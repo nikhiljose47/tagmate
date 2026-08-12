@@ -5,7 +5,7 @@ import {
   readJson,
   requiredEnv,
   validEmail,
-  validUsername,
+  validNewUsername,
 } from './_shared';
 
 export async function onRequestPost(context) {
@@ -19,7 +19,7 @@ export async function onRequestPost(context) {
   if (
     (!email && !username) ||
     (email && !validEmail(email)) ||
-    (username && !validUsername(username))
+    (username && !validNewUsername(username))
   ) {
     return json({ error: 'Enter a valid email address or username.', code: 'invalid_input' }, 400);
   }
