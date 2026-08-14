@@ -19,6 +19,7 @@ import { SharedStateService } from '../../../../core/services/shared-state.servi
 import { LoggerService } from '../../../../core/services/logger.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
@@ -93,6 +94,7 @@ export class ProfilePage implements OnInit {
   private readonly shared = inject(SharedStateService);
   private readonly logger = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly theme = inject(ThemeService);
@@ -119,6 +121,7 @@ export class ProfilePage implements OnInit {
   editBusinessPhone = signal('');
   editBusinessWebsite = signal('');
   profileSaving = signal(false);
+  deletingAccount = signal(false);
   allTags = signal<Tag[]>([]);
   settings = signal<ProfileSettings>(DEFAULT_PROFILE_SETTINGS);
   savedTags = computed(() =>
@@ -208,6 +211,7 @@ export class ProfilePage implements OnInit {
   readonly isBusinessAccount = computed(
     () => this.sessionService.user()?.accountType === 'business',
   );
+  readonly isGuestAccount = computed(() => this.sessionService.user()?.isGuest ?? true);
 
   toggleEditProfile(): void {
     const opening = !this.editMode();
@@ -374,6 +378,32 @@ export class ProfilePage implements OnInit {
     } catch (err) {
       this.logger.error('Logout failed', err);
       this.toast.show('Could not log out.', 'danger');
+    }
+  }
+
+  async deleteAccount(): Promise<void> {
+    if (this.deletingAccount()) return;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Delete your account?',
+      message:
+        "This permanently deletes your profile, posts, and messages. This can't be undone.",
+      confirmText: 'Delete Account',
+      cancelText: 'Keep Account',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.deletingAccount.set(true);
+    try {
+      await this.sessionService.deleteAccount();
+      this.toast.show('Your account has been deleted.', 'success');
+      await this.router.navigate([AppRoute.Login]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not delete your account.';
+      this.logger.error('Delete account failed', err);
+      this.toast.show(message, 'danger');
+    } finally {
+      this.deletingAccount.set(false);
     }
   }
 

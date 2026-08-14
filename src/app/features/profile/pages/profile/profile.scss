@@ -375,6 +375,11 @@
   color: var(--tm-text-secondary);
 }
 
+.settings-danger-zone {
+  padding-top: 16px;
+  border-top: 1px solid var(--tm-border);
+}
+
 @media (max-width: 400px) {
   .posts-grid {
     grid-template-columns: repeat(2, 1fr);

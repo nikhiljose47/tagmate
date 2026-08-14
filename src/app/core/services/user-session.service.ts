@@ -354,6 +354,11 @@ export class UserSessionService {
     return firstValueFrom(this.supabase.signOut());
   }
 
+  async deleteAccount(): Promise<void> {
+    await this.supabase.deleteAccount();
+    this.user.set(null);
+  }
+
   async loginGuest() {
     const { data, error } = await firstValueFrom(this.supabase.signInAnonymously());
     if (error) throw error;

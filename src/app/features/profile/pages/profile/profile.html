@@ -495,6 +495,29 @@
       <button class="tm-btn tm-btn-primary mt-4 w-full" type="button" (click)="saveSettings()">
         Save Settings
       </button>
+
+      @if (!isGuestAccount()) {
+      <div class="settings-danger-zone mt-4">
+        <p class="settings-title text-[var(--tm-danger)]">Danger zone</p>
+        <p class="settings-sub">
+          Deleting your account permanently removes your profile, posts, and messages. This can't
+          be undone.
+        </p>
+        <button
+          class="tm-btn tm-btn-danger w-full mt-2"
+          type="button"
+          (click)="deleteAccount()"
+          [disabled]="deletingAccount()"
+        >
+          @if (!deletingAccount()) {
+          <i class="bi bi-trash3"></i> Delete Account
+          } @else {
+          <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+          Deleting…
+          }
+        </button>
+      </div>
+      }
     </div>
     } }
   </div>

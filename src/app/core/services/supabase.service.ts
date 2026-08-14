@@ -61,6 +61,10 @@ export class SupabaseService {
     return this.auth.signOut();
   }
 
+  deleteAccount(): Promise<void> {
+    return this.auth.deleteAccount();
+  }
+
   resetPassword(email: string) {
     return this.auth.resetPassword(email);
   }

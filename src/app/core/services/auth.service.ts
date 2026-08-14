@@ -104,6 +104,33 @@ export class AuthService implements OnDestroy {
     return from(this.signOutAndClearUserStorage());
   }
 
+  /**
+   * Permanently deletes the signed-in user's account (profile, posts,
+   * messages, etc. server-side, then the auth login itself) and clears the
+   * local session. Throws if the request fails — callers should show the
+   * error and leave the (still-active) account untouched.
+   */
+  async deleteAccount(): Promise<void> {
+    const { data } = await this.client.auth.getSession();
+    const session = data.session;
+    if (!session) {
+      throw new Error('You must be signed in to delete your account.');
+    }
+
+    const response = await fetch('/api/auth/delete-account', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      cache: 'no-store',
+    });
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) {
+      throw new Error(payload.error || 'Could not delete your account.');
+    }
+
+    await this.client.auth.signOut();
+    clearUserStorage(session.user.id);
+  }
+
   private async signOutAndClearUserStorage() {
     const { data: userData } = await this.client.auth.getUser();
     const result = await this.client.auth.signOut();
