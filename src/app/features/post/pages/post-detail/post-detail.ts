@@ -26,8 +26,12 @@ import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { LifespanBadgeComponent } from '../../../../shared/components/lifespan-badge/lifespan-badge.component';
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
-import { SocialProfile, allowedStatusesForTag } from '../../../../core/models/social.model';
+import { SocialProfile, allowedStatusesForTag, isEventLikePost } from '../../../../core/models/social.model';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import {
+  BusinessPostContentComponent,
+  formatEventRange,
+} from '../../components/business-post-content/business-post-content.component';
 
 @Component({
   selector: 'app-post-detail',
@@ -43,6 +47,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
     TimeAgoPipe,
     LifespanBadgeComponent,
     PostMenuComponent,
+    BusinessPostContentComponent,
   ],
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
@@ -165,6 +170,18 @@ export class PostDetailPage implements OnInit {
 
   protected neighborhoodSlug(post: Tag): string {
     return this.slugFor(post.hoodId || 'nearby');
+  }
+
+  /** Friendly eventStart/eventEnd label for the event/RSVP box — shared with
+   *  BusinessPostContentComponent's formatting instead of a second copy. */
+  protected eventRangeLabel(post: Tag): string {
+    return formatEventRange(post.eventStart, post.eventEnd);
+  }
+
+  /** True for the legacy personal 'event' category or any business post using
+   *  an event-style subtype (e.g. tag=food, postSubtype=event) — Step 4.B. */
+  protected isEventLike(post: Tag): boolean {
+    return isEventLikePost(post);
   }
 
   protected toggleLike(): void {

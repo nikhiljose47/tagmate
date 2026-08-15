@@ -6,15 +6,17 @@ describe('business post templates', () => {
   it('covers every business tag shown by the composer', () => {
     const businessTags = [
       TagCategory.Shop,
-      TagCategory.Biz,
       TagCategory.Food,
-      TagCategory.Job,
+      TagCategory.Service,
+      TagCategory.Beauty,
       TagCategory.Health,
       TagCategory.Fitness,
       TagCategory.Learn,
+      TagCategory.Auto,
       TagCategory.Space,
       TagCategory.Travel,
       TagCategory.Event,
+      TagCategory.Biz,
     ];
 
     expect(businessTags.every((tag) => !!POST_TEMPLATES[tag])).toBeTrue();
@@ -43,12 +45,12 @@ describe('business post templates', () => {
     ).toContain('Bike wash');
     expect(
       care.buildHighlight({
-        service: 'Haircut',
+        service: 'Clinic appointment',
         availability: 'Slot open today',
         price: '',
         note: '',
       }),
-    ).toContain('Haircut');
+    ).toContain('Clinic appointment');
   });
 
   it('persists the personal or business classification', () => {

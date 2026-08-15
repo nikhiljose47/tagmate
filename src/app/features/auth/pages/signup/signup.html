@@ -108,13 +108,19 @@
       <!-- Step indicator -->
       @if (!awaitingEmailConfirmation()) {
       <div class="step-track" aria-label="Signup progress">
-        <div class="step-node" [class.active]="step() >= 1" [class.done]="step() > 1">
-          @if (step() > 1) {
+        @for (n of stepIndicators(); track n) {
+        <div
+          class="step-node"
+          [class.active]="stepNumber() >= n"
+          [class.done]="stepNumber() > n"
+        >
+          @if (stepNumber() > n) {
           <i class="bi bi-check2" aria-hidden="true"></i>
-          } @else { 1 }
+          } @else { {{ n }} }
         </div>
-        <div class="step-line" [class.filled]="step() > 1"></div>
-        <div class="step-node" [class.active]="step() >= 2">2</div>
+        @if (!$last) {
+        <div class="step-line" [class.filled]="stepNumber() > n"></div>
+        } }
       </div>
       }
 
@@ -234,44 +240,6 @@
                 </span>
               </button>
             </div>
-            @if (accountType() === 'business') {
-            <input
-              type="text"
-              class="tm-input"
-              style="margin-top: 8px"
-              placeholder="Shop / business name"
-              [value]="businessName()"
-              (input)="businessName.set($any($event.target).value)"
-              [disabled]="loading()"
-              autocomplete="organization"
-            />
-            @if (!businessName().trim()) {
-            <span class="field-hint">Shown as the author name on your business posts.</span>
-            }
-            <div class="field-row" style="margin-top: 8px">
-              <input
-                type="tel"
-                class="tm-input"
-                placeholder="Phone (optional)"
-                [value]="businessPhone()"
-                (input)="businessPhone.set($any($event.target).value)"
-                [disabled]="loading()"
-                autocomplete="tel"
-              />
-              <input
-                type="url"
-                class="tm-input"
-                placeholder="Website (optional)"
-                [value]="businessWebsite()"
-                (input)="businessWebsite.set($any($event.target).value)"
-                [disabled]="loading()"
-                autocomplete="url"
-              />
-            </div>
-            <span class="field-hint"
-              >Shown on your business posts when filled in — leave blank to skip.</span
-            >
-            }
           </div>
 
           <button
@@ -288,8 +256,94 @@
       </div>
       }
 
-      <!-- ── Step 2: Birthday + Location ── -->
+      <!-- ── Step 2: Business details (business accounts only) ── -->
       @if (!awaitingEmailConfirmation() && step() === 2) {
+      <div class="step-block">
+        <h1 class="form-title">Tell us about your business</h1>
+
+        <div class="login-fields">
+          <div class="field-group">
+            <label class="field-label">Business name</label>
+            <input
+              type="text"
+              class="tm-input"
+              placeholder="Shop / business name"
+              [value]="businessName()"
+              (input)="businessName.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="organization"
+            />
+            @if (!businessName().trim()) {
+            <span class="field-hint">Shown as the author name on your business posts.</span>
+            }
+          </div>
+
+          <div class="field-row">
+            <input
+              type="tel"
+              class="tm-input"
+              placeholder="Phone (optional)"
+              [value]="businessPhone()"
+              (input)="businessPhone.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="tel"
+            />
+            <input
+              type="url"
+              class="tm-input"
+              placeholder="Website (optional)"
+              [value]="businessWebsite()"
+              (input)="businessWebsite.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="url"
+            />
+          </div>
+          <span class="field-hint"
+            >Shown on your business posts when filled in — leave blank to skip.</span
+          >
+
+          <div class="field-group">
+            <label class="field-label"
+              >What does your business do? <span class="required">*</span></label
+            >
+            <p class="field-hint" style="margin-bottom: 6px">
+              Every post you make will use this category — pick the closest one.
+            </p>
+            <div class="tag-grid" role="radiogroup" aria-label="Business category">
+              @for (tag of businessTags; track tag) {
+              <button
+                type="button"
+                class="tag-card"
+                [class.tag-card--active]="businessCategory() === tag"
+                [disabled]="loading()"
+                (click)="selectBusinessCategory(tag)"
+              >
+                <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
+                <span class="tag-card-label">{{ tagCategoryLabel(tag) }}</span>
+              </button>
+              }
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="tm-btn back-btn" type="button" (click)="prevStep()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Back
+            </button>
+            <button
+              class="tm-btn tm-btn-primary step-btn"
+              type="button"
+              [disabled]="!canProceedBusinessStep()"
+              (click)="nextStep()"
+            >
+              Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ── Step 3: Birthday + Location ── -->
+      @if (!awaitingEmailConfirmation() && step() === 3) {
       <div class="step-block">
         <h1 class="form-title">A few more details</h1>
 

@@ -7,13 +7,14 @@ import {
   signal,
   inject,
   computed,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { PostCta, PostIntent, Tag } from '../../../../core/models/tag.model';
+import { PostCta, PostIntent, PublishStatus, Tag } from '../../../../core/models/tag.model';
 import { SharedStateService, PostDraft } from '../../../../core/services/shared-state.service';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { MediaService } from '../../../../core/services/media.service';
@@ -26,13 +27,42 @@ import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import { NetworkService } from '../../../../core/services/network.service';
 import { TelemetryService } from '../../../../core/services/telemetry.service';
 import { WorkspaceStateService } from '../../../../layout/workspace/workspace-state.service';
-import { emptyTemplateValues, isTemplateComplete, POST_TEMPLATES } from '../../data/post-templates';
+// Legacy personal-post templates (personal categories unchanged)
+import { POST_TEMPLATES } from '../../data/post-templates';
+// Step 1: registry-based business post templates
+import {
+  PostTemplateDefinition,
+  emptyTemplateValues,
+  isTemplateComplete,
+  resolveTemplateDefaults,
+  mapTemplateValues,
+  sanitiseTemplateData,
+  resolveExpiry,
+  restoreTemplateValues,
+} from '../../data/post-template-registry';
+import { PostTemplateRegistryService } from '../../services/post-template-registry.service';
+import { PostTemplateAnalyticsService } from '../../services/post-template-analytics.service';
+import {
+  BUSINESS_TAG_CATEGORIES,
+  PERSONAL_TAG_CATEGORIES,
+  tagCategoryLabel,
+} from '../../../../shared/constants/business-tags';
+import { BusinessPostTemplatePickerComponent } from '../../components/business-template-picker/business-template-picker.component';
+import { TemplateFormComponent } from '../../components/template-form/template-form.component';
 
-/** The post composer is a 2-step wizard: pick a tag, then fill in the rest. */
+/**
+ * Step flow for the post composer.
+ *
+ * Personal:  tag → details → preview  (unchanged)
+ * Business:  template → details → preview
+ *
+ * Business accounts with a locked `businessCategory` skip straight to the
+ * template picker; personal accounts pick a tag each time.
+ */
 type PostType = 'personal' | 'business';
-type PostStep = 'kind' | 'tag' | 'details' | 'preview';
+type PostStep = 'tag' | 'template' | 'details' | 'preview';
 
-/** Lightweight intent chips shown for business posts — simpler than the tag category. */
+/** Lightweight intent chips shown for personal posts — kept for personal flow. */
 const INTENT_OPTIONS: { value: PostIntent; label: string; icon: string }[] = [
   { value: 'offer', label: 'Offer', icon: 'bi-tag-fill' },
   { value: 'available_now', label: 'Available Now', icon: 'bi-lightning-fill' },
@@ -120,7 +150,13 @@ const COMPOSE_PROMPTS = [
   selector: 'app-post',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TagEmojiPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TagEmojiPipe,
+    BusinessPostTemplatePickerComponent,
+    TemplateFormComponent,
+  ],
   templateUrl: './post.html',
   styleUrls: ['./post.scss'],
 })
@@ -136,12 +172,53 @@ export class PostPage implements OnDestroy {
   private readonly network = inject(NetworkService);
   private readonly telemetry = inject(TelemetryService);
   private readonly workspace = inject(WorkspaceStateService);
+  private readonly templateRegistry = inject(PostTemplateRegistryService);
+  private readonly templateAnalytics = inject(PostTemplateAnalyticsService);
 
   public readonly shared = inject(SharedStateService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
 
+  /**
+   * Per-template value cache — survives template switches within a single
+   * session so the user doesn't lose data when comparing post types.
+   * Key: template id (e.g. "daily-special"), Value: field values.
+   */
+  private readonly templateValueCache = new Map<string, Record<string, string>>();
+
   constructor() {
+    // Step 5.A: resuming a saved draft/scheduled post (?draftId=<id> in the
+    // route) always wins over the ephemeral pick-location postDraft below —
+    // it's a real DB row, not a survive-the-navigation convenience copy.
+    const resumePostId = this.route.snapshot.queryParamMap.get('draftId');
+    if (resumePostId) {
+      this.step.set('tag');
+      const resumeRef = effect(
+        () => {
+          const user = this.userSession.user();
+          if (!user) return; // signal hasn't resolved yet — wait
+          resumeRef.destroy();
+          this.tagRepo.getById(resumePostId).subscribe({
+            next: (post) => {
+              if (!post || post.userId !== user.uid) {
+                this.toast.show('Could not find that draft.', 'warning');
+                this.postType.set(user.accountType ?? 'personal');
+                return;
+              }
+              this.loadFromExistingPost(post);
+            },
+            error: (err) => {
+              this.logger.error('Failed to load draft for editing', err);
+              this.toast.show('Could not load that draft.', 'danger');
+            },
+          });
+        },
+        { allowSignalWrites: true },
+      );
+      return;
+    }
+
     // Restore the draft after the pick-location round-trip to the map —
     // navigation destroys this component, so the draft lives in SharedStateService.
     const draft = this.shared.postDraft();
@@ -164,6 +241,21 @@ export class PostPage implements OnDestroy {
       };
       this.mediaItems.set(draft.media);
       this.templateValues.set({ ...(draft.templateValues ?? {}) });
+      this.isHighlightManuallyEdited.set(draft.isHighlightManuallyEdited ?? false);
+      // Re-hydrate the active template definition from the registry so the
+      // draft accurately preserves subtype/version across the location round-trip.
+      if (draft.postType === 'business' && draft.tag) {
+        const subtypeId = draft.postSubtype ?? 'general';
+        // resolveForDisplay (not getTemplate) — a since-disabled template must
+        // still resolve so the pick-location round-trip doesn't silently swap
+        // it out from under the user (Step 5.B).
+        const def =
+          this.templateRegistry.resolveForDisplay(draft.tag, subtypeId, draft.templateVersion) ??
+          this.templateRegistry.getDefaultTemplate(draft.tag);
+        this.activeTemplate.set(def);
+        // Seed the cache so switching back to this template restores values.
+        if (def) this.templateValueCache.set(def.id, { ...this.templateValues() });
+      }
       // Old drafts may hold a value outside the personal dropdown presets —
       // snap to 1 hour. Business posts use free-form quick-expiry chips
       // (e.g. "Today" resolves to an arbitrary minute count), so leave those alone.
@@ -181,17 +273,47 @@ export class PostPage implements OnDestroy {
         if (!Object.keys(this.templateValues()).length) this.syncTemplateValues();
       }
     } else {
-      // No in-progress draft — auto-fill post type from the account so most
-      // people never see the Kind step at all (they can still switch from
-      // the Tag step). Business accounts default to business, everyone else
-      // to personal.
-      const accountType = this.userSession.user()?.accountType ?? 'personal';
-      this.postType.set(accountType);
+      // No in-progress draft. The user signal starts null and resolves
+      // asynchronously, so use an effect that fires once the profile
+      // arrives. Business accounts with a fixed category go to the template
+      // picker; personal accounts pick a tag.
       this.step.set('tag');
+
+      const initRef = effect(
+        () => {
+          const user = this.userSession.user();
+          if (!user) return; // signal hasn't resolved yet — wait
+          const accountType = user.accountType ?? 'personal';
+          this.postType.set(accountType);
+          if (accountType === 'business' && user.businessCategory) {
+            this.formData.tag = user.businessCategory;
+            this.step.set('template');
+          }
+          // Run once — destroy the effect after the first real user arrives.
+          initRef.destroy();
+        },
+        { allowSignalWrites: true },
+      );
     }
   }
 
+  /** Business accounts can only post as the business they registered with
+   *  (see the details-step "Post as personal instead" link) — turning it off
+   *  drops them into the Tag step to pick a personal category, since
+   *  personal posts (unlike business) aren't tied to one fixed tag. */
+  switchToPersonalMode(): void {
+    this.postType.set('personal');
+    this.formData.tag = '';
+    this.formData.intent = '';
+    this.templateValues.set({});
+    this.activeTemplate.set(null);
+    this.isHighlightManuallyEdited.set(false);
+    this.tagErrorVisible.set(false);
+    this.step.set('tag');
+  }
+
   private saveDraft(): void {
+    const activeDef = this.activeTemplate();
     const draft: PostDraft = {
       postType: this.postType(),
       headline: this.formData.headline,
@@ -209,8 +331,80 @@ export class PostPage implements OnDestroy {
       pollOptions: [...this.formData.pollOptions],
       templateValues: { ...this.templateValues() },
       media: this.mediaItems(),
+      // Step 1: preserve template context across the pick-location round-trip.
+      postSubtype: activeDef?.id,
+      templateVersion: activeDef?.version,
+      templateData: { ...this.templateValues() },
+      isHighlightManuallyEdited: this.isHighlightManuallyEdited(),
     };
     this.shared.postDraft.set(draft);
+  }
+
+  /**
+   * Step 5.A: populates the composer from an existing draft/scheduled (or,
+   * for the "edit scheduled post" flow, any) Tag row — resolving its template
+   * from the registry via tag+postSubtype rather than storing the template
+   * definition itself. Ownership must already be verified by the caller.
+   */
+  private loadFromExistingPost(post: Tag): void {
+    this.editingPostId.set(post.id ?? null);
+    this.editingPublishStatus.set(post.publishStatus ?? 'published');
+    this.editingScheduledFor.set(post.scheduledFor ?? null);
+    this.postType.set(post.postType === 'business' ? 'business' : 'personal');
+
+    this.formData = {
+      headline: post.highlight,
+      expiresIn: post.expiresIn,
+      tag: post.tag,
+      intent: post.intent ?? '',
+      price: post.price != null ? String(post.price) : '',
+      originalPrice: post.originalPrice != null ? String(post.originalPrice) : '',
+      availabilityNote: post.availabilityNote ?? '',
+      cta: post.cta ?? 'message',
+      productLink: post.productLink ?? '',
+      isEvent: !!(post.eventStart || post.eventEnd),
+      eventStart: post.eventStart ?? '',
+      eventEnd: post.eventEnd ?? '',
+      pollOptions: post.pollOptions?.length ? [...post.pollOptions] : ['', ''],
+    };
+    // The saved headline is exactly what the author left it as — don't let
+    // the next template field edit silently recompute over it.
+    this.isHighlightManuallyEdited.set(true);
+    this.existingImages.set(post.images ?? []);
+
+    if (post.postType === 'business' && post.postSubtype) {
+      // resolveForDisplay (not getTemplate) — resuming a draft/scheduled post
+      // whose template has since been disabled must keep its own template,
+      // not silently swap in the category's current default (Step 5.B item 24).
+      const def =
+        this.templateRegistry.resolveForDisplay(post.tag, post.postSubtype, post.templateVersion) ??
+        this.templateRegistry.getDefaultTemplate(post.tag);
+      this.activeTemplate.set(def);
+      if (def) {
+        const tagFields: Record<string, unknown> = {
+          price: post.price,
+          originalPrice: post.originalPrice,
+          availabilityNote: post.availabilityNote,
+          eventStart: post.eventStart,
+          eventEnd: post.eventEnd,
+          productLink: post.productLink,
+          cta: post.cta,
+          intent: post.intent,
+        };
+        const values = restoreTemplateValues(def, tagFields, post.templateData);
+        this.templateValues.set(values);
+        this.templateValueCache.set(def.id, { ...values });
+      }
+    }
+
+    if (Number.isFinite(post.lat) && Number.isFinite(post.lng) && (post.lat || post.lng)) {
+      this.shared.updateCoordinates(post.lat, post.lng);
+    }
+    if (post.hoodId) this.shared.updateText(post.hoodId);
+    this.shared.updateRegion(post.state ?? '', post.country ?? '');
+    if (post.locationType) this.shared.locationType.set(post.locationType);
+
+    this.step.set('details');
   }
 
   // ── Signals (required for zoneless CD) ──────────────────────────────────
@@ -221,42 +415,74 @@ export class PostPage implements OnDestroy {
   shakeLocation = signal(false);
   tagErrorVisible = signal(false);
 
-  /** Step 1: pick a tag. Step 2: quick-fill template (if any) + the rest of the form. */
-  readonly step = signal<PostStep>('kind');
+  readonly step = signal<PostStep>('tag');
   readonly postType = signal<PostType>('personal');
   /** Values for the current tag's quick-fill template, if it has one. */
   templateValues = signal<Record<string, string>>({});
+  /** The active template definition — set when a business category is resolved. */
+  readonly activeTemplate = signal<PostTemplateDefinition | null>(null);
+  /** True once the user hand-edits the generated headline — stops further
+   *  template field changes from silently overwriting their edit. */
+  readonly isHighlightManuallyEdited = signal(false);
+
+  // ── Step 5.A: draft / scheduled / publish ───────────────────────────────
+  /** Set when resuming an existing draft/scheduled post — subsequent saves
+   *  update this row instead of creating a new one. */
+  readonly editingPostId = signal<string | null>(null);
+  /** The publish state of the post currently being edited, if any — drives
+   *  the "Move back to draft" action, only shown for a scheduled post. */
+  readonly editingPublishStatus = signal<PublishStatus | null>(null);
+  /** The post's current scheduled_for, shown read-only in the "Editing scheduled post" badge. */
+  readonly editingScheduledFor = signal<string | null>(null);
+  /** Already-uploaded image URLs from a draft being resumed — new files from
+   *  mediaItems are appended to these at save time, not re-uploaded. */
+  readonly existingImages = signal<string[]>([]);
+  readonly showScheduleForm = signal(false);
+  readonly scheduleDate = signal('');
+  readonly scheduleTime = signal('');
 
   readonly canAddMore = computed(() => this.mediaItems().length < MAX_MEDIA);
   readonly maxMedia = MAX_MEDIA;
 
   // ── Form data ────────────────────────────────────────────────────────────
-  /** Every category EXCEPT hot-now — that tag has its own top-right toggle. */
-  readonly personalTags: readonly TagCategory[] = [
-    TagCategory.Around,
-    TagCategory.Dating,
-    TagCategory.Game,
-    TagCategory.Help,
-    TagCategory.Notice,
-    TagCategory.Alert,
-    TagCategory.Poll,
-  ];
-  readonly businessTags: readonly TagCategory[] = [
-    TagCategory.Shop,
-    TagCategory.Biz,
-    TagCategory.Food,
-    TagCategory.Job,
-    TagCategory.Health,
-    TagCategory.Fitness,
-    TagCategory.Learn,
-    TagCategory.Space,
-    TagCategory.Travel,
-    TagCategory.Event,
-  ];
+  readonly personalTags = PERSONAL_TAG_CATEGORIES;
+  readonly businessTags = BUSINESS_TAG_CATEGORIES;
   readonly activeTags = computed(() =>
     this.postType() === 'business' ? this.businessTags : this.personalTags,
   );
   readonly composePrompt = COMPOSE_PROMPTS[Math.floor(Math.random() * COMPOSE_PROMPTS.length)];
+
+  /** True once a business account's tag is locked to their registered
+   *  category — that's the normal case; only pre-migration business
+   *  accounts without a category set fall back to picking one per post. */
+  readonly businessCategoryLocked = computed(
+    () => this.postType() === 'business' && !!this.userSession.user()?.businessCategory,
+  );
+  /** True for a business account that hasn't registered a category yet —
+   *  shown a "set your category first" message instead of an empty picker. */
+  readonly businessCategoryMissing = computed(
+    () => this.postType() === 'business' && !this.userSession.user()?.businessCategory,
+  );
+  /** Business name/category snapshot shown in the preview card. */
+  readonly businessInfo = computed(() => {
+    const u = this.userSession.user();
+    return { name: u?.businessName, category: u?.businessCategory };
+  });
+  /** Structured title from the active template's buildTitle(), if any. */
+  readonly previewTitle = computed(() => {
+    const def = this.activeTemplate();
+    if (this.postType() !== 'business' || !def?.buildTitle) return '';
+    return def.buildTitle(this.templateValues()) || '';
+  });
+  /** Step count shown in the header. Business with locked category:
+   *  template → details → preview (3 steps). Personal: tag → details → preview (3 steps). */
+  readonly totalSteps = computed(() => 3);
+  readonly stepNumber = computed(() => {
+    const s = this.step();
+    if (s === 'tag' || s === 'template') return 1;
+    if (s === 'details') return 2;
+    return 3;
+  });
 
   /** Post lifetime presets — `expiresIn` is minutes app-wide (see LifespanPipe). */
   readonly expiryOptions = [
@@ -320,44 +546,11 @@ export class PostPage implements OnDestroy {
       value === 'today' || value === 'tonight' ? minutesUntilEndOfDay() : value;
   }
 
-  selectPostType(type: PostType): void {
-    this.postType.set(type);
-    this.formData.tag = '';
-    this.formData.headline = '';
-    this.formData.intent = '';
-    this.templateValues.set({});
-    this.showCustomExpiry.set(false);
-    this.step.set('tag');
-  }
-
-  goToKindStep(): void {
-    this.step.set('kind');
-  }
-
   tagLabel(tag: TagCategory): string {
-    const labels: Partial<Record<TagCategory, string>> = {
-      [TagCategory.Around]: 'Local update',
-      [TagCategory.Dating]: 'Meet people',
-      [TagCategory.Game]: 'Games & sports',
-      [TagCategory.Help]: 'Ask for help',
-      [TagCategory.Notice]: 'Notice',
-      [TagCategory.Alert]: 'Alert',
-      [TagCategory.Poll]: 'Poll',
-      [TagCategory.Shop]: 'Shop & retail',
-      [TagCategory.Biz]: 'Service or business',
-      [TagCategory.Food]: 'Food & dining',
-      [TagCategory.Job]: 'Jobs',
-      [TagCategory.Health]: 'Health & care',
-      [TagCategory.Fitness]: 'Fitness',
-      [TagCategory.Learn]: 'Classes',
-      [TagCategory.Space]: 'Space available',
-      [TagCategory.Travel]: 'Travel',
-      [TagCategory.Event]: 'Business event',
-    };
-    return labels[tag] ?? tag;
+    return tagCategoryLabel(tag);
   }
 
-  /** Step 1 → step 2: picking a tag also seeds/resets its quick-fill template. */
+  /** Step 1 → step 2 (personal flow): picking a tag seeds/resets its quick-fill template. */
   selectTag(tag: string): void {
     this.formData.tag = tag;
     this.tagErrorVisible.set(false);
@@ -368,6 +561,111 @@ export class PostPage implements OnDestroy {
   /** "Change category" link on the details step — keeps the current tag pre-selected. */
   goToTagStep(): void {
     this.step.set('tag');
+  }
+
+  /**
+   * Business template picker: user selected a template.
+   * Seeds defaults, restores cached values if any, and advances to details.
+   */
+  onTemplateSelected(template: PostTemplateDefinition): void {
+    // Save current template values to cache before switching.
+    const prev = this.activeTemplate();
+    if (prev) {
+      this.templateValueCache.set(prev.id, { ...this.templateValues() });
+    }
+
+    this.activeTemplate.set(template);
+    // Fresh template selection — any prior manual headline edit no longer applies.
+    this.isHighlightManuallyEdited.set(false);
+
+    // Restore cached values or seed fresh defaults.
+    const cached = this.templateValueCache.get(template.id);
+    const values = cached ? { ...cached } : emptyTemplateValues(template);
+    this.templateValues.set(values);
+
+    // Apply template defaults for intent, CTA, expiry.
+    const defaults = resolveTemplateDefaults(template);
+    if (defaults.intent) this.formData.intent = defaults.intent;
+    if (defaults.cta) this.formData.cta = defaults.cta;
+    if (defaults.expiresIn) this.formData.expiresIn = defaults.expiresIn;
+
+    // Pull price/originalPrice/availability/eventStart-End/cta/intent/expiry
+    // straight from any mapped field values (covers restored cached values).
+    this.applyMappedFieldsFromTemplate(template, values);
+
+    // Re-compose headline from the (possibly cached) values.
+    this.formData.headline = template.buildHighlight(values);
+
+    // Step 5.B: lightweight, non-blocking usage analytics.
+    this.templateAnalytics.recordTemplateSelected(
+      this.formData.tag,
+      template.id,
+      template.version,
+    );
+
+    this.step.set('details');
+  }
+
+  /**
+   * Copies template field values that declare a `mapsTo` onto the universal
+   * formData fields (price, originalPrice, availabilityNote, productLink,
+   * cta, intent, eventStart/eventEnd, expiresIn) so the rest of the composer
+   * (and final Tag submission) sees them without re-deriving from templateData.
+   */
+  private applyMappedFieldsFromTemplate(
+    template: PostTemplateDefinition,
+    values: Record<string, string>,
+  ): void {
+    const { tagFields } = mapTemplateValues(template, values);
+    if (tagFields.price !== undefined) this.formData.price = tagFields.price;
+    if (tagFields.originalPrice !== undefined) this.formData.originalPrice = tagFields.originalPrice;
+    if (tagFields.availabilityNote !== undefined) this.formData.availabilityNote = tagFields.availabilityNote;
+    if (tagFields.productLink !== undefined) this.formData.productLink = tagFields.productLink;
+    if (tagFields.cta !== undefined) this.formData.cta = tagFields.cta as PostCta;
+    if (tagFields.intent !== undefined) this.formData.intent = tagFields.intent as PostIntent;
+    if (tagFields.eventStart !== undefined) {
+      this.formData.eventStart = tagFields.eventStart;
+      this.formData.isEvent = true;
+    }
+    if (tagFields.eventEnd !== undefined) {
+      this.formData.eventEnd = tagFields.eventEnd;
+      this.formData.isEvent = true;
+    }
+    const expiry = resolveExpiry(template, values);
+    if (expiry !== undefined) this.formData.expiresIn = expiry;
+  }
+
+  /** "Set your business category first" screen — goes to the profile route. */
+  goToProfile(): void {
+    void this.router.navigate([AppRoute.Profile]);
+  }
+
+  /** Human label for the currently selected CTA — used in the preview card. */
+  ctaLabel(): string {
+    return this.ctaOptions.find((o) => o.value === this.formData.cta)?.label ?? '';
+  }
+
+  /** "18 Aug, 9:00 am" — never expose the raw ISO scheduled_for value in the UI. */
+  formatScheduledFor(iso: string): string {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  /** "Change post type" — go back to the template picker (business only). */
+  goToTemplatePicker(): void {
+    // Save current values before leaving.
+    const current = this.activeTemplate();
+    if (current) {
+      this.templateValueCache.set(current.id, { ...this.templateValues() });
+    }
+    this.step.set('template');
   }
 
   /**
@@ -396,27 +694,81 @@ export class PostPage implements OnDestroy {
   // ── Quick-fill templates (see data/post-templates.ts) ───────────────────
 
   /**
-   * Plain method, not computed(): `formData` is a POJO so a computed() would
-   * cache the value from the first read and never notice `formData.tag`
-   * changing (same reasoning as `isHotNow()` above).
+   * For personal posts: resolved from the legacy POST_TEMPLATES map.
+   * For business posts: the activeTemplate signal (set via template picker).
    */
-  currentTemplate() {
-    if (this.postType() !== 'business') return undefined;
+  currentTemplate(): PostTemplateDefinition | import('../../data/post-templates').PostTemplate | undefined {
+    if (this.postType() === 'business') {
+      return this.activeTemplate() ?? undefined;
+    }
     return POST_TEMPLATES[this.formData.tag as TagCategory];
   }
 
   private syncTemplateValues(): void {
-    const template = this.currentTemplate();
-    this.templateValues.set(template ? emptyTemplateValues(template) : {});
+    if (this.postType() === 'business') {
+      // Resolve the default template from the registry for this business category.
+      const def = this.templateRegistry.getDefaultTemplate(this.formData.tag);
+      this.activeTemplate.set(def);
+      this.templateValues.set(def ? emptyTemplateValues(def) : {});
+    } else {
+      this.activeTemplate.set(null);
+      const template = POST_TEMPLATES[this.formData.tag as TagCategory];
+      this.templateValues.set(template ? emptyTemplateValues(template) : {});
+    }
   }
 
-  /** Updates one quick-fill field and re-composes the post caption from all of them. */
+  /** Splits a comma-separated multi-select value for the template binding. */
+  splitMultiValue(v: string | undefined): string[] {
+    return (v || '').split(',').filter((s) => s.length > 0);
+  }
+
+  /** Maps extended TemplateFieldType to an HTML input type attribute. */
+  templateFieldInputType(type: string): string {
+    switch (type) {
+      case 'number':
+      case 'price': return 'number';
+      case 'date': return 'date';
+      case 'time': return 'time';
+      case 'datetime': return 'datetime-local';
+      case 'url': return 'url';
+      case 'phone': return 'tel';
+      default: return 'text';
+    }
+  }
+
+  /** Updates one quick-fill field and re-composes the post caption from all of them
+   *  — unless the user has already hand-edited the headline, in which case their
+   *  edit is left alone. */
   onTemplateFieldChange(key: string, value: string): void {
     const next = { ...this.templateValues(), [key]: value };
     this.templateValues.set(next);
 
-    const template = this.currentTemplate();
-    if (template) this.formData.headline = template.buildHighlight(next);
+    if (this.postType() === 'business') {
+      const active = this.activeTemplate();
+      if (active) {
+        this.applyMappedFieldsFromTemplate(active, next);
+        if (!this.isHighlightManuallyEdited()) {
+          this.formData.headline = active.buildHighlight(next);
+        }
+        // Keep the per-template cache in sync.
+        this.templateValueCache.set(active.id, { ...next });
+      }
+    } else {
+      const template = this.currentTemplate();
+      if (template) this.formData.headline = template.buildHighlight(next);
+    }
+  }
+
+  /** Headline textarea change handler — flags a manual edit for business posts
+   *  so subsequent template field changes stop overwriting the user's text. */
+  onHeadlineChange(value: string): void {
+    this.formData.headline = value;
+    if (this.postType() === 'business') this.isHighlightManuallyEdited.set(true);
+  }
+
+  /** Handles the { key, value } event from TemplateFormComponent. */
+  onTemplateFormChange(event: { key: string; value: string }): void {
+    this.onTemplateFieldChange(event.key, event.value);
   }
 
   /** True once every required quick-fill field is filled (or the tag has no template). */
@@ -651,7 +1003,7 @@ export class PostPage implements OnDestroy {
   private validateDetails(f: NgForm): boolean {
     if (!this.formData.tag) {
       this.tagErrorVisible.set(true);
-      this.step.set('tag');
+      this.step.set(this.postType() === 'business' ? 'template' : 'tag');
       this.toast.show('Pick a tag for your post.', 'warning');
       return false;
     }
@@ -685,18 +1037,101 @@ export class PostPage implements OnDestroy {
 
   // ── Submit ───────────────────────────────────────────────────────────────
 
+  /** Personal posts' (ngSubmit) target and the native form-submit fallback for
+   *  business posts — both just publish immediately, same as before Step 5.A. */
   async onSubmit(): Promise<void> {
-    if (this.isSubmitting()) return;
-    if (!this.network.isOnline()) {
-      this.toast.show('You are offline. Connect to the internet before posting.', 'warning');
+    if (this.step() !== 'preview') return;
+    await this.publishNow();
+  }
+
+  /** Preview screen action — publishes immediately (renamed from the old onSubmit body). */
+  async publishNow(): Promise<void> {
+    if (this.step() !== 'preview') return;
+    await this.persistPost('published');
+  }
+
+  /**
+   * Save Draft (Step 5.A) — deliberately the lightest of the three actions:
+   * a draft only needs a post type, nothing else has to be "publicly complete".
+   * Available from the details step (no preview needed) as well as preview.
+   */
+  async saveAsDraft(): Promise<void> {
+    if (!this.formData.tag) {
+      this.toast.show('Pick a post type before saving a draft.', 'warning');
       return;
     }
-    if (this.step() !== 'preview') return;
+    await this.persistPost('draft');
+  }
+
+  openScheduleForm(): void {
+    this.showScheduleForm.set(true);
+  }
+
+  cancelSchedule(): void {
+    this.showScheduleForm.set(false);
+  }
+
+  /** Preview screen action — same completeness bar as Publish Now, just deferred. */
+  async confirmSchedule(): Promise<void> {
+    if (!this.scheduleDate() || !this.scheduleTime()) {
+      this.toast.show('Pick a publish date and time.', 'warning');
+      return;
+    }
+    // new Date('YYYY-MM-DDTHH:MM') parses as local time in every evergreen
+    // browser — toISOString() below then stores the correct absolute instant
+    // regardless of the author's timezone.
+    const local = new Date(`${this.scheduleDate()}T${this.scheduleTime()}`);
+    if (isNaN(local.getTime())) {
+      this.toast.show('That date/time is not valid.', 'warning');
+      return;
+    }
+    if (local.getTime() <= Date.now()) {
+      this.toast.show('Pick a time in the future.', 'warning');
+      return;
+    }
+    await this.persistPost('scheduled', local.toISOString());
+    this.showScheduleForm.set(false);
+  }
+
+  /** Owner-only action while editing a scheduled post: pull it back to draft. */
+  async moveToDraft(): Promise<void> {
+    const id = this.editingPostId();
+    if (!id) return;
+    try {
+      await firstValueFrom(
+        this.tagRepo.update(id, {
+          publishStatus: 'draft',
+          scheduledFor: null,
+          publishedAt: null,
+        }),
+      );
+      this.editingPublishStatus.set('draft');
+      this.toast.show('Moved back to draft.', 'success');
+    } catch (e) {
+      this.logger.error('Failed to move post back to draft', e);
+      this.toast.show('Could not update the post. Please try again.', 'danger');
+    }
+  }
+
+  /**
+   * Core of Save Draft / Schedule / Publish Now — builds the same Tag shape
+   * either way and routes through the existing repository/mapper. Editing an
+   * existing draft/scheduled post updates that row (editingPostId) instead of
+   * creating a new one.
+   */
+  private async persistPost(status: PublishStatus, scheduledFor?: string): Promise<void> {
+    if (this.isSubmitting()) return;
+    if (!this.network.isOnline()) {
+      this.toast.show('You are offline. Connect to the internet before continuing.', 'warning');
+      return;
+    }
+
+    const isDraft = status === 'draft';
 
     let pollOptions: string[] | undefined;
     if (this.isPoll()) {
       pollOptions = this.validPollOptions() ?? undefined;
-      if (!pollOptions) return;
+      if (!pollOptions && !isDraft) return;
     }
 
     if (this.formData.isEvent && this.formData.eventStart && this.formData.eventEnd) {
@@ -707,7 +1142,7 @@ export class PostPage implements OnDestroy {
     }
 
     const coords = this.shared.coordinates();
-    if (!coords) {
+    if (!coords && !isDraft) {
       this.locationErrorVisible.set(true);
       this.triggerLocationShake();
       this.toast.show('Choose a location from the Hood map before posting.', 'warning');
@@ -724,7 +1159,7 @@ export class PostPage implements OnDestroy {
       }
 
       const uid = currentUser.uid;
-      const uploadedUrls: string[] = [];
+      const uploadedUrls: string[] = [...this.existingImages()];
 
       for (const item of this.mediaItems()) {
         try {
@@ -752,6 +1187,8 @@ export class PostPage implements OnDestroy {
         return Number.isFinite(n) ? n : undefined;
       };
 
+      const nowIso = new Date().toISOString();
+
       const tagObject: Tag = {
         username: currentUser.name,
         postType: this.postType(),
@@ -773,32 +1210,100 @@ export class PostPage implements OnDestroy {
             : undefined,
         userId: uid,
         highlight: this.formData.headline,
-        lat: coords[0],
-        lng: coords[1],
+        lat: coords ? coords[0] : 0,
+        lng: coords ? coords[1] : 0,
         hoodId: this.shared.text() || undefined,
         state: this.shared.state() || undefined,
         country: this.shared.country() || undefined,
         locationType: this.shared.locationType(),
         expiresIn: this.formData.expiresIn,
         tag: this.formData.tag,
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
         images: uploadedUrls,
         eventStart: this.formData.isEvent ? this.formData.eventStart || undefined : undefined,
         eventEnd: this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
         pollOptions: pollOptions,
         pollVotes: this.isPoll() ? {} : undefined,
+        // Step 5.A publishing state — expiresIn is anchored on published_at
+        // (DB-side), not draft/schedule creation time.
+        publishStatus: status,
+        publishedAt: status === 'published' ? nowIso : null,
+        scheduledFor: status === 'scheduled' ? scheduledFor : null,
+        // Step 1 template context — stored on every business post.
+        ...(this.postType() === 'business'
+          ? (() => {
+              const activeDef = this.activeTemplate();
+              const rawValues = this.templateValues();
+              const sanitizedData = activeDef
+                ? sanitiseTemplateData(activeDef, rawValues)
+                : {};
+              const builtTitle = activeDef?.buildTitle?.(rawValues) || '';
+              return {
+                postSubtype: activeDef?.id,
+                templateVersion: activeDef?.version,
+                // Prefer the template's structured title; fall back to the headline.
+                title: builtTitle || this.formData.headline.trim() || undefined,
+                templateData: Object.keys(sanitizedData).length ? sanitizedData : undefined,
+              };
+            })()
+          : {}),
       };
 
-      await firstValueFrom(this.tagRepo.create(tagObject));
-      this.telemetry.track('activation.post-created', { kind: tagObject.tag ?? 'tag' });
-      this.submitted.emit(tagObject);
-      this.showPublishedPostInFeed(tagObject);
-      this.resetForm();
-      this.toast.show('Published to your local feed.', 'success');
-      void this.router.navigate([AppRoute.FeedBeta]);
+      const existingId = this.editingPostId();
+      const saved = await firstValueFrom(
+        existingId ? this.tagRepo.update(existingId, tagObject) : this.tagRepo.create(tagObject),
+      );
+
+      // Step 5.B: record only after the post itself successfully exists — a
+      // failed publish is never recorded as published. Business posts only;
+      // personal posts have no template category to attribute the event to.
+      if (this.postType() === 'business') {
+        const activeDef = this.activeTemplate();
+        if (status === 'published') {
+          this.templateAnalytics.recordPublished(
+            this.formData.tag,
+            activeDef?.id,
+            activeDef?.version,
+            saved.id,
+          );
+        } else if (status === 'draft') {
+          this.templateAnalytics.recordDraftSaved(
+            this.formData.tag,
+            activeDef?.id,
+            activeDef?.version,
+            saved.id,
+          );
+        } else {
+          this.templateAnalytics.recordScheduled(
+            this.formData.tag,
+            activeDef?.id,
+            activeDef?.version,
+            saved.id,
+          );
+        }
+      }
+
+      if (status === 'published') {
+        this.telemetry.track('activation.post-created', { kind: saved.tag ?? 'tag' });
+        this.submitted.emit(saved);
+        this.showPublishedPostInFeed(saved);
+        this.resetForm();
+        this.toast.show(
+          existingId ? 'Post published.' : 'Published to your local feed.',
+          'success',
+        );
+        void this.router.navigate([AppRoute.FeedBeta]);
+      } else {
+        this.resetForm();
+        this.toast.show(
+          status === 'draft' ? 'Saved as draft.' : 'Post scheduled.',
+          'success',
+        );
+        void this.router.navigate([AppRoute.Profile]);
+      }
     } catch (e) {
       this.logger.error('Error saving tag', e);
-      this.toast.show('Failed to post tag. Please try again.', 'danger');
+      this.toast.show('Failed to save post. Please try again.', 'danger');
     } finally {
       this.isSubmitting.set(false);
     }
@@ -808,6 +1313,22 @@ export class PostPage implements OnDestroy {
     this.resetForm();
     this.discarded.emit();
     void this.router.navigate([AppRoute.Hood]);
+  }
+
+  /** Delete the draft/scheduled post currently being edited — same repository
+   *  deletion path as any other post, no separate drafts system. */
+  async deleteCurrentPost(): Promise<void> {
+    const id = this.editingPostId();
+    if (!id) return;
+    try {
+      await firstValueFrom(this.tagRepo.delete(id));
+      this.toast.show('Deleted.', 'success');
+      this.resetForm();
+      void this.router.navigate([AppRoute.Profile]);
+    } catch (e) {
+      this.logger.error('Failed to delete post', e);
+      this.toast.show('Could not delete the post. Please try again.', 'danger');
+    }
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -837,7 +1358,18 @@ export class PostPage implements OnDestroy {
     this.shakeLocation.set(false);
     this.tagErrorVisible.set(false);
     this.templateValues.set({});
+    this.activeTemplate.set(null);
+    this.templateValueCache.clear();
+    this.isHighlightManuallyEdited.set(false);
     this.showCustomExpiry.set(false);
+    // Step 5.A
+    this.editingPostId.set(null);
+    this.editingPublishStatus.set(null);
+    this.editingScheduledFor.set(null);
+    this.existingImages.set([]);
+    this.showScheduleForm.set(false);
+    this.scheduleDate.set('');
+    this.scheduleTime.set('');
     // Back to the account's default post type, straight to the Tag step —
     // same auto-skip logic as a fresh page load.
     this.postType.set(this.userSession.user()?.accountType ?? 'personal');
@@ -862,9 +1394,11 @@ export class PostPage implements OnDestroy {
           ? 'dating'
           : tag === 'game' || tag === 'fitness'
             ? 'game'
-            : tag === 'job' || tag === 'biz'
+            : tag === 'job' || tag === 'biz' || tag === 'service' || tag === 'auto'
               ? 'job'
-              : 'around';
+              : tag === 'beauty' || tag === 'health' || tag === 'space' || tag === 'travel' || tag === 'event' || tag === 'learn'
+                ? 'around'
+                : 'around';
 
     this.workspace.feedBetaScope.set({
       areaId,

@@ -21,9 +21,15 @@ import { SocialInteractionsService } from '../../../../core/services/social-inte
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
+import { TagCategory } from '../../../../core/enums/tag-category.enum';
+import {
+  BUSINESS_TAG_CATEGORIES,
+  tagCategoryLabel,
+} from '../../../../shared/constants/business-tags';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
+import { BusinessPostContentComponent } from '../../../post/components/business-post-content/business-post-content.component';
 import { coverGradient, avatarBg } from '../../../../shared/utils/color.utils';
 import { ThemeService, AppTheme } from '../../../../core/services/theme.service';
 import {
@@ -82,7 +88,14 @@ const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   selector: 'app-profile',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, TagGradientPipe, TagEmojiPipe, EmptyStateComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    TagGradientPipe,
+    TagEmojiPipe,
+    EmptyStateComponent,
+    BusinessPostContentComponent,
+  ],
   templateUrl: './profile.html',
   styleUrls: ['./profile.scss'],
 })
@@ -120,6 +133,9 @@ export class ProfilePage implements OnInit {
   editBusinessName = signal('');
   editBusinessPhone = signal('');
   editBusinessWebsite = signal('');
+  editBusinessCategory = signal<TagCategory | ''>('');
+  readonly businessTags = BUSINESS_TAG_CATEGORIES;
+  readonly tagCategoryLabel = tagCategoryLabel;
   profileSaving = signal(false);
   deletingAccount = signal(false);
   allTags = signal<Tag[]>([]);
@@ -222,12 +238,22 @@ export class ProfilePage implements OnInit {
       this.editBusinessName.set(user?.businessName ?? '');
       this.editBusinessPhone.set(user?.businessPhone ?? '');
       this.editBusinessWebsite.set(user?.businessWebsite ?? '');
+      this.editBusinessCategory.set((user?.businessCategory as TagCategory) ?? '');
     }
     this.editMode.set(opening);
   }
+
+  selectBusinessCategory(tag: TagCategory): void {
+    this.editBusinessCategory.set(tag);
+  }
+
   async saveProfile(): Promise<void> {
     if (!this.editName().trim()) {
       this.toast.show('Display name is required.', 'warning');
+      return;
+    }
+    if (this.isBusinessAccount() && !this.editBusinessCategory()) {
+      this.toast.show('Pick a business category.', 'warning');
       return;
     }
     this.profileSaving.set(true);
@@ -237,6 +263,7 @@ export class ProfilePage implements OnInit {
         businessName: this.editBusinessName(),
         businessPhone: this.editBusinessPhone(),
         businessWebsite: this.editBusinessWebsite(),
+        businessCategory: this.editBusinessCategory(),
       });
     }
     this.profileSaving.set(false);
@@ -261,16 +288,39 @@ export class ProfilePage implements OnInit {
     });
   }
 
-  /** Not expired and not manually ended — same rule the live feeds use. */
+  /** Not expired and not manually ended — same rule the live feeds use.
+   *  Step 5.A: expiry is anchored on publication time, not draft/creation time. */
   private isPostLive(tag: Tag): boolean {
     if (tag.currentStatus && tag.currentStatus !== 'active') return false;
-    const createdMs = new Date(tag.createdAt).getTime();
-    if (Number.isNaN(createdMs)) return true;
-    return createdMs + tag.expiresIn * 60_000 > Date.now();
+    const anchor = tag.publishedAt ?? tag.createdAt;
+    const anchorMs = new Date(anchor).getTime();
+    if (Number.isNaN(anchorMs)) return true;
+    return anchorMs + tag.expiresIn * 60_000 > Date.now();
   }
 
-  readonly activePosts = computed(() => this.myTags().filter((t) => this.isPostLive(t)));
-  readonly expiredPosts = computed(() => this.myTags().filter((t) => !this.isPostLive(t)));
+  /** True for a normal published post — draft/scheduled posts get their own
+   *  section instead of mixing into Active/Expired (Step 5.A). */
+  private isPublished(tag: Tag): boolean {
+    return !tag.publishStatus || tag.publishStatus === 'published';
+  }
+
+  readonly activePosts = computed(() =>
+    this.myTags().filter((t) => this.isPublished(t) && this.isPostLive(t)),
+  );
+  readonly expiredPosts = computed(() =>
+    this.myTags().filter((t) => this.isPublished(t) && !this.isPostLive(t)),
+  );
+  /** Step 5.A: the owner's own unfinished posts — never shown to anyone else. */
+  readonly draftPosts = computed(() => this.myTags().filter((t) => t.publishStatus === 'draft'));
+  readonly scheduledPosts = computed(() =>
+    this.myTags().filter((t) => t.publishStatus === 'scheduled'),
+  );
+
+  /** "Continue editing" on a draft/scheduled post — routes back into the full composer. */
+  continueEditing(tag: Tag): void {
+    if (!tag.id) return;
+    void this.router.navigate(['/post'], { queryParams: { draftId: tag.id } });
+  }
 
   private patchMyTag(id: string, patch: Partial<Tag>): void {
     this.myTags.update((tags) => tags.map((t) => (t.id === id ? { ...t, ...patch } : t)));

@@ -97,6 +97,61 @@
   color: var(--tm-text-secondary);
 }
 
+.edit-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--tm-muted);
+}
+
+.tag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tag-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1.5px solid var(--tm-border);
+  border-radius: 14px;
+  background: var(--tm-bg);
+  color: var(--tm-text);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    border-color: var(--tm-primary);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &.tag-card--active {
+    border-color: var(--tm-primary);
+    background: var(--tm-primary);
+    color: #fff;
+  }
+}
+
+.tag-card-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tag-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* ── Stats ──────────────────────────────── */
 .profile-stats {
   display: flex;
@@ -199,6 +254,17 @@
   color: var(--tm-primary-text);
   font-size: 12px;
   font-weight: 800;
+}
+
+.draft-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  opacity: 0.9;
 }
 
 .post-card-media {

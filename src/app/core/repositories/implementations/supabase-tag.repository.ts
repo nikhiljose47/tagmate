@@ -26,6 +26,7 @@ export class SupabaseTagRepository implements ITagRepository {
       search?: string;
       excludeTag?: string;
       hoodId?: string;
+      postSubtype?: string;
     },
     limit?: number,
     offset?: number,
@@ -35,8 +36,13 @@ export class SupabaseTagRepository implements ITagRepository {
       .pipe(map(({ data }) => (data ?? []).map(rowToTag)));
   }
 
-  getPaginated(limit: number, offset: number, search?: string): Observable<Tag[]> {
-    return this.tagData.getLatestPaginated<TagRow>('tags', limit, offset, search).pipe(
+  getPaginated(
+    limit: number,
+    offset: number,
+    search?: string,
+    scope?: { tag?: string; postSubtype?: string },
+  ): Observable<Tag[]> {
+    return this.tagData.getLatestPaginated<TagRow>('tags', limit, offset, search, scope).pipe(
       retry({ count: 3, delay: 2000 }),
       map(({ data }) => (data ?? []).map(rowToTag)),
     );
@@ -94,6 +100,17 @@ export class SupabaseTagRepository implements ITagRepository {
     if (partial.comments !== undefined) row.comments = partial.comments;
     if (partial.pollOptions !== undefined) row.poll_options = partial.pollOptions;
     if (partial.pollVotes !== undefined) row.poll_votes = partial.pollVotes;
+    if (partial.eventStart !== undefined) row.event_start = partial.eventStart;
+    if (partial.eventEnd !== undefined) row.event_end = partial.eventEnd;
+    // Step 1 template fields
+    if (partial.postSubtype !== undefined) row.post_subtype = partial.postSubtype;
+    if (partial.templateVersion !== undefined) row.template_version = partial.templateVersion;
+    if (partial.title !== undefined) row.title = partial.title;
+    if (partial.templateData !== undefined) row.template_data = partial.templateData;
+    // Step 5.A publishing state — updated_at is trigger-maintained, never client-set.
+    if (partial.publishStatus !== undefined) row.publish_status = partial.publishStatus;
+    if (partial.publishedAt !== undefined) row.published_at = partial.publishedAt;
+    if (partial.scheduledFor !== undefined) row.scheduled_for = partial.scheduledFor;
 
     return this.tagData.updateRow<TagRow>('tags', id, row).pipe(
       map(({ data, error }) => {

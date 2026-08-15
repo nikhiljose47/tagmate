@@ -60,7 +60,10 @@ export class PublicProfilePage implements OnInit {
     }
     this.profile.set(profile);
     try {
-      this.posts.set(await firstValueFrom(this.tagRepo.getByUserId(uid)));
+      const allPosts = await firstValueFrom(this.tagRepo.getByUserId(uid));
+      // Step 5.A: a public profile only ever shows published posts — even when
+      // viewing your own, so it matches what everyone else actually sees.
+      this.posts.set(allPosts.filter((p) => !p.publishStatus || p.publishStatus === 'published'));
     } finally {
       this.loading.set(false);
     }

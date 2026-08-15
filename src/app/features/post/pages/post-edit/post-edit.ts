@@ -58,6 +58,14 @@ export class PostEditComponent implements OnInit {
           return;
         }
 
+        // Step 5.A: a draft/scheduled post needs its template fields editable,
+        // not just the headline — route it back into the full composer instead
+        // of this headline-only editor. Published-post editing stays as-is.
+        if (tag.publishStatus === 'draft' || tag.publishStatus === 'scheduled') {
+          void this.router.navigate(['/post'], { queryParams: { draftId: id } });
+          return;
+        }
+
         this.post.set(tag);
         this.headline.set(tag.highlight);
         this.isLoading.set(false);

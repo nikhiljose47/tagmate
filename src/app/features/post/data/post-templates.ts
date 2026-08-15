@@ -176,6 +176,89 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
       ]),
   },
 
+  [TagCategory.Service]: {
+    intro: 'What service are you offering?',
+    fields: [
+      {
+        key: 'service',
+        label: 'Service',
+        type: 'select',
+        required: true,
+        options: [
+          'Electrician',
+          'Plumber',
+          'Carpenter',
+          'AC repair',
+          'Appliance repair',
+          'Cleaning',
+          'Pest control',
+          'Painter',
+          'Freelance work',
+          'Other service',
+        ],
+      },
+      {
+        key: 'availability',
+        label: 'Availability',
+        type: 'select',
+        required: true,
+        options: ['Available now', 'Slot open today', 'By appointment'],
+      },
+      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹300' },
+      {
+        key: 'area',
+        label: 'Service area (optional)',
+        type: 'text',
+        placeholder: 'e.g. Whitefield, Marathahalli',
+      },
+    ],
+    buildHighlight: (v) =>
+      line([
+        `🛠️ ${v['service']} — ${v['availability']}`,
+        v['price'],
+        has(v, 'area') ? `Area: ${v['area']}` : undefined,
+      ]),
+  },
+
+  [TagCategory.Beauty]: {
+    intro: 'What beauty or wellness service is available?',
+    fields: [
+      {
+        key: 'service',
+        label: 'Service',
+        type: 'select',
+        required: true,
+        options: [
+          'Haircut',
+          'Hair colour / styling',
+          'Facial',
+          'Waxing',
+          'Bridal makeup',
+          'Manicure / pedicure',
+          'Spa / massage',
+          'Beard trim',
+          'Other salon service',
+        ],
+      },
+      {
+        key: 'availability',
+        label: 'Availability',
+        type: 'select',
+        required: true,
+        options: ['Available now', 'Slot open today', 'Book for later'],
+      },
+      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹250' },
+      {
+        key: 'note',
+        label: 'Extra detail (optional)',
+        type: 'text',
+        placeholder: 'e.g. Walk-ins welcome, ladies only',
+      },
+    ],
+    buildHighlight: (v) =>
+      line([`💇 ${v['service']} — ${v['availability']}`, v['price'], v['note']]),
+  },
+
   [TagCategory.Health]: {
     intro: 'What care or appointment is available?',
     fields: [
@@ -185,11 +268,11 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
         type: 'select',
         required: true,
         options: [
-          'Haircut',
-          'Salon service',
           'Clinic appointment',
           'Dental appointment',
-          'Therapy session',
+          'Pharmacy',
+          'Diagnostics / lab',
+          'Physiotherapy',
           'Home care',
           'Other care service',
         ],
@@ -201,7 +284,7 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
         required: true,
         options: ['Available now', 'Slot open today', 'Book for later'],
       },
-      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. 250' },
+      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹250' },
       {
         key: 'note',
         label: 'Extra detail (optional)',
@@ -209,7 +292,8 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
         placeholder: 'e.g. Walk-ins welcome',
       },
     ],
-    buildHighlight: (v) => line([`${v['service']} - ${v['availability']}`, v['price'], v['note']]),
+    buildHighlight: (v) =>
+      line([`🏥 ${v['service']} — ${v['availability']}`, v['price'], v['note']]),
   },
 
   [TagCategory.Fitness]: {
@@ -371,43 +455,55 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
   },
 
   [TagCategory.Learn]: {
-    intro: "What's the skill, and what kind of session?",
+    intro: "What's being taught?",
     fields: [
       {
         key: 'skill',
-        label: 'Skill / subject',
+        label: 'Subject / skill',
         type: 'text',
         required: true,
-        placeholder: 'e.g. Guitar basics',
+        placeholder: 'e.g. Guitar basics, NEET coaching',
       },
       {
         key: 'sessionType',
         label: 'Type',
         type: 'select',
         required: true,
-        options: ['Tuition', 'Workshop', 'Skill exchange', 'Study group', 'Language practice'],
+        options: [
+          'Tuition',
+          'Coaching / batch',
+          'Workshop',
+          'Music / dance class',
+          'Language class',
+          'Skill training',
+          'Study group',
+        ],
       },
       { key: 'when', label: 'When (optional)', type: 'text', placeholder: 'e.g. Weekday evenings' },
+      { key: 'fee', label: 'Fee (optional)', type: 'text', placeholder: 'e.g. ₹2000/month' },
     ],
-    buildHighlight: (v) => line([`📚 ${v['skill']} — ${v['sessionType']}`, v['when']]),
+    buildHighlight: (v) =>
+      line([`📚 ${v['skill']} — ${v['sessionType']}`, v['when'], v['fee']]),
   },
 
-  [TagCategory.Space]: {
-    intro: "What's available, and when?",
+  [TagCategory.Auto]: {
+    intro: 'What automotive service is available?',
     fields: [
       {
-        key: 'spaceType',
-        label: 'Space',
+        key: 'service',
+        label: 'Service',
         type: 'select',
         required: true,
         options: [
-          'Room',
-          'Meeting room',
-          'Coworking desk',
-          'Sports court/turf',
-          'Parking',
-          'Storage',
-          'Venue',
+          'Car wash',
+          'Bike wash',
+          'General service',
+          'Tyre / puncture',
+          'Denting & painting',
+          'Accessories',
+          'Vehicle rental',
+          'Towing',
+          'Other auto service',
         ],
       },
       {
@@ -415,43 +511,105 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
         label: 'Availability',
         type: 'select',
         required: true,
-        options: ['Available now', 'Available today', 'By booking'],
+        options: ['Available now', 'Slot open today', 'By appointment'],
       },
-      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹500/hour' },
+      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹200' },
+      {
+        key: 'note',
+        label: 'Extra detail (optional)',
+        type: 'text',
+        placeholder: 'e.g. Doorstep service, no wait',
+      },
     ],
-    buildHighlight: (v) => line([`🔑 ${v['spaceType']} — ${v['availability']}`, v['price']]),
+    buildHighlight: (v) =>
+      line([`🚗 ${v['service']} — ${v['availability']}`, v['price'], v['note']]),
+  },
+
+  [TagCategory.Space]: {
+    intro: "What's available?",
+    fields: [
+      {
+        key: 'spaceType',
+        label: 'Space type',
+        type: 'select',
+        required: true,
+        options: [
+          'Room for rent',
+          'Office space',
+          'Shop for rent',
+          'Coworking desk',
+          'Hall / venue',
+          'Parking',
+          'Storage',
+          'PG / hostel',
+        ],
+      },
+      {
+        key: 'availability',
+        label: 'Availability',
+        type: 'select',
+        required: true,
+        options: ['Available now', 'Available this month', 'By booking'],
+      },
+      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹8000/month' },
+      {
+        key: 'location',
+        label: 'Location / area (optional)',
+        type: 'text',
+        placeholder: 'e.g. Koramangala 4th Block',
+      },
+    ],
+    buildHighlight: (v) =>
+      line([
+        `🏠 ${v['spaceType']} — ${v['availability']}`,
+        v['price'],
+        has(v, 'location') ? v['location'] : undefined,
+      ]),
   },
 
   [TagCategory.Travel]: {
-    intro: "What's the trip?",
+    intro: "What's available for travellers?",
     fields: [
       {
         key: 'serviceType',
         label: 'Service',
         type: 'select',
         required: true,
-        options: ['Taxi', 'Carpool', 'Driver', 'Rental', 'Local guide', 'Shared trip'],
+        options: [
+          'Hotel / homestay',
+          'Resort',
+          'Tour package',
+          'Travel agent service',
+          'Cab / taxi',
+          'Vehicle rental',
+          'Local guide',
+        ],
       },
       {
-        key: 'route',
-        label: 'Route',
+        key: 'details',
+        label: 'Details',
         type: 'text',
         required: true,
-        placeholder: 'e.g. Airport to Whitefield',
+        placeholder: 'e.g. 2-night Coorg package, pickup included',
       },
-      { key: 'when', label: 'When (optional)', type: 'text', placeholder: 'e.g. Today 6 AM' },
-      { key: 'seats', label: 'Seats available (optional)', type: 'number', placeholder: 'e.g. 2' },
+      { key: 'price', label: 'Price (optional)', type: 'text', placeholder: 'e.g. ₹4500/night' },
+      {
+        key: 'validUntil',
+        label: 'Valid until (optional)',
+        type: 'text',
+        placeholder: 'e.g. This weekend only',
+      },
     ],
     buildHighlight: (v) =>
       line([
-        `🚗 ${v['serviceType']} — ${v['route']}`,
-        v['when'],
-        has(v, 'seats') ? `${v['seats']} seat(s) left` : undefined,
+        `✈️ ${v['serviceType']} — ${v['details']}`,
+        v['price'],
+        has(v, 'validUntil') ? `Valid: ${v['validUntil']}` : undefined,
       ]),
   },
 
   [TagCategory.Biz]: {
-    intro: 'Share a service slot, opening, arrival, or business update.',
+    intro: 'Share a professional service update.',
     fields: [
       {
         key: 'updateType',
@@ -459,38 +617,37 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
         type: 'select',
         required: true,
         options: [
-          'Service slot available',
-          'New business opened',
-          'New arrival',
-          'Discount or offer',
+          'Consultation available',
+          'New service launched',
           'Bookings open',
+          'Offer / discount',
           'Walk-ins available',
-          'Supplier needed',
-          'Equipment available',
+          'Looking for clients',
+          'Partnership / collab',
         ],
       },
       {
         key: 'service',
-        label: 'Business or service',
+        label: 'Service / business',
         type: 'text',
         required: true,
-        placeholder: 'e.g. Bike wash, salon, tailoring',
+        placeholder: 'e.g. Tax filing, web development, legal advice',
       },
       {
         key: 'availability',
         label: 'When (optional)',
         type: 'text',
-        placeholder: 'e.g. Today until 7 PM',
+        placeholder: 'e.g. Weekdays 10 AM–6 PM',
       },
       {
         key: 'details',
         label: 'Extra detail (optional)',
         type: 'text',
-        placeholder: 'e.g. No wait, call or walk in',
+        placeholder: 'e.g. First consultation free',
       },
     ],
     buildHighlight: (v) =>
-      line([`${v['service']} - ${v['updateType']}`, v['availability'], v['details']]),
+      line([`🏢 ${v['service']} — ${v['updateType']}`, v['availability'], v['details']]),
   },
 
   [TagCategory.Alert]: {

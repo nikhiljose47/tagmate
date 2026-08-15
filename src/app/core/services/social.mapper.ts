@@ -12,7 +12,7 @@ export interface UserRow {
   email?: string | null;
   is_guest: boolean;
   reputation: number | null;
-  bio: string | null;
+  bio?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   home_state?: string | null;
@@ -26,6 +26,7 @@ export interface UserRow {
   business_name?: string | null;
   business_phone?: string | null;
   business_website?: string | null;
+  business_category?: string | null;
 }
 
 /** `post_comments` row (snake_case, matches the Supabase table). */

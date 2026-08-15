@@ -8,47 +8,25 @@
           <span>{{ postType() === 'business' ? 'Business post' : 'Personal post' }}</span>
         </div>
       </div>
-      <span class="step-count">
-        @if (step() === 'kind') { 1 of 4 } @if (step() === 'tag') { 2 of 4 } @if (step() ===
-        'details') { 3 of 4 } @if (step() === 'preview') { 4 of 4 }
-      </span>
+      <span class="step-count"> {{ stepNumber() }} of {{ totalSteps() }} </span>
     </header>
 
-    @if (step() === 'kind') {
-    <section class="kind-step">
-      <p class="step-eyebrow">Create a post</p>
-      <h1>What are you sharing?</h1>
-      <p class="step-subtitle">Choose a post type. Anyone can create either one.</p>
-
-      <div class="kind-options">
-        <button type="button" class="kind-option" (click)="selectPostType('personal')">
-          <span class="kind-icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
-          <span>
-            <strong>Personal</strong>
-            <small>Share an update, ask for help, meet people, or start a poll.</small>
-          </span>
-          <i class="bi bi-arrow-right" aria-hidden="true"></i>
-        </button>
-        <button
-          type="button"
-          class="kind-option kind-option--business"
-          (click)="selectPostType('business')"
-        >
-          <span class="kind-icon"><i class="bi bi-shop-window" aria-hidden="true"></i></span>
-          <span>
-            <strong>Business</strong>
-            <small>Post an arrival, discount, open slot, service, or new opening.</small>
-          </span>
-          <i class="bi bi-arrow-right" aria-hidden="true"></i>
-        </button>
-      </div>
-    </section>
-    } @if (step() === 'tag') {
+    @if (businessCategoryMissing()) {
+    <!-- ── Business account with no registered category ─────────────────── -->
     <section class="step-tag">
-      <button type="button" class="step-back" (click)="goToKindStep()">
-        <i class="bi bi-arrow-left" aria-hidden="true"></i>
-        Post type
+      <h1 class="step-title">Set your business category first</h1>
+      <p class="step-subtitle">
+        Your account needs a registered business category before you can create a business post.
+      </p>
+      <button type="button" class="post-btn" (click)="goToProfile()">
+        Go to profile <i class="bi bi-arrow-right" aria-hidden="true"></i>
       </button>
+    </section>
+    } @else {
+
+    <!-- ── Step 1a: Tag picker (personal flow — unchanged) ──────────────── -->
+    @if (step() === 'tag') {
+    <section class="step-tag">
       <h1 class="step-title">
         {{ postType() === 'business' ? 'What is the business update?' : 'What is your post about?'
         }}
@@ -57,23 +35,6 @@
         {{ postType() === 'business' ? 'Pick the closest tag and we will build the post with you.' :
         'Pick a tag for your local feed.' }}
       </p>
-
-      @if (postType() === 'business') {
-      <div class="intent-row" role="radiogroup" aria-label="What are you offering">
-        @for (option of intentOptions; track option.value) {
-        <button
-          type="button"
-          class="intent-chip"
-          [class.intent-chip--active]="formData.intent === option.value"
-          (click)="selectIntent(option.value)"
-        >
-          <i class="bi" [class]="option.icon" aria-hidden="true"></i>
-          {{ option.label }}
-        </button>
-        }
-      </div>
-      <p class="step-subtitle step-subtitle--tight">Then pick the closest category:</p>
-      }
 
       <div class="tag-grid" role="radiogroup" aria-label="Post tag">
         @for (tag of activeTags(); track tag) {
@@ -100,17 +61,59 @@
       </button>
       }
     </section>
-    } @if (step() === 'details') {
+    }
+
+    <!-- ── Step 1b: Template picker (business flow) ─────────────────────── -->
+    @if (step() === 'template') {
+    <section>
+      <app-business-template-picker
+        [category]="formData.tag"
+        (templateSelected)="onTemplateSelected($event)"
+      />
+
+      <button type="button" class="post-as-personal-link" (click)="switchToPersonalMode()">
+        Post as personal instead
+      </button>
+    </section>
+    }
+
+    <!-- ── Step 2: Details ──────────────────────────────────────────────── -->
+    @if (step() === 'details') {
     <section class="details-step">
       <div class="step-details-head">
+        @if (postType() === 'business') {
+        <button type="button" class="step-back" (click)="goToTemplatePicker()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
+          Change post type
+        </button>
+        } @else if (!businessCategoryLocked()) {
         <button type="button" class="step-back" (click)="goToTagStep()">
           <i class="bi bi-arrow-left" aria-hidden="true"></i>
           Change tag
         </button>
-        <span class="step-details-tag"
-          >{{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }}</span
-        >
+        }
+        <span class="step-details-tag">
+          @if (postType() === 'business' && activeTemplate(); as tpl) {
+            {{ tpl.icon || '📝' }} {{ tpl.label }}
+          } @else {
+            {{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }}
+          }
+        </span>
       </div>
+
+      <!-- Business: template-driven form (replaces old intent chips + business fields) -->
+      @if (postType() === 'business' && activeTemplate(); as tpl) {
+        <app-template-form
+          [template]="tpl"
+          [values]="templateValues()"
+          (valueChange)="onTemplateFormChange($event)"
+        />
+      }
+
+      <!-- Personal: intent chips (unchanged) -->
+      @if (postType() === 'personal' && !isHotNow()) {
+        <!-- Personal posts don't show intent chips — they use the tag-based flow -->
+      }
 
       @if (isHotNow()) {
       <div class="hot-now-block">
@@ -130,7 +133,10 @@
           </button>
         </div>
       </div>
-      } @if (currentTemplate(); as template) {
+      }
+
+      <!-- Personal: legacy quick-fill template (unchanged) -->
+      @if (postType() === 'personal' && currentTemplate(); as template) {
       <div class="quick-fill-card">
         <div class="quick-fill-head">
           <i class="bi bi-stars" aria-hidden="true"></i>
@@ -156,15 +162,52 @@
               <option [value]="option">{{ option }}</option>
               }
             </select>
-            } @else {
-            <input
+            } @else if (field.type === 'multi-select') {
+            <select
               class="tm-input"
-              [type]="field.type === 'number' ? 'number' : 'text'"
+              multiple
+              [ngModel]="splitMultiValue(templateValues()[field.key])"
+              (ngModelChange)="onTemplateFieldChange(field.key, $any($event).join(','))"
+              [name]="'tpl_' + field.key"
+              [required]="field.required ?? false"
+            >
+              @for (option of field.options; track option) {
+              <option [value]="option">{{ option }}</option>
+              }
+            </select>
+            } @else if (field.type === 'textarea') {
+            <textarea
+              class="tm-input"
+              rows="3"
               [placeholder]="field.placeholder || ''"
               [ngModel]="templateValues()[field.key]"
               (ngModelChange)="onTemplateFieldChange(field.key, $event)"
               [name]="'tpl_' + field.key"
               [required]="field.required ?? false"
+              [maxlength]="$any(field).maxLength ?? 500"
+            ></textarea>
+            } @else if (field.type === 'toggle') {
+            <label class="quick-fill-toggle">
+              <input
+                type="checkbox"
+                [ngModel]="templateValues()[field.key] === 'true'"
+                (ngModelChange)="onTemplateFieldChange(field.key, $event ? 'true' : 'false')"
+                [name]="'tpl_' + field.key"
+              />
+              <span>{{ field.placeholder || 'Yes' }}</span>
+            </label>
+            } @else {
+            <input
+              class="tm-input"
+              [type]="templateFieldInputType(field.type)"
+              [placeholder]="field.placeholder || ''"
+              [ngModel]="templateValues()[field.key]"
+              (ngModelChange)="onTemplateFieldChange(field.key, $event)"
+              [name]="'tpl_' + field.key"
+              [required]="field.required ?? false"
+              [min]="$any(field).min ?? null"
+              [max]="$any(field).max ?? null"
+              [maxlength]="$any(field).maxLength ?? null"
             />
             }
           </label>
@@ -197,7 +240,8 @@
             #headline="ngModel"
             class="headline-input"
             [placeholder]="composePrompt"
-            [(ngModel)]="formData.headline"
+            [ngModel]="formData.headline"
+            (ngModelChange)="onHeadlineChange($event)"
             name="headline"
             required
             maxlength="280"
@@ -212,67 +256,9 @@
         }
       </div>
 
-      @if (postType() === 'business') {
-      <div class="business-fields">
-        <div class="business-fields-row">
-          <label class="field-group">
-            <span class="field-title">Price (optional)</span>
-            <input
-              class="tm-input"
-              type="number"
-              inputmode="decimal"
-              placeholder="e.g. 99"
-              [(ngModel)]="formData.price"
-              name="price"
-            />
-          </label>
-          <label class="field-group">
-            <span class="field-title">Original price (optional)</span>
-            <input
-              class="tm-input"
-              type="number"
-              inputmode="decimal"
-              placeholder="For a discount"
-              [(ngModel)]="formData.originalPrice"
-              name="originalPrice"
-            />
-          </label>
-        </div>
-
-        <label class="field-group">
-          <span class="field-title">Availability (optional)</span>
-          <input
-            class="tm-input"
-            type="text"
-            placeholder="e.g. 3 slots left, Fully booked…"
-            maxlength="60"
-            [(ngModel)]="formData.availabilityNote"
-            name="availabilityNote"
-          />
-        </label>
-
-        <details class="more-options">
-          <summary>More options</summary>
-          <label class="field-group">
-            <span class="field-title">Customer action</span>
-            <select class="tm-input" [(ngModel)]="formData.cta" name="cta">
-              @for (option of ctaOptions; track option.value) {
-              <option [ngValue]="option.value">{{ option.label }}</option>
-              }
-            </select>
-          </label>
-          <label class="field-group">
-            <span class="field-title">Product/service link</span>
-            <input
-              class="tm-input"
-              type="url"
-              placeholder="https://…"
-              [(ngModel)]="formData.productLink"
-              name="productLink"
-            />
-          </label>
-        </details>
-      </div>
+      <!-- Business fields: only shown for personal-mode business posts (legacy) -->
+      @if (postType() === 'personal') {
+        <!-- Personal posts don't have price/CTA fields -->
       }
 
       <div class="media-section">
@@ -446,6 +432,12 @@
       </div>
       }
 
+      @if (postType() === 'business') {
+      <button type="button" class="post-as-personal-link" (click)="switchToPersonalMode()">
+        Post as personal instead
+      </button>
+      }
+
       <div class="form-foot">
         <div class="foot-left">
           <label class="event-toggle event-toggle--foot">
@@ -477,13 +469,26 @@
           >
             <i class="bi bi-trash"></i>
           </button>
+          @if (postType() === 'business') {
+          <button
+            type="button"
+            class="secondary-btn"
+            [disabled]="isSubmitting()"
+            (click)="saveAsDraft()"
+          >
+            Save draft
+          </button>
+          }
           <button type="button" class="post-btn" (click)="openPreview(f)">
             Preview <i class="bi bi-arrow-right" aria-hidden="true"></i>
           </button>
         </div>
       </div>
     </section>
-    } @if (step() === 'preview') {
+    }
+
+    <!-- ── Step 3: Preview ──────────────────────────────────────────────── -->
+    @if (step() === 'preview') {
     <section class="preview-step">
       <div class="preview-heading">
         <button type="button" class="step-back" (click)="editPost()">
@@ -492,6 +497,19 @@
         </button>
         <span>Feed preview</span>
       </div>
+
+      @if (editingPostId()) {
+      <p class="editing-badge">
+        @switch (editingPublishStatus()) {
+          @case ('draft') { <i class="bi bi-file-earmark-text"></i> Editing draft }
+          @case ('scheduled') {
+            <i class="bi bi-clock-history"></i> Editing scheduled post
+            @if (editingScheduledFor(); as sf) { — scheduled for {{ formatScheduledFor(sf) }} }
+          }
+          @default { <i class="bi bi-check-circle"></i> Editing published post }
+        }
+      </p>
+      }
 
       <article class="feed-preview" [class.feed-preview--business]="postType() === 'business'">
         <header class="feed-preview-author">
@@ -516,7 +534,21 @@
         }
 
         <div class="feed-preview-body">
-          <span class="preview-tag">{{ formData.tag | tagEmoji }} #{{ formData.tag }}</span>
+          @if (postType() === 'business' && businessInfo().name) {
+          <div class="preview-business">
+            <strong class="preview-business-name">{{ businessInfo().name }}</strong>
+          </div>
+          }
+          <span class="preview-tag">
+            @if (postType() === 'business' && activeTemplate(); as tpl) {
+              {{ tpl.icon || '📝' }} {{ tpl.label }}
+            } @else {
+              {{ formData.tag | tagEmoji }} #{{ formData.tag }}
+            }
+          </span>
+          @if (previewTitle()) {
+          <h3 class="preview-title">{{ previewTitle() }}</h3>
+          }
           <p>{{ formData.headline }}</p>
           @if (postType() === 'business' && (formData.price || formData.availabilityNote)) {
           <div class="preview-price-row">
@@ -528,6 +560,9 @@
             <span class="preview-availability">{{ formData.availabilityNote }}</span>
             }
           </div>
+          }
+          @if (postType() === 'business' && formData.cta) {
+          <span class="preview-cta"><i class="bi bi-cursor-fill"></i> {{ ctaLabel() }}</span>
           }
           <div class="preview-meta">
             <span
@@ -541,6 +576,54 @@
         </div>
       </article>
 
+      @if (postType() === 'business') {
+        @if (showScheduleForm()) {
+        <div class="schedule-form">
+          <div class="schedule-form-fields">
+            <label>
+              <span>Publish date</span>
+              <input type="date" class="tm-input" [ngModel]="scheduleDate()"
+                     (ngModelChange)="scheduleDate.set($event)" name="scheduleDate" />
+            </label>
+            <label>
+              <span>Publish time</span>
+              <input type="time" class="tm-input" [ngModel]="scheduleTime()"
+                     (ngModelChange)="scheduleTime.set($event)" name="scheduleTime" />
+            </label>
+          </div>
+          <div class="schedule-form-actions">
+            <button type="button" class="secondary-btn" (click)="cancelSchedule()">Cancel</button>
+            <button type="button" class="post-btn" [disabled]="isSubmitting()" (click)="confirmSchedule()">
+              Confirm schedule
+            </button>
+          </div>
+        </div>
+        } @else {
+        <div class="preview-actions preview-actions--business">
+          <button type="button" class="secondary-btn" [disabled]="isSubmitting()" (click)="saveAsDraft()">
+            Save draft
+          </button>
+          <button type="button" class="secondary-btn" [disabled]="isSubmitting()" (click)="openScheduleForm()">
+            Schedule
+          </button>
+          <button type="button" class="post-btn publish-btn" [disabled]="isSubmitting()" (click)="publishNow()">
+            @if (isSubmitting()) {
+            <span class="post-spinner"></span> Publishing } @else {
+            <i class="bi bi-send-fill"></i> Publish now }
+          </button>
+        </div>
+        @if (editingPostId()) {
+        <div class="preview-owner-actions">
+          @if (editingPublishStatus() === 'scheduled') {
+          <button type="button" class="text-action" (click)="moveToDraft()">Move back to draft</button>
+          }
+          <button type="button" class="text-action text-action--danger" (click)="deleteCurrentPost()">
+            Delete
+          </button>
+        </div>
+        }
+        }
+      } @else {
       <div class="preview-actions">
         <button type="button" class="secondary-btn" (click)="editPost()">Edit</button>
         <button type="submit" class="post-btn publish-btn" [disabled]="isSubmitting()">
@@ -549,7 +632,9 @@
           <i class="bi bi-send-fill"></i> Publish }
         </button>
       </div>
+      }
     </section>
+    }
     }
   </form>
 </div>

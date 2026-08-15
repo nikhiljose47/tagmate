@@ -71,6 +71,9 @@ export class UserSessionService {
           const metaBusinessWebsite = session.user.user_metadata?.['business_website'] as
             | string
             | undefined;
+          const metaBusinessCategory = session.user.user_metadata?.['business_category'] as
+            | string
+            | undefined;
           const fallbackUser: AppUser = {
             uid,
             name,
@@ -80,6 +83,7 @@ export class UserSessionService {
             businessName: metaBusinessName,
             businessPhone: metaBusinessPhone,
             businessWebsite: metaBusinessWebsite,
+            businessCategory: metaBusinessCategory,
           };
 
           const metaHood = session.user.user_metadata?.['home_hood'] as HomeHoodInput | undefined;
@@ -121,6 +125,7 @@ export class UserSessionService {
                   business_name: metaBusinessName ?? null,
                   business_phone: metaBusinessPhone ?? null,
                   business_website: metaBusinessWebsite ?? null,
+                  business_category: metaBusinessCategory ?? null,
                   ...hoodRow,
                 }),
               ).pipe(
@@ -231,6 +236,7 @@ export class UserSessionService {
       businessName?: string;
       businessPhone?: string;
       businessWebsite?: string;
+      businessCategory?: string;
     },
   ): Promise<AuthResponse> {
     try {
@@ -269,6 +275,8 @@ export class UserSessionService {
           business_phone: metadata.accountType === 'business' ? (metadata.businessPhone ?? '') : '',
           business_website:
             metadata.accountType === 'business' ? (metadata.businessWebsite ?? '') : '',
+          business_category:
+            metadata.accountType === 'business' ? (metadata.businessCategory ?? '') : '',
           email_opt_out_token: this.createEmailOptOutToken(),
         }),
       );
@@ -430,6 +438,7 @@ export class UserSessionService {
     businessName: string;
     businessPhone: string;
     businessWebsite: string;
+    businessCategory?: string;
   }): Promise<boolean> {
     const current = this.user();
     if (!current) return false;
@@ -440,6 +449,9 @@ export class UserSessionService {
           business_name: fields.businessName.trim() || null,
           business_phone: fields.businessPhone.trim() || null,
           business_website: fields.businessWebsite.trim() || null,
+          ...(fields.businessCategory !== undefined
+            ? { business_category: fields.businessCategory.trim() || null }
+            : {}),
         }),
       );
       this.user.set({
@@ -447,6 +459,9 @@ export class UserSessionService {
         businessName: fields.businessName.trim() || undefined,
         businessPhone: fields.businessPhone.trim() || undefined,
         businessWebsite: fields.businessWebsite.trim() || undefined,
+        ...(fields.businessCategory !== undefined
+          ? { businessCategory: fields.businessCategory.trim() || undefined }
+          : {}),
       });
       return true;
     } catch {

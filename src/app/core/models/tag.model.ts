@@ -38,6 +38,16 @@ export interface Tag {
   eventEnd?: string;
   pollOptions?: string[];
   pollVotes?: Record<string, string[]>; // optionIndex -> array of usernames
+  /** Template metadata — set for business posts created after the Step 1 migration.
+   *  Null/undefined on old posts; those continue to render from `highlight` alone. */
+  /** The specific template variant used, e.g. "general", "todays_special". */
+  postSubtype?: string;
+  /** Monotonic template version; > 0 when set. */
+  templateVersion?: number;
+  /** Optional structured post title (separate from the composed highlight). */
+  title?: string;
+  /** Raw key/value pairs from the quick-fill form — stored for audit/display. */
+  templateData?: Record<string, unknown>;
   /** Trigger-maintained aggregate counts - never write these from the client. */
   likeCount?: number;
   commentCount?: number;
@@ -45,9 +55,23 @@ export interface Tag {
   currentStatus?: PostStatus;
   statusUpdatedAt?: string;
   verificationCount?: number;
+  /** Publishing state — separate from currentStatus's active/resolved/cancelled/closed
+   *  lifecycle. Undefined on legacy rows behaves the same as 'published'. Step 5.A. */
+  publishStatus?: PublishStatus;
+  /** Set once the post actually becomes public (Publish Now, or cron for a scheduled post).
+   *  `null` explicitly clears it on update (e.g. moving a scheduled post back to draft);
+   *  `undefined` means "leave unchanged" — same tri-state convention as scheduledFor. */
+  publishedAt?: string | null;
+  /** When a scheduled post should go live — independent of business-content dates
+   *  like eventStart/eventEnd. Only meaningful while publishStatus === 'scheduled'.
+   *  `null` explicitly clears it on update; `undefined` means "leave unchanged". */
+  scheduledFor?: string | null;
+  /** Touched on every author edit. */
+  updatedAt?: string;
 }
 
 export type PostStatus = 'active' | 'resolved' | 'cancelled' | 'closed';
+export type PublishStatus = 'draft' | 'scheduled' | 'published';
 
 export type PostIntent =
   | 'offer'

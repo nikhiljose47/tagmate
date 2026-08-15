@@ -14,6 +14,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { AccountType } from '../../../../core/models/app-user.model';
+import { TagCategory } from '../../../../core/enums/tag-category.enum';
+import {
+  BUSINESS_TAG_CATEGORIES,
+  tagCategoryLabel,
+} from '../../../../shared/constants/business-tags';
+import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 
 const MIN_AGE = 13;
 const MONTHS = [
@@ -65,7 +71,7 @@ interface HoodPick {
   selector: 'app-signup',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe],
   templateUrl: './signup.html',
   styleUrls: ['./signup.scss'],
 })
@@ -81,6 +87,15 @@ export class SignupPage implements OnInit {
   /** Optional — shown on business post cards when set. */
   businessPhone = signal('');
   businessWebsite = signal('');
+  /** Required for business accounts — every post they make uses this tag, so
+   *  there's no per-post category picker anymore (see post.ts). */
+  businessCategory = signal<TagCategory | ''>('');
+  readonly businessTags = BUSINESS_TAG_CATEGORIES;
+  readonly tagCategoryLabel = tagCategoryLabel;
+
+  selectBusinessCategory(tag: TagCategory): void {
+    this.businessCategory.set(tag);
+  }
 
   birthMonth = signal('');
   birthDay = signal('');
@@ -115,8 +130,19 @@ export class SignupPage implements OnInit {
     return Array.from({ length: 100 }, (_, i) => currentYear - i);
   })();
 
+  /** Internal step is always 1 (account) / 2 (business, business accounts only) / 3
+   *  (birthday + location). Personal accounts skip straight from 1 to 3 — see
+   *  nextStep()/prevStep() — so the indicator shows 2 nodes for them and 3 for business. */
   readonly step = signal(1);
-  readonly totalSteps = 2;
+  readonly totalSteps = computed(() => (this.accountType() === 'business' ? 3 : 2));
+  /** The step number to highlight in the indicator (collapses the skipped business step for personal accounts). */
+  readonly stepNumber = computed(() => {
+    if (this.accountType() === 'business') return this.step();
+    return this.step() === 3 ? 2 : 1;
+  });
+  readonly stepIndicators = computed(() =>
+    Array.from({ length: this.totalSteps() }, (_, i) => i + 1),
+  );
 
   isPasswordStrong(pw: string): boolean {
     return pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
@@ -129,12 +155,16 @@ export class SignupPage implements OnInit {
       !!this.fullName().trim() &&
       this.username().trim().length >= 3 &&
       !this.usernameTaken() &&
-      !this.usernameChecking() &&
-      (this.accountType() === 'personal' || !!this.businessName().trim()),
+      !this.usernameChecking(),
+  );
+
+  readonly canProceedBusinessStep = computed(
+    () => !!this.businessName().trim() && !!this.businessCategory(),
   );
 
   selectAccountType(type: AccountType): void {
     this.accountType.set(type);
+    if (type === 'personal') this.businessCategory.set('');
   }
 
   readonly canSubmit = computed(() => {
@@ -151,11 +181,19 @@ export class SignupPage implements OnInit {
   });
 
   nextStep(): void {
-    if (this.step() < this.totalSteps) this.step.update((s) => s + 1);
+    if (this.step() === 1) {
+      this.step.set(this.accountType() === 'business' ? 2 : 3);
+    } else if (this.step() === 2) {
+      this.step.set(3);
+    }
   }
 
   prevStep(): void {
-    if (this.step() > 1) this.step.update((s) => s - 1);
+    if (this.step() === 3) {
+      this.step.set(this.accountType() === 'business' ? 2 : 1);
+    } else if (this.step() === 2) {
+      this.step.set(1);
+    }
   }
 
   private readonly session = inject(UserSessionService);
@@ -349,6 +387,8 @@ export class SignupPage implements OnInit {
             this.accountType() === 'business'
               ? this.businessWebsite().trim() || undefined
               : undefined,
+          businessCategory:
+            this.accountType() === 'business' ? this.businessCategory() || undefined : undefined,
         }),
         this.timeoutPromise(),
       ]);
