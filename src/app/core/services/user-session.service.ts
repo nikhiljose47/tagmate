@@ -341,6 +341,12 @@ export class UserSessionService {
     return firstValueFrom(this.supabase.checkSignupAvailability(email, username));
   }
 
+  /** Generates a unique `mshop.in/<code>/<business-name-slug>` link — throws if generation fails. */
+  async generateBusinessWebsite(businessName: string): Promise<string> {
+    const { website } = await this.supabase.generateBusinessWebsite(businessName);
+    return website;
+  }
+
   async resendConfirmationEmail(emailOrUsername: string): Promise<boolean> {
     try {
       const value = emailOrUsername.trim();
@@ -439,6 +445,7 @@ export class UserSessionService {
     businessPhone: string;
     businessWebsite: string;
     businessCategory?: string;
+    businessImages?: string[];
   }): Promise<boolean> {
     const current = this.user();
     if (!current) return false;
@@ -452,6 +459,9 @@ export class UserSessionService {
           ...(fields.businessCategory !== undefined
             ? { business_category: fields.businessCategory.trim() || null }
             : {}),
+          ...(fields.businessImages !== undefined
+            ? { business_images: fields.businessImages }
+            : {}),
         }),
       );
       this.user.set({
@@ -462,7 +472,23 @@ export class UserSessionService {
         ...(fields.businessCategory !== undefined
           ? { businessCategory: fields.businessCategory.trim() || undefined }
           : {}),
+        ...(fields.businessImages !== undefined ? { businessImages: fields.businessImages } : {}),
       });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Sets the uploaded shop/business image URLs straight after signup (no other fields touched). */
+  async updateBusinessImages(images: string[]): Promise<boolean> {
+    const current = this.user();
+    if (!current) return false;
+    try {
+      await firstValueFrom(
+        this.supabase.upsertRow('users', { uid: current.uid, business_images: images }),
+      );
+      this.user.set({ ...current, businessImages: images });
       return true;
     } catch {
       return false;

@@ -20,6 +20,8 @@ import { LoggerService } from '../../../../core/services/logger.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { MediaService } from '../../../../core/services/media.service';
+import { MediaCompressionService } from '../../../../core/services/media-compression.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import {
@@ -108,6 +110,8 @@ export class ProfilePage implements OnInit {
   private readonly logger = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly media = inject(MediaService);
+  private readonly mediaCompression = inject(MediaCompressionService);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly theme = inject(ThemeService);
@@ -134,6 +138,9 @@ export class ProfilePage implements OnInit {
   editBusinessPhone = signal('');
   editBusinessWebsite = signal('');
   editBusinessCategory = signal<TagCategory | ''>('');
+  editBusinessImages = signal<string[]>([]);
+  uploadingBusinessImage = signal(false);
+  readonly maxBusinessImages = 5;
   readonly businessTags = BUSINESS_TAG_CATEGORIES;
   readonly tagCategoryLabel = tagCategoryLabel;
   profileSaving = signal(false);
@@ -239,12 +246,46 @@ export class ProfilePage implements OnInit {
       this.editBusinessPhone.set(user?.businessPhone ?? '');
       this.editBusinessWebsite.set(user?.businessWebsite ?? '');
       this.editBusinessCategory.set((user?.businessCategory as TagCategory) ?? '');
+      this.editBusinessImages.set(user?.businessImages ?? []);
     }
     this.editMode.set(opening);
   }
 
   selectBusinessCategory(tag: TagCategory): void {
     this.editBusinessCategory.set(tag);
+  }
+
+  async onBusinessImageSelect(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    const uid = this.sessionService.user()?.uid;
+    if (!uid) return;
+
+    for (const file of files) {
+      if (this.editBusinessImages().length >= this.maxBusinessImages) {
+        this.toast.show(`You can add up to ${this.maxBusinessImages} shop images.`, 'warning');
+        break;
+      }
+      if (!file.type.startsWith('image/')) continue;
+
+      this.uploadingBusinessImage.set(true);
+      try {
+        const { file: compressed } = await this.mediaCompression.compress(file);
+        const ext = compressed.name.split('.').pop() ?? 'jpg';
+        const path = `business/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const url = await this.media.uploadFile(path, compressed);
+        this.editBusinessImages.update((imgs) => [...imgs, url]);
+      } catch {
+        this.toast.show('Could not upload that image.', 'warning');
+      } finally {
+        this.uploadingBusinessImage.set(false);
+      }
+    }
+  }
+
+  removeBusinessImage(index: number): void {
+    this.editBusinessImages.update((imgs) => imgs.filter((_, i) => i !== index));
   }
 
   async saveProfile(): Promise<void> {
@@ -256,6 +297,10 @@ export class ProfilePage implements OnInit {
       this.toast.show('Pick a business category.', 'warning');
       return;
     }
+    if (this.isBusinessAccount() && this.editBusinessImages().length < 1) {
+      this.toast.show('Add at least one shop image.', 'warning');
+      return;
+    }
     this.profileSaving.set(true);
     let saved = await this.platform.updateOwnProfile(this.editName(), this.editBio());
     if (saved && this.isBusinessAccount()) {
@@ -264,6 +309,7 @@ export class ProfilePage implements OnInit {
         businessPhone: this.editBusinessPhone(),
         businessWebsite: this.editBusinessWebsite(),
         businessCategory: this.editBusinessCategory(),
+        businessImages: this.editBusinessImages(),
       });
     }
     this.profileSaving.set(false);

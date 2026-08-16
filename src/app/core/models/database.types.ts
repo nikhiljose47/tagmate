@@ -41,6 +41,7 @@ export interface Database {
           business_phone: string | null;
           business_website: string | null;
           business_category: string | null;
+          business_images: string[] | null;
           created_at: string;
           updated_at: string;
         };

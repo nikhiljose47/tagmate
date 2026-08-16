@@ -25,4 +25,6 @@ export interface AppUser {
    *  only when accountType === 'business'. Every post the account makes uses
    *  this tag; there's no per-post tag picker for business accounts. */
   businessCategory?: string;
+  /** 1–5 shop/business photo URLs (tag-images bucket). */
+  businessImages?: string[];
 }

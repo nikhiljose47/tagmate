@@ -87,6 +87,13 @@ export class AuthService implements OnDestroy {
     return this.checkSignupAvailability(email, undefined).pipe(map((result) => result.emailTaken));
   }
 
+  /** Generates a unique `mshop.in/<code>/<slug>` link for a business name — see functions/api/business/generate-website.js. */
+  generateBusinessWebsite(businessName: string): Promise<{ website: string }> {
+    return this.requestAuthEndpoint<{ website: string }>('/api/business/generate-website', {
+      businessName,
+    });
+  }
+
   checkSignupAvailability(email?: string, username?: string): Observable<SignupAvailability> {
     return from(
       this.requestAuthEndpoint<SignupAvailability>('/api/auth/availability', {

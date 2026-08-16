@@ -13,6 +13,8 @@ import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
+import { MediaService } from '../../../../core/services/media.service';
+import { MediaCompressionService } from '../../../../core/services/media-compression.service';
 import { AccountType } from '../../../../core/models/app-user.model';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import {
@@ -22,6 +24,7 @@ import {
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 
 const MIN_AGE = 13;
+const MAX_SHOP_IMAGES = 5;
 const MONTHS = [
   'January',
   'February',
@@ -84,9 +87,23 @@ export class SignupPage implements OnInit {
   /** Personal is the default — business accounts also give a shop/business name shown on their posts. */
   accountType = signal<AccountType>('personal');
   businessName = signal('');
+  /** Once confirmed via the popup dialog, the name is locked for the rest of signup. */
+  businessNameConfirmed = signal(false);
+  showNameConfirmDialog = signal(false);
   /** Optional — shown on business post cards when set. */
   businessPhone = signal('');
   businessWebsite = signal('');
+  /** 'generated' = auto-created mshop.in link (default once name is confirmed); 'manual' = user's own URL. */
+  websiteMode = signal<'generated' | 'manual'>('generated');
+  generatingWebsite = signal(false);
+  websiteGenError = signal('');
+  websiteVerifying = signal(false);
+  websiteVerifyStatus = signal<'idle' | 'ok' | 'fail'>('idle');
+  private websiteVerifyTimer: ReturnType<typeof setTimeout> | undefined;
+  private websiteVerifyAbort?: AbortController;
+  /** Staged in memory — the account doesn't exist yet, so upload happens after signup() succeeds. */
+  shopImages = signal<{ file: File; previewUrl: string }[]>([]);
+  readonly maxShopImages = MAX_SHOP_IMAGES;
   /** Required for business accounts — every post they make uses this tag, so
    *  there's no per-post category picker anymore (see post.ts). */
   businessCategory = signal<TagCategory | ''>('');
@@ -158,13 +175,137 @@ export class SignupPage implements OnInit {
       !this.usernameChecking(),
   );
 
-  readonly canProceedBusinessStep = computed(
-    () => !!this.businessName().trim() && !!this.businessCategory(),
-  );
+  readonly canProceedBusinessStep = computed(() => {
+    if (!this.businessNameConfirmed() || !this.businessCategory()) return false;
+    if (this.shopImages().length < 1) return false;
+    if (this.generatingWebsite()) return false;
+    const website = this.businessWebsite().trim();
+    if (!website) return false;
+    if (this.websiteMode() === 'manual') return SignupPage.isValidUrl(website);
+    return true;
+  });
+
+  private static isValidUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
 
   selectAccountType(type: AccountType): void {
     this.accountType.set(type);
     if (type === 'personal') this.businessCategory.set('');
+  }
+
+  onShopImageSelect(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+
+    for (const file of files) {
+      if (this.shopImages().length >= MAX_SHOP_IMAGES) {
+        this.error.set(`You can add up to ${MAX_SHOP_IMAGES} shop images.`);
+        break;
+      }
+      if (!file.type.startsWith('image/')) continue;
+      const previewUrl = URL.createObjectURL(file);
+      this.shopImages.update((imgs) => [...imgs, { file, previewUrl }]);
+    }
+  }
+
+  removeShopImage(index: number): void {
+    this.shopImages.update((imgs) => imgs.filter((_, i) => i !== index));
+  }
+
+  requestConfirmBusinessName(): void {
+    if (!this.businessName().trim() || this.businessNameConfirmed()) return;
+    this.showNameConfirmDialog.set(true);
+  }
+
+  cancelNameConfirm(): void {
+    this.showNameConfirmDialog.set(false);
+  }
+
+  async confirmBusinessName(): Promise<void> {
+    this.showNameConfirmDialog.set(false);
+    this.businessNameConfirmed.set(true);
+    await this.generateWebsite();
+  }
+
+  editBusinessName(): void {
+    this.businessNameConfirmed.set(false);
+    this.websiteMode.set('generated');
+    this.websiteGenError.set('');
+    this.websiteVerifyStatus.set('idle');
+    this.businessWebsite.set('');
+  }
+
+  private async generateWebsite(): Promise<void> {
+    this.generatingWebsite.set(true);
+    this.websiteGenError.set('');
+    try {
+      const website = await this.session.generateBusinessWebsite(this.businessName().trim());
+      if (this.destroyed) return;
+      this.businessWebsite.set(website);
+      this.websiteMode.set('generated');
+    } catch (error) {
+      if (!this.destroyed) {
+        this.websiteGenError.set(
+          error instanceof Error ? error.message : 'Could not generate a website link.',
+        );
+      }
+    } finally {
+      if (!this.destroyed) this.generatingWebsite.set(false);
+    }
+  }
+
+  useOwnWebsite(): void {
+    this.websiteMode.set('manual');
+    this.businessWebsite.set('');
+    this.websiteVerifyStatus.set('idle');
+    this.websiteGenError.set('');
+  }
+
+  async useGeneratedWebsite(): Promise<void> {
+    this.websiteMode.set('generated');
+    this.websiteVerifyStatus.set('idle');
+    if (!this.businessWebsite().trim()) await this.generateWebsite();
+  }
+
+  onManualWebsiteInput(value: string): void {
+    this.businessWebsite.set(value);
+    this.websiteVerifyStatus.set('idle');
+
+    clearTimeout(this.websiteVerifyTimer);
+    const candidate = value.trim();
+    if (!SignupPage.isValidUrl(candidate)) return;
+
+    this.websiteVerifyTimer = setTimeout(() => this.verifyWebsite(candidate), 500);
+  }
+
+  private verifyWebsite(url: string): void {
+    this.websiteVerifyAbort?.abort();
+    this.websiteVerifyAbort = new AbortController();
+    const { signal } = this.websiteVerifyAbort;
+    this.websiteVerifying.set(true);
+
+    const timeout = setTimeout(() => this.websiteVerifyAbort?.abort(), 6000);
+
+    fetch(url, { signal, mode: 'no-cors', cache: 'no-store' })
+      .then(() => {
+        if (signal.aborted || this.businessWebsite().trim() !== url) return;
+        this.websiteVerifyStatus.set('ok');
+      })
+      .catch(() => {
+        if (this.businessWebsite().trim() !== url) return;
+        this.websiteVerifyStatus.set('fail');
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        if (this.businessWebsite().trim() === url) this.websiteVerifying.set(false);
+      });
   }
 
   readonly canSubmit = computed(() => {
@@ -199,6 +340,8 @@ export class SignupPage implements OnInit {
   private readonly session = inject(UserSessionService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly media = inject(MediaService);
+  private readonly mediaCompression = inject(MediaCompressionService);
   public readonly theme = inject(ThemeService);
 
   private destroyed = false;
@@ -320,6 +463,22 @@ export class SignupPage implements OnInit {
     }, 400);
   }
 
+  /** Uploads the images staged during step 2, now that the account (and its session) exist. */
+  private async uploadShopImages(uid: string): Promise<void> {
+    try {
+      const urls: string[] = [];
+      for (const item of this.shopImages()) {
+        const { file } = await this.mediaCompression.compress(item.file);
+        const ext = file.name.split('.').pop() ?? 'jpg';
+        const path = `business/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        urls.push(await this.media.uploadFile(path, file));
+      }
+      await this.session.updateBusinessImages(urls);
+    } catch {
+      // Best-effort — the account is already created; images can be added again from profile settings.
+    }
+  }
+
   private isOldEnough(): boolean {
     const month = Number(this.birthMonth());
     const day = Number(this.birthDay());
@@ -399,6 +558,9 @@ export class SignupPage implements OnInit {
         if (res.needsEmailConfirmation) {
           this.awaitingEmailConfirmation.set(true);
         } else {
+          if (this.accountType() === 'business' && this.shopImages().length) {
+            await this.uploadShopImages(res.uid);
+          }
           this.router.navigateByUrl('/feed-beta');
         }
       } else {

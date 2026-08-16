@@ -27,6 +27,7 @@ export interface UserRow {
   business_phone?: string | null;
   business_website?: string | null;
   business_category?: string | null;
+  business_images?: string[] | null;
 }
 
 /** `post_comments` row (snake_case, matches the Supabase table). */

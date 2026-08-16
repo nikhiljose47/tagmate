@@ -146,6 +146,41 @@
         </button>
         }
       </div>
+
+      <label class="edit-label"
+        >Shop photos <small class="edit-count-inline">{{ editBusinessImages().length }}/{{ maxBusinessImages }}</small></label
+      >
+      <div class="shop-images-grid mb-3">
+        @for (url of editBusinessImages(); track url; let i = $index) {
+        <div class="shop-image-thumb">
+          <img [src]="url" alt="Shop photo" />
+          <button
+            type="button"
+            class="shop-image-remove"
+            aria-label="Remove photo"
+            (click)="removeBusinessImage(i)"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        } @if (editBusinessImages().length < maxBusinessImages) {
+        <label class="shop-image-add">
+          @if (uploadingBusinessImage()) {
+          <span class="spinner-dark" aria-hidden="true"></span>
+          } @else {
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          }
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            [disabled]="uploadingBusinessImage()"
+            (change)="onBusinessImageSelect($event)"
+          />
+        </label>
+        }
+      </div>
       }
 
       <button

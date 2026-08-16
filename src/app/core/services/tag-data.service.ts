@@ -48,7 +48,7 @@ export class TagDataService {
       this.client
         .from('public_user_profiles')
         .select(
-          'uid,name,is_guest,reputation,created_at,account_type,business_name,business_website,business_category',
+          'uid,name,is_guest,reputation,created_at,account_type,business_name,business_website,business_category,business_images',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -67,7 +67,7 @@ export class TagDataService {
         .select(
           'uid,name,email,is_guest,reputation,created_at,' +
             'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at,' +
-            'account_type,business_name,business_phone,business_website,business_category',
+            'account_type,business_name,business_phone,business_website,business_category,business_images',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -107,6 +107,7 @@ export class TagDataService {
       businessPhone: data.business_phone ?? undefined,
       businessWebsite: data.business_website ?? undefined,
       businessCategory: data.business_category ?? undefined,
+      businessImages: data.business_images ?? undefined,
     };
   }
 
