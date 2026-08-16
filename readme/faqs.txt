@@ -1,0 +1,17 @@
+
+
+1.How our url generation for business works ?
+
+"Register" = someone signs up as a business on your other app (Tagmate, at tagmate-934.pages.dev/login — a separate system, not this codebase). 
+That signup process writes one row into a Supabase Postgres table called public.users, with columns like:
+
+business_name — e.g. "Breaktime restuarent"
+business_category — e.g. "food"
+business_website — the full URL where their page will live, e.g. https://multi-tenant-web.nikhiljose47.workers.dev/msw/breaktime-restuarent
+avatar_url — their logo image link
+business_images — an array of photo links
+
+That's where it's stored: Supabase's cloud Postgres database, one row per business, no separate "registry" — this website doesn't store anything itself.
+
+In short: register on Tagmate → one row lands in Supabase → this website reads that row live, every time the URL is opened → renders a generic page 
+around whatever data is in that row. Nothing is cached or copied — it's a fresh Supabase read on every page load

@@ -3,8 +3,9 @@ import { isRateLimited, json, requiredEnv } from './_shared';
 /**
  * Permanently deletes the caller's own account:
  *  1. Removes their uploaded post images from the `tag-images` Storage
- *     bucket (must happen before step 2 — once the `tags` rows are gone via
- *     cascade, there's no longer a record of which files were theirs).
+ *     bucket, AND their business logo/shop-photo uploads (must happen before
+ *     step 2 — once the rows are gone via cascade, there's no longer a
+ *     record of which files were theirs).
  *  2. Calls the `delete_own_account()` RPC with the caller's OWN access
  *     token (not the service-role key) — it's SECURITY DEFINER but scoped
  *     to `auth.uid()`, so this step never risks touching the wrong row.
@@ -64,6 +65,32 @@ export async function onRequestPost(context) {
         const rows = await tagsResponse.json();
         const paths = rows
           .flatMap((row) => row?.images ?? [])
+          .map(storagePathFromPublicUrl)
+          .filter(Boolean);
+        if (paths.length) {
+          await fetch(`${env.SUPABASE_URL}/storage/v1/object/tag-images`, {
+            method: 'DELETE',
+            headers: { ...serviceHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prefixes: paths }),
+          });
+        }
+      }
+    } catch {
+      // Non-fatal — continue with the account deletion regardless.
+    }
+
+    // Same best-effort cleanup for the business logo/shop-photo uploads
+    // (users.avatar_url / users.business_images) — separate from the tags
+    // cleanup above since they live on a different row/table.
+    try {
+      const userUrl = new URL('/rest/v1/users', env.SUPABASE_URL);
+      userUrl.searchParams.set('select', 'avatar_url,business_images');
+      userUrl.searchParams.set('uid', `eq.${uid}`);
+      const userResponse = await fetch(userUrl, { headers: serviceHeaders });
+      if (userResponse.ok) {
+        const rows = await userResponse.json();
+        const paths = rows
+          .flatMap((row) => [row?.avatar_url, ...(row?.business_images ?? [])])
           .map(storagePathFromPublicUrl)
           .filter(Boolean);
         if (paths.length) {

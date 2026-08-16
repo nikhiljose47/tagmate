@@ -502,28 +502,36 @@ export class UserSessionService {
     }
   }
 
-  /** Sets the uploaded shop/business image URLs straight after signup (no other fields touched). */
-  async updateBusinessImages(images: string[]): Promise<boolean> {
+  /**
+   * Sets the uploaded shop/business image URLs straight after signup (no other
+   * fields touched). Takes an explicit `uid` — right after signup() resolves,
+   * the reactive `user()` signal usually hasn't been populated yet (it's filled
+   * asynchronously via a separate subscription), so reading `this.user()?.uid`
+   * here would silently no-op instead of persisting the upload.
+   */
+  async updateBusinessImages(images: string[], uid?: string): Promise<boolean> {
     const current = this.user();
-    if (!current) return false;
+    const targetUid = uid ?? current?.uid;
+    if (!targetUid) return false;
     try {
       await firstValueFrom(
-        this.supabase.upsertRow('users', { uid: current.uid, business_images: images }),
+        this.supabase.upsertRow('users', { uid: targetUid, business_images: images }),
       );
-      this.user.set({ ...current, businessImages: images });
+      if (current?.uid === targetUid) this.user.set({ ...current, businessImages: images });
       return true;
     } catch {
       return false;
     }
   }
 
-  /** Sets the uploaded business logo URL straight after signup (no other fields touched). */
-  async updateAvatarUrl(url: string): Promise<boolean> {
+  /** Sets the uploaded business logo URL straight after signup (no other fields touched). Same `uid` note as {@link updateBusinessImages}. */
+  async updateAvatarUrl(url: string, uid?: string): Promise<boolean> {
     const current = this.user();
-    if (!current) return false;
+    const targetUid = uid ?? current?.uid;
+    if (!targetUid) return false;
     try {
-      await firstValueFrom(this.supabase.upsertRow('users', { uid: current.uid, avatar_url: url }));
-      this.user.set({ ...current, avatarUrl: url });
+      await firstValueFrom(this.supabase.upsertRow('users', { uid: targetUid, avatar_url: url }));
+      if (current?.uid === targetUid) this.user.set({ ...current, avatarUrl: url });
       return true;
     } catch {
       return false;

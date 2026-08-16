@@ -505,7 +505,7 @@ export class SignupPage implements OnInit {
         const path = `business/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
         urls.push(await this.media.uploadFile(path, file));
       }
-      await this.session.updateBusinessImages(urls);
+      await this.session.updateBusinessImages(urls, uid);
     } catch {
       // Best-effort — the account is already created; images can be added again from profile settings.
     }
@@ -520,7 +520,7 @@ export class SignupPage implements OnInit {
       const ext = file.name.split('.').pop() ?? 'jpg';
       const path = `avatars/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const url = await this.media.uploadFile(path, file);
-      await this.session.updateAvatarUrl(url);
+      await this.session.updateAvatarUrl(url, uid);
     } catch {
       // Best-effort — the account is already created; the logo can be added again from profile settings.
     }
