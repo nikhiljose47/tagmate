@@ -10,6 +10,7 @@ import { AuthResponse } from '../models/auth-response.model';
 import { SupabaseService } from './supabase.service';
 import { toAppError } from '../models/app-error.model';
 import { setUserPreference } from '../../store/user-preferences/user-preference.actions';
+import { isEmailAddress, isValidUsername, normalizeUsername } from '../utils/auth-identifier.utils';
 
 export interface HomeHoodInput {
   state: string;
@@ -197,10 +198,11 @@ export class UserSessionService {
 
   async login(emailOrUsername: string, password: string): Promise<AuthResponse> {
     try {
+      const identifier = emailOrUsername.trim();
       const { data, error } = await firstValueFrom(
-        emailOrUsername.trim().includes('@')
-          ? this.supabase.signInWithPassword(emailOrUsername.trim(), password)
-          : this.supabase.signInWithUsername(emailOrUsername.trim(), password),
+        isEmailAddress(identifier)
+          ? this.supabase.signInWithPassword(identifier, password)
+          : this.supabase.signInWithUsername(identifier, password),
       );
       if (error) {
         return {
@@ -240,7 +242,16 @@ export class UserSessionService {
     },
   ): Promise<AuthResponse> {
     try {
-      const availability = await this.checkSignupAvailability(email, metadata.username);
+      const username = normalizeUsername(metadata.username);
+      if (!isValidUsername(username)) {
+        return {
+          ok: false,
+          code: 'invalid_username',
+          message: 'Username must be 3–40 characters and cannot contain @.',
+        };
+      }
+
+      const availability = await this.checkSignupAvailability(email, username);
       if (availability.emailTaken) {
         return {
           ok: false,
@@ -259,7 +270,7 @@ export class UserSessionService {
 
       const { data, error } = await firstValueFrom(
         this.supabase.signUp(email, password, {
-          username: metadata.username,
+          username,
           full_name: metadata.fullName,
           birthday: metadata.birthday,
           home_hood: {
@@ -284,9 +295,7 @@ export class UserSessionService {
         // A competing signup can win after the initial availability check.
         // Re-check once so Auth's intentionally generic trigger error becomes
         // the same actionable message as the normal validation path.
-        const conflict = await this.checkSignupAvailability(email, metadata.username).catch(
-          () => null,
-        );
+        const conflict = await this.checkSignupAvailability(email, username).catch(() => null);
         if (conflict?.usernameTaken || this.isUsernameUniqueViolation(error)) {
           return { ok: false, code: 'username_taken', message: 'Username is already in use.' };
         }
@@ -318,7 +327,7 @@ export class UserSessionService {
         ok: true,
         uid: u.id,
         email: u.email ?? null,
-        username: metadata.username,
+        username,
         needsEmailConfirmation: !data.session,
       };
     } catch (err: unknown) {
@@ -330,7 +339,7 @@ export class UserSessionService {
   }
 
   isUsernameTaken(username: string): Promise<boolean> {
-    return firstValueFrom(this.supabase.isUsernameTaken(username));
+    return firstValueFrom(this.supabase.isUsernameTaken(normalizeUsername(username)));
   }
 
   isEmailTaken(email: string): Promise<boolean> {
@@ -338,7 +347,9 @@ export class UserSessionService {
   }
 
   async checkSignupAvailability(email: string, username: string) {
-    return firstValueFrom(this.supabase.checkSignupAvailability(email, username));
+    return firstValueFrom(
+      this.supabase.checkSignupAvailability(email, normalizeUsername(username)),
+    );
   }
 
   /** Generates a unique `mshop.in/<code>/<business-name-slug>` link — throws if generation fails. */
@@ -350,7 +361,7 @@ export class UserSessionService {
   async resendConfirmationEmail(emailOrUsername: string): Promise<boolean> {
     try {
       const value = emailOrUsername.trim();
-      if (value.includes('@')) {
+      if (isEmailAddress(value)) {
         const { error } = await firstValueFrom(this.supabase.resendSignupConfirmation(value));
         return !error;
       }

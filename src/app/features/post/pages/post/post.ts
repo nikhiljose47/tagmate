@@ -114,6 +114,11 @@ const MAX_MEDIA = 5;
 export const MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 export const MAX_VIDEO_SIZE_BYTES = 30 * 1024 * 1024; // 30 MB
 export const MAX_VIDEO_DURATION_SEC = 30; // 30 seconds
+
+export function mediaStoragePath(uid: string, extension: string): string {
+  return `${uid}/tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+}
+
 export const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -1167,7 +1172,7 @@ export class PostPage implements OnDestroy {
           // save bandwidth on upload and on every future download.
           const { file } = await this.media.compress(item.file);
           const ext = file.name.split('.').pop() ?? (item.type === 'video' ? 'mp4' : 'jpg');
-          const path = `tags/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+          const path = mediaStoragePath(uid, ext);
           uploadedUrls.push(await this.mediaService.uploadFile(path, file));
         } catch (err) {
           this.logger.error('Media upload failed', err);

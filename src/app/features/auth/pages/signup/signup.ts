@@ -16,6 +16,7 @@ import { ThemeService } from '../../../../core/services/theme.service';
 import { MediaService } from '../../../../core/services/media.service';
 import { MediaCompressionService } from '../../../../core/services/media-compression.service';
 import { AccountType } from '../../../../core/models/app-user.model';
+import { isValidUsername, normalizeUsername } from '../../../../core/utils/auth-identifier.utils';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import {
   BUSINESS_TAG_CATEGORIES,
@@ -170,7 +171,7 @@ export class SignupPage implements OnInit {
       !!this.email() &&
       this.isPasswordStrong(this.password()) &&
       !!this.fullName().trim() &&
-      this.username().trim().length >= 3 &&
+      isValidUsername(this.username()) &&
       !this.usernameTaken() &&
       !this.usernameChecking(),
   );
@@ -441,20 +442,20 @@ export class SignupPage implements OnInit {
   }
 
   onUsernameInput(value: string): void {
-    this.username.set(value);
+    const candidate = normalizeUsername(value);
+    this.username.set(candidate);
     this.usernameTaken.set(false);
 
     clearTimeout(this.usernameCheckTimer);
-    const candidate = value.trim();
-    if (candidate.length < 3) return;
+    if (!isValidUsername(candidate)) return;
 
     this.usernameCheckTimer = setTimeout(async () => {
       this.usernameChecking.set(true);
       try {
         const taken = await this.session.isUsernameTaken(candidate);
-        if (this.username().trim() === candidate) this.usernameTaken.set(taken);
+        if (this.username() === candidate) this.usernameTaken.set(taken);
       } catch {
-        if (this.username().trim() === candidate) {
+        if (this.username() === candidate) {
           this.error.set('Could not check username availability. Please try again.');
         }
       } finally {
