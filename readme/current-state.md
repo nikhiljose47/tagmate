@@ -213,7 +213,6 @@ interface AppUser {
 | rsvp_count | integer | — | trigger-maintained |
 | created_at | timestamptz | — | no updated_at on tags |
 
-
 **Expiry:** pg_cron runs every 15 min, sets `current_status='closed'` when `created_at + make_interval(mins=>expires_in) < now()`.
 
 **No draft column. No published_at. All inserts are immediately live.**
