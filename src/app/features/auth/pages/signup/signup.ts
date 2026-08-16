@@ -94,7 +94,7 @@ export class SignupPage implements OnInit {
   /** Optional — shown on business post cards when set. */
   businessPhone = signal('');
   businessWebsite = signal('');
-  /** 'generated' = auto-created mshop.in link (default once name is confirmed); 'manual' = user's own URL. */
+  /** 'generated' = auto-created workers.dev link (default once name is confirmed); 'manual' = user's own URL. */
   websiteMode = signal<'generated' | 'manual'>('generated');
   generatingWebsite = signal(false);
   websiteGenError = signal('');
@@ -105,11 +105,15 @@ export class SignupPage implements OnInit {
   /** Staged in memory — the account doesn't exist yet, so upload happens after signup() succeeds. */
   shopImages = signal<{ file: File; previewUrl: string }[]>([]);
   readonly maxShopImages = MAX_SHOP_IMAGES;
+  /** Optional single business logo — also staged in memory until signup() succeeds. */
+  businessLogo = signal<{ file: File; previewUrl: string } | null>(null);
   /** Required for business accounts — every post they make uses this tag, so
    *  there's no per-post category picker anymore (see post.ts). */
   businessCategory = signal<TagCategory | ''>('');
   readonly businessTags = BUSINESS_TAG_CATEGORIES;
   readonly tagCategoryLabel = tagCategoryLabel;
+  /** Business accounts give a founding year instead of a personal birthday (see the final step). */
+  businessEstablishedYear = signal('');
 
   selectBusinessCategory(tag: TagCategory): void {
     this.businessCategory.set(tag);
@@ -148,15 +152,19 @@ export class SignupPage implements OnInit {
     return Array.from({ length: 100 }, (_, i) => currentYear - i);
   })();
 
-  /** Internal step is always 1 (account) / 2 (business, business accounts only) / 3
-   *  (birthday + location). Personal accounts skip straight from 1 to 3 — see
-   *  nextStep()/prevStep() — so the indicator shows 2 nodes for them and 3 for business. */
+  /** Internal step is 1 (account) / 2 (business identity, business only) / 3
+   *  (business category, business only) / 4 (business photos + website, business
+   *  only) / 5 (birthday + location — relabeled "business details" for business
+   *  accounts). Personal accounts skip straight from 1 to 5 — see
+   *  nextStep()/prevStep() — so the indicator shows 2 nodes for them and 5 for
+   *  business. Split into several short business steps so each screen fits
+   *  without scrolling. */
   readonly step = signal(1);
-  readonly totalSteps = computed(() => (this.accountType() === 'business' ? 3 : 2));
-  /** The step number to highlight in the indicator (collapses the skipped business step for personal accounts). */
+  readonly totalSteps = computed(() => (this.accountType() === 'business' ? 5 : 2));
+  /** The step number to highlight in the indicator (collapses the skipped business steps for personal accounts). */
   readonly stepNumber = computed(() => {
     if (this.accountType() === 'business') return this.step();
-    return this.step() === 3 ? 2 : 1;
+    return this.step() === 5 ? 2 : 1;
   });
   readonly stepIndicators = computed(() =>
     Array.from({ length: this.totalSteps() }, (_, i) => i + 1),
@@ -176,8 +184,14 @@ export class SignupPage implements OnInit {
       !this.usernameChecking(),
   );
 
-  readonly canProceedBusinessStep = computed(() => {
-    if (!this.businessNameConfirmed() || !this.businessCategory()) return false;
+  /** Step 2: business identity (name confirmed — phone/logo are optional). */
+  readonly canProceedBusinessIdentityStep = computed(() => this.businessNameConfirmed());
+
+  /** Step 3: business category. */
+  readonly canProceedCategoryStep = computed(() => !!this.businessCategory());
+
+  /** Step 4: shop photos (required) + website (required). */
+  readonly canProceedBusinessMediaStep = computed(() => {
     if (this.shopImages().length < 1) return false;
     if (this.generatingWebsite()) return false;
     const website = this.businessWebsite().trim();
@@ -218,6 +232,18 @@ export class SignupPage implements OnInit {
 
   removeShopImage(index: number): void {
     this.shopImages.update((imgs) => imgs.filter((_, i) => i !== index));
+  }
+
+  onBusinessLogoSelect(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+    this.businessLogo.set({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  removeBusinessLogo(): void {
+    this.businessLogo.set(null);
   }
 
   requestConfirmBusinessName(): void {
@@ -311,28 +337,33 @@ export class SignupPage implements OnInit {
 
   readonly canSubmit = computed(() => {
     const pick = this.hoodPick();
-    return (
-      !!this.birthMonth() &&
-      !!this.birthDay() &&
-      !!this.birthYear() &&
-      !!pick &&
-      !!pick.state &&
-      !!pick.district &&
-      !this.loading()
-    );
+    const hoodOk = !!pick && !!pick.state && !!pick.district;
+    if (this.loading()) return false;
+    if (this.accountType() === 'business') {
+      return hoodOk && !!this.businessEstablishedYear();
+    }
+    return hoodOk && !!this.birthMonth() && !!this.birthDay() && !!this.birthYear();
   });
 
   nextStep(): void {
     if (this.step() === 1) {
-      this.step.set(this.accountType() === 'business' ? 2 : 3);
+      this.step.set(this.accountType() === 'business' ? 2 : 5);
     } else if (this.step() === 2) {
       this.step.set(3);
+    } else if (this.step() === 3) {
+      this.step.set(4);
+    } else if (this.step() === 4) {
+      this.step.set(5);
     }
   }
 
   prevStep(): void {
-    if (this.step() === 3) {
-      this.step.set(this.accountType() === 'business' ? 2 : 1);
+    if (this.step() === 5) {
+      this.step.set(this.accountType() === 'business' ? 4 : 1);
+    } else if (this.step() === 4) {
+      this.step.set(3);
+    } else if (this.step() === 3) {
+      this.step.set(2);
     } else if (this.step() === 2) {
       this.step.set(1);
     }
@@ -480,6 +511,21 @@ export class SignupPage implements OnInit {
     }
   }
 
+  /** Uploads the logo staged during step 2, now that the account (and its session) exist. */
+  private async uploadBusinessLogo(uid: string): Promise<void> {
+    const logo = this.businessLogo();
+    if (!logo) return;
+    try {
+      const { file } = await this.mediaCompression.compress(logo.file);
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `avatars/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const url = await this.media.uploadFile(path, file);
+      await this.session.updateAvatarUrl(url);
+    } catch {
+      // Best-effort — the account is already created; the logo can be added again from profile settings.
+    }
+  }
+
   private isOldEnough(): boolean {
     const month = Number(this.birthMonth());
     const day = Number(this.birthDay());
@@ -509,14 +555,20 @@ export class SignupPage implements OnInit {
   async signup(): Promise<void> {
     this.error.set('');
 
-    if (!this.isOldEnough()) {
+    const isBusiness = this.accountType() === 'business';
+    if (!isBusiness && !this.isOldEnough()) {
       this.error.set(`You must be at least ${MIN_AGE} years old to sign up.`);
       return;
     }
 
     this.loading.set(true);
     try {
-      const birthday = `${this.birthYear()}-${String(this.birthMonth()).padStart(2, '0')}-${String(this.birthDay()).padStart(2, '0')}`;
+      // Business accounts give a founding year instead of a personal birthday
+      // (no DB column stores this — it's only carried in auth metadata) —
+      // Jan 1 is a harmless placeholder day/month, only the year is real.
+      const birthday = isBusiness
+        ? `${this.businessEstablishedYear()}-01-01`
+        : `${this.birthYear()}-${String(this.birthMonth()).padStart(2, '0')}-${String(this.birthDay()).padStart(2, '0')}`;
 
       const pick = this.hoodPick();
       if (!pick) {
@@ -549,6 +601,10 @@ export class SignupPage implements OnInit {
               : undefined,
           businessCategory:
             this.accountType() === 'business' ? this.businessCategory() || undefined : undefined,
+          businessEstablishedYear:
+            this.accountType() === 'business'
+              ? Number(this.businessEstablishedYear()) || undefined
+              : undefined,
         }),
         this.timeoutPromise(),
       ]);
@@ -561,6 +617,9 @@ export class SignupPage implements OnInit {
         } else {
           if (this.accountType() === 'business' && this.shopImages().length) {
             await this.uploadShopImages(res.uid);
+          }
+          if (this.accountType() === 'business' && this.businessLogo()) {
+            await this.uploadBusinessLogo(res.uid);
           }
           this.router.navigateByUrl('/feed-beta');
         }

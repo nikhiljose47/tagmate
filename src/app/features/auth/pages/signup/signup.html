@@ -317,6 +317,102 @@
           </div>
 
           <div class="field-group">
+            <label class="field-label">Business logo (optional)</label>
+            <div class="shop-images-grid">
+              @if (businessLogo(); as logo) {
+              <div class="shop-image-thumb">
+                <img [src]="logo.previewUrl" alt="Business logo" />
+                <button
+                  type="button"
+                  class="shop-image-remove"
+                  aria-label="Remove logo"
+                  (click)="removeBusinessLogo()"
+                >
+                  <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+              </div>
+              } @else {
+              <label class="shop-image-add">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  [disabled]="loading()"
+                  (change)="onBusinessLogoSelect($event)"
+                />
+              </label>
+              }
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="tm-btn back-btn" type="button" (click)="prevStep()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Back
+            </button>
+            <button
+              class="tm-btn tm-btn-primary step-btn"
+              type="button"
+              [disabled]="!canProceedBusinessIdentityStep()"
+              (click)="nextStep()"
+            >
+              Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ── Step 3: Business category (business accounts only) ── -->
+      @if (!awaitingEmailConfirmation() && step() === 3) {
+      <div class="step-block">
+        <h1 class="form-title">What does your business do?</h1>
+
+        <div class="login-fields">
+          <div class="field-group">
+            <p class="field-hint" style="margin-bottom: 6px">
+              Every post you make will use this category — pick the closest one.
+            </p>
+            <div class="tag-grid" role="radiogroup" aria-label="Business category">
+              @for (tag of businessTags; track tag) {
+              <button
+                type="button"
+                class="tag-card"
+                [class.tag-card--active]="businessCategory() === tag"
+                [disabled]="loading()"
+                (click)="selectBusinessCategory(tag)"
+              >
+                <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
+                <span class="tag-card-label">{{ tagCategoryLabel(tag) }}</span>
+              </button>
+              }
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="tm-btn back-btn" type="button" (click)="prevStep()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Back
+            </button>
+            <button
+              class="tm-btn tm-btn-primary step-btn"
+              type="button"
+              [disabled]="!canProceedCategoryStep()"
+              (click)="nextStep()"
+            >
+              Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ── Step 4: Business photos + website (business accounts only) ── -->
+      @if (!awaitingEmailConfirmation() && step() === 4) {
+      <div class="step-block">
+        <h1 class="form-title">Show off your business</h1>
+
+        <div class="login-fields">
+          <div class="field-group">
             <label class="field-label"
               >Shop photos <span class="required">*</span>
               <small class="field-label-count">{{ shopImages().length }}/{{ maxShopImages }}</small></label
@@ -351,7 +447,6 @@
             <span class="field-hint">Add 1–5 photos of your shop or storefront.</span>
           </div>
 
-          @if (businessNameConfirmed()) {
           <div class="field-group">
             <label class="field-label">Business website <span class="required">*</span></label>
 
@@ -417,30 +512,6 @@
             </button>
             }
           </div>
-          }
-
-          <div class="field-group">
-            <label class="field-label"
-              >What does your business do? <span class="required">*</span></label
-            >
-            <p class="field-hint" style="margin-bottom: 6px">
-              Every post you make will use this category — pick the closest one.
-            </p>
-            <div class="tag-grid" role="radiogroup" aria-label="Business category">
-              @for (tag of businessTags; track tag) {
-              <button
-                type="button"
-                class="tag-card"
-                [class.tag-card--active]="businessCategory() === tag"
-                [disabled]="loading()"
-                (click)="selectBusinessCategory(tag)"
-              >
-                <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
-                <span class="tag-card-label">{{ tagCategoryLabel(tag) }}</span>
-              </button>
-              }
-            </div>
-          </div>
 
           <div class="step-actions">
             <button class="tm-btn back-btn" type="button" (click)="prevStep()">
@@ -449,7 +520,7 @@
             <button
               class="tm-btn tm-btn-primary step-btn"
               type="button"
-              [disabled]="!canProceedBusinessStep()"
+              [disabled]="!canProceedBusinessMediaStep()"
               (click)="nextStep()"
             >
               Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
@@ -482,12 +553,31 @@
       </div>
       }
 
-      <!-- ── Step 3: Birthday + Location ── -->
-      @if (!awaitingEmailConfirmation() && step() === 3) {
+      <!-- ── Step 5: Business details / Birthday + Location ── -->
+      @if (!awaitingEmailConfirmation() && step() === 5) {
       <div class="step-block">
-        <h1 class="form-title">A few more details</h1>
+        <h1 class="form-title">
+          {{ accountType() === 'business' ? 'A few business details' : 'A few more details' }}
+        </h1>
 
         <div class="login-fields">
+          @if (accountType() === 'business') {
+          <div class="field-group">
+            <label class="field-label">Year established <span class="required">*</span></label>
+            <select
+              class="tm-input"
+              [value]="businessEstablishedYear()"
+              (change)="businessEstablishedYear.set($any($event.target).value)"
+              [disabled]="loading()"
+            >
+              <option value="" disabled selected>Year</option>
+              @for (y of years; track y) {
+              <option [value]="y">{{ y }}</option>
+              }
+            </select>
+            <span class="field-hint">When did this business start?</span>
+          </div>
+          } @else {
           <div class="field-group">
             <label class="field-label">Birthday</label>
             <div class="birthday-row">
@@ -526,9 +616,13 @@
               </select>
             </div>
           </div>
+          }
 
           <div class="field-group">
-            <label class="field-label">Home location <span class="required">*</span></label>
+            <label class="field-label"
+              >{{ accountType() === 'business' ? 'Business location' : 'Home location' }}
+              <span class="required">*</span></label
+            >
             <div class="hood-search">
               <input
                 type="text"

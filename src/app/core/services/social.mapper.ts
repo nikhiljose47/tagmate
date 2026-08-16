@@ -10,6 +10,7 @@ export interface UserRow {
   uid: string;
   name: string;
   email?: string | null;
+  avatar_url?: string | null;
   is_guest: boolean;
   reputation: number | null;
   bio?: string | null;
@@ -28,6 +29,7 @@ export interface UserRow {
   business_website?: string | null;
   business_category?: string | null;
   business_images?: string[] | null;
+  business_established_year?: number | null;
 }
 
 /** `post_comments` row (snake_case, matches the Supabase table). */

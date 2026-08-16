@@ -2,6 +2,8 @@ import { findUser, isRateLimited, json, readJson, requiredEnv } from '../auth/_s
 
 const CODE_CHARS = 'abcdefghijklmnopqrstuvwxyz';
 const MAX_ATTEMPTS = 12;
+// Temporary domain — swap this to the real custom domain once one's set up.
+const BUSINESS_WEBSITE_DOMAIN = 'https://multi-tenant-web.nikhiljose47.workers.dev';
 
 function randomCode() {
   let out = '';
@@ -38,7 +40,7 @@ export async function onRequestPost(context) {
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       const code = randomCode();
-      const website = `https://mshop.in/${code}/${slug}`;
+      const website = `${BUSINESS_WEBSITE_DOMAIN}/${code}/${slug}`;
       // eslint-disable-next-line no-await-in-loop
       const existing = await findUser(env, 'business_website', website, 'uid');
       if (!existing) {

@@ -3,7 +3,11 @@
   <!-- Cover + Avatar -->
   <div class="profile-cover" [style.background]="coverGradient(user.username)">
     <div class="cover-avatar" [style.background]="avatarBg(user.username)">
+      @if (isBusinessAccount() && currentUser()?.avatarUrl; as logoUrl) {
+      <img [src]="logoUrl" alt="Business logo" class="avatar-img" />
+      } @else {
       <img src="assets/avatar/panda.png" alt="Avatar" class="avatar-img" />
+      }
     </div>
   </div>
 
@@ -36,6 +40,25 @@
         }
       </div>
     </div>
+
+    @if (isBusinessAccount() && !editMode()) {
+    <div class="business-info-card">
+      @if (currentUser()?.businessWebsite; as website) {
+      <a [href]="website" target="_blank" rel="noopener noreferrer" class="business-website-link">
+        <i class="bi bi-link-45deg" aria-hidden="true"></i> {{ website }}
+      </a>
+      }
+      @if (currentUser()?.businessImages?.length) {
+      <div class="business-photos-grid">
+        @for (url of currentUser()?.businessImages; track url) {
+        <div class="business-photo-thumb">
+          <img [src]="url" alt="Shop photo" />
+        </div>
+        }
+      </div>
+      }
+    </div>
+    }
 
     @if (user.isGuest) {
     <div class="upgrade-banner">
@@ -106,6 +129,38 @@
       <small class="edit-count">{{ editBio().length }}/280</small>
 
       @if (isBusinessAccount()) {
+      <label class="edit-label">Business logo (optional)</label>
+      <div class="shop-images-grid mb-3">
+        @if (editBusinessLogoUrl(); as logoUrl) {
+        <div class="shop-image-thumb">
+          <img [src]="logoUrl" alt="Business logo" />
+          <button
+            type="button"
+            class="shop-image-remove"
+            aria-label="Remove logo"
+            (click)="removeBusinessLogo()"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        } @else {
+        <label class="shop-image-add">
+          @if (uploadingBusinessLogo()) {
+          <span class="spinner-dark" aria-hidden="true"></span>
+          } @else {
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          }
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            [disabled]="uploadingBusinessLogo()"
+            (change)="onBusinessLogoSelect($event)"
+          />
+        </label>
+        }
+      </div>
+
       <label class="edit-label">Shop / business name</label>
       <input
         class="tm-input mb-3"

@@ -48,7 +48,7 @@ export class TagDataService {
       this.client
         .from('public_user_profiles')
         .select(
-          'uid,name,is_guest,reputation,created_at,account_type,business_name,business_website,business_category,business_images',
+          'uid,name,avatar_url,is_guest,reputation,created_at,account_type,business_name,business_website,business_category,business_images,business_established_year',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -65,9 +65,9 @@ export class TagDataService {
       this.client
         .from('my_user_profile')
         .select(
-          'uid,name,email,is_guest,reputation,created_at,' +
+          'uid,name,email,avatar_url,is_guest,reputation,created_at,' +
             'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at,' +
-            'account_type,business_name,business_phone,business_website,business_category,business_images',
+            'account_type,business_name,business_phone,business_website,business_category,business_images,business_established_year',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -99,6 +99,7 @@ export class TagDataService {
       name: data.name,
       isGuest: !!data.is_guest,
       email: data.email ?? undefined,
+      avatarUrl: data.avatar_url ?? undefined,
       reputation: data.reputation ?? 0,
       createdAt: data.created_at ?? undefined,
       hood,
@@ -108,6 +109,7 @@ export class TagDataService {
       businessWebsite: data.business_website ?? undefined,
       businessCategory: data.business_category ?? undefined,
       businessImages: data.business_images ?? undefined,
+      businessEstablishedYear: data.business_established_year ?? undefined,
     };
   }
 

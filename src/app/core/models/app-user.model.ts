@@ -8,6 +8,8 @@ export interface AppUser {
   isGuest: boolean;
   email?: string;
   bio?: string;
+  /** Profile picture — currently only wired up as the "Business logo" for business accounts. */
+  avatarUrl?: string;
   createdAt?: string;
   updatedAt?: string;
   /** Trigger-maintained server-side (bumped by likes on this user's posts) — never write this from the client. */
@@ -27,4 +29,6 @@ export interface AppUser {
   businessCategory?: string;
   /** 1–5 shop/business photo URLs (tag-images bucket). */
   businessImages?: string[];
+  /** Year the business was founded — collected at signup instead of a personal birthday. */
+  businessEstablishedYear?: number;
 }

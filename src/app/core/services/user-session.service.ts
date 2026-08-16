@@ -75,6 +75,9 @@ export class UserSessionService {
           const metaBusinessCategory = session.user.user_metadata?.['business_category'] as
             | string
             | undefined;
+          const metaBusinessEstablishedYear = session.user.user_metadata?.[
+            'business_established_year'
+          ] as number | undefined;
           const fallbackUser: AppUser = {
             uid,
             name,
@@ -85,6 +88,7 @@ export class UserSessionService {
             businessPhone: metaBusinessPhone,
             businessWebsite: metaBusinessWebsite,
             businessCategory: metaBusinessCategory,
+            businessEstablishedYear: metaBusinessEstablishedYear,
           };
 
           const metaHood = session.user.user_metadata?.['home_hood'] as HomeHoodInput | undefined;
@@ -127,6 +131,7 @@ export class UserSessionService {
                   business_phone: metaBusinessPhone ?? null,
                   business_website: metaBusinessWebsite ?? null,
                   business_category: metaBusinessCategory ?? null,
+                  business_established_year: metaBusinessEstablishedYear ?? null,
                   ...hoodRow,
                 }),
               ).pipe(
@@ -239,6 +244,7 @@ export class UserSessionService {
       businessPhone?: string;
       businessWebsite?: string;
       businessCategory?: string;
+      businessEstablishedYear?: number;
     },
   ): Promise<AuthResponse> {
     try {
@@ -288,6 +294,8 @@ export class UserSessionService {
             metadata.accountType === 'business' ? (metadata.businessWebsite ?? '') : '',
           business_category:
             metadata.accountType === 'business' ? (metadata.businessCategory ?? '') : '',
+          business_established_year:
+            metadata.accountType === 'business' ? (metadata.businessEstablishedYear ?? null) : null,
           email_opt_out_token: this.createEmailOptOutToken(),
         }),
       );
@@ -352,7 +360,7 @@ export class UserSessionService {
     );
   }
 
-  /** Generates a unique `mshop.in/<code>/<business-name-slug>` link — throws if generation fails. */
+  /** Generates a unique `multi-tenant-web.nikhiljose47.workers.dev/<code>/<business-name-slug>` link — throws if generation fails. */
   async generateBusinessWebsite(businessName: string): Promise<string> {
     const { website } = await this.supabase.generateBusinessWebsite(businessName);
     return website;
@@ -457,6 +465,7 @@ export class UserSessionService {
     businessWebsite: string;
     businessCategory?: string;
     businessImages?: string[];
+    avatarUrl?: string;
   }): Promise<boolean> {
     const current = this.user();
     if (!current) return false;
@@ -473,6 +482,7 @@ export class UserSessionService {
           ...(fields.businessImages !== undefined
             ? { business_images: fields.businessImages }
             : {}),
+          ...(fields.avatarUrl !== undefined ? { avatar_url: fields.avatarUrl || null } : {}),
         }),
       );
       this.user.set({
@@ -484,6 +494,7 @@ export class UserSessionService {
           ? { businessCategory: fields.businessCategory.trim() || undefined }
           : {}),
         ...(fields.businessImages !== undefined ? { businessImages: fields.businessImages } : {}),
+        ...(fields.avatarUrl !== undefined ? { avatarUrl: fields.avatarUrl || undefined } : {}),
       });
       return true;
     } catch {
@@ -500,6 +511,19 @@ export class UserSessionService {
         this.supabase.upsertRow('users', { uid: current.uid, business_images: images }),
       );
       this.user.set({ ...current, businessImages: images });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Sets the uploaded business logo URL straight after signup (no other fields touched). */
+  async updateAvatarUrl(url: string): Promise<boolean> {
+    const current = this.user();
+    if (!current) return false;
+    try {
+      await firstValueFrom(this.supabase.upsertRow('users', { uid: current.uid, avatar_url: url }));
+      this.user.set({ ...current, avatarUrl: url });
       return true;
     } catch {
       return false;

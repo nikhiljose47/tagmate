@@ -141,6 +141,8 @@ export class ProfilePage implements OnInit {
   editBusinessImages = signal<string[]>([]);
   uploadingBusinessImage = signal(false);
   readonly maxBusinessImages = 5;
+  editBusinessLogoUrl = signal('');
+  uploadingBusinessLogo = signal(false);
   readonly businessTags = BUSINESS_TAG_CATEGORIES;
   readonly tagCategoryLabel = tagCategoryLabel;
   profileSaving = signal(false);
@@ -235,6 +237,8 @@ export class ProfilePage implements OnInit {
     () => this.sessionService.user()?.accountType === 'business',
   );
   readonly isGuestAccount = computed(() => this.sessionService.user()?.isGuest ?? true);
+  /** Full AppUser (business logo/website/photos aren't on the stripped-down `user$` used for the header). */
+  readonly currentUser = computed(() => this.sessionService.user());
 
   toggleEditProfile(): void {
     const opening = !this.editMode();
@@ -247,8 +251,34 @@ export class ProfilePage implements OnInit {
       this.editBusinessWebsite.set(user?.businessWebsite ?? '');
       this.editBusinessCategory.set((user?.businessCategory as TagCategory) ?? '');
       this.editBusinessImages.set(user?.businessImages ?? []);
+      this.editBusinessLogoUrl.set(user?.avatarUrl ?? '');
     }
     this.editMode.set(opening);
+  }
+
+  async onBusinessLogoSelect(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const uid = this.sessionService.user()?.uid;
+    if (!file || !uid || !file.type.startsWith('image/')) return;
+
+    this.uploadingBusinessLogo.set(true);
+    try {
+      const { file: compressed } = await this.mediaCompression.compress(file);
+      const ext = compressed.name.split('.').pop() ?? 'jpg';
+      const path = `avatars/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const url = await this.media.uploadFile(path, compressed);
+      this.editBusinessLogoUrl.set(url);
+    } catch {
+      this.toast.show('Could not upload the logo.', 'warning');
+    } finally {
+      this.uploadingBusinessLogo.set(false);
+    }
+  }
+
+  removeBusinessLogo(): void {
+    this.editBusinessLogoUrl.set('');
   }
 
   selectBusinessCategory(tag: TagCategory): void {
@@ -310,6 +340,7 @@ export class ProfilePage implements OnInit {
         businessWebsite: this.editBusinessWebsite(),
         businessCategory: this.editBusinessCategory(),
         businessImages: this.editBusinessImages(),
+        avatarUrl: this.editBusinessLogoUrl(),
       });
     }
     this.profileSaving.set(false);
