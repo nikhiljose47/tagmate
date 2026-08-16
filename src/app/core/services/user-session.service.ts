@@ -72,6 +72,9 @@ export class UserSessionService {
           const metaBusinessWebsite = session.user.user_metadata?.['business_website'] as
             | string
             | undefined;
+          const metaBusinessCategory = session.user.user_metadata?.['business_category'] as
+            | string
+            | undefined;
           const fallbackUser: AppUser = {
             uid,
             name,
@@ -81,6 +84,7 @@ export class UserSessionService {
             businessName: metaBusinessName,
             businessPhone: metaBusinessPhone,
             businessWebsite: metaBusinessWebsite,
+            businessCategory: metaBusinessCategory,
           };
 
           const metaHood = session.user.user_metadata?.['home_hood'] as HomeHoodInput | undefined;
@@ -122,6 +126,7 @@ export class UserSessionService {
                   business_name: metaBusinessName ?? null,
                   business_phone: metaBusinessPhone ?? null,
                   business_website: metaBusinessWebsite ?? null,
+                  business_category: metaBusinessCategory ?? null,
                   ...hoodRow,
                 }),
               ).pipe(
@@ -233,6 +238,7 @@ export class UserSessionService {
       businessName?: string;
       businessPhone?: string;
       businessWebsite?: string;
+      businessCategory?: string;
     },
   ): Promise<AuthResponse> {
     try {
@@ -280,6 +286,8 @@ export class UserSessionService {
           business_phone: metadata.accountType === 'business' ? (metadata.businessPhone ?? '') : '',
           business_website:
             metadata.accountType === 'business' ? (metadata.businessWebsite ?? '') : '',
+          business_category:
+            metadata.accountType === 'business' ? (metadata.businessCategory ?? '') : '',
           email_opt_out_token: this.createEmailOptOutToken(),
         }),
       );
@@ -344,6 +352,12 @@ export class UserSessionService {
     );
   }
 
+  /** Generates a unique `mshop.in/<code>/<business-name-slug>` link — throws if generation fails. */
+  async generateBusinessWebsite(businessName: string): Promise<string> {
+    const { website } = await this.supabase.generateBusinessWebsite(businessName);
+    return website;
+  }
+
   async resendConfirmationEmail(emailOrUsername: string): Promise<boolean> {
     try {
       const value = emailOrUsername.trim();
@@ -363,6 +377,11 @@ export class UserSessionService {
   logout() {
     this.user.set(null);
     return firstValueFrom(this.supabase.signOut());
+  }
+
+  async deleteAccount(): Promise<void> {
+    await this.supabase.deleteAccount();
+    this.user.set(null);
   }
 
   async loginGuest() {
@@ -436,6 +455,8 @@ export class UserSessionService {
     businessName: string;
     businessPhone: string;
     businessWebsite: string;
+    businessCategory?: string;
+    businessImages?: string[];
   }): Promise<boolean> {
     const current = this.user();
     if (!current) return false;
@@ -446,6 +467,12 @@ export class UserSessionService {
           business_name: fields.businessName.trim() || null,
           business_phone: fields.businessPhone.trim() || null,
           business_website: fields.businessWebsite.trim() || null,
+          ...(fields.businessCategory !== undefined
+            ? { business_category: fields.businessCategory.trim() || null }
+            : {}),
+          ...(fields.businessImages !== undefined
+            ? { business_images: fields.businessImages }
+            : {}),
         }),
       );
       this.user.set({
@@ -453,7 +480,26 @@ export class UserSessionService {
         businessName: fields.businessName.trim() || undefined,
         businessPhone: fields.businessPhone.trim() || undefined,
         businessWebsite: fields.businessWebsite.trim() || undefined,
+        ...(fields.businessCategory !== undefined
+          ? { businessCategory: fields.businessCategory.trim() || undefined }
+          : {}),
+        ...(fields.businessImages !== undefined ? { businessImages: fields.businessImages } : {}),
       });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Sets the uploaded shop/business image URLs straight after signup (no other fields touched). */
+  async updateBusinessImages(images: string[]): Promise<boolean> {
+    const current = this.user();
+    if (!current) return false;
+    try {
+      await firstValueFrom(
+        this.supabase.upsertRow('users', { uid: current.uid, business_images: images }),
+      );
+      this.user.set({ ...current, businessImages: images });
       return true;
     } catch {
       return false;

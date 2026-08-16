@@ -136,6 +136,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       .liveTags()
       .pipe(takeUntil(this.destroy$))
       .subscribe((post) => {
+        // Step 5.A: RLS already blocks other users' drafts/scheduled posts —
+        // this covers the author's own tab, where their own insert is still visible to them.
+        if (post.publishStatus && post.publishStatus !== 'published') return;
         this.posts.update((posts) => [
           post,
           ...posts.filter((item) => this.postKey(item) !== this.postKey(post)),
@@ -144,11 +147,15 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     this.tagRepo
       .liveTagUpdates()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((post) =>
+      .subscribe((post) => {
+        if (post.publishStatus && post.publishStatus !== 'published') {
+          this.posts.update((posts) => posts.filter((item) => this.postKey(item) !== this.postKey(post)));
+          return;
+        }
         this.posts.update((posts) =>
           posts.map((item) => (this.postKey(item) === this.postKey(post) ? post : item)),
-        ),
-      );
+        );
+      });
 
     // Drop a post immediately if it was deleted here or on any other page.
     this.social.postDeleted$.pipe(takeUntil(this.destroy$)).subscribe((deletedKey) => {

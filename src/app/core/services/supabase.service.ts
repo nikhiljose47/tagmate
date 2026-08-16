@@ -41,6 +41,10 @@ export class SupabaseService {
     return this.auth.checkSignupAvailability(email, username);
   }
 
+  generateBusinessWebsite(businessName: string): Promise<{ website: string }> {
+    return this.auth.generateBusinessWebsite(businessName);
+  }
+
   resendSignupConfirmation(email: string) {
     return this.auth.resendSignupConfirmation(email);
   }
@@ -59,6 +63,10 @@ export class SupabaseService {
 
   signOut() {
     return this.auth.signOut();
+  }
+
+  deleteAccount(): Promise<void> {
+    return this.auth.deleteAccount();
   }
 
   resetPassword(email: string) {

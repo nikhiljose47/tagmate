@@ -1,6 +1,7 @@
-<div class="login-page relative">
+<div class="signup-split">
+  <!-- ── Theme toggle ── -->
   <button
-    class="tm-icon-btn absolute top-4 right-4"
+    class="theme-toggle-btn"
     type="button"
     (click)="theme.toggleTheme()"
     aria-label="Toggle theme"
@@ -16,101 +17,145 @@
       }"
     ></i>
   </button>
-  <div class="login-content">
-    <!-- Brand -->
-    <div class="brand-block">
-      <div class="brand-logo">
-        <i class="bi bi-geo-alt-fill"></i>
-      </div>
-      <h1 class="brand-name">Tagmate</h1>
-      <p class="brand-tagline">Your neighborhood, in real time.</p>
-    </div>
 
-    <!-- Card -->
-    <div class="login-card">
-      <div class="login-fields">
-        <input
-          type="text"
-          class="tm-input"
-          placeholder="Email address or username"
-          aria-label="Email address or username"
-          [value]="email()"
-          (input)="email.set($any($event.target).value)"
-          [disabled]="loading()"
-          autocomplete="username"
-        />
-        <div class="password-field">
-          <input
-            [type]="showPassword() ? 'text' : 'password'"
-            class="tm-input"
-            placeholder="Password"
-            aria-label="Password"
-            [value]="password()"
-            (input)="password.set($any($event.target).value)"
-            [disabled]="loading()"
-            autocomplete="current-password"
-          />
+  <!-- ════════════════ Left hero panel ════════════════ -->
+  <div class="signup-hero" aria-hidden="true">
+    <div class="hero-inner">
+      <div class="hero-brand">
+        <img src="assets/tagmate-logo.svg" class="hero-logo" alt="Tagmate" width="36" height="36" />
+        <span class="hero-wordmark">Tagmate</span>
+      </div>
+
+      <div class="hero-copy">
+        <h2 class="hero-headline">Welcome back to<br />your neighborhood.</h2>
+        <p class="hero-sub">
+          Log in to catch up on local posts, alerts, and the neighbors around you.
+        </p>
+      </div>
+
+      <ul class="hero-features">
+        <li>
+          <span class="feat-icon"><i class="bi bi-geo-alt-fill"></i></span>
+          <span>Hyper-local posts from your area</span>
+        </li>
+        <li>
+          <span class="feat-icon"><i class="bi bi-people-fill"></i></span>
+          <span>Connect with real neighbors</span>
+        </li>
+        <li>
+          <span class="feat-icon"><i class="bi bi-bell-fill"></i></span>
+          <span>Live alerts and community updates</span>
+        </li>
+      </ul>
+
+      <div class="hero-illustration">
+        <img src="assets/illustrations/signup_selfie.svg" alt="" width="380" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ Right form panel ════════════════ -->
+  <div class="signup-form-panel">
+    <div class="signup-form-inner">
+      <!-- Mobile-only brand -->
+      <div class="mobile-brand">
+        <img src="assets/tagmate-logo.svg" class="mobile-logo" alt="" width="28" height="28" />
+        <span class="mobile-wordmark">Tagmate</span>
+      </div>
+
+      <div class="step-block">
+        <h1 class="form-title">Log in to Tagmate</h1>
+
+        <div class="login-fields">
+          <div class="field-group">
+            <label class="field-label">Email or username</label>
+            <input
+              type="text"
+              class="tm-input"
+              placeholder="Email address or username"
+              aria-label="Email address or username"
+              [value]="email()"
+              (input)="email.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Password</label>
+            <div class="password-field">
+              <input
+                [type]="showPassword() ? 'text' : 'password'"
+                class="tm-input"
+                placeholder="Password"
+                aria-label="Password"
+                [value]="password()"
+                (input)="password.set($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                tabindex="-1"
+              >
+                <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="forgot-password-link">
+            <a routerLink="/login/forgot-password">Forgot Password?</a>
+          </div>
+
           <button
+            class="tm-btn tm-btn-primary w-full step-btn"
             type="button"
-            class="password-toggle"
-            (click)="showPassword.set(!showPassword())"
-            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            [disabled]="loading()"
+            (click)="login()"
           >
-            <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+            @if (!loading()) { Log In } @else {
+            <span class="spinner" aria-hidden="true"></span>
+            Signing in… }
           </button>
         </div>
 
-        <div class="forgot-password-link text-right mt-1 mb-2">
-          <a routerLink="/login/forgot-password" class="text-xs text-tm-primary font-semibold"
-            >Forgot Password?</a
-          >
-        </div>
+        <div class="divider">OR</div>
 
-        <button class="tm-btn tm-btn-primary w-full" [disabled]="loading()" (click)="login()">
-          @if (!loading()) { Log In } @else {
-          <span
-            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
-          ></span>
-          Signing in... }
+        <button class="guest-btn" type="button" [disabled]="loading()" (click)="loginGuest()">
+          @if (!loading()) {
+          <i class="bi bi-incognito"></i>
+          Continue as Guest } @else {
+          <span class="spinner spinner--dark" aria-hidden="true"></span>
+          Please wait… }
         </button>
-      </div>
 
-      <div class="divider">OR</div>
+        @if (error()) {
+        <div class="error-msg" role="alert">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ error() }}
+        </div>
+        } @if (unconfirmedEmail()) { @if (resendSent()) {
+        <div class="error-msg error-msg--info" role="status">
+          <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Confirmation email resent —
+          check your inbox (and spam folder).
+        </div>
+        } @else {
+        <button
+          type="button"
+          class="resend-confirm-btn"
+          [disabled]="resendingEmail()"
+          (click)="resendConfirmationEmail()"
+        >
+          @if (!resendingEmail()) { Resend confirmation email } @else { Resending… }
+        </button>
+        } }
 
-      <button class="guest-btn" [disabled]="loading()" (click)="loginGuest()">
-        @if (!loading()) {
-        <i class="bi bi-incognito"></i>
-        Continue as Guest } @else {
-        <span
-          class="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700"
-        ></span>
-        Please wait... }
-      </button>
-
-      @if (error()) {
-      <div class="error-msg" role="alert">
-        <i class="bi bi-exclamation-circle"></i> {{ error() }}
+        <p class="login-hint">
+          Don't have an account? <a routerLink="/login/signup">Sign up</a>
+        </p>
       </div>
-      } @if (unconfirmedEmail()) { @if (resendSent()) {
-      <div class="error-msg error-msg--info" role="status">
-        <i class="bi bi-check-circle"></i> Confirmation email resent — check your inbox (and spam
-        folder).
-      </div>
-      } @else {
-      <button
-        type="button"
-        class="resend-confirm-btn"
-        [disabled]="resendingEmail()"
-        (click)="resendConfirmationEmail()"
-      >
-        @if (!resendingEmail()) { Resend confirmation email } @else { Resending… }
-      </button>
-      } }
     </div>
-
-    <p class="signup-hint">
-      Don't have an account?
-      <a routerLink="/login/signup" class="text-tm-primary font-semibold">Sign up</a>
-    </p>
   </div>
 </div>

@@ -29,6 +29,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
+import { BusinessPostContentComponent } from '../../../post/components/business-post-content/business-post-content.component';
 import { environment } from '../../../../environments/environment';
 import {
   FEED_BETA_MAIN_CATEGORIES,
@@ -36,6 +37,7 @@ import {
   FeedBetaScope,
   WorkspaceStateService,
 } from '../../../../layout/workspace/workspace-state.service';
+import { resolveFeedScope } from '../../../../layout/workspace/feed-scope.util';
 
 /** One raster tile of the mini map, pre-offset so the post lands at box centre. */
 interface MapTile {
@@ -87,6 +89,7 @@ const EAGER_SLIDES = 3;
     TagEmojiPipe,
     TagGradientPipe,
     TimeAgoPipe,
+    BusinessPostContentComponent,
   ],
   templateUrl: './feed-beta.html',
   styleUrl: './feed-beta.scss',
@@ -262,6 +265,10 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       .liveTags()
       .pipe(takeUntil(this.destroy$))
       .subscribe((post) => {
+        // Step 5.A: RLS already keeps other users' drafts/scheduled posts out
+        // of this stream — this guards the one case RLS can't, the author's
+        // own tab, where their own draft/scheduled insert is still visible to them.
+        if (!this.isPubliclyVisible(post)) return;
         this.posts.update((posts) => [
           post,
           ...posts.filter((item) => this.social.postKey(item) !== this.social.postKey(post)),
@@ -271,13 +278,22 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.tagRepo
       .liveTagUpdates()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((post) =>
-        this.posts.update((posts) =>
-          posts.map((item) =>
-            this.social.postKey(item) === this.social.postKey(post) ? post : item,
-          ),
-        ),
-      );
+      .subscribe((post) => {
+        const key = this.social.postKey(post);
+        if (!this.isPubliclyVisible(post)) {
+          // Still/now unpublished (e.g. moved back to draft) — drop it if present.
+          this.posts.update((posts) => posts.filter((item) => this.social.postKey(item) !== key));
+          return;
+        }
+        this.posts.update((posts) => {
+          const exists = posts.some((item) => this.social.postKey(item) === key);
+          // A scheduled post that just went live via cron won't already be in
+          // the list — insert it instead of silently dropping the update.
+          return exists
+            ? posts.map((item) => (this.social.postKey(item) === key ? post : item))
+            : [post, ...posts];
+        });
+      });
 
     this.social.postDeleted$.pipe(takeUntil(this.destroy$)).subscribe((deletedKey) => {
       this.posts.update((posts) => posts.filter((p) => this.social.postKey(p) !== deletedKey));
@@ -343,70 +359,29 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     sell_give: 'Sell / Give',
   };
 
-  private static readonly CTA_LABELS: Record<string, string> = {
-    message: 'Message',
-    call: 'Call',
-    whatsapp: 'WhatsApp',
-    directions: 'Directions',
-    visit_shop: 'Visit Shop',
-    view_product: 'View Product',
-    book: 'Book',
-    join: 'Join',
-    interested: 'Interested',
-  };
-
-  private static readonly CTA_ICONS: Record<string, string> = {
-    message: 'bi-chat-dots-fill',
-    call: 'bi-telephone-fill',
-    whatsapp: 'bi-whatsapp',
-    directions: 'bi-signpost-2-fill',
-    visit_shop: 'bi-shop-window',
-    view_product: 'bi-box-arrow-up-right',
-    book: 'bi-calendar2-check-fill',
-    join: 'bi-people-fill',
-    interested: 'bi-hand-thumbs-up-fill',
-  };
-
   protected intentLabel(intent: string | undefined): string {
     return intent ? (FeedBetaPage.INTENT_LABELS[intent] ?? intent) : '';
   }
 
-  protected ctaLabel(post: Tag): string {
-    return FeedBetaPage.CTA_LABELS[post.cta ?? 'message'] ?? 'Message';
-  }
-
-  protected ctaIcon(post: Tag): string {
-    return FeedBetaPage.CTA_ICONS[post.cta ?? 'message'] ?? 'bi-chat-dots-fill';
-  }
-
-  /** External URL for the CTA when one applies — null means "open the post" (safe universal fallback). */
-  protected ctaHref(post: Tag): string | null {
-    switch (post.cta) {
-      case 'call':
-        return post.businessPhone ? `tel:${post.businessPhone}` : null;
-      case 'whatsapp':
-        return post.businessPhone ? `https://wa.me/${post.businessPhone.replace(/\D/g, '')}` : null;
-      case 'directions':
-        return Number.isFinite(post.lat) && Number.isFinite(post.lng)
-          ? `https://www.google.com/maps/dir/?api=1&destination=${post.lat},${post.lng}`
-          : null;
-      case 'visit_shop':
-        return post.businessWebsite || null;
-      case 'view_product':
-        return post.productLink || post.businessWebsite || null;
-      default:
-        return null;
-    }
-  }
+  // CTA label/icon/href resolution now lives in BusinessPostContentComponent
+  // (Step 4.A) — shared across FeedBeta, PostDetail, and Profile instead of
+  // being duplicated here.
 
   /** "3h left" / "42m left" / "Expired" — same rule as `isPostLive`, just a label. */
   protected timeRemainingLabel(post: Tag): string {
-    const createdMs = new Date(post.createdAt).getTime();
-    const remainingMs = createdMs + post.expiresIn * 60_000 - Date.now();
-    if (Number.isNaN(createdMs) || remainingMs <= 0) return 'Expired';
+    // Step 5.A: expiry is anchored on publication time, not draft/creation time.
+    const anchorMs = new Date(post.publishedAt ?? post.createdAt).getTime();
+    const remainingMs = anchorMs + post.expiresIn * 60_000 - Date.now();
+    if (Number.isNaN(anchorMs) || remainingMs <= 0) return 'Expired';
     const hours = Math.floor(remainingMs / 3_600_000);
     if (hours >= 1) return `${hours}h left`;
     return `${Math.max(1, Math.floor(remainingMs / 60_000))}m left`;
+  }
+
+  /** Step 5.A: public feed surfaces never show a draft/scheduled post — even
+   *  the author's own, in their own tab (see the realtime handlers above). */
+  private isPubliclyVisible(post: Tag): boolean {
+    return !post.publishStatus || post.publishStatus === 'published';
   }
 
   protected imageIndex(key: string): number {
@@ -860,33 +835,11 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     return '';
   }
 
+  /** Step 4.B: centralized in feed-scope.util.ts — considers postSubtype too
+   *  (e.g. a business "We're Hiring" post surfaces in the Job scope) without
+   *  changing the stored parent tag. */
   private mainCategoryFor(post: Tag): (typeof FEED_BETA_MAIN_CATEGORIES)[number] | null {
-    const tag = post.tag?.trim().toLowerCase();
-
-    if (tag === 'hot-now') return 'hot-now';
-    if (tag === 'dating') return 'dating';
-    if (tag === 'game' || tag === 'fitness') return 'game';
-    if (tag === 'job' || tag === 'biz') return 'job';
-
-    if (
-      tag === 'around' ||
-      tag === 'shop' ||
-      tag === 'help' ||
-      tag === 'food' ||
-      tag === 'health' ||
-      tag === 'learn' ||
-      tag === 'space' ||
-      tag === 'travel' ||
-      tag === 'event' ||
-      tag === 'notice' ||
-      tag === 'bulletin' ||
-      tag === 'alert' ||
-      tag === 'poll'
-    ) {
-      return 'around';
-    }
-
-    return null;
+    return resolveFeedScope(post);
   }
 
   private scopeKey(value: string): string {

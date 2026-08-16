@@ -147,22 +147,13 @@
             </span>
           </div>
 
-          @if (slide.post.tag) {
-          <span class="fb-business-tag">{{ slide.post.tag | tagEmoji }} #{{ slide.post.tag }}</span>
-          }
-          <p class="fb-business-text">{{ slide.post.highlight || 'Untitled post' }}</p>
+          <app-business-post-content
+            [post]="slide.post"
+            variant="feed"
+            [fallbackLink]="['/posts', slide.key]"
+          />
 
-          @if (slide.post.price || slide.post.availabilityNote) {
-          <div class="fb-business-price-row">
-            @if (slide.post.price) {
-            <span class="fb-business-price">₹{{ slide.post.price }}</span>
-            } @if (slide.post.originalPrice) {
-            <span class="fb-business-price-original">₹{{ slide.post.originalPrice }}</span>
-            } @if (slide.post.availabilityNote) {
-            <span class="fb-business-availability">{{ slide.post.availabilityNote }}</span>
-            }
-          </div>
-          } @if (slide.post.businessPhone || slide.post.businessWebsite) {
+          @if (slide.post.businessPhone || slide.post.businessWebsite) {
           <div class="fb-business-contact">
             @if (slide.post.businessPhone) {
             <a class="fb-business-contact-link" [href]="'tel:' + slide.post.businessPhone">
@@ -182,20 +173,6 @@
             }
           </div>
           }
-
-          <div class="fb-business-cta-row">
-            @if (ctaHref(slide.post); as href) {
-            <a class="fb-business-cta" [href]="href" target="_blank" rel="noopener noreferrer">
-              <i class="bi" [class]="ctaIcon(slide.post)" aria-hidden="true"></i>
-              {{ ctaLabel(slide.post) }}
-            </a>
-            } @else {
-            <a class="fb-business-cta" [routerLink]="['/posts', slide.key]">
-              <i class="bi" [class]="ctaIcon(slide.post)" aria-hidden="true"></i>
-              {{ ctaLabel(slide.post) }}
-            </a>
-            }
-          </div>
         </div>
       </div>
       } @else {

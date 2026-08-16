@@ -4,7 +4,7 @@ import {
   SocialProfile,
   PostConfirmation,
   PostStatusEntry,
-  ACTIONABLE_TAGS,
+  isActionablePost,
 } from '../models/social.model';
 import { PostStatus, Tag } from '../models/tag.model';
 import { SupabaseService } from './supabase.service';
@@ -152,7 +152,7 @@ export class SocialPlatformService implements OnDestroy {
   }
 
   isActionable(post: Tag): boolean {
-    return !!post.id && ACTIONABLE_TAGS.has(post.tag);
+    return !!post.id && isActionablePost(post);
   }
 
   canSetStatus(post: Tag): boolean {

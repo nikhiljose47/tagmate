@@ -22,6 +22,18 @@ export interface PostDraft {
   media: { file: File; previewUrl: string; type: 'image' | 'video' }[];
   /** Where to land when this draft is restored — 'preview' for "Post Again" (nothing to review). */
   resumeStep?: 'details' | 'preview';
+  // Step 1 template context — preserved across the pick-location round-trip.
+  /** The specific template variant being used, e.g. "general". */
+  postSubtype?: string;
+  /** Template version at draft time. */
+  templateVersion?: number;
+  /** Optional structured title. */
+  title?: string;
+  /** Raw template field values for re-hydrating the quick-fill form. */
+  templateData?: Record<string, unknown>;
+  /** True once the user has hand-edited the generated headline — stops
+   *  further template field changes from overwriting their edit. */
+  isHighlightManuallyEdited?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

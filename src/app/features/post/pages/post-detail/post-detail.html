@@ -22,7 +22,8 @@
             [routerLink]="
                 post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
               "
-            >{{ post.username || 'Anonymous' }}</a
+            >{{ post.postType === 'business' && post.businessName ? post.businessName : (post.username
+            || 'Anonymous') }}</a
           >
           <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
             {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }} @if (post.expiresIn) {
@@ -137,6 +138,13 @@
         <p class="detail-counts">
           {{ social.likeCount(post) }} likes - {{ social.commentCount(post) }} comments
         </p>
+        @if (post.postType === 'business') {
+        <app-business-post-content
+          [post]="post"
+          variant="detail"
+          [showEventRange]="!isEventLike(post)"
+        />
+        } @else {
         <p class="detail-caption">
           <a
             [routerLink]="
@@ -146,6 +154,7 @@
           >
           <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
         </p>
+        }
 
         @if (post.pollOptions?.length) {
         <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
@@ -169,13 +178,15 @@
           }
         </div>
         }
+        @if (post.postType !== 'business') {
         <span class="tm-chip">{{ post.tag | titlecase }}</span>
+        }
 
-        @if (post.tag === 'event') {
+        @if (isEventLike(post)) {
         <div class="event-box">
           <div>
             <strong>Local event</strong>
-            <span>{{ post.eventStart ? (post.eventStart | date: 'medium') : 'Time TBA' }}</span>
+            <span>{{ eventRangeLabel(post) || 'Time TBA' }}</span>
           </div>
           <button class="tm-btn tm-btn-primary" type="button" (click)="toggleRsvp()">
             {{ social.isRsvped(post) ? 'Going' : 'RSVP' }} - {{ social.rsvpCount(post) }}

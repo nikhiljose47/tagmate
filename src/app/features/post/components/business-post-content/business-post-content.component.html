@@ -1,0 +1,55 @@
+<div class="bpc" [class.bpc--detail]="variant() === 'detail'" [class.bpc--profile]="variant() === 'profile'">
+  <div class="bpc-header">
+    <tm-tag-pill [tag]="post().tag" />
+    @if (subtypeLabel()) {
+    <span class="bpc-subtype-pill">{{ subtypeIcon() }} {{ subtypeLabel() }}</span>
+    }
+  </div>
+
+  @if (displayTitle()) {
+  <h3 class="bpc-title">{{ displayTitle() }}</h3>
+  }
+
+  <p class="bpc-body">{{ post().highlight || 'Untitled post' }}</p>
+
+  @if (structuredValues().length) {
+  <div class="bpc-structured">
+    @for (item of structuredValues(); track item.key) {
+    <span class="bpc-structured-item">{{ item.text }}</span>
+    }
+  </div>
+  }
+
+  @if (hasPriceRow()) {
+  <div class="bpc-price-row">
+    @if (post().price) {
+    <span class="bpc-price">₹{{ post().price }}</span>
+    } @if (post().originalPrice) {
+    <span class="bpc-price-original">₹{{ post().originalPrice }}</span>
+    } @if (post().availabilityNote) {
+    <span class="bpc-availability">{{ post().availabilityNote }}</span>
+    }
+  </div>
+  }
+
+  @if (eventRangeText()) {
+  <div class="bpc-event">
+    <i class="bi bi-calendar-event" aria-hidden="true"></i>
+    {{ eventRangeText() }}
+  </div>
+  }
+
+  @if (showCta() && ctaLabel()) {
+    @if (ctaHref(); as href) {
+    <a class="bpc-cta" [href]="href" target="_blank" rel="noopener noreferrer">
+      <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
+      {{ ctaLabel() }}
+    </a>
+    } @else if (fallbackLink(); as link) {
+    <a class="bpc-cta" [routerLink]="link">
+      <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
+      {{ ctaLabel() }}
+    </a>
+    }
+  }
+</div>

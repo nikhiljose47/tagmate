@@ -48,7 +48,7 @@ export class TagDataService {
       this.client
         .from('public_user_profiles')
         .select(
-          'uid,name,is_guest,reputation,bio,created_at,updated_at,account_type,business_name,business_website',
+          'uid,name,is_guest,reputation,created_at,account_type,business_name,business_website,business_category,business_images',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -65,9 +65,9 @@ export class TagDataService {
       this.client
         .from('my_user_profile')
         .select(
-          'uid,name,email,is_guest,reputation,bio,created_at,updated_at,' +
+          'uid,name,email,is_guest,reputation,created_at,' +
             'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at,' +
-            'account_type,business_name,business_phone,business_website',
+            'account_type,business_name,business_phone,business_website,business_category,business_images',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -100,14 +100,14 @@ export class TagDataService {
       isGuest: !!data.is_guest,
       email: data.email ?? undefined,
       reputation: data.reputation ?? 0,
-      bio: data.bio ?? '',
       createdAt: data.created_at ?? undefined,
-      updatedAt: data.updated_at ?? undefined,
       hood,
       accountType: data.account_type === 'business' ? 'business' : 'personal',
       businessName: data.business_name ?? undefined,
       businessPhone: data.business_phone ?? undefined,
       businessWebsite: data.business_website ?? undefined,
+      businessCategory: data.business_category ?? undefined,
+      businessImages: data.business_images ?? undefined,
     };
   }
 
@@ -149,7 +149,7 @@ export class TagDataService {
     return from(
       this.client
         .from('public_user_profiles')
-        .select('uid,name,is_guest,bio,reputation,created_at,updated_at')
+        .select('uid,name,is_guest,reputation,created_at')
         .ilike('name', `%${sanitized}%`)
         .eq('is_guest', false)
         .limit(limit)
@@ -204,19 +204,24 @@ export class TagDataService {
     limit: number,
     offset: number,
     search?: string,
+    scope?: { tag?: string; postSubtype?: string },
   ): Observable<{ data: T[] | null; error: unknown }> {
     let query = this.client
       .from(table)
       .select('*')
+      .eq('publish_status', 'published') // Step 5.A: public paginated feeds never include drafts/scheduled posts
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
+
+    if (scope?.tag) query = query.eq('tag', scope.tag);
+    if (scope?.postSubtype) query = query.eq('post_subtype', scope.postSubtype);
 
     if (search) {
       const sanitized = search.replace(/[,()%]/g, '').trim();
       if (!sanitized) return of({ data: [], error: null });
       const searchTerm = `%${sanitized}%`;
       query = query.or(
-        `highlight.ilike.${searchTerm},username.ilike.${searchTerm},business_name.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`,
+        `highlight.ilike.${searchTerm},title.ilike.${searchTerm},username.ilike.${searchTerm},business_name.ilike.${searchTerm},tag.ilike.${searchTerm},hood_id.ilike.${searchTerm}`,
       );
     }
 
@@ -236,12 +241,19 @@ export class TagDataService {
       search?: string;
       excludeTag?: string;
       hoodId?: string;
+      /** Business post_subtype filter — separate from `tags` (Step 4.B). */
+      postSubtype?: string;
+      /** Step 5.A: defaults to published-only; pass true only for an owner's own draft/scheduled list. */
+      includeUnpublished?: boolean;
     },
     limit?: number,
     offset?: number,
   ): Observable<{ data: T[] | null; error: unknown }> {
     let query = this.client.from(table).select('*');
 
+    if (!filters.includeUnpublished) {
+      query = query.eq('publish_status', 'published');
+    }
     if (filters.userId) {
       query = query.eq('user_id', filters.userId);
     }
@@ -250,6 +262,9 @@ export class TagDataService {
     }
     if (filters.tags && filters.tags.length > 0) {
       query = query.in('tag', filters.tags);
+    }
+    if (filters.postSubtype) {
+      query = query.eq('post_subtype', filters.postSubtype);
     }
     if (filters.excludeTag) {
       query = query.neq('tag', filters.excludeTag);
@@ -263,7 +278,9 @@ export class TagDataService {
     if (filters.search) {
       const sanitized = filters.search.replace(/[,()]/g, '');
       const term = `%${sanitized}%`;
-      query = query.or(`highlight.ilike.${term},username.ilike.${term},tag.ilike.${term}`);
+      query = query.or(
+        `highlight.ilike.${term},title.ilike.${term},username.ilike.${term},business_name.ilike.${term},tag.ilike.${term}`,
+      );
     }
 
     query = query.order('created_at', { ascending: false });

@@ -1,4 +1,4 @@
-import { PostCta, PostIntent, Tag } from '../models/tag.model';
+import { PostCta, PostIntent, PublishStatus, Tag } from '../models/tag.model';
 
 /** Database row shape (snake_case) that matches the Supabase `tags` table. */
 export interface TagRow {
@@ -29,6 +29,8 @@ export interface TagRow {
   loves?: number;
   dislikes?: number;
   comments?: string[];
+  event_start?: string | null;
+  event_end?: string | null;
   poll_options?: string[];
   poll_votes?: Record<string, string[]>;
   like_count?: number;
@@ -37,6 +39,17 @@ export interface TagRow {
   current_status?: 'active' | 'resolved' | 'cancelled' | 'closed';
   status_updated_at?: string | null;
   verification_count?: number;
+  // Step 1 template fields — null on old rows, safe to omit on reads.
+  post_subtype?: string | null;
+  template_version?: number | null;
+  title?: string | null;
+  template_data?: Record<string, unknown> | null;
+  // Step 5.A publishing state — defaults to 'published' in the DB, so undefined here
+  // (old rows read before this migration) behaves the same as 'published'.
+  publish_status?: string | null;
+  published_at?: string | null;
+  scheduled_for?: string | null;
+  updated_at?: string | null;
 }
 
 /** Converts a domain Tag into a Supabase row for insert/update. */
@@ -68,8 +81,19 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     loves: tag.loves,
     dislikes: tag.dislikes,
     comments: tag.comments,
+    event_start: tag.eventStart ?? null,
+    event_end: tag.eventEnd ?? null,
     poll_options: tag.pollOptions,
     poll_votes: tag.pollVotes,
+    // Step 1 template fields
+    title: tag.title ?? null,
+    post_subtype: tag.postSubtype ?? null,
+    template_version: tag.templateVersion ?? null,
+    template_data: tag.templateData ?? null,
+    // Step 5.A publishing state
+    ...(tag.publishStatus !== undefined ? { publish_status: tag.publishStatus } : {}),
+    ...(tag.publishedAt !== undefined ? { published_at: tag.publishedAt ?? null } : {}),
+    ...(tag.scheduledFor !== undefined ? { scheduled_for: tag.scheduledFor ?? null } : {}),
   };
 }
 
@@ -103,6 +127,8 @@ export function rowToTag(row: TagRow): Tag {
     loves: row.loves,
     dislikes: row.dislikes,
     comments: row.comments,
+    eventStart: row.event_start ?? undefined,
+    eventEnd: row.event_end ?? undefined,
     pollOptions: row.poll_options,
     pollVotes: row.poll_votes,
     likeCount: row.like_count,
@@ -111,5 +137,15 @@ export function rowToTag(row: TagRow): Tag {
     currentStatus: row.current_status ?? 'active',
     statusUpdatedAt: row.status_updated_at ?? undefined,
     verificationCount: row.verification_count ?? 0,
+    // Step 1 template fields — undefined on old rows, never throws
+    title: row.title ?? undefined,
+    postSubtype: row.post_subtype ?? undefined,
+    templateVersion: row.template_version ?? undefined,
+    templateData: row.template_data ?? undefined,
+    // Step 5.A publishing state — undefined behaves the same as 'published'.
+    publishStatus: (row.publish_status as PublishStatus) ?? undefined,
+    publishedAt: row.published_at ?? undefined,
+    scheduledFor: row.scheduled_for ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   };
 }

@@ -131,6 +131,56 @@
         (input)="editBusinessWebsite.set($any($event.target).value)"
         placeholder="https://…"
       />
+      <label class="edit-label">Business category</label>
+      <p class="edit-hint mb-2">Every post you make uses this category.</p>
+      <div class="tag-grid mb-3" role="radiogroup" aria-label="Business category">
+        @for (tag of businessTags; track tag) {
+        <button
+          type="button"
+          class="tag-card"
+          [class.tag-card--active]="editBusinessCategory() === tag"
+          (click)="selectBusinessCategory(tag)"
+        >
+          <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
+          <span class="tag-card-label">{{ tagCategoryLabel(tag) }}</span>
+        </button>
+        }
+      </div>
+
+      <label class="edit-label"
+        >Shop photos <small class="edit-count-inline">{{ editBusinessImages().length }}/{{ maxBusinessImages }}</small></label
+      >
+      <div class="shop-images-grid mb-3">
+        @for (url of editBusinessImages(); track url; let i = $index) {
+        <div class="shop-image-thumb">
+          <img [src]="url" alt="Shop photo" />
+          <button
+            type="button"
+            class="shop-image-remove"
+            aria-label="Remove photo"
+            (click)="removeBusinessImage(i)"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        } @if (editBusinessImages().length < maxBusinessImages) {
+        <label class="shop-image-add">
+          @if (uploadingBusinessImage()) {
+          <span class="spinner-dark" aria-hidden="true"></span>
+          } @else {
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          }
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            [disabled]="uploadingBusinessImage()"
+            (change)="onBusinessImageSelect($event)"
+          />
+        </label>
+        }
+      </div>
       }
 
       <button
@@ -192,6 +242,54 @@
     <!-- Posts Tab -->
     @if (activeTab() === 'posts') { @if (myTags().length === 0) {
     <tm-empty-state icon="+" title="No posts yet" subtitle="You haven't posted anything yet." />
+    } @if (draftPosts().length > 0 || scheduledPosts().length > 0) {
+    <h3 class="posts-section-title">Drafts &amp; scheduled</h3>
+    <div class="posts-grid posts-grid--lifecycle">
+      @for (tag of scheduledPosts(); track tag.id) {
+      <div class="post-card" [style.background]="tag.tag | tagGradient">
+        <div class="post-card-media">
+          @if (tag.images[0]) {
+          <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+          } @else {
+          <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+          }
+        </div>
+        <div class="post-card-overlay">
+          <p class="post-card-text">{{ tag.title || tag.highlight }}</p>
+          <span class="draft-status-pill">
+            <i class="bi bi-clock-history"></i>
+            @if (tag.scheduledFor) { Scheduled for {{ tag.scheduledFor | date: 'd MMM, h:mm a' }} } @else { Scheduled }
+          </span>
+        </div>
+        <div class="post-card-lifecycle">
+          <button type="button" class="pcl-btn pcl-btn--primary" (click)="continueEditing(tag)">
+            Continue editing
+          </button>
+          <button type="button" class="pcl-btn pcl-btn--danger" (click)="deleteTag(tag)">Delete</button>
+        </div>
+      </div>
+      } @for (tag of draftPosts(); track tag.id) {
+      <div class="post-card" [style.background]="tag.tag | tagGradient">
+        <div class="post-card-media">
+          @if (tag.images[0]) {
+          <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+          } @else {
+          <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
+          }
+        </div>
+        <div class="post-card-overlay">
+          <p class="post-card-text">{{ tag.title || tag.highlight || 'Untitled draft' }}</p>
+          <span class="draft-status-pill"><i class="bi bi-file-earmark-text"></i> Draft</span>
+        </div>
+        <div class="post-card-lifecycle">
+          <button type="button" class="pcl-btn pcl-btn--primary" (click)="continueEditing(tag)">
+            Continue editing
+          </button>
+          <button type="button" class="pcl-btn pcl-btn--danger" (click)="deleteTag(tag)">Delete</button>
+        </div>
+      </div>
+      }
+    </div>
     } @if (activePosts().length > 0) {
     <h3 class="posts-section-title">Active</h3>
     <div class="posts-grid posts-grid--lifecycle">
@@ -211,7 +309,11 @@
           }
         </div>
         <div class="post-card-overlay">
+          @if (tag.postType === 'business') {
+          <app-business-post-content [post]="tag" variant="profile" [showCta]="false" />
+          } @else {
           <p class="post-card-text">{{ tag.highlight }}</p>
+          }
           <div class="post-card-actions">
             <button class="pca-btn" type="button" (click)="viewOnMap(tag)" aria-label="View on map">
               <i class="bi bi-map"></i>
@@ -260,7 +362,11 @@
           }
         </div>
         <div class="post-card-overlay">
+          @if (tag.postType === 'business') {
+          <app-business-post-content [post]="tag" variant="profile" [showCta]="false" />
+          } @else {
           <p class="post-card-text">{{ tag.highlight }}</p>
+          }
           <div class="post-card-actions">
             <button
               class="pca-btn danger"
@@ -495,6 +601,29 @@
       <button class="tm-btn tm-btn-primary mt-4 w-full" type="button" (click)="saveSettings()">
         Save Settings
       </button>
+
+      @if (!isGuestAccount()) {
+      <div class="settings-danger-zone mt-4">
+        <p class="settings-title text-[var(--tm-danger)]">Danger zone</p>
+        <p class="settings-sub">
+          Deleting your account permanently removes your profile, posts, and messages. This can't
+          be undone.
+        </p>
+        <button
+          class="tm-btn tm-btn-danger w-full mt-2"
+          type="button"
+          (click)="deleteAccount()"
+          [disabled]="deletingAccount()"
+        >
+          @if (!deletingAccount()) {
+          <i class="bi bi-trash3"></i> Delete Account
+          } @else {
+          <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+          Deleting…
+          }
+        </button>
+      </div>
+      }
     </div>
     } }
   </div>

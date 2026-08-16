@@ -108,13 +108,19 @@
       <!-- Step indicator -->
       @if (!awaitingEmailConfirmation()) {
       <div class="step-track" aria-label="Signup progress">
-        <div class="step-node" [class.active]="step() >= 1" [class.done]="step() > 1">
-          @if (step() > 1) {
+        @for (n of stepIndicators(); track n) {
+        <div
+          class="step-node"
+          [class.active]="stepNumber() >= n"
+          [class.done]="stepNumber() > n"
+        >
+          @if (stepNumber() > n) {
           <i class="bi bi-check2" aria-hidden="true"></i>
-          } @else { 1 }
+          } @else { {{ n }} }
         </div>
-        <div class="step-line" [class.filled]="step() > 1"></div>
-        <div class="step-node" [class.active]="step() >= 2">2</div>
+        @if (!$last) {
+        <div class="step-line" [class.filled]="stepNumber() > n"></div>
+        } }
       </div>
       }
 
@@ -234,44 +240,6 @@
                 </span>
               </button>
             </div>
-            @if (accountType() === 'business') {
-            <input
-              type="text"
-              class="tm-input"
-              style="margin-top: 8px"
-              placeholder="Shop / business name"
-              [value]="businessName()"
-              (input)="businessName.set($any($event.target).value)"
-              [disabled]="loading()"
-              autocomplete="organization"
-            />
-            @if (!businessName().trim()) {
-            <span class="field-hint">Shown as the author name on your business posts.</span>
-            }
-            <div class="field-row" style="margin-top: 8px">
-              <input
-                type="tel"
-                class="tm-input"
-                placeholder="Phone (optional)"
-                [value]="businessPhone()"
-                (input)="businessPhone.set($any($event.target).value)"
-                [disabled]="loading()"
-                autocomplete="tel"
-              />
-              <input
-                type="url"
-                class="tm-input"
-                placeholder="Website (optional)"
-                [value]="businessWebsite()"
-                (input)="businessWebsite.set($any($event.target).value)"
-                [disabled]="loading()"
-                autocomplete="url"
-              />
-            </div>
-            <span class="field-hint"
-              >Shown on your business posts when filled in — leave blank to skip.</span
-            >
-            }
           </div>
 
           <button
@@ -288,8 +256,234 @@
       </div>
       }
 
-      <!-- ── Step 2: Birthday + Location ── -->
+      <!-- ── Step 2: Business details (business accounts only) ── -->
       @if (!awaitingEmailConfirmation() && step() === 2) {
+      <div class="step-block">
+        <h1 class="form-title">Tell us about your business</h1>
+
+        <div class="login-fields">
+          <div class="field-group">
+            <label class="field-label">Business name</label>
+            <div class="business-name-row">
+              <input
+                type="text"
+                class="tm-input"
+                placeholder="Shop / business name"
+                [value]="businessName()"
+                (input)="businessName.set($any($event.target).value)"
+                [disabled]="loading() || businessNameConfirmed()"
+                autocomplete="organization"
+              />
+              @if (businessNameConfirmed()) {
+              <button
+                type="button"
+                class="name-confirm-btn name-confirm-btn--edit"
+                [disabled]="loading()"
+                (click)="editBusinessName()"
+              >
+                Edit
+              </button>
+              } @else {
+              <button
+                type="button"
+                class="name-confirm-btn"
+                [disabled]="loading() || !businessName().trim()"
+                (click)="requestConfirmBusinessName()"
+              >
+                Confirm
+              </button>
+              }
+            </div>
+            @if (businessNameConfirmed()) {
+            <span class="field-hint field-hint-ok"
+              ><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Business name
+              confirmed — this can't be changed later.</span
+            >
+            } @else {
+            <span class="field-hint">Shown as the author name on your business posts — confirm it to continue.</span>
+            }
+          </div>
+
+          <div class="field-group">
+            <input
+              type="tel"
+              class="tm-input"
+              placeholder="Phone (optional)"
+              [value]="businessPhone()"
+              (input)="businessPhone.set($any($event.target).value)"
+              [disabled]="loading()"
+              autocomplete="tel"
+            />
+          </div>
+
+          <div class="field-group">
+            <label class="field-label"
+              >Shop photos <span class="required">*</span>
+              <small class="field-label-count">{{ shopImages().length }}/{{ maxShopImages }}</small></label
+            >
+            <div class="shop-images-grid">
+              @for (img of shopImages(); track img.previewUrl; let i = $index) {
+              <div class="shop-image-thumb">
+                <img [src]="img.previewUrl" alt="Shop photo" />
+                <button
+                  type="button"
+                  class="shop-image-remove"
+                  aria-label="Remove photo"
+                  (click)="removeShopImage(i)"
+                >
+                  <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+              </div>
+              } @if (shopImages().length < maxShopImages) {
+              <label class="shop-image-add">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  [disabled]="loading()"
+                  (change)="onShopImageSelect($event)"
+                />
+              </label>
+              }
+            </div>
+            <span class="field-hint">Add 1–5 photos of your shop or storefront.</span>
+          </div>
+
+          @if (businessNameConfirmed()) {
+          <div class="field-group">
+            <label class="field-label">Business website <span class="required">*</span></label>
+
+            @if (websiteMode() === 'generated') {
+            <div class="tm-input website-generated-input">
+              @if (generatingWebsite()) {
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Generating your website link…</span>
+              } @else {
+              <span>{{ businessWebsite() || '—' }}</span>
+              }
+            </div>
+            @if (websiteGenError()) {
+            <span class="field-hint field-hint-error"
+              ><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ websiteGenError() }}
+              <button type="button" class="link-btn" (click)="useGeneratedWebsite()">Retry</button>
+            </span>
+            } @else if (!generatingWebsite() && businessWebsite()) {
+            <span class="field-hint field-hint-ok"
+              ><i class="bi bi-check-circle-fill" aria-hidden="true"></i> New website created for
+              this business</span
+            >
+            }
+            <button type="button" class="link-btn" [disabled]="loading()" (click)="useOwnWebsite()">
+              Already have a website? Use your own link instead
+            </button>
+            } @else {
+            <div class="website-manual-input">
+              <input
+                type="url"
+                class="tm-input"
+                placeholder="https://yourbusiness.com"
+                [value]="businessWebsite()"
+                (input)="onManualWebsiteInput($any($event.target).value)"
+                [disabled]="loading()"
+                autocomplete="url"
+              />
+              @if (websiteVerifying()) {
+              <span class="spinner" aria-hidden="true"></span>
+              }
+            </div>
+            @if (websiteVerifying()) {
+            <span class="field-hint">Checking that your website is reachable…</span>
+            } @else if (websiteVerifyStatus() === 'ok') {
+            <span class="field-hint field-hint-ok"
+              ><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Looks reachable</span
+            >
+            } @else if (websiteVerifyStatus() === 'fail') {
+            <span class="field-hint field-hint-error"
+              ><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Couldn't reach that URL
+              — double check it, but you can still continue.</span
+            >
+            } @else {
+            <span class="field-hint">Enter your existing website URL.</span>
+            }
+            <button
+              type="button"
+              class="link-btn"
+              [disabled]="loading()"
+              (click)="useGeneratedWebsite()"
+            >
+              Don't have one? Generate a free website link
+            </button>
+            }
+          </div>
+          }
+
+          <div class="field-group">
+            <label class="field-label"
+              >What does your business do? <span class="required">*</span></label
+            >
+            <p class="field-hint" style="margin-bottom: 6px">
+              Every post you make will use this category — pick the closest one.
+            </p>
+            <div class="tag-grid" role="radiogroup" aria-label="Business category">
+              @for (tag of businessTags; track tag) {
+              <button
+                type="button"
+                class="tag-card"
+                [class.tag-card--active]="businessCategory() === tag"
+                [disabled]="loading()"
+                (click)="selectBusinessCategory(tag)"
+              >
+                <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
+                <span class="tag-card-label">{{ tagCategoryLabel(tag) }}</span>
+              </button>
+              }
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="tm-btn back-btn" type="button" (click)="prevStep()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i> Back
+            </button>
+            <button
+              class="tm-btn tm-btn-primary step-btn"
+              type="button"
+              [disabled]="!canProceedBusinessStep()"
+              (click)="nextStep()"
+            >
+              Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ── Business name confirmation popup ── -->
+      @if (showNameConfirmDialog()) {
+      <div class="modal-overlay" (click)="cancelNameConfirm()">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+          <h2 class="modal-title">Confirm business name</h2>
+          <p class="modal-copy">
+            You entered <strong>"{{ businessName().trim() }}"</strong> — this cannot be changed
+            later. Confirm this is correct?
+          </p>
+          <div class="modal-actions">
+            <button type="button" class="tm-btn" (click)="cancelNameConfirm()">Cancel</button>
+            <button
+              type="button"
+              class="tm-btn tm-btn-primary"
+              (click)="confirmBusinessName()"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ── Step 3: Birthday + Location ── -->
+      @if (!awaitingEmailConfirmation() && step() === 3) {
       <div class="step-block">
         <h1 class="form-title">A few more details</h1>
 

@@ -39,6 +39,8 @@ export class InMemoryTagRepository implements ITagRepository {
       search?: string;
       excludeTag?: string;
       hoodId?: string;
+      postSubtype?: string;
+      includeUnpublished?: boolean;
     },
     limit?: number,
     offset?: number,
@@ -47,8 +49,16 @@ export class InMemoryTagRepository implements ITagRepository {
       map((all) => {
         let result = [...all];
 
+        if (!filters?.includeUnpublished) {
+          result = result.filter((t) => !t.publishStatus || t.publishStatus === 'published');
+        }
+
         if (filters?.tags && filters.tags.length > 0) {
           result = result.filter((t) => t.tag && filters.tags!.includes(t.tag));
+        }
+
+        if (filters?.postSubtype) {
+          result = result.filter((t) => t.postSubtype === filters.postSubtype);
         }
 
         if (filters?.excludeTag) {
@@ -68,7 +78,9 @@ export class InMemoryTagRepository implements ITagRepository {
           result = result.filter(
             (t) =>
               t.highlight.toLowerCase().includes(q) ||
+              (t.title?.toLowerCase().includes(q) ?? false) ||
               t.username.toLowerCase().includes(q) ||
+              (t.businessName?.toLowerCase().includes(q) ?? false) ||
               t.tag?.toLowerCase().includes(q),
           );
         }
@@ -90,8 +102,17 @@ export class InMemoryTagRepository implements ITagRepository {
     );
   }
 
-  getPaginated(limit: number, offset: number, search?: string): Observable<Tag[]> {
-    return this.getFiltered({ search }, limit, offset);
+  getPaginated(
+    limit: number,
+    offset: number,
+    search?: string,
+    scope?: { tag?: string; postSubtype?: string },
+  ): Observable<Tag[]> {
+    return this.getFiltered(
+      { search, tags: scope?.tag ? [scope.tag] : undefined, postSubtype: scope?.postSubtype },
+      limit,
+      offset,
+    );
   }
 
   getById(id: string): Observable<Tag | null> {

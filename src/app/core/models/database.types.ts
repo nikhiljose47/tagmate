@@ -40,6 +40,8 @@ export interface Database {
           business_name: string | null;
           business_phone: string | null;
           business_website: string | null;
+          business_category: string | null;
+          business_images: string[] | null;
           created_at: string;
           updated_at: string;
         };
@@ -54,33 +56,83 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          title: string;
-          description: string | null;
+          username: string;
+          highlight: string;
           tag: string;
-          category: string | null;
-          state: string | null;
-          location: string | null;
-          lat: number | null;
-          lng: number | null;
+          lat: number;
+          lng: number;
+          expires_in: number;
           created_at: string;
           hood_id: string | null;
-          verified: boolean;
-          status: string;
-          current_status: string;
-          status_updated_at: string | null;
-          verification_count: number;
-          expires_in: number | null;
+          state: string | null;
+          country: string | null;
+          location_type: string | null;
+          images: string[];
+          post_type: string | null;
+          intent: string | null;
+          price: number | null;
+          original_price: number | null;
+          availability_note: string | null;
+          cta: string | null;
+          product_link: string | null;
           business_name: string | null;
           business_phone: string | null;
           business_website: string | null;
-          post_type: string | null;
+          loves: number | null;
+          dislikes: number | null;
+          comments: string[] | null;
+          event_start: string | null;
+          event_end: string | null;
+          poll_options: string[] | null;
+          poll_votes: Record<string, string[]> | null;
+          like_count: number | null;
+          comment_count: number | null;
+          rsvp_count: number | null;
+          current_status: string | null;
+          status_updated_at: string | null;
+          verification_count: number | null;
+          // Step 1 template fields
+          post_subtype: string | null;
+          template_version: number | null;
+          title: string | null;
+          template_data: Record<string, unknown> | null;
+          // Step 5.A publishing state
+          publish_status: string;
+          published_at: string | null;
+          scheduled_for: string | null;
+          updated_at: string;
         };
         Insert: Partial<Database['public']['Tables']['tags']['Row']> & {
           user_id: string;
-          title: string;
+          username: string;
+          highlight: string;
           tag: string;
+          lat: number;
+          lng: number;
+          expires_in: number;
+          created_at: string;
+          images: string[];
         };
         Update: Partial<Database['public']['Tables']['tags']['Row']>;
+        Relationships: [];
+      };
+      post_template_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          category: string;
+          post_subtype: string | null;
+          template_version: number | null;
+          event_type: string;
+          post_id: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['post_template_events']['Row']> & {
+          user_id: string;
+          category: string;
+          event_type: string;
+        };
+        Update: Partial<Database['public']['Tables']['post_template_events']['Row']>;
         Relationships: [];
       };
       post_comments: {
