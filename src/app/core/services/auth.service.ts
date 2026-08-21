@@ -69,6 +69,16 @@ export class AuthService implements OnDestroy {
     return from(this.client.auth.resend({ type: 'signup', email }));
   }
 
+  /**
+   * Confirms a signup using the 6-digit code from the confirmation email
+   * (`{{ .Token }}` in the Supabase email template) instead of the emailed
+   * link — lets the signup page finish in place, on success, with a real
+   * session, rather than sending the user away to click a link.
+   */
+  verifySignupOtp(email: string, token: string) {
+    return from(this.client.auth.verifyOtp({ email, token, type: 'signup' }));
+  }
+
   resendSignupConfirmationForUsername(username: string) {
     return from(
       this.requestAuthEndpoint<{ ok: boolean }>('/api/auth/resend-confirmation', { username }).then(

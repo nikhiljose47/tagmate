@@ -256,6 +256,8 @@ export class ProfilePage implements OnInit {
     this.editMode.set(opening);
   }
 
+  /** Uploads the account's profile picture — labeled "Business logo" for business
+   *  accounts, "Profile photo" otherwise (see profile.html). */
   async onBusinessLogoSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -271,7 +273,7 @@ export class ProfilePage implements OnInit {
       const url = await this.media.uploadFile(path, compressed);
       this.editBusinessLogoUrl.set(url);
     } catch {
-      this.toast.show('Could not upload the logo.', 'warning');
+      this.toast.show('Could not upload the photo.', 'warning');
     } finally {
       this.uploadingBusinessLogo.set(false);
     }
@@ -342,6 +344,10 @@ export class ProfilePage implements OnInit {
         businessImages: this.editBusinessImages(),
         avatarUrl: this.editBusinessLogoUrl(),
       });
+    } else if (saved) {
+      // Personal accounts don't go through updateBusinessProfile, but the
+      // profile photo picker above is shared by both — persist it here.
+      saved = await this.sessionService.updateAvatarUrl(this.editBusinessLogoUrl());
     }
     this.profileSaving.set(false);
     if (saved) {

@@ -2,6 +2,7 @@ import { CanActivateFn, Router, Routes } from '@angular/router';
 import { inject } from '@angular/core';
 import { take, map } from 'rxjs';
 import { adminGuard, authGuard } from './core/guards/auth.guard';
+import { businessPhotosGuard } from './core/guards/business-photos.guard';
 import { AuthService } from './core/services/auth.service';
 
 export const rootRedirectGuard: CanActivateFn = () => {
@@ -27,18 +28,18 @@ export const routes: Routes = [
   },
   {
     path: 'feed',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () => import('./features/feed/feed.routes').then((m) => m.FEED_ROUTES),
   },
   {
     path: 'feed-beta',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () =>
       import('./features/feed-beta/feed-beta.routes').then((m) => m.FEED_BETA_ROUTES),
   },
   {
     path: 'hood',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () => import('./features/hood/hood.routes').then((m) => m.HOOD_ROUTES),
   },
   // Island is intentionally hidden while the Home feed is being validated.
@@ -49,29 +50,29 @@ export const routes: Routes = [
   // },
   {
     path: 'post',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () => import('./features/post/post.routes').then((m) => m.POST_ROUTES),
   },
   {
     path: 'posts/:id',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadComponent: () =>
       import('./features/post/pages/post-detail/post-detail').then((m) => m.PostDetailPage),
   },
   {
     path: 'messages',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () =>
       import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES),
   },
   {
     path: 'reports',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () => import('./features/reports/reports.routes').then((m) => m.REPORTS_ROUTES),
   },
   {
     path: 'analytics',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () =>
       import('./features/analytics/analytics.routes').then((m) => m.ANALYTICS_ROUTES),
   },
@@ -82,23 +83,32 @@ export const routes: Routes = [
   },
   {
     path: 'neighborhood/:id',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () =>
       import('./features/neighborhood/neighborhood.routes').then((m) => m.NEIGHBORHOOD_ROUTES),
   },
   {
     path: 'profile',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
   },
   {
     path: 'users/:uid',
-    canActivate: [authGuard],
+    canActivate: [authGuard, businessPhotosGuard],
     loadComponent: () =>
       import('./features/profile/pages/public-profile/public-profile').then(
         (m) => m.PublicProfilePage,
       ),
     title: 'Neighbor Profile',
+  },
+  {
+    path: 'business-photos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/onboarding/pages/business-photos/business-photos').then(
+        (m) => m.BusinessPhotosPage,
+      ),
+    title: 'Add your shop photos',
   },
   {
     path: 'not-found',

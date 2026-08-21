@@ -65,11 +65,41 @@
   margin-bottom: 14px;
 }
 
-.business-website-link {
+.business-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.business-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
+  color: var(--tm-primary-text);
+  border: 1px solid color-mix(in srgb, var(--tm-primary) 22%, transparent);
+}
+
+.business-badge--muted {
+  background: color-mix(in srgb, var(--tm-muted) 10%, transparent);
+  border-color: var(--tm-border);
+  color: var(--tm-text-secondary);
+}
+
+.business-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.business-contact-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  align-self: flex-start;
   font-size: 13px;
   font-weight: 600;
   color: var(--tm-primary);
@@ -79,6 +109,15 @@
   &:hover {
     text-decoration: underline;
   }
+}
+
+.business-photos-title {
+  margin: 4px 0 -2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tm-text-secondary);
 }
 
 .business-photos-grid {
@@ -212,6 +251,12 @@
     border-color: var(--tm-primary);
     color: var(--tm-primary);
   }
+}
+
+/* Profile photo / business logo picker — round, single item. */
+.shop-image-thumb--round,
+.shop-image-add--round {
+  border-radius: 50%;
 }
 
 .spinner-dark {

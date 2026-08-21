@@ -366,6 +366,34 @@ export class UserSessionService {
     return website;
   }
 
+  /**
+   * Confirms signup with the 6-digit email code instead of the emailed link —
+   * on success this yields a real session immediately, in place, so the
+   * signup page never has to navigate away (and lose whatever it was holding
+   * in memory, e.g. staged shop photos) to finish confirming.
+   */
+  async confirmSignupOtp(email: string, code: string): Promise<AuthResponse> {
+    try {
+      const { data, error } = await firstValueFrom(
+        this.supabase.verifySignupOtp(email.trim(), code.trim()),
+      );
+      if (error || !data.user) {
+        return {
+          ok: false,
+          code: 'invalid_otp',
+          message: error?.message || 'That code is invalid or has expired.',
+        };
+      }
+      const username =
+        (data.user.user_metadata?.['username'] as string | undefined) ??
+        data.user.email?.split('@')[0] ??
+        '';
+      return { ok: true, uid: data.user.id, email: data.user.email ?? null, username };
+    } catch (err: unknown) {
+      return { ok: false, ...toAppError(err, 'confirm-signup-otp') };
+    }
+  }
+
   async resendConfirmationEmail(emailOrUsername: string): Promise<boolean> {
     try {
       const value = emailOrUsername.trim();

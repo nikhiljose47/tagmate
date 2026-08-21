@@ -1,0 +1,88 @@
+<div class="bp-page">
+  <div class="bp-card">
+    <h1 class="bp-title">Add your shop photos</h1>
+    <p class="bp-copy">
+      Since you needed to confirm your email first, we couldn't carry over the photos you picked
+      during signup. Add at least one shop photo to finish setting up your business profile.
+    </p>
+
+    <label class="bp-label"
+      >Shop photos <span class="required">*</span>
+      <small class="bp-count">{{ shopImages().length }}/{{ maxShopImages }}</small></label
+    >
+    <div class="bp-images-grid">
+      @for (url of shopImages(); track url; let i = $index) {
+      <div class="bp-image-thumb">
+        <img [src]="url" alt="Shop photo" />
+        <button
+          type="button"
+          class="bp-image-remove"
+          aria-label="Remove photo"
+          (click)="removeShopImage(i)"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      } @if (shopImages().length < maxShopImages) {
+      <label class="bp-image-add">
+        @if (uploadingImage()) {
+        <span class="bp-spinner" aria-hidden="true"></span>
+        } @else {
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        }
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          [disabled]="uploadingImage()"
+          (change)="onShopImageSelect($event)"
+        />
+      </label>
+      }
+    </div>
+
+    <label class="bp-label">Business logo (optional)</label>
+    <div class="bp-images-grid">
+      @if (logoUrl(); as logo) {
+      <div class="bp-image-thumb">
+        <img [src]="logo" alt="Business logo" />
+        <button
+          type="button"
+          class="bp-image-remove"
+          aria-label="Remove logo"
+          (click)="removeLogo()"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      } @else {
+      <label class="bp-image-add">
+        @if (uploadingLogo()) {
+        <span class="bp-spinner" aria-hidden="true"></span>
+        } @else {
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        }
+        <input
+          type="file"
+          accept="image/*"
+          hidden
+          [disabled]="uploadingLogo()"
+          (change)="onLogoSelect($event)"
+        />
+      </label>
+      }
+    </div>
+
+    <button
+      class="tm-btn tm-btn-primary w-full bp-continue"
+      type="button"
+      [disabled]="saving() || shopImages().length < 1"
+      (click)="save()"
+    >
+      @if (!saving()) { Continue } @else {
+      <span class="bp-spinner bp-spinner--light" aria-hidden="true"></span>
+      Saving… }
+    </button>
+  </div>
+</div>

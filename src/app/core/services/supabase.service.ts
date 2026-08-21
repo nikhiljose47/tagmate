@@ -49,6 +49,10 @@ export class SupabaseService {
     return this.auth.resendSignupConfirmation(email);
   }
 
+  verifySignupOtp(email: string, token: string) {
+    return this.auth.verifySignupOtp(email, token);
+  }
+
   resendSignupConfirmationForUsername(username: string) {
     return this.auth.resendSignupConfirmationForUsername(username);
   }

@@ -1,0 +1,127 @@
+.bp-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background: var(--tm-bg);
+}
+
+.bp-card {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bp-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--tm-text);
+}
+
+.bp-copy {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tm-muted);
+}
+
+.bp-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tm-text-secondary, var(--tm-muted));
+  margin: 12px 0 8px;
+}
+
+.bp-count {
+  text-transform: none;
+  font-weight: 500;
+  color: var(--tm-muted);
+  margin-left: 4px;
+}
+
+.bp-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 72px);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bp-image-thumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--tm-border);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.bp-image-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.bp-image-add {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--tm-border);
+  border-radius: 10px;
+  color: var(--tm-muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+
+  &:hover {
+    border-color: var(--tm-primary);
+    color: var(--tm-primary);
+  }
+}
+
+.bp-continue {
+  margin-top: 20px;
+}
+
+.bp-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--tm-border);
+  border-top-color: var(--tm-primary);
+  border-radius: 50%;
+  animation: bp-spin 0.7s linear infinite;
+}
+
+.bp-spinner--light {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
+
+@keyframes bp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -140,6 +140,10 @@ export class SignupPage implements OnInit {
   resendingEmail = signal(false);
   resendSent = signal(false);
   resendError = signal('');
+  /** 6-digit code from the confirmation email — confirmed in place, no navigating away. */
+  otpCode = signal('');
+  verifyingOtp = signal(false);
+  otpError = signal('');
 
   usernameChecking = signal(false);
   usernameTaken = signal(false);
@@ -655,6 +659,43 @@ export class SignupPage implements OnInit {
       }
     } finally {
       this.resendingEmail.set(false);
+    }
+  }
+
+  async confirmOtp(): Promise<void> {
+    if (this.verifyingOtp()) return;
+    const code = this.otpCode().trim();
+    if (!code) {
+      this.otpError.set('Enter the code from your email.');
+      return;
+    }
+
+    this.otpError.set('');
+    this.verifyingOtp.set(true);
+    try {
+      const res = await this.session.confirmSignupOtp(this.email(), code);
+      if (this.destroyed) return;
+
+      if (!res.ok) {
+        this.otpError.set(res.message ?? "That code didn't work — try again.");
+        return;
+      }
+
+      // Confirmed in place — shopImages()/businessLogo() are still whatever
+      // was staged in step 3, since we never navigated away for this.
+      if (this.accountType() === 'business' && this.shopImages().length) {
+        await this.uploadShopImages(res.uid);
+      }
+      if (this.accountType() === 'business' && this.businessLogo()) {
+        await this.uploadBusinessLogo(res.uid);
+      }
+      this.router.navigateByUrl('/feed-beta');
+    } catch (error) {
+      if (!this.destroyed) {
+        this.otpError.set(error instanceof Error ? error.message : 'Could not verify that code.');
+      }
+    } finally {
+      if (!this.destroyed) this.verifyingOtp.set(false);
     }
   }
 

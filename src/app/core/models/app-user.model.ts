@@ -8,7 +8,7 @@ export interface AppUser {
   isGuest: boolean;
   email?: string;
   bio?: string;
-  /** Profile picture — currently only wired up as the "Business logo" for business accounts. */
+  /** Profile picture — a business logo for business accounts, a normal avatar otherwise. */
   avatarUrl?: string;
   createdAt?: string;
   updatedAt?: string;
