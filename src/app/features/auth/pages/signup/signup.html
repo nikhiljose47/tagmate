@@ -138,11 +138,7 @@
       @if (!awaitingEmailConfirmation()) {
       <div class="step-track" aria-label="Signup progress">
         @for (n of stepIndicators(); track n) {
-        <div
-          class="step-node"
-          [class.active]="stepNumber() >= n"
-          [class.done]="stepNumber() > n"
-        >
+        <div class="step-node" [class.active]="stepNumber() >= n" [class.done]="stepNumber() > n">
           @if (stepNumber() > n) {
           <i class="bi bi-check2" aria-hidden="true"></i>
           } @else { {{ n }} }
@@ -325,11 +321,13 @@
             </div>
             @if (businessNameConfirmed()) {
             <span class="field-hint field-hint-ok"
-              ><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Business name
-              confirmed — this can't be changed later.</span
+              ><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Business name confirmed —
+              this can't be changed later.</span
             >
             } @else {
-            <span class="field-hint">Shown as the author name on your business posts — confirm it to continue.</span>
+            <span class="field-hint"
+              >Shown as the author name on your business posts — confirm it to continue.</span
+            >
             }
           </div>
 
@@ -444,7 +442,9 @@
           <div class="field-group">
             <label class="field-label"
               >Shop photos <span class="required">*</span>
-              <small class="field-label-count">{{ shopImages().length }}/{{ maxShopImages }}</small></label
+              <small class="field-label-count"
+                >{{ shopImages().length }}/{{ maxShopImages }}</small
+              ></label
             >
             <div class="shop-images-grid">
               @for (img of shopImages(); track img.previewUrl; let i = $index) {
@@ -525,8 +525,8 @@
             >
             } @else if (websiteVerifyStatus() === 'fail') {
             <span class="field-hint field-hint-error"
-              ><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Couldn't reach that URL
-              — double check it, but you can still continue.</span
+              ><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Couldn't reach that URL —
+              double check it, but you can still continue.</span
             >
             } @else {
             <span class="field-hint">Enter your existing website URL.</span>
@@ -570,11 +570,7 @@
           </p>
           <div class="modal-actions">
             <button type="button" class="tm-btn" (click)="cancelNameConfirm()">Cancel</button>
-            <button
-              type="button"
-              class="tm-btn tm-btn-primary"
-              (click)="confirmBusinessName()"
-            >
+            <button type="button" class="tm-btn tm-btn-primary" (click)="confirmBusinessName()">
               Confirm
             </button>
           </div>

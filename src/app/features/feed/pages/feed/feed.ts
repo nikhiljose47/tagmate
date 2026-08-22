@@ -149,7 +149,9 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe((post) => {
         if (post.publishStatus && post.publishStatus !== 'published') {
-          this.posts.update((posts) => posts.filter((item) => this.postKey(item) !== this.postKey(post)));
+          this.posts.update((posts) =>
+            posts.filter((item) => this.postKey(item) !== this.postKey(post)),
+          );
           return;
         }
         this.posts.update((posts) =>

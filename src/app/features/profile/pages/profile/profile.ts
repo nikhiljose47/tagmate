@@ -518,8 +518,7 @@ export class ProfilePage implements OnInit {
     if (this.deletingAccount()) return;
     const confirmed = await this.confirmDialog.confirm({
       title: 'Delete your account?',
-      message:
-        "This permanently deletes your profile, posts, and messages. This can't be undone.",
+      message: "This permanently deletes your profile, posts, and messages. This can't be undone.",
       confirmText: 'Delete Account',
       cancelText: 'Keep Account',
       danger: true,

@@ -21,7 +21,12 @@ function numOrUndef(v: string): number | undefined {
 }
 
 function isValidUrl(v: string): boolean {
-  try { new URL(v); return true; } catch { return false; }
+  try {
+    new URL(v);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const PHONE_RE = /^\+?[\d\s\-().]{7,20}$/;
@@ -36,10 +41,7 @@ function displayName(f: TemplateField): string {
 
 // ─── Per-field validation ────────────────────────────────────────────────────
 
-function validateField(
-  field: TemplateField,
-  raw: string,
-): string | null {
+function validateField(field: TemplateField, raw: string): string | null {
   const value = raw.trim();
 
   // Required
@@ -69,7 +71,10 @@ function validateField(
       break;
     case 'multi-select':
       if (field.options) {
-        const selected = value.split(',').map((s) => s.trim()).filter(Boolean);
+        const selected = value
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
         const invalid = selected.filter((s) => !field.options!.includes(s));
         if (invalid.length) return `Invalid option(s): ${invalid.join(', ')}`;
       }
@@ -92,25 +97,24 @@ function crossFieldChecks(
 ): void {
   // Original price ≥ sale price
   const priceF = fields.find((f) => f.mapsTo === 'price');
-  const origF  = fields.find((f) => f.mapsTo === 'originalPrice');
+  const origF = fields.find((f) => f.mapsTo === 'originalPrice');
   if (priceF && origF && !errors[priceF.key] && !errors[origF.key]) {
     const price = numOrUndef(values[priceF.key] ?? '');
-    const orig  = numOrUndef(values[origF.key]  ?? '');
+    const orig = numOrUndef(values[origF.key] ?? '');
     if (price !== undefined && orig !== undefined && orig > 0 && price > orig)
       errors[origF.key] = 'Original price should be higher than the sale price';
   }
 
   // Event/datetime end > start
   const startF = fields.find((f) => f.mapsTo === 'eventStart');
-  const endF   = fields.find((f) => f.mapsTo === 'eventEnd');
+  const endF = fields.find((f) => f.mapsTo === 'eventEnd');
   if (startF && endF && !errors[startF.key] && !errors[endF.key]) {
     const sv = values[startF.key]?.trim();
     const ev = values[endF.key]?.trim();
     if (sv && ev) {
       const s = new Date(sv).getTime();
       const e = new Date(ev).getTime();
-      if (!isNaN(s) && !isNaN(e) && e <= s)
-        errors[endF.key] = 'End time must be after start time';
+      if (!isNaN(s) && !isNaN(e) && e <= s) errors[endF.key] = 'End time must be after start time';
     }
   }
 }

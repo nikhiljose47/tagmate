@@ -30,9 +30,12 @@ import { PostTemplateRegistryService } from '../../services/post-template-regist
       @if (recommended().length) {
         <div class="picker-grid">
           @for (tpl of recommended(); track tpl.id) {
-            <button type="button" class="picker-card"
-                    [class.picker-card--active]="selectedId() === tpl.id"
-                    (click)="select(tpl)">
+            <button
+              type="button"
+              class="picker-card"
+              [class.picker-card--active]="selectedId() === tpl.id"
+              (click)="select(tpl)"
+            >
               <span class="picker-card-icon">{{ tpl.icon || '📝' }}</span>
               <span class="picker-card-body">
                 <strong>{{ tpl.label }}</strong>
@@ -61,9 +64,12 @@ import { PostTemplateRegistryService } from '../../services/post-template-regist
           </button>
           <div class="picker-grid picker-grid--more">
             @for (tpl of moreTemplates(); track tpl.id) {
-              <button type="button" class="picker-card"
-                      [class.picker-card--active]="selectedId() === tpl.id"
-                      (click)="select(tpl)">
+              <button
+                type="button"
+                class="picker-card"
+                [class.picker-card--active]="selectedId() === tpl.id"
+                (click)="select(tpl)"
+              >
                 <span class="picker-card-icon">{{ tpl.icon || '📝' }}</span>
                 <span class="picker-card-body">
                   <strong>{{ tpl.label }}</strong>
@@ -120,10 +126,13 @@ import { PostTemplateRegistryService } from '../../services/post-template-regist
       color: var(--tm-text);
       text-align: left;
       cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+      transition:
+        border-color 0.15s,
+        background 0.15s;
       -webkit-tap-highlight-color: transparent;
 
-      &:hover, &:focus-visible {
+      &:hover,
+      &:focus-visible {
         border-color: #0f766e;
         background: color-mix(in srgb, #0f766e 5%, var(--tm-surface));
         outline: none;
@@ -151,7 +160,9 @@ import { PostTemplateRegistryService } from '../../services/post-template-regist
       gap: 2px;
       min-width: 0;
 
-      strong { font-size: 14px; }
+      strong {
+        font-size: 14px;
+      }
       small {
         color: var(--tm-muted);
         font-size: 12px;
@@ -177,12 +188,18 @@ import { PostTemplateRegistryService } from '../../services/post-template-regist
       font-weight: 700;
       cursor: pointer;
 
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
 
     @media (max-width: 520px) {
-      .picker { padding: 18px 14px; }
-      .picker-title { font-size: 20px; }
+      .picker {
+        padding: 18px 14px;
+      }
+      .picker-title {
+        font-size: 20px;
+      }
     }
   `,
 })
@@ -196,13 +213,9 @@ export class BusinessPostTemplatePickerComponent {
   readonly selectedId = signal<string | null>(null);
   readonly showMore = signal(false);
 
-  readonly recommended = computed(() =>
-    this.registry.getRecommendedTemplates(this.category()),
-  );
+  readonly recommended = computed(() => this.registry.getRecommendedTemplates(this.category()));
 
-  readonly allTemplates = computed(() =>
-    this.registry.getTemplatesForCategory(this.category()),
-  );
+  readonly allTemplates = computed(() => this.registry.getTemplatesForCategory(this.category()));
 
   /** Templates not in the recommended list. */
   readonly moreTemplates = computed(() => {

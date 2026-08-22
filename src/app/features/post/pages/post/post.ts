@@ -602,11 +602,7 @@ export class PostPage implements OnDestroy {
     this.formData.headline = template.buildHighlight(values);
 
     // Step 5.B: lightweight, non-blocking usage analytics.
-    this.templateAnalytics.recordTemplateSelected(
-      this.formData.tag,
-      template.id,
-      template.version,
-    );
+    this.templateAnalytics.recordTemplateSelected(this.formData.tag, template.id, template.version);
 
     this.step.set('details');
   }
@@ -623,8 +619,10 @@ export class PostPage implements OnDestroy {
   ): void {
     const { tagFields } = mapTemplateValues(template, values);
     if (tagFields.price !== undefined) this.formData.price = tagFields.price;
-    if (tagFields.originalPrice !== undefined) this.formData.originalPrice = tagFields.originalPrice;
-    if (tagFields.availabilityNote !== undefined) this.formData.availabilityNote = tagFields.availabilityNote;
+    if (tagFields.originalPrice !== undefined)
+      this.formData.originalPrice = tagFields.originalPrice;
+    if (tagFields.availabilityNote !== undefined)
+      this.formData.availabilityNote = tagFields.availabilityNote;
     if (tagFields.productLink !== undefined) this.formData.productLink = tagFields.productLink;
     if (tagFields.cta !== undefined) this.formData.cta = tagFields.cta as PostCta;
     if (tagFields.intent !== undefined) this.formData.intent = tagFields.intent as PostIntent;
@@ -702,7 +700,10 @@ export class PostPage implements OnDestroy {
    * For personal posts: resolved from the legacy POST_TEMPLATES map.
    * For business posts: the activeTemplate signal (set via template picker).
    */
-  currentTemplate(): PostTemplateDefinition | import('../../data/post-templates').PostTemplate | undefined {
+  currentTemplate():
+    | PostTemplateDefinition
+    | import('../../data/post-templates').PostTemplate
+    | undefined {
     if (this.postType() === 'business') {
       return this.activeTemplate() ?? undefined;
     }
@@ -731,13 +732,20 @@ export class PostPage implements OnDestroy {
   templateFieldInputType(type: string): string {
     switch (type) {
       case 'number':
-      case 'price': return 'number';
-      case 'date': return 'date';
-      case 'time': return 'time';
-      case 'datetime': return 'datetime-local';
-      case 'url': return 'url';
-      case 'phone': return 'tel';
-      default: return 'text';
+      case 'price':
+        return 'number';
+      case 'date':
+        return 'date';
+      case 'time':
+        return 'time';
+      case 'datetime':
+        return 'datetime-local';
+      case 'url':
+        return 'url';
+      case 'phone':
+        return 'tel';
+      default:
+        return 'text';
     }
   }
 
@@ -1239,9 +1247,7 @@ export class PostPage implements OnDestroy {
           ? (() => {
               const activeDef = this.activeTemplate();
               const rawValues = this.templateValues();
-              const sanitizedData = activeDef
-                ? sanitiseTemplateData(activeDef, rawValues)
-                : {};
+              const sanitizedData = activeDef ? sanitiseTemplateData(activeDef, rawValues) : {};
               const builtTitle = activeDef?.buildTitle?.(rawValues) || '';
               return {
                 postSubtype: activeDef?.id,
@@ -1300,10 +1306,7 @@ export class PostPage implements OnDestroy {
         void this.router.navigate([AppRoute.FeedBeta]);
       } else {
         this.resetForm();
-        this.toast.show(
-          status === 'draft' ? 'Saved as draft.' : 'Post scheduled.',
-          'success',
-        );
+        this.toast.show(status === 'draft' ? 'Saved as draft.' : 'Post scheduled.', 'success');
         void this.router.navigate([AppRoute.Profile]);
       }
     } catch (e) {
@@ -1401,7 +1404,12 @@ export class PostPage implements OnDestroy {
             ? 'game'
             : tag === 'job' || tag === 'biz' || tag === 'service' || tag === 'auto'
               ? 'job'
-              : tag === 'beauty' || tag === 'health' || tag === 'space' || tag === 'travel' || tag === 'event' || tag === 'learn'
+              : tag === 'beauty' ||
+                  tag === 'health' ||
+                  tag === 'space' ||
+                  tag === 'travel' ||
+                  tag === 'event' ||
+                  tag === 'learn'
                 ? 'around'
                 : 'around';
 

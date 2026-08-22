@@ -22,8 +22,8 @@
             [routerLink]="
                 post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
               "
-            >{{ post.postType === 'business' && post.businessName ? post.businessName : (post.username
-            || 'Anonymous') }}</a
+            >{{ post.postType === 'business' && post.businessName ? post.businessName :
+            (post.username || 'Anonymous') }}</a
           >
           <a class="detail-location" [routerLink]="['/neighborhood', neighborhoodSlug(post)]">
             {{ post.hoodId || 'Nearby' }} - {{ post.createdAt | timeAgo }} @if (post.expiresIn) {
@@ -154,9 +154,7 @@
           >
           <span class="post-body">{{ post.highlight || 'Untitled post' }}</span>
         </p>
-        }
-
-        @if (post.pollOptions?.length) {
+        } @if (post.pollOptions?.length) {
         <div class="poll-container mt-3 mb-2 flex flex-col gap-2">
           @for (opt of post.pollOptions; track $index) { @let voted = hasVotedPoll($index); @let pct
           = getPollPercentage($index);
@@ -177,12 +175,9 @@
           </button>
           }
         </div>
-        }
-        @if (post.postType !== 'business') {
+        } @if (post.postType !== 'business') {
         <span class="tm-chip">{{ post.tag | titlecase }}</span>
-        }
-
-        @if (isEventLike(post)) {
+        } @if (isEventLike(post)) {
         <div class="event-box">
           <div>
             <strong>Local event</strong>

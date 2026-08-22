@@ -4,7 +4,11 @@
   <div class="profile-cover" [style.background]="coverGradient(user.username)">
     <div class="cover-avatar" [style.background]="avatarBg(user.username)">
       @if (currentUser()?.avatarUrl; as photoUrl) {
-      <img [src]="photoUrl" [alt]="isBusinessAccount() ? 'Business logo' : 'Profile photo'" class="avatar-img" />
+      <img
+        [src]="photoUrl"
+        [alt]="isBusinessAccount() ? 'Business logo' : 'Profile photo'"
+        class="avatar-img"
+      />
       } @else {
       <img src="assets/avatar/panda.png" alt="Avatar" class="avatar-img" />
       }
@@ -48,8 +52,7 @@
         <span class="business-badge">
           {{ category | tagEmoji }} {{ tagCategoryLabel(category) }}
         </span>
-        }
-        @if (currentUser()?.businessEstablishedYear; as year) {
+        } @if (currentUser()?.businessEstablishedYear; as year) {
         <span class="business-badge business-badge--muted">
           <i class="bi bi-calendar-check" aria-hidden="true"></i> Since {{ year }}
         </span>
@@ -61,8 +64,7 @@
         <a [href]="website" target="_blank" rel="noopener noreferrer" class="business-contact-link">
           <i class="bi bi-link-45deg" aria-hidden="true"></i> {{ website }}
         </a>
-        }
-        @if (currentUser()?.businessPhone; as phone) {
+        } @if (currentUser()?.businessPhone; as phone) {
         <a [href]="'tel:' + phone" class="business-contact-link">
           <i class="bi bi-telephone-fill" aria-hidden="true"></i> {{ phone }}
         </a>
@@ -82,9 +84,7 @@
       <p class="edit-hint">No shop photos added yet.</p>
       }
     </div>
-    }
-
-    @if (user.isGuest) {
+    } @if (user.isGuest) {
     <div class="upgrade-banner">
       <p class="upgrade-text">Sign in to save your progress and unlock full features.</p>
 
@@ -152,7 +152,9 @@
       ></textarea>
       <small class="edit-count">{{ editBio().length }}/280</small>
 
-      <label class="edit-label">{{ isBusinessAccount() ? 'Business logo (optional)' : 'Profile photo (optional)' }}</label>
+      <label class="edit-label"
+        >{{ isBusinessAccount() ? 'Business logo (optional)' : 'Profile photo (optional)' }}</label
+      >
       <div class="shop-images-grid mb-3">
         @if (editBusinessLogoUrl(); as logoUrl) {
         <div class="shop-image-thumb shop-image-thumb--round">
@@ -227,7 +229,10 @@
       </div>
 
       <label class="edit-label"
-        >Shop photos <small class="edit-count-inline">{{ editBusinessImages().length }}/{{ maxBusinessImages }}</small></label
+        >Shop photos
+        <small class="edit-count-inline"
+          >{{ editBusinessImages().length }}/{{ maxBusinessImages }}</small
+        ></label
       >
       <div class="shop-images-grid mb-3">
         @for (url of editBusinessImages(); track url; let i = $index) {
@@ -328,7 +333,13 @@
       <div class="post-card" [style.background]="tag.tag | tagGradient">
         <div class="post-card-media">
           @if (tag.images[0]) {
-          <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+          <img
+            [src]="tag.images[0]"
+            class="post-card-img"
+            [alt]="tag.highlight"
+            loading="lazy"
+            decoding="async"
+          />
           } @else {
           <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
           }
@@ -337,21 +348,30 @@
           <p class="post-card-text">{{ tag.title || tag.highlight }}</p>
           <span class="draft-status-pill">
             <i class="bi bi-clock-history"></i>
-            @if (tag.scheduledFor) { Scheduled for {{ tag.scheduledFor | date: 'd MMM, h:mm a' }} } @else { Scheduled }
+            @if (tag.scheduledFor) { Scheduled for {{ tag.scheduledFor | date: 'd MMM, h:mm a' }} }
+            @else { Scheduled }
           </span>
         </div>
         <div class="post-card-lifecycle">
           <button type="button" class="pcl-btn pcl-btn--primary" (click)="continueEditing(tag)">
             Continue editing
           </button>
-          <button type="button" class="pcl-btn pcl-btn--danger" (click)="deleteTag(tag)">Delete</button>
+          <button type="button" class="pcl-btn pcl-btn--danger" (click)="deleteTag(tag)">
+            Delete
+          </button>
         </div>
       </div>
       } @for (tag of draftPosts(); track tag.id) {
       <div class="post-card" [style.background]="tag.tag | tagGradient">
         <div class="post-card-media">
           @if (tag.images[0]) {
-          <img [src]="tag.images[0]" class="post-card-img" [alt]="tag.highlight" loading="lazy" decoding="async" />
+          <img
+            [src]="tag.images[0]"
+            class="post-card-img"
+            [alt]="tag.highlight"
+            loading="lazy"
+            decoding="async"
+          />
           } @else {
           <span class="post-card-emoji">{{ tag.tag | tagEmoji }}</span>
           }
@@ -364,7 +384,9 @@
           <button type="button" class="pcl-btn pcl-btn--primary" (click)="continueEditing(tag)">
             Continue editing
           </button>
-          <button type="button" class="pcl-btn pcl-btn--danger" (click)="deleteTag(tag)">Delete</button>
+          <button type="button" class="pcl-btn pcl-btn--danger" (click)="deleteTag(tag)">
+            Delete
+          </button>
         </div>
       </div>
       }
@@ -685,8 +707,8 @@
       <div class="settings-danger-zone mt-4">
         <p class="settings-title text-[var(--tm-danger)]">Danger zone</p>
         <p class="settings-sub">
-          Deleting your account permanently removes your profile, posts, and messages. This can't
-          be undone.
+          Deleting your account permanently removes your profile, posts, and messages. This can't be
+          undone.
         </p>
         <button
           class="tm-btn tm-btn-danger w-full mt-2"
@@ -695,11 +717,11 @@
           [disabled]="deletingAccount()"
         >
           @if (!deletingAccount()) {
-          <i class="bi bi-trash3"></i> Delete Account
-          } @else {
-          <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-          Deleting…
-          }
+          <i class="bi bi-trash3"></i> Delete Account } @else {
+          <span
+            class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+          ></span>
+          Deleting… }
         </button>
       </div>
       }

@@ -41,7 +41,6 @@ export async function onRequestPost(context) {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       const code = randomCode();
       const website = `${BUSINESS_WEBSITE_DOMAIN}/${code}/${slug}`;
-      // eslint-disable-next-line no-await-in-loop
       const existing = await findUser(env, 'business_website', website, 'uid');
       if (!existing) {
         return json({ website });

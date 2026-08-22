@@ -1,9 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TagCategory } from '../../../core/enums/tag-category.enum';
-import {
-  PostTemplateDefinition,
-  POST_TEMPLATE_REGISTRY,
-} from '../data/post-template-registry';
+import { PostTemplateDefinition, POST_TEMPLATE_REGISTRY } from '../data/post-template-registry';
 
 /**
  * Resolves business post templates from the central registry — the single
@@ -38,7 +35,6 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class PostTemplateRegistryService {
-
   /** All enabled templates for a category, sorted by displayOrder ascending. */
   getTemplatesForCategory(category: TagCategory | string): PostTemplateDefinition[] {
     const all = POST_TEMPLATE_REGISTRY[category as TagCategory] ?? [];
@@ -100,7 +96,10 @@ export class PostTemplateRegistryService {
     return this.getTemplatesForCategory(category).length > 0;
   }
 
-  private findRaw(category: TagCategory | string, templateId: string): PostTemplateDefinition | null {
+  private findRaw(
+    category: TagCategory | string,
+    templateId: string,
+  ): PostTemplateDefinition | null {
     const all = POST_TEMPLATE_REGISTRY[category as TagCategory] ?? [];
     return all.find((t) => t.id === templateId) ?? null;
   }

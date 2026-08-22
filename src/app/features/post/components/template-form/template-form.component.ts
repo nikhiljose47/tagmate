@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PostTemplateDefinition } from '../../data/post-template-registry';
@@ -50,20 +43,26 @@ import { PostTemplateDefinition } from '../../data/post-template-registry';
           </button>
           <div class="tpl-form-fields tpl-form-fields--optional">
             @for (field of optionalFields(); track field.key) {
-              <ng-container *ngTemplateOutlet="fieldTpl; context: { $implicit: field }"></ng-container>
+              <ng-container
+                *ngTemplateOutlet="fieldTpl; context: { $implicit: field }"
+              ></ng-container>
             }
           </div>
         }
       }
 
       <p class="tpl-form-status" [class.ready]="isComplete()">
-        <i class="bi"
-           [class.bi-check-circle-fill]="isComplete()"
-           [class.bi-pencil]="!isComplete()"
-           aria-hidden="true"></i>
-        {{ isComplete()
-          ? 'Your post text is ready below.'
-          : 'Fill the required fields to auto-generate the post.' }}
+        <i
+          class="bi"
+          [class.bi-check-circle-fill]="isComplete()"
+          [class.bi-pencil]="!isComplete()"
+          aria-hidden="true"
+        ></i>
+        {{
+          isComplete()
+            ? 'Your post text is ready below.'
+            : 'Fill the required fields to auto-generate the post.'
+        }}
       </p>
     </div>
 
@@ -72,7 +71,9 @@ import { PostTemplateDefinition } from '../../data/post-template-registry';
       <label class="tpl-field">
         <span class="tpl-field-label">
           {{ field.label }}
-          @if (!field.required) { <span class="tpl-field-opt">(optional)</span> }
+          @if (!field.required) {
+            <span class="tpl-field-opt">(optional)</span>
+          }
         </span>
 
         @if (field.helpText) {
@@ -80,53 +81,65 @@ import { PostTemplateDefinition } from '../../data/post-template-registry';
         }
 
         @if (field.type === 'select') {
-          <select class="tm-input"
-                  [ngModel]="values()[field.key]"
-                  (ngModelChange)="onFieldChange(field.key, $event)"
-                  [name]="'tpl_' + field.key"
-                  [required]="field.required ?? false">
+          <select
+            class="tm-input"
+            [ngModel]="values()[field.key]"
+            (ngModelChange)="onFieldChange(field.key, $event)"
+            [name]="'tpl_' + field.key"
+            [required]="field.required ?? false"
+          >
             <option value="" disabled>{{ field.placeholder || 'Choose…' }}</option>
             @for (option of field.options; track option) {
               <option [value]="option">{{ option }}</option>
             }
           </select>
         } @else if (field.type === 'multi-select') {
-          <select class="tm-input" multiple
-                  [ngModel]="splitMultiValue(values()[field.key])"
-                  (ngModelChange)="onFieldChange(field.key, $any($event).join(','))"
-                  [name]="'tpl_' + field.key"
-                  [required]="field.required ?? false">
+          <select
+            class="tm-input"
+            multiple
+            [ngModel]="splitMultiValue(values()[field.key])"
+            (ngModelChange)="onFieldChange(field.key, $any($event).join(','))"
+            [name]="'tpl_' + field.key"
+            [required]="field.required ?? false"
+          >
             @for (option of field.options; track option) {
               <option [value]="option">{{ option }}</option>
             }
           </select>
         } @else if (field.type === 'textarea') {
-          <textarea class="tm-input" rows="3"
-                    [placeholder]="field.placeholder || ''"
-                    [ngModel]="values()[field.key]"
-                    (ngModelChange)="onFieldChange(field.key, $event)"
-                    [name]="'tpl_' + field.key"
-                    [required]="field.required ?? false"
-                    [maxlength]="field.maxLength ?? 500"></textarea>
+          <textarea
+            class="tm-input"
+            rows="3"
+            [placeholder]="field.placeholder || ''"
+            [ngModel]="values()[field.key]"
+            (ngModelChange)="onFieldChange(field.key, $event)"
+            [name]="'tpl_' + field.key"
+            [required]="field.required ?? false"
+            [maxlength]="field.maxLength ?? 500"
+          ></textarea>
         } @else if (field.type === 'toggle') {
           <label class="tpl-toggle">
-            <input type="checkbox"
-                   [ngModel]="values()[field.key] === 'true'"
-                   (ngModelChange)="onFieldChange(field.key, $event ? 'true' : 'false')"
-                   [name]="'tpl_' + field.key" />
+            <input
+              type="checkbox"
+              [ngModel]="values()[field.key] === 'true'"
+              (ngModelChange)="onFieldChange(field.key, $event ? 'true' : 'false')"
+              [name]="'tpl_' + field.key"
+            />
             <span>{{ field.placeholder || 'Yes' }}</span>
           </label>
         } @else {
-          <input class="tm-input"
-                 [type]="inputType(field.type)"
-                 [placeholder]="field.placeholder || ''"
-                 [ngModel]="values()[field.key]"
-                 (ngModelChange)="onFieldChange(field.key, $event)"
-                 [name]="'tpl_' + field.key"
-                 [required]="field.required ?? false"
-                 [min]="field.min ?? null"
-                 [max]="field.max ?? null"
-                 [maxlength]="field.maxLength ?? null" />
+          <input
+            class="tm-input"
+            [type]="inputType(field.type)"
+            [placeholder]="field.placeholder || ''"
+            [ngModel]="values()[field.key]"
+            (ngModelChange)="onFieldChange(field.key, $event)"
+            [name]="'tpl_' + field.key"
+            [required]="field.required ?? false"
+            [min]="field.min ?? null"
+            [max]="field.max ?? null"
+            [maxlength]="field.maxLength ?? null"
+          />
         }
       </label>
     </ng-template>
@@ -150,10 +163,24 @@ import { PostTemplateDefinition } from '../../data/post-template-registry';
       font-weight: 700;
       color: var(--tm-text);
 
-      > i { color: #0f766e; font-size: 16px; margin-top: 1px; }
-      > span { display: flex; flex-direction: column; gap: 2px; }
-      strong { font-size: 13px; }
-      small { color: var(--tm-muted); font-size: 12px; font-weight: 500; }
+      > i {
+        color: #0f766e;
+        font-size: 16px;
+        margin-top: 1px;
+      }
+      > span {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      strong {
+        font-size: 13px;
+      }
+      small {
+        color: var(--tm-muted);
+        font-size: 12px;
+        font-weight: 500;
+      }
     }
 
     .tpl-form-fields {
@@ -222,7 +249,9 @@ import { PostTemplateDefinition } from '../../data/post-template-registry';
       font-weight: 700;
       cursor: pointer;
 
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
 
     .tpl-form-status {
@@ -233,11 +262,15 @@ import { PostTemplateDefinition } from '../../data/post-template-registry';
       color: var(--tm-muted);
       font-size: 11px;
 
-      &.ready { color: #15803d; }
+      &.ready {
+        color: #15803d;
+      }
     }
 
     @media (max-width: 520px) {
-      .tpl-form-fields { grid-template-columns: 1fr; }
+      .tpl-form-fields {
+        grid-template-columns: 1fr;
+      }
     }
   `,
 })
@@ -246,12 +279,8 @@ export class TemplateFormComponent {
   readonly values = input.required<Record<string, string>>();
   readonly valueChange = output<{ key: string; value: string }>();
 
-  readonly requiredFields = computed(() =>
-    this.template().fields.filter((f) => f.required),
-  );
-  readonly optionalFields = computed(() =>
-    this.template().fields.filter((f) => !f.required),
-  );
+  readonly requiredFields = computed(() => this.template().fields.filter((f) => f.required));
+  readonly optionalFields = computed(() => this.template().fields.filter((f) => !f.required));
   readonly showOptional = signal(false);
 
   readonly isComplete = computed(() =>
