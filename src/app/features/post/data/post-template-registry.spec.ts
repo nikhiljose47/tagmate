@@ -37,7 +37,6 @@ const BUSINESS_CATEGORIES: TagCategory[] = [
 ];
 
 describe('PostTemplateRegistry — Step 2.A', () => {
-
   // ─── Registry integrity ──────────────────────────────────────────────────
 
   it('has templates for all 12 business categories', () => {
@@ -229,10 +228,7 @@ describe('PostTemplateRegistry — Step 2.A', () => {
 
   it('mapTemplateValues omits blank values', () => {
     const tpl = {
-      fields: [
-        presets.price(),
-        { key: 'brand', type: 'text' as const, label: 'Brand' },
-      ],
+      fields: [presets.price(), { key: 'brand', type: 'text' as const, label: 'Brand' }],
     };
     const result = mapTemplateValues(tpl, { price: '', brand: '' });
     expect(Object.keys(result.tagFields).length).toBe(0);
@@ -277,10 +273,7 @@ describe('PostTemplateRegistry — Step 2.A', () => {
 
   it('restoreTemplateValues reconstructs form values from Tag + templateData', () => {
     const tpl = {
-      fields: [
-        presets.price(),
-        { key: 'brand', type: 'text' as const, label: 'Brand' },
-      ],
+      fields: [presets.price(), { key: 'brand', type: 'text' as const, label: 'Brand' }],
     };
     const tagFields = { price: 199 };
     const templateData = { brand: 'Acme' };
@@ -347,7 +340,7 @@ describe('PostTemplateRegistry — Step 2.A', () => {
   // ─── buildHighlight handles missing optional values ─────────────────────
 
   it('buildHighlight produces clean output with only required fields', () => {
-    const shopGeneral = POST_TEMPLATE_REGISTRY[TagCategory.Shop]!.find(t => t.id === 'general')!;
+    const shopGeneral = POST_TEMPLATE_REGISTRY[TagCategory.Shop]!.find((t) => t.id === 'general')!;
     const text = shopGeneral.buildHighlight({
       item: 'Corner Store',
       dealType: 'New arrival',
@@ -383,7 +376,6 @@ describe('PostTemplateRegistry — Step 2.A', () => {
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 describe('Template validation — Step 2.A', () => {
-
   it('validates required fields', () => {
     const tpl = {
       fields: [
@@ -424,10 +416,15 @@ describe('Template validation — Step 2.A', () => {
 
   it('validates select option membership', () => {
     const tpl = {
-      fields: [{
-        key: 'color', type: 'select' as const, label: 'Color',
-        required: true, options: ['Red', 'Blue'],
-      }],
+      fields: [
+        {
+          key: 'color',
+          type: 'select' as const,
+          label: 'Color',
+          required: true,
+          options: ['Red', 'Blue'],
+        },
+      ],
     };
     expect(validateTemplateValues(tpl, { color: 'Red' }).valid).toBeTrue();
     expect(validateTemplateValues(tpl, { color: 'Green' }).valid).toBeFalse();
@@ -435,10 +432,15 @@ describe('Template validation — Step 2.A', () => {
 
   it('validates multi-select option membership', () => {
     const tpl = {
-      fields: [{
-        key: 'tags', type: 'multi-select' as const, label: 'Tags',
-        required: true, options: ['A', 'B', 'C'],
-      }],
+      fields: [
+        {
+          key: 'tags',
+          type: 'multi-select' as const,
+          label: 'Tags',
+          required: true,
+          options: ['A', 'B', 'C'],
+        },
+      ],
     };
     expect(validateTemplateValues(tpl, { tags: 'A,B' }).valid).toBeTrue();
     expect(validateTemplateValues(tpl, { tags: 'A,Z' }).valid).toBeFalse();
@@ -488,18 +490,21 @@ describe('Template validation — Step 2.A', () => {
       ],
     };
     const r = validateTemplateValues(tpl, {
-      price: '', originalPrice: '', productLink: '', description: '',
+      price: '',
+      originalPrice: '',
+      productLink: '',
+      description: '',
     });
     expect(r.valid).toBeTrue();
   });
 
   it('calls template-level validate hook', () => {
-    const tpl = {
+    const tpl: Pick<PostTemplateDefinition, 'fields' | 'validate'> = {
       fields: [
         { key: 'a', type: 'text' as const, label: 'A' },
         { key: 'b', type: 'text' as const, label: 'B' },
       ],
-      validate: (v: Record<string, string>) => {
+      validate: (v: Record<string, string>): Record<string, string> => {
         if (v['a'] === v['b'] && v['a']) return { b: 'A and B must differ' };
         return {};
       },

@@ -40,12 +40,18 @@ export function formatEventRange(eventStart?: string, eventEnd?: string): string
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';
     const day = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-    const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const time = d.toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
     return `${day} • ${time}`;
   };
   const fmtTime = (iso: string): string => {
     const d = new Date(iso);
-    return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return isNaN(d.getTime())
+      ? ''
+      : d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   if (eventStart && eventEnd) {
@@ -144,13 +150,12 @@ export class BusinessPostContentComponent {
       case 'toggle':
         return value === 'true' ? field.shortLabel || field.label : '';
       case 'multi-select':
-        return value
-          .split(',')
-          .filter(Boolean)
-          .join(', ');
+        return value.split(',').filter(Boolean).join(', ');
       case 'date': {
         const d = new Date(value);
-        return isNaN(d.getTime()) ? value : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        return isNaN(d.getTime())
+          ? value
+          : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
       }
       case 'datetime': {
         const formatted = formatEventRange(value);

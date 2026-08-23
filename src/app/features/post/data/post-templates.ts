@@ -482,8 +482,7 @@ export const POST_TEMPLATES: Partial<Record<TagCategory, PostTemplate>> = {
       { key: 'when', label: 'When (optional)', type: 'text', placeholder: 'e.g. Weekday evenings' },
       { key: 'fee', label: 'Fee (optional)', type: 'text', placeholder: 'e.g. ₹2000/month' },
     ],
-    buildHighlight: (v) =>
-      line([`📚 ${v['skill']} — ${v['sessionType']}`, v['when'], v['fee']]),
+    buildHighlight: (v) => line([`📚 ${v['skill']} — ${v['sessionType']}`, v['when'], v['fee']]),
   },
 
   [TagCategory.Auto]: {

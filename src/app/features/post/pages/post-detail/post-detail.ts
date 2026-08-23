@@ -26,7 +26,11 @@ import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { LifespanBadgeComponent } from '../../../../shared/components/lifespan-badge/lifespan-badge.component';
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
-import { SocialProfile, allowedStatusesForTag, isEventLikePost } from '../../../../core/models/social.model';
+import {
+  SocialProfile,
+  allowedStatusesForTag,
+  isEventLikePost,
+} from '../../../../core/models/social.model';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import {
   BusinessPostContentComponent,

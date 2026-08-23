@@ -1,4 +1,8 @@
-<div class="bpc" [class.bpc--detail]="variant() === 'detail'" [class.bpc--profile]="variant() === 'profile'">
+<div
+  class="bpc"
+  [class.bpc--detail]="variant() === 'detail'"
+  [class.bpc--profile]="variant() === 'profile'"
+>
   <div class="bpc-header">
     <tm-tag-pill [tag]="post().tag" />
     @if (subtypeLabel()) {
@@ -18,9 +22,7 @@
     <span class="bpc-structured-item">{{ item.text }}</span>
     }
   </div>
-  }
-
-  @if (hasPriceRow()) {
+  } @if (hasPriceRow()) {
   <div class="bpc-price-row">
     @if (post().price) {
     <span class="bpc-price">₹{{ post().price }}</span>
@@ -30,26 +32,20 @@
     <span class="bpc-availability">{{ post().availabilityNote }}</span>
     }
   </div>
-  }
-
-  @if (eventRangeText()) {
+  } @if (eventRangeText()) {
   <div class="bpc-event">
     <i class="bi bi-calendar-event" aria-hidden="true"></i>
     {{ eventRangeText() }}
   </div>
-  }
-
-  @if (showCta() && ctaLabel()) {
-    @if (ctaHref(); as href) {
-    <a class="bpc-cta" [href]="href" target="_blank" rel="noopener noreferrer">
-      <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
-      {{ ctaLabel() }}
-    </a>
-    } @else if (fallbackLink(); as link) {
-    <a class="bpc-cta" [routerLink]="link">
-      <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
-      {{ ctaLabel() }}
-    </a>
-    }
-  }
+  } @if (showCta() && ctaLabel()) { @if (ctaHref(); as href) {
+  <a class="bpc-cta" [href]="href" target="_blank" rel="noopener noreferrer">
+    <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
+    {{ ctaLabel() }}
+  </a>
+  } @else if (fallbackLink(); as link) {
+  <a class="bpc-cta" [routerLink]="link">
+    <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
+    {{ ctaLabel() }}
+  </a>
+  } }
 </div>

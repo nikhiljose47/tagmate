@@ -732,7 +732,9 @@
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.4em;
-  padding-left: calc(0.4em + 12px); // roughly re-centers the text against the trailing letter-spacing gap
+  padding-left: calc(
+    0.4em + 12px
+  ); // roughly re-centers the text against the trailing letter-spacing gap
 }
 
 .confirm-email-resent {

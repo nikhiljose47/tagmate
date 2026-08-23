@@ -93,29 +93,24 @@
         </button>
         }
         <span class="step-details-tag">
-          @if (postType() === 'business' && activeTemplate(); as tpl) {
-            {{ tpl.icon || '📝' }} {{ tpl.label }}
-          } @else {
-            {{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }}
-          }
+          @if (postType() === 'business' && activeTemplate(); as tpl) { {{ tpl.icon || '📝' }} {{
+          tpl.label }} } @else { {{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }} }
         </span>
       </div>
 
       <!-- Business: template-driven form (replaces old intent chips + business fields) -->
       @if (postType() === 'business' && activeTemplate(); as tpl) {
-        <app-template-form
-          [template]="tpl"
-          [values]="templateValues()"
-          (valueChange)="onTemplateFormChange($event)"
-        />
+      <app-template-form
+        [template]="tpl"
+        [values]="templateValues()"
+        (valueChange)="onTemplateFormChange($event)"
+      />
       }
 
       <!-- Personal: intent chips (unchanged) -->
       @if (postType() === 'personal' && !isHotNow()) {
-        <!-- Personal posts don't show intent chips — they use the tag-based flow -->
-      }
-
-      @if (isHotNow()) {
+      <!-- Personal posts don't show intent chips — they use the tag-based flow -->
+      } @if (isHotNow()) {
       <div class="hot-now-block">
         <div class="hot-now-banner" role="status">
           <i class="bi bi-fire hot-now-icon" aria-hidden="true"></i>
@@ -258,7 +253,7 @@
 
       <!-- Business fields: only shown for personal-mode business posts (legacy) -->
       @if (postType() === 'personal') {
-        <!-- Personal posts don't have price/CTA fields -->
+      <!-- Personal posts don't have price/CTA fields -->
       }
 
       <div class="media-section">
@@ -430,9 +425,7 @@
         </select>
         }
       </div>
-      }
-
-      @if (postType() === 'business') {
+      } @if (postType() === 'business') {
       <button type="button" class="post-as-personal-link" (click)="switchToPersonalMode()">
         Post as personal instead
       </button>
@@ -500,14 +493,11 @@
 
       @if (editingPostId()) {
       <p class="editing-badge">
-        @switch (editingPublishStatus()) {
-          @case ('draft') { <i class="bi bi-file-earmark-text"></i> Editing draft }
-          @case ('scheduled') {
-            <i class="bi bi-clock-history"></i> Editing scheduled post
-            @if (editingScheduledFor(); as sf) { — scheduled for {{ formatScheduledFor(sf) }} }
-          }
-          @default { <i class="bi bi-check-circle"></i> Editing published post }
-        }
+        @switch (editingPublishStatus()) { @case ('draft') {
+        <i class="bi bi-file-earmark-text"></i> Editing draft } @case ('scheduled') {
+        <i class="bi bi-clock-history"></i> Editing scheduled post @if (editingScheduledFor(); as
+        sf) { — scheduled for {{ formatScheduledFor(sf) }} } } @default {
+        <i class="bi bi-check-circle"></i> Editing published post } }
       </p>
       }
 
@@ -540,11 +530,8 @@
           </div>
           }
           <span class="preview-tag">
-            @if (postType() === 'business' && activeTemplate(); as tpl) {
-              {{ tpl.icon || '📝' }} {{ tpl.label }}
-            } @else {
-              {{ formData.tag | tagEmoji }} #{{ formData.tag }}
-            }
+            @if (postType() === 'business' && activeTemplate(); as tpl) { {{ tpl.icon || '📝' }} {{
+            tpl.label }} } @else { {{ formData.tag | tagEmoji }} #{{ formData.tag }} }
           </span>
           @if (previewTitle()) {
           <h3 class="preview-title">{{ previewTitle() }}</h3>
@@ -560,8 +547,7 @@
             <span class="preview-availability">{{ formData.availabilityNote }}</span>
             }
           </div>
-          }
-          @if (postType() === 'business' && formData.cta) {
+          } @if (postType() === 'business' && formData.cta) {
           <span class="preview-cta"><i class="bi bi-cursor-fill"></i> {{ ctaLabel() }}</span>
           }
           <div class="preview-meta">
@@ -576,54 +562,83 @@
         </div>
       </article>
 
-      @if (postType() === 'business') {
-        @if (showScheduleForm()) {
-        <div class="schedule-form">
-          <div class="schedule-form-fields">
-            <label>
-              <span>Publish date</span>
-              <input type="date" class="tm-input" [ngModel]="scheduleDate()"
-                     (ngModelChange)="scheduleDate.set($event)" name="scheduleDate" />
-            </label>
-            <label>
-              <span>Publish time</span>
-              <input type="time" class="tm-input" [ngModel]="scheduleTime()"
-                     (ngModelChange)="scheduleTime.set($event)" name="scheduleTime" />
-            </label>
-          </div>
-          <div class="schedule-form-actions">
-            <button type="button" class="secondary-btn" (click)="cancelSchedule()">Cancel</button>
-            <button type="button" class="post-btn" [disabled]="isSubmitting()" (click)="confirmSchedule()">
-              Confirm schedule
-            </button>
-          </div>
+      @if (postType() === 'business') { @if (showScheduleForm()) {
+      <div class="schedule-form">
+        <div class="schedule-form-fields">
+          <label>
+            <span>Publish date</span>
+            <input
+              type="date"
+              class="tm-input"
+              [ngModel]="scheduleDate()"
+              (ngModelChange)="scheduleDate.set($event)"
+              name="scheduleDate"
+            />
+          </label>
+          <label>
+            <span>Publish time</span>
+            <input
+              type="time"
+              class="tm-input"
+              [ngModel]="scheduleTime()"
+              (ngModelChange)="scheduleTime.set($event)"
+              name="scheduleTime"
+            />
+          </label>
         </div>
-        } @else {
-        <div class="preview-actions preview-actions--business">
-          <button type="button" class="secondary-btn" [disabled]="isSubmitting()" (click)="saveAsDraft()">
-            Save draft
-          </button>
-          <button type="button" class="secondary-btn" [disabled]="isSubmitting()" (click)="openScheduleForm()">
-            Schedule
-          </button>
-          <button type="button" class="post-btn publish-btn" [disabled]="isSubmitting()" (click)="publishNow()">
-            @if (isSubmitting()) {
-            <span class="post-spinner"></span> Publishing } @else {
-            <i class="bi bi-send-fill"></i> Publish now }
-          </button>
-        </div>
-        @if (editingPostId()) {
-        <div class="preview-owner-actions">
-          @if (editingPublishStatus() === 'scheduled') {
-          <button type="button" class="text-action" (click)="moveToDraft()">Move back to draft</button>
-          }
-          <button type="button" class="text-action text-action--danger" (click)="deleteCurrentPost()">
-            Delete
+        <div class="schedule-form-actions">
+          <button type="button" class="secondary-btn" (click)="cancelSchedule()">Cancel</button>
+          <button
+            type="button"
+            class="post-btn"
+            [disabled]="isSubmitting()"
+            (click)="confirmSchedule()"
+          >
+            Confirm schedule
           </button>
         </div>
-        }
-        }
+      </div>
       } @else {
+      <div class="preview-actions preview-actions--business">
+        <button
+          type="button"
+          class="secondary-btn"
+          [disabled]="isSubmitting()"
+          (click)="saveAsDraft()"
+        >
+          Save draft
+        </button>
+        <button
+          type="button"
+          class="secondary-btn"
+          [disabled]="isSubmitting()"
+          (click)="openScheduleForm()"
+        >
+          Schedule
+        </button>
+        <button
+          type="button"
+          class="post-btn publish-btn"
+          [disabled]="isSubmitting()"
+          (click)="publishNow()"
+        >
+          @if (isSubmitting()) {
+          <span class="post-spinner"></span> Publishing } @else {
+          <i class="bi bi-send-fill"></i> Publish now }
+        </button>
+      </div>
+      @if (editingPostId()) {
+      <div class="preview-owner-actions">
+        @if (editingPublishStatus() === 'scheduled') {
+        <button type="button" class="text-action" (click)="moveToDraft()">
+          Move back to draft
+        </button>
+        }
+        <button type="button" class="text-action text-action--danger" (click)="deleteCurrentPost()">
+          Delete
+        </button>
+      </div>
+      } } } @else {
       <div class="preview-actions">
         <button type="button" class="secondary-btn" (click)="editPost()">Edit</button>
         <button type="submit" class="post-btn publish-btn" [disabled]="isSubmitting()">
@@ -634,7 +649,6 @@
       </div>
       }
     </section>
-    }
-    }
+    } }
   </form>
 </div>

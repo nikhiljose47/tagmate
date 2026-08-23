@@ -54,7 +54,9 @@ const JOB_SUBTYPES = new Set(['job']);
  * where relevant, its `postSubtype`. Subtype only ever narrows/redirects
  * discovery — it never changes `post.tag` itself.
  */
-export function resolveFeedScope(post: Pick<Tag, 'tag' | 'postSubtype'>): FeedBetaMainCategory | null {
+export function resolveFeedScope(
+  post: Pick<Tag, 'tag' | 'postSubtype'>,
+): FeedBetaMainCategory | null {
   if (post.postSubtype && JOB_SUBTYPES.has(post.postSubtype)) return 'job';
   const tag = post.tag?.trim().toLowerCase();
   return tag ? (FEED_SCOPE_BY_TAG[tag] ?? null) : null;

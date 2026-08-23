@@ -127,7 +127,10 @@ export async function onRequestPost(context) {
     if (!authDelete.ok) {
       // Profile data is already gone; the login itself will be cleaned up on
       // retry (re-running the RPC against an already-gone profile is a no-op).
-      return json({ error: 'Account data was removed, but sign-in cleanup failed. Please try again.' }, 502);
+      return json(
+        { error: 'Account data was removed, but sign-in cleanup failed. Please try again.' },
+        502,
+      );
     }
 
     return json({ ok: true });
