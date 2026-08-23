@@ -1,7 +1,14 @@
 <div class="profile-page">
   @if (user$ | async; as user) {
   <!-- Cover + Avatar -->
-  <div class="profile-cover" [style.background]="coverGradient(user.username)">
+  <div
+    class="profile-cover"
+    [style.background]="
+      isBusinessAccount() && currentUser()?.coverImageUrl
+        ? 'center / cover no-repeat url(' + currentUser()?.coverImageUrl + ')'
+        : coverGradient(user.username)
+    "
+  >
     <div class="cover-avatar" [style.background]="avatarBg(user.username)">
       @if (currentUser()?.avatarUrl; as photoUrl) {
       <img [src]="photoUrl" [alt]="isBusinessAccount() ? 'Business logo' : 'Profile photo'" class="avatar-img" />
@@ -56,6 +63,10 @@
         }
       </div>
 
+      @if (currentUser()?.bio) {
+      <p class="edit-hint">{{ currentUser()?.bio }}</p>
+      }
+
       <div class="business-contact-row">
         @if (currentUser()?.businessWebsite; as website) {
         <a [href]="website" target="_blank" rel="noopener noreferrer" class="business-contact-link">
@@ -67,7 +78,94 @@
           <i class="bi bi-telephone-fill" aria-hidden="true"></i> {{ phone }}
         </a>
         }
+        @if (currentUser()?.googleMapsUrl; as mapsUrl) {
+        <a [href]="mapsUrl" target="_blank" rel="noopener noreferrer" class="business-contact-link">
+          <i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Directions
+        </a>
+        }
       </div>
+
+      @if (currentUser()?.socialInstagram || currentUser()?.socialFacebook || currentUser()?.socialX || currentUser()?.socialLinkedin || currentUser()?.socialYoutube || currentUser()?.socialWhatsapp) {
+      <div class="business-social-row">
+        @if (currentUser()?.socialInstagram; as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+        }
+        @if (currentUser()?.socialFacebook; as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+        }
+        @if (currentUser()?.socialX; as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="X"><i class="bi bi-twitter-x"></i></a>
+        }
+        @if (currentUser()?.socialLinkedin; as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+        }
+        @if (currentUser()?.socialYoutube; as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+        }
+        @if (currentUser()?.socialWhatsapp; as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        }
+      </div>
+      }
+
+      @if (currentUser()?.openingHours?.length) {
+      <div class="opening-hours-view">
+        @for (h of currentUser()?.openingHours; track h.day) {
+        <div class="opening-hours-row">
+          <span>{{ dayLabels[h.day] }}</span>
+          <span>{{ h.closed ? 'Closed' : (h.open + ' – ' + h.close) }}</span>
+        </div>
+        }
+      </div>
+      }
+
+      @if (businessOffers().length) {
+      <h4 class="business-photos-title">Today's offers</h4>
+      <div class="business-offers-grid">
+        @for (offer of businessOffers(); track offer.id) {
+        <div class="business-offer-card">
+          @if (offer.imageUrl) {
+          <img [src]="offer.imageUrl" alt="" class="business-offer-img" loading="lazy" />
+          }
+          <div class="business-offer-body">
+            <strong>{{ offer.title }}</strong>
+            @if (offer.description) {
+            <p>{{ offer.description }}</p>
+            }
+            <small>Valid until {{ offer.validUntil | date: 'd MMM' }}</small>
+          </div>
+        </div>
+        }
+      </div>
+      }
+
+      @if (businessItems().length) {
+      <h4 class="business-photos-title">Products &amp; services</h4>
+      <div class="business-offers-grid">
+        @for (item of businessItems(); track item.id) {
+        <div class="business-offer-card">
+          @if (item.imageUrl) {
+          <img [src]="item.imageUrl" alt="" class="business-offer-img" loading="lazy" />
+          }
+          <div class="business-offer-body">
+            <strong>{{ item.name }}</strong>
+            @if (item.description) {
+            <p>{{ item.description }}</p>
+            }
+            @if (item.price) {
+            <small>
+              @if (item.offerPrice) {
+              <span class="price-strike">₹{{ item.price }}</span> ₹{{ item.offerPrice }}
+              } @else {
+              ₹{{ item.price }}
+              }
+            </small>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
 
       @if (currentUser()?.businessImages?.length) {
       <h4 class="business-photos-title">Shop photos</h4>
@@ -259,6 +357,139 @@
           />
         </label>
         }
+      </div>
+
+      <label class="edit-label">Cover image (optional)</label>
+      <div class="shop-images-grid mb-3">
+        @if (editCoverImageUrl(); as coverUrl) {
+        <div class="shop-image-thumb">
+          <img [src]="coverUrl" alt="Cover" />
+          <button type="button" class="shop-image-remove" aria-label="Remove cover" (click)="removeCoverImage()">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        } @else {
+        <label class="shop-image-add">
+          @if (uploadingCoverImage()) {
+          <span class="spinner-dark" aria-hidden="true"></span>
+          } @else {
+          <i class="bi bi-image" aria-hidden="true"></i>
+          }
+          <input type="file" accept="image/*" hidden [disabled]="uploadingCoverImage()" (change)="onCoverImageSelect($event)" />
+        </label>
+        }
+      </div>
+
+      <label class="edit-label">Google Maps link (optional)</label>
+      <input
+        class="tm-input mb-3"
+        type="url"
+        [value]="editGoogleMapsUrl()"
+        (input)="editGoogleMapsUrl.set($any($event.target).value)"
+        placeholder="https://maps.app.goo.gl/…"
+      />
+
+      <label class="edit-label">Opening hours</label>
+      <div class="opening-hours-edit mb-3">
+        @for (h of editOpeningHours(); track h.day) {
+        <div class="opening-hours-edit-row">
+          <span class="oh-day">{{ dayLabels[h.day] }}</span>
+          <label class="oh-closed-toggle">
+            <input type="checkbox" [checked]="h.closed" (change)="toggleOpeningDay(h.day)" />
+            Closed
+          </label>
+          @if (!h.closed) {
+          <input type="time" class="tm-input oh-time" [value]="h.open" (input)="setOpeningTime(h.day, 'open', $any($event.target).value)" />
+          <span>–</span>
+          <input type="time" class="tm-input oh-time" [value]="h.close" (input)="setOpeningTime(h.day, 'close', $any($event.target).value)" />
+          }
+        </div>
+        }
+      </div>
+
+      <label class="edit-label">Social links (optional)</label>
+      <div class="socials-edit mb-3">
+        <input class="tm-input" type="url" placeholder="Instagram" [value]="editSocialInstagram()" (input)="editSocialInstagram.set($any($event.target).value)" />
+        <input class="tm-input" type="url" placeholder="Facebook" [value]="editSocialFacebook()" (input)="editSocialFacebook.set($any($event.target).value)" />
+        <input class="tm-input" type="url" placeholder="X / Twitter" [value]="editSocialX()" (input)="editSocialX.set($any($event.target).value)" />
+        <input class="tm-input" type="url" placeholder="LinkedIn" [value]="editSocialLinkedin()" (input)="editSocialLinkedin.set($any($event.target).value)" />
+        <input class="tm-input" type="url" placeholder="YouTube" [value]="editSocialYoutube()" (input)="editSocialYoutube.set($any($event.target).value)" />
+        <input class="tm-input" type="url" placeholder="WhatsApp link" [value]="editSocialWhatsapp()" (input)="editSocialWhatsapp.set($any($event.target).value)" />
+      </div>
+
+      <label class="edit-label">Today's offers</label>
+      <div class="business-offers-grid mb-2">
+        @for (offer of businessOffers(); track offer.id) {
+        <div class="business-offer-card">
+          @if (offer.imageUrl) {
+          <img [src]="offer.imageUrl" alt="" class="business-offer-img" />
+          }
+          <div class="business-offer-body">
+            <strong>{{ offer.title }}</strong>
+            <small>Until {{ offer.validUntil | date: 'd MMM' }}</small>
+          </div>
+          <button type="button" class="shop-image-remove" aria-label="Remove offer" (click)="removeOffer(offer)">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        }
+      </div>
+      <div class="add-offer-form mb-3">
+        <label class="shop-image-add mb-2">
+          @if (uploadingOfferImage()) {
+          <span class="spinner-dark" aria-hidden="true"></span>
+          } @else if (newOfferImageUrl()) {
+          <img [src]="newOfferImageUrl()" alt="" class="business-offer-img" />
+          } @else {
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          }
+          <input type="file" accept="image/*" hidden [disabled]="uploadingOfferImage()" (change)="onOfferImageSelect($event)" />
+        </label>
+        <input class="tm-input mb-2" type="text" placeholder="Offer title" [value]="newOfferTitle()" (input)="newOfferTitle.set($any($event.target).value)" />
+        <input class="tm-input mb-2" type="text" placeholder="Description (optional)" [value]="newOfferDescription()" (input)="newOfferDescription.set($any($event.target).value)" />
+        <input class="tm-input mb-2" type="date" [value]="newOfferValidUntil()" (input)="newOfferValidUntil.set($any($event.target).value)" />
+        <button class="tm-btn tm-btn-outline w-full" type="button" [disabled]="savingOffer()" (click)="addOffer()">
+          {{ savingOffer() ? 'Adding…' : 'Add offer' }}
+        </button>
+      </div>
+
+      <label class="edit-label">Products &amp; services</label>
+      <div class="business-offers-grid mb-2">
+        @for (item of businessItems(); track item.id) {
+        <div class="business-offer-card">
+          @if (item.imageUrl) {
+          <img [src]="item.imageUrl" alt="" class="business-offer-img" />
+          }
+          <div class="business-offer-body">
+            <strong>{{ item.name }}</strong>
+            @if (item.price) {
+            <small>₹{{ item.price }}</small>
+            }
+          </div>
+          <button type="button" class="shop-image-remove" aria-label="Remove item" (click)="removeItem(item)">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        }
+      </div>
+      <div class="add-offer-form mb-3">
+        <label class="shop-image-add mb-2">
+          @if (uploadingItemImage()) {
+          <span class="spinner-dark" aria-hidden="true"></span>
+          } @else if (newItemImageUrl()) {
+          <img [src]="newItemImageUrl()" alt="" class="business-offer-img" />
+          } @else {
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          }
+          <input type="file" accept="image/*" hidden [disabled]="uploadingItemImage()" (change)="onItemImageSelect($event)" />
+        </label>
+        <input class="tm-input mb-2" type="text" placeholder="Item / service name" [value]="newItemName()" (input)="newItemName.set($any($event.target).value)" />
+        <input class="tm-input mb-2" type="text" placeholder="Description (optional)" [value]="newItemDescription()" (input)="newItemDescription.set($any($event.target).value)" />
+        <input class="tm-input mb-2" type="number" placeholder="Price" [value]="newItemPrice()" (input)="newItemPrice.set($any($event.target).value)" />
+        <input class="tm-input mb-2" type="number" placeholder="Offer price (optional)" [value]="newItemOfferPrice()" (input)="newItemOfferPrice.set($any($event.target).value)" />
+        <button class="tm-btn tm-btn-outline w-full" type="button" [disabled]="savingItem()" (click)="addItem()">
+          {{ savingItem() ? 'Adding…' : 'Add item' }}
+        </button>
       </div>
       }
 

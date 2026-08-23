@@ -27,8 +27,25 @@ export interface AppUser {
    *  only when accountType === 'business'. Every post the account makes uses
    *  this tag; there's no per-post tag picker for business accounts. */
   businessCategory?: string;
-  /** 1–5 shop/business photo URLs (tag-images bucket). */
+  /** 1–30 shop/business photo URLs (tag-images bucket). */
   businessImages?: string[];
   /** Year the business was founded — collected at signup instead of a personal birthday. */
   businessEstablishedYear?: number;
+  coverImageUrl?: string;
+  /** One entry per day, e.g. `[{ day: 'mon', open: '09:00', close: '18:00', closed: false }, ...]`. */
+  openingHours?: OpeningHoursEntry[];
+  googleMapsUrl?: string;
+  socialInstagram?: string;
+  socialFacebook?: string;
+  socialX?: string;
+  socialLinkedin?: string;
+  socialYoutube?: string;
+  socialWhatsapp?: string;
+}
+
+export interface OpeningHoursEntry {
+  day: 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+  open: string;
+  close: string;
+  closed: boolean;
 }

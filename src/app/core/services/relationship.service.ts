@@ -23,8 +23,9 @@ export class RelationshipService {
     return this.supabase.searchUsers(query, limit);
   }
 
-  updateProfile(uid: string, name: string, bio: string, updatedAt: string) {
-    return this.supabase.updateRowsWhere('users', { uid }, { name, bio, updated_at: updatedAt });
+  /** `users` has no `updated_at` column — don't write one. */
+  updateProfile(uid: string, name: string, bio: string) {
+    return this.supabase.updateRowsWhere('users', { uid }, { name, bio });
   }
 
   setFollow(

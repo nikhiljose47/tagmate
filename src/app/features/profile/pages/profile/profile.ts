@@ -22,6 +22,15 @@ import { SocialPlatformService } from '../../../../core/services/social-platform
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { MediaService } from '../../../../core/services/media.service';
 import { MediaCompressionService } from '../../../../core/services/media-compression.service';
+import { BusinessOfferService } from '../../../../core/services/business-offer.service';
+import { BusinessItemService } from '../../../../core/services/business-item.service';
+import {
+  BusinessOffer,
+  BusinessItem,
+  rowToBusinessOffer,
+  rowToBusinessItem,
+} from '../../../../core/services/social.mapper';
+import { OpeningHoursEntry } from '../../../../core/models/app-user.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import {
@@ -86,6 +95,25 @@ const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
   postActivityNotifications: true,
 };
 
+const DEFAULT_OPENING_HOURS: OpeningHoursEntry[] = [
+  { day: 'mon', open: '09:00', close: '18:00', closed: false },
+  { day: 'tue', open: '09:00', close: '18:00', closed: false },
+  { day: 'wed', open: '09:00', close: '18:00', closed: false },
+  { day: 'thu', open: '09:00', close: '18:00', closed: false },
+  { day: 'fri', open: '09:00', close: '18:00', closed: false },
+  { day: 'sat', open: '09:00', close: '18:00', closed: false },
+  { day: 'sun', open: '09:00', close: '18:00', closed: true },
+];
+const DAY_LABELS: Record<OpeningHoursEntry['day'], string> = {
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
+};
+
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -112,6 +140,8 @@ export class ProfilePage implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly media = inject(MediaService);
   private readonly mediaCompression = inject(MediaCompressionService);
+  private readonly offersApi = inject(BusinessOfferService);
+  private readonly itemsApi = inject(BusinessItemService);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly theme = inject(ThemeService);
@@ -140,12 +170,42 @@ export class ProfilePage implements OnInit {
   editBusinessCategory = signal<TagCategory | ''>('');
   editBusinessImages = signal<string[]>([]);
   uploadingBusinessImage = signal(false);
-  readonly maxBusinessImages = 5;
+  readonly maxBusinessImages = 30;
   editBusinessLogoUrl = signal('');
   uploadingBusinessLogo = signal(false);
   readonly businessTags = BUSINESS_TAG_CATEGORIES;
   readonly tagCategoryLabel = tagCategoryLabel;
   profileSaving = signal(false);
+
+  // Business — cover image, opening hours, socials, Google Maps link
+  editCoverImageUrl = signal('');
+  uploadingCoverImage = signal(false);
+  editOpeningHours = signal<OpeningHoursEntry[]>(DEFAULT_OPENING_HOURS);
+  readonly dayLabels = DAY_LABELS;
+  editGoogleMapsUrl = signal('');
+  editSocialInstagram = signal('');
+  editSocialFacebook = signal('');
+  editSocialX = signal('');
+  editSocialLinkedin = signal('');
+  editSocialYoutube = signal('');
+  editSocialWhatsapp = signal('');
+
+  // Business — offers (auto-expire) and items/products/services
+  businessOffers = signal<BusinessOffer[]>([]);
+  businessItems = signal<BusinessItem[]>([]);
+  newOfferImageUrl = signal('');
+  newOfferTitle = signal('');
+  newOfferDescription = signal('');
+  newOfferValidUntil = signal('');
+  uploadingOfferImage = signal(false);
+  savingOffer = signal(false);
+  newItemImageUrl = signal('');
+  newItemName = signal('');
+  newItemDescription = signal('');
+  newItemPrice = signal('');
+  newItemOfferPrice = signal('');
+  uploadingItemImage = signal(false);
+  savingItem = signal(false);
   deletingAccount = signal(false);
   allTags = signal<Tag[]>([]);
   settings = signal<ProfileSettings>(DEFAULT_PROFILE_SETTINGS);
@@ -219,6 +279,21 @@ export class ProfilePage implements OnInit {
       this.allTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== deletedKey));
       this.myTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== deletedKey));
     });
+
+    if (this.isBusinessAccount()) this.loadOffersAndItems();
+  }
+
+  private loadOffersAndItems(): void {
+    const uid = this.sessionService.user()?.uid;
+    if (!uid) return;
+    this.offersApi
+      .list(uid)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ data }) => this.businessOffers.set((data ?? []).map(rowToBusinessOffer)));
+    this.itemsApi
+      .list(uid)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ data }) => this.businessItems.set((data ?? []).map(rowToBusinessItem)));
   }
 
   async deleteTag(tag: Tag): Promise<void> {
@@ -252,8 +327,30 @@ export class ProfilePage implements OnInit {
       this.editBusinessCategory.set((user?.businessCategory as TagCategory) ?? '');
       this.editBusinessImages.set(user?.businessImages ?? []);
       this.editBusinessLogoUrl.set(user?.avatarUrl ?? '');
+      this.editCoverImageUrl.set(user?.coverImageUrl ?? '');
+      this.editOpeningHours.set(user?.openingHours?.length ? user.openingHours : DEFAULT_OPENING_HOURS);
+      this.editGoogleMapsUrl.set(user?.googleMapsUrl ?? '');
+      this.editSocialInstagram.set(user?.socialInstagram ?? '');
+      this.editSocialFacebook.set(user?.socialFacebook ?? '');
+      this.editSocialX.set(user?.socialX ?? '');
+      this.editSocialLinkedin.set(user?.socialLinkedin ?? '');
+      this.editSocialYoutube.set(user?.socialYoutube ?? '');
+      this.editSocialWhatsapp.set(user?.socialWhatsapp ?? '');
     }
     this.editMode.set(opening);
+  }
+
+  /** Toggles a day's `closed` flag in the opening-hours editor. */
+  toggleOpeningDay(day: OpeningHoursEntry['day']): void {
+    this.editOpeningHours.update((hours) =>
+      hours.map((h) => (h.day === day ? { ...h, closed: !h.closed } : h)),
+    );
+  }
+
+  setOpeningTime(day: OpeningHoursEntry['day'], field: 'open' | 'close', value: string): void {
+    this.editOpeningHours.update((hours) =>
+      hours.map((h) => (h.day === day ? { ...h, [field]: value } : h)),
+    );
   }
 
   /** Uploads the account's profile picture — labeled "Business logo" for business
@@ -281,6 +378,37 @@ export class ProfilePage implements OnInit {
 
   removeBusinessLogo(): void {
     this.editBusinessLogoUrl.set('');
+  }
+
+  /** Shared upload helper for cover/offer/item images — same compress+upload flow as the logo. */
+  private async uploadBusinessImage(file: File, folder: string): Promise<string | null> {
+    const uid = this.sessionService.user()?.uid;
+    if (!uid || !file.type.startsWith('image/')) return null;
+    const { file: compressed } = await this.mediaCompression.compress(file);
+    const ext = compressed.name.split('.').pop() ?? 'jpg';
+    const path = `${folder}/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    return this.media.uploadFile(path, compressed);
+  }
+
+  async onCoverImageSelect(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.uploadingCoverImage.set(true);
+    try {
+      const url = await this.uploadBusinessImage(file, 'covers');
+      if (url) this.editCoverImageUrl.set(url);
+      else this.toast.show('Could not upload the cover image.', 'warning');
+    } catch {
+      this.toast.show('Could not upload the cover image.', 'warning');
+    } finally {
+      this.uploadingCoverImage.set(false);
+    }
+  }
+
+  removeCoverImage(): void {
+    this.editCoverImageUrl.set('');
   }
 
   selectBusinessCategory(tag: TagCategory): void {
@@ -320,6 +448,124 @@ export class ProfilePage implements OnInit {
     this.editBusinessImages.update((imgs) => imgs.filter((_, i) => i !== index));
   }
 
+  async onOfferImageSelect(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.uploadingOfferImage.set(true);
+    try {
+      const url = await this.uploadBusinessImage(file, 'offers');
+      if (url) this.newOfferImageUrl.set(url);
+      else this.toast.show('Could not upload the offer image.', 'warning');
+    } catch {
+      this.toast.show('Could not upload the offer image.', 'warning');
+    } finally {
+      this.uploadingOfferImage.set(false);
+    }
+  }
+
+  async addOffer(): Promise<void> {
+    const uid = this.sessionService.user()?.uid;
+    if (!uid || !this.newOfferTitle().trim() || !this.newOfferValidUntil()) {
+      this.toast.show('An offer needs a title and a valid-until date.', 'warning');
+      return;
+    }
+    this.savingOffer.set(true);
+    try {
+      const { data } = await firstValueFrom(
+        this.offersApi.create({
+          user_id: uid,
+          image_url: this.newOfferImageUrl() || null,
+          title: this.newOfferTitle().trim(),
+          description: this.newOfferDescription().trim() || null,
+          valid_until: this.newOfferValidUntil(),
+        }),
+      );
+      if (data) this.businessOffers.update((offers) => [rowToBusinessOffer(data), ...offers]);
+      this.newOfferImageUrl.set('');
+      this.newOfferTitle.set('');
+      this.newOfferDescription.set('');
+      this.newOfferValidUntil.set('');
+      this.toast.show('Offer added.', 'success');
+    } catch (err) {
+      this.logger.error('Failed to add offer', err);
+      this.toast.show('Could not add the offer.', 'danger');
+    } finally {
+      this.savingOffer.set(false);
+    }
+  }
+
+  async removeOffer(offer: BusinessOffer): Promise<void> {
+    try {
+      await firstValueFrom(this.offersApi.delete(offer.id));
+      this.businessOffers.update((offers) => offers.filter((o) => o.id !== offer.id));
+    } catch (err) {
+      this.logger.error('Failed to remove offer', err);
+      this.toast.show('Could not remove the offer.', 'danger');
+    }
+  }
+
+  async onItemImageSelect(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.uploadingItemImage.set(true);
+    try {
+      const url = await this.uploadBusinessImage(file, 'items');
+      if (url) this.newItemImageUrl.set(url);
+      else this.toast.show('Could not upload the image.', 'warning');
+    } catch {
+      this.toast.show('Could not upload the image.', 'warning');
+    } finally {
+      this.uploadingItemImage.set(false);
+    }
+  }
+
+  async addItem(): Promise<void> {
+    const uid = this.sessionService.user()?.uid;
+    if (!uid || !this.newItemName().trim()) {
+      this.toast.show('An item needs a name.', 'warning');
+      return;
+    }
+    this.savingItem.set(true);
+    try {
+      const { data } = await firstValueFrom(
+        this.itemsApi.create({
+          user_id: uid,
+          image_url: this.newItemImageUrl() || null,
+          name: this.newItemName().trim(),
+          description: this.newItemDescription().trim() || null,
+          price: this.newItemPrice() ? Number(this.newItemPrice()) : null,
+          offer_price: this.newItemOfferPrice() ? Number(this.newItemOfferPrice()) : null,
+        }),
+      );
+      if (data) this.businessItems.update((items) => [rowToBusinessItem(data), ...items]);
+      this.newItemImageUrl.set('');
+      this.newItemName.set('');
+      this.newItemDescription.set('');
+      this.newItemPrice.set('');
+      this.newItemOfferPrice.set('');
+      this.toast.show('Item added.', 'success');
+    } catch (err) {
+      this.logger.error('Failed to add item', err);
+      this.toast.show('Could not add the item.', 'danger');
+    } finally {
+      this.savingItem.set(false);
+    }
+  }
+
+  async removeItem(item: BusinessItem): Promise<void> {
+    try {
+      await firstValueFrom(this.itemsApi.delete(item.id));
+      this.businessItems.update((items) => items.filter((i) => i.id !== item.id));
+    } catch (err) {
+      this.logger.error('Failed to remove item', err);
+      this.toast.show('Could not remove the item.', 'danger');
+    }
+  }
+
   async saveProfile(): Promise<void> {
     if (!this.editName().trim()) {
       this.toast.show('Display name is required.', 'warning');
@@ -343,6 +589,15 @@ export class ProfilePage implements OnInit {
         businessCategory: this.editBusinessCategory(),
         businessImages: this.editBusinessImages(),
         avatarUrl: this.editBusinessLogoUrl(),
+        coverImageUrl: this.editCoverImageUrl(),
+        openingHours: this.editOpeningHours(),
+        googleMapsUrl: this.editGoogleMapsUrl(),
+        socialInstagram: this.editSocialInstagram(),
+        socialFacebook: this.editSocialFacebook(),
+        socialX: this.editSocialX(),
+        socialLinkedin: this.editSocialLinkedin(),
+        socialYoutube: this.editSocialYoutube(),
+        socialWhatsapp: this.editSocialWhatsapp(),
       });
     } else if (saved) {
       // Personal accounts don't go through updateBusinessProfile, but the

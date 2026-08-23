@@ -30,6 +30,84 @@ export interface UserRow {
   business_category?: string | null;
   business_images?: string[] | null;
   business_established_year?: number | null;
+  cover_image_url?: string | null;
+  opening_hours?: unknown;
+  google_maps_url?: string | null;
+  social_instagram?: string | null;
+  social_facebook?: string | null;
+  social_x?: string | null;
+  social_linkedin?: string | null;
+  social_youtube?: string | null;
+  social_whatsapp?: string | null;
+}
+
+/** `business_offers` row (snake_case, matches the Supabase table). */
+export interface BusinessOfferRow {
+  id: string;
+  user_id: string;
+  image_url: string | null;
+  title: string;
+  description: string | null;
+  valid_until: string;
+  created_at: string;
+}
+
+export interface BusinessOffer {
+  id: string;
+  userId: string;
+  imageUrl?: string;
+  title: string;
+  description?: string;
+  validUntil: string;
+  createdAt: string;
+}
+
+export function rowToBusinessOffer(row: BusinessOfferRow): BusinessOffer {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    imageUrl: row.image_url ?? undefined,
+    title: row.title,
+    description: row.description ?? undefined,
+    validUntil: row.valid_until,
+    createdAt: row.created_at,
+  };
+}
+
+/** `business_items` row (snake_case, matches the Supabase table). */
+export interface BusinessItemRow {
+  id: string;
+  user_id: string;
+  image_url: string | null;
+  name: string;
+  description: string | null;
+  price: number | null;
+  offer_price: number | null;
+  created_at: string;
+}
+
+export interface BusinessItem {
+  id: string;
+  userId: string;
+  imageUrl?: string;
+  name: string;
+  description?: string;
+  price?: number;
+  offerPrice?: number;
+  createdAt: string;
+}
+
+export function rowToBusinessItem(row: BusinessItemRow): BusinessItem {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    imageUrl: row.image_url ?? undefined,
+    name: row.name,
+    description: row.description ?? undefined,
+    price: row.price ?? undefined,
+    offerPrice: row.offer_price ?? undefined,
+    createdAt: row.created_at,
+  };
 }
 
 /** `post_comments` row (snake_case, matches the Supabase table). */

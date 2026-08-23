@@ -3,7 +3,7 @@ import { firstValueFrom, Observable, of, from } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
-import { AccountType, AppUser } from '../models/app-user.model';
+import { AccountType, AppUser, OpeningHoursEntry } from '../models/app-user.model';
 import { Hood } from '../models/hood.model';
 import { UserModel } from '../models/user.model';
 import { AuthResponse } from '../models/auth-response.model';
@@ -174,8 +174,7 @@ export class UserSessionService {
     if (!current) return { ok: false, code: 'no-user', message: 'Not signed in.' };
     try {
       await firstValueFrom(
-        this.supabase.upsertRow('users', {
-          uid: current.uid,
+        this.supabase.updateRowsWhere('users', { uid: current.uid }, {
           home_state: hood.state,
           home_country: hood.country,
           home_district: hood.district,
@@ -494,13 +493,21 @@ export class UserSessionService {
     businessCategory?: string;
     businessImages?: string[];
     avatarUrl?: string;
+    coverImageUrl?: string;
+    openingHours?: OpeningHoursEntry[];
+    googleMapsUrl?: string;
+    socialInstagram?: string;
+    socialFacebook?: string;
+    socialX?: string;
+    socialLinkedin?: string;
+    socialYoutube?: string;
+    socialWhatsapp?: string;
   }): Promise<boolean> {
     const current = this.user();
     if (!current) return false;
     try {
       await firstValueFrom(
-        this.supabase.upsertRow('users', {
-          uid: current.uid,
+        this.supabase.updateRowsWhere('users', { uid: current.uid }, {
           business_name: fields.businessName.trim() || null,
           business_phone: fields.businessPhone.trim() || null,
           business_website: fields.businessWebsite.trim() || null,
@@ -511,6 +518,29 @@ export class UserSessionService {
             ? { business_images: fields.businessImages }
             : {}),
           ...(fields.avatarUrl !== undefined ? { avatar_url: fields.avatarUrl || null } : {}),
+          ...(fields.coverImageUrl !== undefined
+            ? { cover_image_url: fields.coverImageUrl || null }
+            : {}),
+          ...(fields.openingHours !== undefined ? { opening_hours: fields.openingHours } : {}),
+          ...(fields.googleMapsUrl !== undefined
+            ? { google_maps_url: fields.googleMapsUrl.trim() || null }
+            : {}),
+          ...(fields.socialInstagram !== undefined
+            ? { social_instagram: fields.socialInstagram.trim() || null }
+            : {}),
+          ...(fields.socialFacebook !== undefined
+            ? { social_facebook: fields.socialFacebook.trim() || null }
+            : {}),
+          ...(fields.socialX !== undefined ? { social_x: fields.socialX.trim() || null } : {}),
+          ...(fields.socialLinkedin !== undefined
+            ? { social_linkedin: fields.socialLinkedin.trim() || null }
+            : {}),
+          ...(fields.socialYoutube !== undefined
+            ? { social_youtube: fields.socialYoutube.trim() || null }
+            : {}),
+          ...(fields.socialWhatsapp !== undefined
+            ? { social_whatsapp: fields.socialWhatsapp.trim() || null }
+            : {}),
         }),
       );
       this.user.set({
@@ -523,6 +553,29 @@ export class UserSessionService {
           : {}),
         ...(fields.businessImages !== undefined ? { businessImages: fields.businessImages } : {}),
         ...(fields.avatarUrl !== undefined ? { avatarUrl: fields.avatarUrl || undefined } : {}),
+        ...(fields.coverImageUrl !== undefined
+          ? { coverImageUrl: fields.coverImageUrl || undefined }
+          : {}),
+        ...(fields.openingHours !== undefined ? { openingHours: fields.openingHours } : {}),
+        ...(fields.googleMapsUrl !== undefined
+          ? { googleMapsUrl: fields.googleMapsUrl.trim() || undefined }
+          : {}),
+        ...(fields.socialInstagram !== undefined
+          ? { socialInstagram: fields.socialInstagram.trim() || undefined }
+          : {}),
+        ...(fields.socialFacebook !== undefined
+          ? { socialFacebook: fields.socialFacebook.trim() || undefined }
+          : {}),
+        ...(fields.socialX !== undefined ? { socialX: fields.socialX.trim() || undefined } : {}),
+        ...(fields.socialLinkedin !== undefined
+          ? { socialLinkedin: fields.socialLinkedin.trim() || undefined }
+          : {}),
+        ...(fields.socialYoutube !== undefined
+          ? { socialYoutube: fields.socialYoutube.trim() || undefined }
+          : {}),
+        ...(fields.socialWhatsapp !== undefined
+          ? { socialWhatsapp: fields.socialWhatsapp.trim() || undefined }
+          : {}),
       });
       return true;
     } catch {
@@ -543,7 +596,7 @@ export class UserSessionService {
     if (!targetUid) return false;
     try {
       await firstValueFrom(
-        this.supabase.upsertRow('users', { uid: targetUid, business_images: images }),
+        this.supabase.updateRowsWhere('users', { uid: targetUid }, { business_images: images }),
       );
       if (current?.uid === targetUid) this.user.set({ ...current, businessImages: images });
       return true;
@@ -558,7 +611,9 @@ export class UserSessionService {
     const targetUid = uid ?? current?.uid;
     if (!targetUid) return false;
     try {
-      await firstValueFrom(this.supabase.upsertRow('users', { uid: targetUid, avatar_url: url }));
+      await firstValueFrom(
+        this.supabase.updateRowsWhere('users', { uid: targetUid }, { avatar_url: url }),
+      );
       if (current?.uid === targetUid) this.user.set({ ...current, avatarUrl: url });
       return true;
     } catch {

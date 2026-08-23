@@ -228,9 +228,7 @@ export class SocialPlatformService implements OnDestroy {
     const cleanBio = bio.trim();
     if (!uid || !cleanName || cleanName.length > 40 || cleanBio.length > 280) return false;
     try {
-      await firstValueFrom(
-        this.relationshipsApi.updateProfile(uid, cleanName, cleanBio, new Date().toISOString()),
-      );
+      await firstValueFrom(this.relationshipsApi.updateProfile(uid, cleanName, cleanBio));
       const current = this.session.user();
       if (current)
         this.session.user.set({

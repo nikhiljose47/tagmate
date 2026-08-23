@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SupabaseClientService } from './supabase-client.service';
-import { AppUser } from '../models/app-user.model';
+import { AppUser, OpeningHoursEntry } from '../models/app-user.model';
 import { Hood } from '../models/hood.model';
 import { TagRow } from './tag.mapper';
 import { UserRow } from './social.mapper';
@@ -48,7 +48,7 @@ export class TagDataService {
       this.client
         .from('public_user_profiles')
         .select(
-          'uid,name,avatar_url,is_guest,reputation,created_at,account_type,business_name,business_website,business_category,business_images,business_established_year',
+          'uid,name,avatar_url,is_guest,reputation,created_at,account_type,business_name,business_website,business_phone,business_category,business_images,business_established_year,bio,cover_image_url,opening_hours,google_maps_url,social_instagram,social_facebook,social_x,social_linkedin,social_youtube,social_whatsapp',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -67,7 +67,8 @@ export class TagDataService {
         .select(
           'uid,name,email,avatar_url,is_guest,reputation,created_at,' +
             'home_state,home_country,home_district,home_place,home_lat,home_lng,home_updated_at,' +
-            'account_type,business_name,business_phone,business_website,business_category,business_images,business_established_year',
+            'account_type,business_name,business_phone,business_website,business_category,business_images,business_established_year,' +
+            'bio,cover_image_url,opening_hours,google_maps_url,social_instagram,social_facebook,social_x,social_linkedin,social_youtube,social_whatsapp',
         )
         .eq('uid', uid)
         .maybeSingle<UserRow>(),
@@ -110,6 +111,16 @@ export class TagDataService {
       businessCategory: data.business_category ?? undefined,
       businessImages: data.business_images ?? undefined,
       businessEstablishedYear: data.business_established_year ?? undefined,
+      bio: data.bio ?? undefined,
+      coverImageUrl: data.cover_image_url ?? undefined,
+      openingHours: (data.opening_hours as OpeningHoursEntry[] | null) ?? undefined,
+      googleMapsUrl: data.google_maps_url ?? undefined,
+      socialInstagram: data.social_instagram ?? undefined,
+      socialFacebook: data.social_facebook ?? undefined,
+      socialX: data.social_x ?? undefined,
+      socialLinkedin: data.social_linkedin ?? undefined,
+      socialYoutube: data.social_youtube ?? undefined,
+      socialWhatsapp: data.social_whatsapp ?? undefined,
     };
   }
 
