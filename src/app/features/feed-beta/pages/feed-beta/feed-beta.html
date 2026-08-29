@@ -176,7 +176,10 @@
         </div>
       </div>
       } @else {
-      <div class="fb-media" [style.background]="slide.post.tag | tagGradient">
+      <div
+        class="fb-media"
+        [style.background]="slide.imageUrls.length ? null : (slide.post.backgroundColor || (slide.post.tag | tagGradient))"
+      >
         @if (slide.imageUrls.length) { @if (isLive(slide.key)) {
         <div
           class="fb-media-strip"
@@ -205,16 +208,24 @@
           }
         </div>
         } } } @else {
-        <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
+        <div class="fb-media-textcard" [style.color]="slide.post.backgroundColor | contrastText">
+          <span class="fb-media-glyph">{{ slide.post.tag | tagEmoji }}</span>
+          <p class="fb-media-title">{{ slide.post.highlight || 'Untitled post' }}</p>
+          @if (slide.post.tag) {
+          <span class="fb-media-tag">#{{ slide.post.tag }}</span>
+          }
+        </div>
         }
       </div>
 
+      @if (slide.imageUrls.length) {
       <div class="fb-caption">
         <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
         @if (slide.post.tag) {
         <span class="fb-caption-tag">#{{ slide.post.tag }}</span>
         }
       </div>
+      }
       }
 
       <footer class="fb-card-footer">

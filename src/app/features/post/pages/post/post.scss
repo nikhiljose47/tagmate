@@ -206,21 +206,46 @@
   border-bottom: 1px solid var(--tm-border);
 }
 
-/* Plain, borderless writing space — just you and the text. */
+/* The compose field sits close to the page edge with just a touch of
+ * breathing room — a little padding/margin, not the full outer gutter. */
+.field-block--flush {
+  padding: 4px 6px;
+  margin: 0;
+  border-bottom: none;
+}
+
+/* Light golden frame around the writing space. */
 .compose-box {
   position: relative;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #e3c274;
+  border-radius: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus-within {
+    border-color: #d4af37;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #d4af37 15%, transparent);
+  }
 }
 
 .headline-input {
   display: block;
   width: 100%;
-  min-height: 148px;
-  padding: 8px 2px 18px;
+  height: 100%;
+  min-height: 220px;
+  padding: 0;
+  margin: 0;
   border: none;
   background: transparent;
   font-size: 16px;
   font-weight: 500;
-  color: var(--tm-text);
+  /* Inherits from .compose-box, which sets an explicit [style.color] once a
+   * background swatch is picked (dark text on light swatches, light text on
+   * dark ones) — falls back to the theme's default text color otherwise. */
+  color: inherit;
   line-height: 1.55;
   resize: none;
   outline: none;
@@ -228,16 +253,22 @@
   box-sizing: border-box;
 
   &::placeholder {
-    color: color-mix(in srgb, var(--tm-text-secondary) 55%, transparent);
+    color: color-mix(in srgb, currentColor 55%, transparent);
     font-weight: 400;
+  }
+
+  /* Room at the bottom for the background-swatch overlay so typed text
+   * never runs underneath it. */
+  &--has-swatches {
+    padding-bottom: 34px;
   }
 }
 
 .char-count {
   position: absolute;
-  bottom: 2px;
-  right: 4px;
-  color: var(--tm-text-secondary);
+  bottom: 6px;
+  right: 8px;
+  color: inherit;
   font-size: 10px;
   font-weight: 750;
   opacity: 0;
@@ -609,6 +640,12 @@
   font-weight: 700;
   cursor: pointer;
 
+  /* Icon only — no label, just a little breathing room around it. */
+  &--icon-only {
+    padding: 4px;
+    font-size: 15px;
+  }
+
   &:hover {
     color: var(--tm-text);
   }
@@ -618,6 +655,119 @@
   font-size: 13px;
   font-weight: 800;
   color: var(--tm-primary-text);
+  flex: 1;
+}
+
+/* ── Help / suggestions (replaces the old personal quick-fill form) ───
+ * Icon-only trigger, no card/circle chrome — the panel appears as a
+ * floating popover on hover (or tap), rather than pushing the layout down. */
+.help-tips {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.help-tips-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 2px;
+  color: var(--tm-muted);
+  font-size: 17px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s;
+
+  &:hover,
+  &--active {
+    color: var(--tm-primary-text);
+  }
+}
+
+.help-tips-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  width: 240px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--tm-primary) 20%, var(--tm-border));
+  border-radius: 12px;
+  background: var(--tm-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, black 16%, transparent);
+  animation: help-tips-fade-in 0.15s ease;
+}
+
+@keyframes help-tips-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.help-tips-intro {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tm-text);
+}
+
+.help-tips-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--tm-text-secondary);
+}
+
+/* ── Background color swatches ─────────────
+ * Floats inside the compose box, low and to the left, sitting over the
+ * textarea (not below it as a separate field) via absolute + z-index. */
+.bg-swatch-row {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bg-swatch {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--tm-border);
+  background: var(--tm-surface);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tm-muted);
+  transition: 0.15s;
+  box-shadow: 0 1px 3px color-mix(in srgb, black 12%, transparent);
+
+  i {
+    font-size: 10px;
+  }
+
+  &--active {
+    box-shadow: 0 0 0 2px var(--tm-surface), 0 0 0 4px var(--tm-primary);
+  }
+}
+
+.bg-swatch-check {
+  /* Follows the swatch button's own [style.color] (dark on light swatches,
+   * light on dark swatches) so the check stays visible on every color. */
+  color: inherit;
 }
 
 /* ── Quick-fill template card ────────────── */
@@ -882,12 +1032,12 @@
 .preview-business-name {
   font-size: 13px;
   font-weight: 800;
-  color: var(--tm-text);
+  color: inherit;
 }
 
 .preview-title {
   margin: 4px 0 2px;
-  color: var(--tm-text);
+  color: inherit;
   font-size: 16px;
   font-weight: 800;
   line-height: 1.3;
@@ -1456,7 +1606,7 @@
 
 .feed-preview-body p {
   margin: 8px 0 12px;
-  color: var(--tm-text);
+  color: inherit;
   font-size: 15px;
   line-height: 1.5;
   overflow-wrap: anywhere;

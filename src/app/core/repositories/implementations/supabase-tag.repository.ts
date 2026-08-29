@@ -80,6 +80,7 @@ export class SupabaseTagRepository implements ITagRepository {
     if (partial.businessName !== undefined) row.business_name = partial.businessName;
     if (partial.businessPhone !== undefined) row.business_phone = partial.businessPhone;
     if (partial.businessWebsite !== undefined) row.business_website = partial.businessWebsite;
+    if (partial.businessWhatsapp !== undefined) row.business_whatsapp = partial.businessWhatsapp;
     if (partial.postType !== undefined) row.post_type = partial.postType;
     if (partial.intent !== undefined) row.intent = partial.intent;
     if (partial.price !== undefined) row.price = partial.price;
@@ -102,6 +103,7 @@ export class SupabaseTagRepository implements ITagRepository {
     if (partial.pollVotes !== undefined) row.poll_votes = partial.pollVotes;
     if (partial.eventStart !== undefined) row.event_start = partial.eventStart;
     if (partial.eventEnd !== undefined) row.event_end = partial.eventEnd;
+    if (partial.backgroundColor !== undefined) row.background_color = partial.backgroundColor;
     // Step 1 template fields
     if (partial.postSubtype !== undefined) row.post_subtype = partial.postSubtype;
     if (partial.templateVersion !== undefined) row.template_version = partial.templateVersion;

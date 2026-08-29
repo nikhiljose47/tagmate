@@ -24,15 +24,18 @@ import { MediaService } from '../../../../core/services/media.service';
 import { MediaCompressionService } from '../../../../core/services/media-compression.service';
 import { BusinessOfferService } from '../../../../core/services/business-offer.service';
 import { BusinessItemService } from '../../../../core/services/business-item.service';
+import { BusinessIntegrationService } from '../../../../core/services/business-integration.service';
 import {
   BusinessOffer,
   BusinessItem,
   rowToBusinessOffer,
   rowToBusinessItem,
 } from '../../../../core/services/social.mapper';
+import { ConnectionSummary } from '../../../../core/models/business-integration.model';
 import { OpeningHoursEntry } from '../../../../core/models/app-user.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
+import { IntegrationProvider } from '../../../../core/enums/integration.enum';
 import {
   BUSINESS_TAG_CATEGORIES,
   tagCategoryLabel,
@@ -142,6 +145,7 @@ export class ProfilePage implements OnInit {
   private readonly mediaCompression = inject(MediaCompressionService);
   private readonly offersApi = inject(BusinessOfferService);
   private readonly itemsApi = inject(BusinessItemService);
+  private readonly integrationsApi = inject(BusinessIntegrationService);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly theme = inject(ThemeService);
@@ -193,6 +197,8 @@ export class ProfilePage implements OnInit {
   // Business — offers (auto-expire) and items/products/services
   businessOffers = signal<BusinessOffer[]>([]);
   businessItems = signal<BusinessItem[]>([]);
+  connectionSummaries = signal<ConnectionSummary[]>([]);
+  readonly IntegrationProvider = IntegrationProvider;
   newOfferImageUrl = signal('');
   newOfferTitle = signal('');
   newOfferDescription = signal('');
@@ -280,7 +286,10 @@ export class ProfilePage implements OnInit {
       this.myTags.update((tags) => tags.filter((t) => this.social.postKey(t) !== deletedKey));
     });
 
-    if (this.isBusinessAccount()) this.loadOffersAndItems();
+    if (this.isBusinessAccount()) {
+      this.loadOffersAndItems();
+      this.loadIntegrations();
+    }
   }
 
   private loadOffersAndItems(): void {
@@ -294,6 +303,40 @@ export class ProfilePage implements OnInit {
       .list(uid)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ data }) => this.businessItems.set((data ?? []).map(rowToBusinessItem)));
+  }
+
+  private loadIntegrations(): void {
+    this.integrationsApi
+      .getConnectionSummaries()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((summaries) => this.connectionSummaries.set(summaries));
+  }
+
+  providerLabel(provider: IntegrationProvider): string {
+    return provider === IntegrationProvider.Instagram ? 'Instagram' : 'WhatsApp Business';
+  }
+
+  providerIcon(provider: IntegrationProvider): string {
+    return provider === IntegrationProvider.Instagram ? 'bi-instagram' : 'bi-whatsapp';
+  }
+
+  /** Step 2 wires this up to real OAuth — for now it's a placeholder so the UI
+   *  structure (and the "Connect" click target) already exists. */
+  connectIntegration(provider: IntegrationProvider): void {
+    this.toast.show(`Connecting ${this.providerLabel(provider)} is coming soon.`, 'info');
+  }
+
+  async disconnectIntegration(provider: IntegrationProvider): Promise<void> {
+    const uid = this.sessionService.user()?.uid;
+    if (!uid) return;
+    try {
+      await firstValueFrom(this.integrationsApi.disconnectIntegration(uid, provider));
+      this.loadIntegrations();
+      this.toast.show(`${this.providerLabel(provider)} disconnected.`, 'success');
+    } catch (err: unknown) {
+      this.logger.error('Failed to disconnect integration', err);
+      this.toast.show('Could not disconnect right now. Try again.', 'danger');
+    }
   }
 
   async deleteTag(tag: Tag): Promise<void> {
@@ -328,7 +371,9 @@ export class ProfilePage implements OnInit {
       this.editBusinessImages.set(user?.businessImages ?? []);
       this.editBusinessLogoUrl.set(user?.avatarUrl ?? '');
       this.editCoverImageUrl.set(user?.coverImageUrl ?? '');
-      this.editOpeningHours.set(user?.openingHours?.length ? user.openingHours : DEFAULT_OPENING_HOURS);
+      this.editOpeningHours.set(
+        user?.openingHours?.length ? user.openingHours : DEFAULT_OPENING_HOURS,
+      );
       this.editGoogleMapsUrl.set(user?.googleMapsUrl ?? '');
       this.editSocialInstagram.set(user?.socialInstagram ?? '');
       this.editSocialFacebook.set(user?.socialFacebook ?? '');
@@ -886,7 +931,7 @@ export class ProfilePage implements OnInit {
         const results = (await res.json()) as NominatimResult[];
         if (signal.aborted) return;
         const filtered = results.filter(
-          (r) => !!r.address?.state && !!ProfilePage.districtOf(r.address),
+          (r) => !!r.address?.state && !!r.address?.country && !!ProfilePage.districtOf(r.address),
         );
         this.hoodResults.set(filtered);
         this.hoodSearching.set(false);
@@ -927,8 +972,8 @@ export class ProfilePage implements OnInit {
 
   async saveHood(): Promise<void> {
     const pick = this.hoodPick();
-    if (!pick || !pick.state || !pick.district) {
-      this.toast.show('Pick a location with a state and district first.', 'warning');
+    if (!pick || !pick.state || !pick.country || !pick.district) {
+      this.toast.show('Pick a location with a state, country and district first.', 'warning');
       return;
     }
     this.hoodSaving.set(true);

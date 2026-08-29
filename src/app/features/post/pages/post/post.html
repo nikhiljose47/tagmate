@@ -86,16 +86,49 @@
           <i class="bi bi-arrow-left" aria-hidden="true"></i>
           Change post type
         </button>
-        } @else if (!businessCategoryLocked()) {
-        <button type="button" class="step-back" (click)="goToTagStep()">
-          <i class="bi bi-arrow-left" aria-hidden="true"></i>
-          Change tag
-        </button>
-        }
         <span class="step-details-tag">
-          @if (postType() === 'business' && activeTemplate(); as tpl) { {{ tpl.icon || '📝' }} {{
-          tpl.label }} } @else { {{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }} }
+          @if (activeTemplate(); as tpl) { {{ tpl.icon || '📝' }} {{ tpl.label }} }
         </span>
+        } @else if (!businessCategoryLocked()) {
+        <button
+          type="button"
+          class="step-back step-back--icon-only"
+          (click)="goToTagStep()"
+          aria-label="Change tag"
+        >
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        </button>
+        <span class="step-details-tag">
+          {{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }}
+        </span>
+        }
+        @if (postType() === 'personal' && helpSuggestions(); as help) {
+        <div
+          class="help-tips"
+          (mouseenter)="showHelpPanel.set(true)"
+          (mouseleave)="showHelpPanel.set(false)"
+        >
+          <button
+            type="button"
+            class="help-tips-toggle"
+            [class.help-tips-toggle--active]="showHelpPanel()"
+            (click)="toggleHelpPanel()"
+            aria-label="What to include"
+          >
+            <i class="bi bi-question-circle" aria-hidden="true"></i>
+          </button>
+          @if (showHelpPanel()) {
+          <div class="help-tips-panel">
+            <p class="help-tips-intro">{{ help.intro }}</p>
+            <ul class="help-tips-list">
+              @for (tip of help.tips; track tip) {
+              <li>{{ tip }}</li>
+              }
+            </ul>
+          </div>
+          }
+        </div>
+        }
       </div>
 
       <!-- Business: template-driven form (replaces old intent chips + business fields) -->
@@ -130,110 +163,22 @@
       </div>
       }
 
-      <!-- Personal: legacy quick-fill template (unchanged) -->
-      @if (postType() === 'personal' && currentTemplate(); as template) {
-      <div class="quick-fill-card">
-        <div class="quick-fill-head">
-          <i class="bi bi-stars" aria-hidden="true"></i>
-          <span>
-            <strong>Quick fill</strong>
-            <small>{{ template.intro }}</small>
-          </span>
-        </div>
-        <div class="quick-fill-fields">
-          @for (field of template.fields; track field.key) {
-          <label class="quick-fill-field">
-            <span class="quick-fill-label">{{ field.label }}</span>
-            @if (field.type === 'select') {
-            <select
-              class="tm-input"
-              [ngModel]="templateValues()[field.key]"
-              (ngModelChange)="onTemplateFieldChange(field.key, $event)"
-              [name]="'tpl_' + field.key"
-              [required]="field.required ?? false"
-            >
-              <option value="" disabled>Choose an option</option>
-              @for (option of field.options; track option) {
-              <option [value]="option">{{ option }}</option>
-              }
-            </select>
-            } @else if (field.type === 'multi-select') {
-            <select
-              class="tm-input"
-              multiple
-              [ngModel]="splitMultiValue(templateValues()[field.key])"
-              (ngModelChange)="onTemplateFieldChange(field.key, $any($event).join(','))"
-              [name]="'tpl_' + field.key"
-              [required]="field.required ?? false"
-            >
-              @for (option of field.options; track option) {
-              <option [value]="option">{{ option }}</option>
-              }
-            </select>
-            } @else if (field.type === 'textarea') {
-            <textarea
-              class="tm-input"
-              rows="3"
-              [placeholder]="field.placeholder || ''"
-              [ngModel]="templateValues()[field.key]"
-              (ngModelChange)="onTemplateFieldChange(field.key, $event)"
-              [name]="'tpl_' + field.key"
-              [required]="field.required ?? false"
-              [maxlength]="$any(field).maxLength ?? 500"
-            ></textarea>
-            } @else if (field.type === 'toggle') {
-            <label class="quick-fill-toggle">
-              <input
-                type="checkbox"
-                [ngModel]="templateValues()[field.key] === 'true'"
-                (ngModelChange)="onTemplateFieldChange(field.key, $event ? 'true' : 'false')"
-                [name]="'tpl_' + field.key"
-              />
-              <span>{{ field.placeholder || 'Yes' }}</span>
-            </label>
-            } @else {
-            <input
-              class="tm-input"
-              [type]="templateFieldInputType(field.type)"
-              [placeholder]="field.placeholder || ''"
-              [ngModel]="templateValues()[field.key]"
-              (ngModelChange)="onTemplateFieldChange(field.key, $event)"
-              [name]="'tpl_' + field.key"
-              [required]="field.required ?? false"
-              [min]="$any(field).min ?? null"
-              [max]="$any(field).max ?? null"
-              [maxlength]="$any(field).maxLength ?? null"
-            />
-            }
-          </label>
-          }
-        </div>
-        <p class="quick-fill-status" [class.ready]="isTemplateReady()">
-          <i
-            class="bi"
-            [class.bi-check-circle-fill]="isTemplateReady()"
-            [class.bi-pencil]="!isTemplateReady()"
-            aria-hidden="true"
-          ></i>
-          {{ isTemplateReady() ? 'Your post text is ready below.' : 'Required fields create the post
-          text automatically.' }}
-        </p>
-      </div>
-      }
-
-      <div class="field-block">
-        <label class="field-title" for="post-headline">
-          {{ postType() === 'business' ? 'Post title and details' : 'Your post' }}
-        </label>
+      <div class="field-block field-block--flush">
+        @if (postType() === 'business') {
+        <label class="field-title" for="post-headline">Post title and details</label>
+        }
         <div
           class="compose-box"
           [class.is-invalid]="headline.touched && headline.invalid"
           [class.compose-box--hot-now]="isHotNow()"
+          [style.background-color]="postType() === 'personal' ? (formData.backgroundColor || null) : null"
+          [style.color]="postType() === 'personal' ? (formData.backgroundColor | contrastText) : null"
         >
           <textarea
             id="post-headline"
             #headline="ngModel"
             class="headline-input"
+            [class.headline-input--has-swatches]="postType() === 'personal' && !isHotNow()"
             [placeholder]="composePrompt"
             [ngModel]="formData.headline"
             (ngModelChange)="onHeadlineChange($event)"
@@ -242,6 +187,29 @@
             maxlength="280"
             rows="5"
           ></textarea>
+          @if (postType() === 'personal' && !isHotNow()) {
+          <div class="bg-swatch-row" role="radiogroup" aria-label="Post background color">
+            @for (color of backgroundColors; track color) {
+            <button
+              type="button"
+              class="bg-swatch"
+              [class.bg-swatch--none]="!color"
+              [class.bg-swatch--active]="formData.backgroundColor === color"
+              [style.background-color]="color || null"
+              [style.color]="color | contrastText"
+              [attr.aria-label]="color || 'No background'"
+              [attr.aria-pressed]="formData.backgroundColor === color"
+              (click)="selectBackgroundColor(color)"
+            >
+              @if (!color) {
+              <i class="bi bi-slash-circle" aria-hidden="true"></i>
+              } @if (formData.backgroundColor === color) {
+              <i class="bi bi-check-lg bg-swatch-check" aria-hidden="true"></i>
+              }
+            </button>
+            }
+          </div>
+          }
           <span class="char-count" [class.char-count--visible]="formData.headline.length > 0">
             {{ formData.headline.length }}/280
           </span>
@@ -523,7 +491,11 @@
         </div>
         }
 
-        <div class="feed-preview-body">
+        <div
+          class="feed-preview-body"
+          [style.background-color]="postType() === 'personal' ? (formData.backgroundColor || null) : null"
+          [style.color]="postType() === 'personal' ? (formData.backgroundColor | contrastText) : null"
+        >
           @if (postType() === 'business' && businessInfo().name) {
           <div class="preview-business">
             <strong class="preview-business-name">{{ businessInfo().name }}</strong>

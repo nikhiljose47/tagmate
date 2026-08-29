@@ -28,6 +28,7 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar.com
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
+import { ContrastTextPipe } from '../../../../shared/pipes/contrast-text.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { BusinessPostContentComponent } from '../../../post/components/business-post-content/business-post-content.component';
 import { environment } from '../../../../environments/environment';
@@ -88,6 +89,7 @@ const EAGER_SLIDES = 3;
     EmptyStateComponent,
     TagEmojiPipe,
     TagGradientPipe,
+    ContrastTextPipe,
     TimeAgoPipe,
     BusinessPostContentComponent,
   ],
@@ -212,13 +214,11 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    const randomPost = candidates[Math.floor(Math.random() * candidates.length)];
-    const randomArea =
-      areas.find((area) => randomPost && area.id === this.areaIdFor(randomPost)) ?? areas[0];
-    if (!randomArea) return;
-    this.workspace.feedBetaScope.set(
-      this.toScope(randomArea, randomArea.categories[0] ?? 'around'),
-    );
+    // Areas are already sorted by post count (see areasFor) — pick the top one
+    // deterministically instead of a random area on every navigation.
+    const topArea = areas[0];
+    if (!topArea) return;
+    this.workspace.feedBetaScope.set(this.toScope(topArea, topArea.categories[0] ?? 'around'));
   });
 
   private readonly scrollScopeToTop = effect(() => {
@@ -768,7 +768,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
         label: area.state || area.country,
         country: area.country,
         hood: `${area.hoods.size || 1} location${area.hoods.size === 1 ? '' : 's'}`,
-        categories: [...FEED_BETA_MAIN_CATEGORIES],
+        categories: FEED_BETA_MAIN_CATEGORIES.filter((category) => area.categories.has(category)),
         categoryCounts: area.categoryCounts,
         postCount: area.postCount,
       }))

@@ -4,6 +4,14 @@ import {
   LocalNotification,
   ThreadedComment,
 } from '../models/tag.model';
+import { BusinessIntegration } from '../models/business-integration.model';
+import { PostPublication } from '../models/post-publication.model';
+import {
+  IntegrationProvider,
+  IntegrationStatus,
+  PublicationDestination,
+  PublicationStatus,
+} from '../enums/integration.enum';
 
 /** `users` row used by profile lookup and search queries. */
 export interface UserRow {
@@ -248,5 +256,64 @@ export function notificationToRow(
     target_type: notification.targetType ?? null,
     target_id: notification.targetId ?? null,
     read_at: notification.readAt ?? null,
+  };
+}
+
+/** Row shape of the `my_business_integrations` VIEW — not the base
+ *  `business_integrations` table. This is a closed set of safe columns; the
+ *  view structurally cannot expose the token columns, so this type never
+ *  needs (and must never gain) an access/refresh token field. */
+export interface BusinessIntegrationRow {
+  id: string;
+  user_id: string;
+  provider: string;
+  status: string;
+  provider_account_id: string | null;
+  provider_account_name: string | null;
+  token_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function rowToBusinessIntegration(row: BusinessIntegrationRow): BusinessIntegration {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    provider: row.provider as IntegrationProvider,
+    status: row.status as IntegrationStatus,
+    providerAccountId: row.provider_account_id,
+    providerAccountName: row.provider_account_name,
+    tokenExpiresAt: row.token_expires_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** `post_publications` row (snake_case, matches the Supabase table). */
+export interface PostPublicationRow {
+  id: string;
+  post_id: string;
+  provider: string;
+  status: string;
+  provider_post_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function rowToPostPublication(row: PostPublicationRow): PostPublication {
+  return {
+    id: row.id,
+    postId: row.post_id,
+    provider: row.provider as PublicationDestination,
+    status: row.status as PublicationStatus,
+    providerPostId: row.provider_post_id,
+    errorCode: row.error_code,
+    errorMessage: row.error_message,
+    publishedAt: row.published_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }

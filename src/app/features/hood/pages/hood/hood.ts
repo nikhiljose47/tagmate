@@ -16,7 +16,17 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, map, of, Subject, switchMap, take, takeUntil } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  of,
+  Subject,
+  switchMap,
+  take,
+  takeUntil,
+} from 'rxjs';
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson';
 import type {
   GeoJSONSource,
@@ -89,6 +99,7 @@ interface StoredHoodSettings {
   postsVisible: boolean;
   boundaryVisible: boolean;
   heatmapMode: boolean;
+  inspectorEnabled: boolean;
   mapStyle: MapStyleKey;
   categoryFilters: string[];
 }
@@ -98,6 +109,7 @@ const DEFAULT_HOOD_SETTINGS: StoredHoodSettings = {
   postsVisible: true,
   boundaryVisible: true,
   heatmapMode: false,
+  inspectorEnabled: true,
   mapStyle: 'streets',
   categoryFilters: [],
 };
@@ -110,6 +122,7 @@ function readStoredHoodSettings(): StoredHoodSettings {
     postsVisible: stored.postsVisible ?? DEFAULT_HOOD_SETTINGS.postsVisible,
     boundaryVisible: stored.boundaryVisible ?? DEFAULT_HOOD_SETTINGS.boundaryVisible,
     heatmapMode: stored.heatmapMode ?? DEFAULT_HOOD_SETTINGS.heatmapMode,
+    inspectorEnabled: stored.inspectorEnabled ?? DEFAULT_HOOD_SETTINGS.inspectorEnabled,
     mapStyle: MAP_STYLE_KEYS.includes(stored.mapStyle as MapStyleKey)
       ? (stored.mapStyle as MapStyleKey)
       : DEFAULT_HOOD_SETTINGS.mapStyle,
@@ -192,6 +205,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
+  private readonly placeQuery$ = new Subject<string>();
   private readonly boundaryCache = new globalThis.Map<string, PlaceBoundary>();
 
   // Preload MapLibre as soon as the router loads this chunk (before ngAfterViewInit).
@@ -241,6 +255,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   heatmapMode = signal(this.storedSettings.heatmapMode);
   postsVisible = signal(this.storedSettings.postsVisible);
   boundaryVisible = signal(this.storedSettings.boundaryVisible);
+  /** Post Inspector panel — toggleable in the Layers settings panel. Always
+   *  off while in any pick-location mode for a post, regardless of this setting. */
+  inspectorEnabled = signal(this.storedSettings.inspectorEnabled);
   selectedMapCategories = signal<string[]>(this.storedSettings.categoryFilters);
   /** True when opened from the Post page via ?pick=1 */
   pickMode = signal(false);
@@ -248,6 +265,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   placePickMode = signal(false);
   /** True once the user has tapped the map or confirmed a place in pick mode */
   locationPicked = signal(false);
+  /** Live "search a place" suggestions (with address details, since names like
+   *  "Kochi" exist in more than one state/country). */
+  placeSuggestions = signal<NominatimSearchResult[]>([]);
   currentStyle = signal<MapStyleKey>(this.storedSettings.mapStyle);
   protected readonly visibleMapPosts = signal<MapPost[]>([]);
   protected readonly recentMapPosts = computed(() =>
@@ -299,6 +319,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         postsVisible: this.postsVisible(),
         boundaryVisible: this.boundaryVisible(),
         heatmapMode: this.heatmapMode(),
+        inspectorEnabled: this.inspectorEnabled(),
         mapStyle: this.currentStyle(),
         categoryFilters: this.selectedMapCategories(),
       } satisfies StoredHoodSettings);
@@ -338,6 +359,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     this.registerViewportRequests();
     this.registerLivePosts();
+    this.registerPlaceSuggestions();
     const maplibreModule = await HoodPage._maplibrePromise;
     this.maplibre = (maplibreModule.default ?? maplibreModule) as typeof import('maplibre-gl');
 
@@ -449,6 +471,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   toggleBoundaryLayer(): void {
     this.boundaryVisible.update((v) => !v);
     this.setLayerVisibility([HOOD_FILL_LAYER, HOOD_LINE_LAYER], this.boundaryVisible());
+  }
+
+  toggleInspectorPanel(): void {
+    this.inspectorEnabled.update((v) => !v);
   }
 
   toggleMapCategory(category: string): void {
@@ -871,6 +897,63 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       .subscribe((posts) => this.updatePostSource(posts));
   }
 
+  /** Live suggestions for the "search a place" pick-mode search bar. */
+  private registerPlaceSuggestions(): void {
+    this.placeQuery$
+      .pipe(
+        map((q) => q.trim()),
+        distinctUntilChanged(),
+        debounceTime(300),
+        switchMap((q) => {
+          if (q.length < 3) return of<NominatimSearchResult[]>([]);
+          return this.http
+            .get<NominatimSearchResult[]>(
+              `/api/nominatim/boundary?limit=10&q=${encodeURIComponent(q)}`,
+            )
+            .pipe(catchError(() => of<NominatimSearchResult[]>([])));
+        }),
+        map((results) => this.dedupePlaceResults(results)),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((results) => this.placeSuggestions.set(results.slice(0, 8)));
+  }
+
+  /** Nominatim sometimes returns the same place twice (e.g. a node and the
+   *  way/relation for the same spot) with an identical full address — collapse
+   *  those so the list doesn't show "4 similar" entries the user can't tell apart. */
+  private dedupePlaceResults(results: NominatimSearchResult[]): NominatimSearchResult[] {
+    const seen = new globalThis.Set<string>();
+    return results.filter((r) => {
+      const key = `${this.placeSuggestionName(r)}|${this.placeSuggestionDetail(r)}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /** Bound to the centered place-search input's `(input)` event. */
+  onPlaceQueryInput(value: string): void {
+    this.placeQuery$.next(value);
+  }
+
+  /** Full address (district, state, country) so identically-named places —
+   *  e.g. more than one "Kochi" — are told apart. */
+  placeSuggestionDetail(result: NominatimSearchResult): string {
+    const a = result.address;
+    if (!a) return '';
+    const district =
+      a['state_district'] || a['county'] || a['city_district'] || a['city'] || a['town'] || '';
+    return [district, a['state'], a['country']].filter(Boolean).join(', ');
+  }
+
+  placeSuggestionName(result: NominatimSearchResult): string {
+    return result.display_name?.split(',')[0]?.trim() || 'Unknown place';
+  }
+
+  selectPlaceSuggestion(result: NominatimSearchResult): void {
+    this.applyPlaceSelection(result);
+  }
+
   private registerLivePosts(): void {
     this.tagRepo
       .liveTags()
@@ -1026,15 +1109,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     }
 
     if (this.placePickMode()) {
-      this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
-      this.state.updateCoordinates(lat, lng);
-      this.state.updateText(q);
-      if (first.address) {
-        this.state.updateRegion(first.address['state'] ?? '', first.address['country'] ?? '');
-      }
-      this.locationPicked.set(true);
-      this.loadVisiblePosts();
-      this.setBoundaryFromResult(first, q);
+      this.applyPlaceSelection(first);
       return;
     }
 
@@ -1051,6 +1126,31 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
     // Extract boundary from the same search result — no extra API call needed.
     this.setBoundaryFromResult(first, q);
+  }
+
+  /** Applies one chosen search result in "search a place" pick mode — used
+   *  both for the top hit on Enter and for a tapped suggestion. Shows the
+   *  result's full address (not just the raw query) so the confirm banner
+   *  makes clear which same-named place was picked. */
+  private applyPlaceSelection(result: NominatimSearchResult): void {
+    const lat = Number.parseFloat(result.lat);
+    const lng = Number.parseFloat(result.lon);
+    if (!this.isValidCoordinate(lat, lng)) {
+      this.showUserError('The selected location has invalid coordinates.');
+      return;
+    }
+
+    const label = result.display_name || 'Selected place';
+    this.map?.flyTo({ center: [lng, lat], zoom: 13, essential: true });
+    this.state.updateCoordinates(lat, lng);
+    this.state.updateText(label);
+    if (result.address) {
+      this.state.updateRegion(result.address['state'] ?? '', result.address['country'] ?? '');
+    }
+    this.locationPicked.set(true);
+    this.placeSuggestions.set([]);
+    this.loadVisiblePosts();
+    this.setBoundaryFromResult(result, label);
   }
 
   private setBoundaryFromResult(place: NominatimSearchResult, name: string): void {

@@ -18,6 +18,8 @@ export interface PostDraft {
   eventStart: string;
   eventEnd: string;
   pollOptions: string[];
+  /** Personal-post background swatch — see Tag.backgroundColor. */
+  backgroundColor?: string;
   templateValues: Record<string, string>;
   media: { file: File; previewUrl: string; type: 'image' | 'video' }[];
   /** Where to land when this draft is restored — 'preview' for "Post Again" (nothing to review). */

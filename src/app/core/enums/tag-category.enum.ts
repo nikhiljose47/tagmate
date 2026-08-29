@@ -52,10 +52,10 @@ export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
 };
 
 export const TAG_EMOJIS: Readonly<Record<TagCategory, string>> = {
-  [TagCategory.Dating]: 'D',
-  [TagCategory.Game]: 'G',
-  [TagCategory.Job]: 'J',
-  [TagCategory.Around]: 'A',
+  [TagCategory.Dating]: '💕',
+  [TagCategory.Game]: '🎮',
+  [TagCategory.Job]: '💼',
+  [TagCategory.Around]: '📍',
   [TagCategory.Shop]: '🛍️',
   [TagCategory.Help]: '🔧',
   [TagCategory.Food]: '🍜',

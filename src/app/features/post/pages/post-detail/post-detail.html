@@ -1,5 +1,5 @@
 <main class="detail-page">
-  <a class="back-link" routerLink="/feed">
+  <a class="back-link" routerLink="/feed-beta">
     <i class="bi bi-arrow-left" aria-hidden="true"></i>
     Feed
   </a>
@@ -145,7 +145,12 @@
           [showEventRange]="!isEventLike(post)"
         />
         } @else {
-        <p class="detail-caption">
+        <p
+          class="detail-caption"
+          [class.detail-caption--bg]="!!post.backgroundColor"
+          [style.background-color]="post.backgroundColor || null"
+          [style.color]="post.backgroundColor | contrastText"
+        >
           <a
             [routerLink]="
                 post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]

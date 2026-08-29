@@ -12,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
+import { ContrastTextPipe } from '../../../../shared/pipes/contrast-text.pipe';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PostCta, PostIntent, PublishStatus, Tag } from '../../../../core/models/tag.model';
@@ -151,6 +152,32 @@ const COMPOSE_PROMPTS = [
   "Something happening nearby? Don't keep it to yourself…",
 ];
 
+/** Preset background swatches for personal posts — '' (first) means "no color". */
+export const BACKGROUND_COLORS: readonly string[] = [
+  '',
+  // Light pastels
+  '#fef3c7',
+  '#fee2e2',
+  '#dcfce7',
+  '#dbeafe',
+  '#ede9fe',
+  '#fce7f3',
+  // Saturated mid-tones
+  '#fbbf24',
+  '#f87171',
+  '#4ade80',
+  '#60a5fa',
+  '#a78bfa',
+  '#f472b6',
+  // Deep/dark tones
+  '#7c2d12',
+  '#991b1b',
+  '#14532d',
+  '#1e3a8a',
+  '#4c1d95',
+  '#0f172a',
+];
+
 @Component({
   selector: 'app-post',
   standalone: true,
@@ -159,6 +186,7 @@ const COMPOSE_PROMPTS = [
     CommonModule,
     FormsModule,
     TagEmojiPipe,
+    ContrastTextPipe,
     BusinessPostTemplatePickerComponent,
     TemplateFormComponent,
   ],
@@ -243,6 +271,7 @@ export class PostPage implements OnDestroy {
         eventStart: draft.eventStart,
         eventEnd: draft.eventEnd,
         pollOptions: [...draft.pollOptions],
+        backgroundColor: draft.backgroundColor ?? '',
       };
       this.mediaItems.set(draft.media);
       this.templateValues.set({ ...(draft.templateValues ?? {}) });
@@ -334,6 +363,7 @@ export class PostPage implements OnDestroy {
       eventStart: this.formData.eventStart,
       eventEnd: this.formData.eventEnd,
       pollOptions: [...this.formData.pollOptions],
+      backgroundColor: this.formData.backgroundColor,
       templateValues: { ...this.templateValues() },
       media: this.mediaItems(),
       // Step 1: preserve template context across the pick-location round-trip.
@@ -371,6 +401,7 @@ export class PostPage implements OnDestroy {
       eventStart: post.eventStart ?? '',
       eventEnd: post.eventEnd ?? '',
       pollOptions: post.pollOptions?.length ? [...post.pollOptions] : ['', ''],
+      backgroundColor: post.backgroundColor ?? '',
     };
     // The saved headline is exactly what the author left it as — don't let
     // the next template field edit silently recompute over it.
@@ -529,7 +560,21 @@ export class PostPage implements OnDestroy {
     eventStart: '',
     eventEnd: '',
     pollOptions: ['', ''],
+    backgroundColor: '',
   };
+
+  /** Personal-post background swatches + the panel that shows tag-specific writing tips
+   *  (replaces the old quick-fill form — personal posts stay free-text, just guided). */
+  readonly backgroundColors = BACKGROUND_COLORS;
+  readonly showHelpPanel = signal(false);
+
+  toggleHelpPanel(): void {
+    this.showHelpPanel.update((v) => !v);
+  }
+
+  selectBackgroundColor(color: string): void {
+    this.formData.backgroundColor = color;
+  }
 
   readonly intentOptions = INTENT_OPTIONS;
   readonly ctaOptions = CTA_OPTIONS;
@@ -723,32 +768,6 @@ export class PostPage implements OnDestroy {
     }
   }
 
-  /** Splits a comma-separated multi-select value for the template binding. */
-  splitMultiValue(v: string | undefined): string[] {
-    return (v || '').split(',').filter((s) => s.length > 0);
-  }
-
-  /** Maps extended TemplateFieldType to an HTML input type attribute. */
-  templateFieldInputType(type: string): string {
-    switch (type) {
-      case 'number':
-      case 'price':
-        return 'number';
-      case 'date':
-        return 'date';
-      case 'time':
-        return 'time';
-      case 'datetime':
-        return 'datetime-local';
-      case 'url':
-        return 'url';
-      case 'phone':
-        return 'tel';
-      default:
-        return 'text';
-    }
-  }
-
   /** Updates one quick-fill field and re-composes the post caption from all of them
    *  — unless the user has already hand-edited the headline, in which case their
    *  edit is left alone. */
@@ -784,10 +803,35 @@ export class PostPage implements OnDestroy {
     this.onTemplateFieldChange(event.key, event.value);
   }
 
-  /** True once every required quick-fill field is filled (or the tag has no template). */
+  /** True once every required quick-fill field is filled (or the tag has no template).
+   *  Business-only — personal posts dropped the quick-fill form for a free-text
+   *  textarea plus the tag-specific tips panel (see `helpSuggestions`). */
   isTemplateReady(): boolean {
+    if (this.postType() !== 'business') return true;
     const template = this.currentTemplate();
     return !template || isTemplateComplete(template, this.templateValues());
+  }
+
+  /** Tag-specific writing tips shown in the personal-post help panel — reuses the
+   *  legacy quick-fill template's field metadata as suggestions rather than inputs.
+   *  Plain method (not computed/signal) because `formData` is a mutated POJO, same
+   *  reasoning as `isHotNow()` above. */
+  helpSuggestions(): { intro: string; tips: string[] } | null {
+    if (this.postType() !== 'personal') return null;
+    const template = POST_TEMPLATES[this.formData.tag as TagCategory];
+    if (!template) return null;
+    return {
+      intro: template.intro,
+      tips: template.fields.map((field) => {
+        if (field.options?.length) return `${field.label}: ${field.options.join(', ')}`;
+        if (!field.placeholder) return field.label;
+        // Most placeholders already read "e.g. …" — don't double it up.
+        const hint = /^e\.g\.?\s/i.test(field.placeholder)
+          ? field.placeholder
+          : `e.g. ${field.placeholder}`;
+        return `${field.label} — ${hint}`;
+      }),
+    };
   }
 
   // ── Polls ────────────────────────────────────────────────────────────────
@@ -1208,6 +1252,7 @@ export class PostPage implements OnDestroy {
         businessName: isBusiness ? currentUser.businessName || undefined : undefined,
         businessPhone: isBusiness ? currentUser.businessPhone || undefined : undefined,
         businessWebsite: isBusiness ? currentUser.businessWebsite || undefined : undefined,
+        businessWhatsapp: isBusiness ? currentUser.socialWhatsapp || undefined : undefined,
         intent: this.postType() === 'business' ? this.formData.intent || 'offer' : undefined,
         price: this.postType() === 'business' ? toNumber(this.formData.price) : undefined,
         originalPrice:
@@ -1237,6 +1282,8 @@ export class PostPage implements OnDestroy {
         eventEnd: this.formData.isEvent ? this.formData.eventEnd || undefined : undefined,
         pollOptions: pollOptions,
         pollVotes: this.isPoll() ? {} : undefined,
+        backgroundColor:
+          this.postType() === 'personal' ? this.formData.backgroundColor || undefined : undefined,
         // Step 5.A publishing state — expiresIn is anchored on published_at
         // (DB-side), not draft/schedule creation time.
         publishStatus: status,
@@ -1359,6 +1406,7 @@ export class PostPage implements OnDestroy {
       eventStart: '',
       eventEnd: '',
       pollOptions: ['', ''],
+      backgroundColor: '',
     };
     this.shared.postDraft.set(null);
     this.showMapHint.set(false);
@@ -1368,6 +1416,7 @@ export class PostPage implements OnDestroy {
     this.templateValues.set({});
     this.activeTemplate.set(null);
     this.templateValueCache.clear();
+    this.showHelpPanel.set(false);
     this.isHighlightManuallyEdited.set(false);
     this.showCustomExpiry.set(false);
     // Step 5.A

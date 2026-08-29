@@ -7,6 +7,7 @@ export interface TagRow {
   business_name?: string | null;
   business_phone?: string | null;
   business_website?: string | null;
+  business_whatsapp?: string | null;
   post_type?: 'personal' | 'business' | null;
   intent?: string | null;
   price?: number | null;
@@ -33,6 +34,7 @@ export interface TagRow {
   event_end?: string | null;
   poll_options?: string[];
   poll_votes?: Record<string, string[]>;
+  background_color?: string | null;
   like_count?: number;
   comment_count?: number;
   rsvp_count?: number;
@@ -59,6 +61,7 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     business_name: tag.businessName ?? null,
     business_phone: tag.businessPhone ?? null,
     business_website: tag.businessWebsite ?? null,
+    business_whatsapp: tag.businessWhatsapp ?? null,
     post_type: tag.postType ?? 'personal',
     intent: tag.intent ?? null,
     price: tag.price ?? null,
@@ -85,6 +88,7 @@ export function tagToRow(tag: Tag): Omit<TagRow, 'id'> {
     event_end: tag.eventEnd ?? null,
     poll_options: tag.pollOptions,
     poll_votes: tag.pollVotes,
+    background_color: tag.backgroundColor ?? null,
     // Step 1 template fields
     title: tag.title ?? null,
     post_subtype: tag.postSubtype ?? null,
@@ -105,6 +109,7 @@ export function rowToTag(row: TagRow): Tag {
     businessName: row.business_name ?? undefined,
     businessPhone: row.business_phone ?? undefined,
     businessWebsite: row.business_website ?? undefined,
+    businessWhatsapp: row.business_whatsapp ?? undefined,
     postType: row.post_type === 'business' ? 'business' : 'personal',
     intent: (row.intent as PostIntent) ?? undefined,
     price: row.price ?? undefined,
@@ -131,6 +136,7 @@ export function rowToTag(row: TagRow): Tag {
     eventEnd: row.event_end ?? undefined,
     pollOptions: row.poll_options,
     pollVotes: row.poll_votes,
+    backgroundColor: row.background_color ?? undefined,
     likeCount: row.like_count,
     commentCount: row.comment_count,
     rsvpCount: row.rsvp_count,

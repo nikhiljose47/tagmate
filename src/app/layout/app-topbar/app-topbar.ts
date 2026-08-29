@@ -396,7 +396,10 @@ export class AppTopbarComponent implements OnDestroy {
     const currentCategory = this.workspace.feedBetaScope()?.category;
     const hasPostsIn = (cat: string) =>
       (area.categoryCounts[cat as keyof typeof area.categoryCounts] ?? 0) > 0;
-    const category = currentCategory && hasPostsIn(currentCategory) ? currentCategory : 'around';
+    const category =
+      currentCategory && hasPostsIn(currentCategory)
+        ? currentCategory
+        : (area.categories[0] ?? 'around');
     this.workspace.feedBetaScope.set({
       areaId: area.id,
       location: area.label,

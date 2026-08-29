@@ -31,6 +31,28 @@ const CTA_ICONS: Record<PostCta, string> = {
 };
 
 /**
+ * Resolves the `whatsapp` CTA's destination. Prefers the business's public
+ * WhatsApp click-to-chat link (`businessWhatsapp`, snapshotted from
+ * `AppUser.socialWhatsapp` — see post.ts), since that's the destination the
+ * business actually chose to publish. `businessPhone` is a backwards-compatible
+ * fallback for posts made before this field existed, or businesses that never
+ * set `socialWhatsapp` — without it, their WhatsApp CTA would silently stop
+ * working. This is independent of whether the WhatsApp Business API
+ * integration (`BusinessIntegration`) is connected — that's a separate,
+ * server-side authorization concept, not a public link. Exported for testing.
+ */
+export function resolveWhatsappHref(
+  businessWhatsapp?: string,
+  businessPhone?: string,
+): string | null {
+  const link = businessWhatsapp?.trim();
+  if (link) {
+    return /^https?:\/\//i.test(link) ? link : `https://wa.me/${link.replace(/\D/g, '')}`;
+  }
+  return businessPhone ? `https://wa.me/${businessPhone.replace(/\D/g, '')}` : null;
+}
+
+/**
  * Friendly formatter for eventStart/eventEnd — never exposes raw ISO strings.
  * Exported so post-detail's existing RSVP/event box can reuse the exact same
  * formatting instead of a second copy.
@@ -179,7 +201,7 @@ export class BusinessPostContentComponent {
       case 'call':
         return p.businessPhone ? `tel:${p.businessPhone}` : null;
       case 'whatsapp':
-        return p.businessPhone ? `https://wa.me/${p.businessPhone.replace(/\D/g, '')}` : null;
+        return resolveWhatsappHref(p.businessWhatsapp, p.businessPhone);
       case 'directions':
         return Number.isFinite(p.lat) && Number.isFinite(p.lng)
           ? `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`

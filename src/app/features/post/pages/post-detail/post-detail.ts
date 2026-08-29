@@ -22,6 +22,7 @@ import { AvatarComponent } from '../../../../shared/components/avatar/avatar.com
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { TagGradientPipe } from '../../../../shared/pipes/tag-gradient.pipe';
+import { ContrastTextPipe } from '../../../../shared/pipes/contrast-text.pipe';
 import { TimeAgoPipe } from '../../../../shared/pipes/time-ago.pipe';
 import { LifespanBadgeComponent } from '../../../../shared/components/lifespan-badge/lifespan-badge.component';
 import { PostMenuComponent } from '../../../../shared/components/post-menu/post-menu.component';
@@ -48,6 +49,7 @@ import {
     EmptyStateComponent,
     TagEmojiPipe,
     TagGradientPipe,
+    ContrastTextPipe,
     TimeAgoPipe,
     LifespanBadgeComponent,
     PostMenuComponent,
@@ -153,7 +155,7 @@ export class PostDetailPage implements OnInit {
 
       if (this.postKey() === deletedKey) {
         this.toast.show('This post was deleted.', 'info');
-        void this.router.navigate([AppRoute.Feed]);
+        void this.router.navigate([AppRoute.FeedBeta]);
       }
     });
 
@@ -436,14 +438,14 @@ export class PostDetailPage implements OnInit {
     if (!post) return;
     this.social.reportPost(post);
     this.toast.show('Post hidden and flagged for review.', 'warning');
-    void this.router.navigate([AppRoute.Feed]);
+    void this.router.navigate([AppRoute.FeedBeta]);
   }
 
   protected async deletePost(): Promise<void> {
     const post = this.post();
     if (!post) return;
     const deleted = await this.social.confirmAndDeletePost(post);
-    if (deleted) void this.router.navigate([AppRoute.Feed]);
+    if (deleted) void this.router.navigate([AppRoute.FeedBeta]);
   }
 
   private loadRelated(post: Tag): void {

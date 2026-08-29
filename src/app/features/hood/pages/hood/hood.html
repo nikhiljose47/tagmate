@@ -71,6 +71,7 @@
     </div>
   </aside>
 
+  @if (inspectorEnabled() && !pickMode()) {
   <aside class="map-inspector" aria-label="Map metadata inspector">
     @if (workspace.selectedPost(); as selectedPost) {
     <header>
@@ -144,6 +145,7 @@
     </div>
     }
   </aside>
+  }
 
   <section class="map-timeline" aria-label="Visible post timeline">
     <header>
@@ -301,6 +303,16 @@
       <span class="tm-toggle-track"></span>
       <span>Boundary</span>
     </label>
+    <label class="tm-toggle">
+      <input
+        class="peer sr-only"
+        type="checkbox"
+        [checked]="inspectorEnabled()"
+        (change)="toggleInspectorPanel()"
+      />
+      <span class="tm-toggle-track"></span>
+      <span>Post inspector</span>
+    </label>
   </div>
   } @if (showStylePanel()) {
   <div class="map-panel fab-panel tm-panel style-panel">
@@ -318,7 +330,10 @@
   </div>
   }
 
-  <!-- Hood card: compact 30% top-right pill; morphs into full search bar -->
+  <!-- Hood card: compact 30% top-right pill; morphs into full search bar.
+       Hidden during "search a place" pick mode, which gets its own centered
+       search bar below instead (pin-on-map pick mode is unaffected). -->
+  @if (!(pickMode() && placePickMode())) {
   <div class="hood-card" [class.hood-card--open]="showSearch()">
     @if (showSearch()) {
     <div class="hood-card-search-row">
@@ -388,6 +403,56 @@
     </div>
     }
   </div>
+  }
+
+  <!-- Centered search bar for "search a place" pick mode — the map behind it
+       stays dimmed to 50% opacity for the whole place-pick session (see
+       .map-container--dim). -->
+  @if (pickMode() && placePickMode() && !locationPicked()) {
+  <div class="place-search-center">
+    <div class="place-search-bar">
+      <i class="bi bi-search place-search-icon" aria-hidden="true"></i>
+      <input
+        #placeQ
+        class="place-search-input"
+        type="text"
+        placeholder="Search for a place…"
+        aria-label="Search for a place"
+        autocomplete="off"
+        autofocus
+        (input)="onPlaceQueryInput(placeQ.value)"
+        (keyup.enter)="searchFromCard(placeQ.value)"
+      />
+      @if (isSearching()) {
+      <div class="hood-card-spinner" role="status"><span class="sr-only">Searching…</span></div>
+      } @else {
+      <button
+        class="place-search-go"
+        type="button"
+        (click)="searchFromCard(placeQ.value)"
+        aria-label="Search"
+      >
+        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </button>
+      }
+    </div>
+
+    @if (placeSuggestions().length) {
+    <ul class="place-suggestions" role="listbox" aria-label="Place suggestions">
+      @for (result of placeSuggestions(); track result.lat + result.lon) {
+      <li>
+        <button type="button" class="place-suggestion" (click)="selectPlaceSuggestion(result)">
+          <span class="place-suggestion-name">{{ placeSuggestionName(result) }}</span>
+          @if (placeSuggestionDetail(result); as detail) {
+          <span class="place-suggestion-detail">{{ detail }}</span>
+          }
+        </button>
+      </li>
+      }
+    </ul>
+    }
+  </div>
+  }
 
   <!-- Pick-location banner (shown when opened from Post with ?pick=1) -->
   @if (pickMode()) {
@@ -401,20 +466,21 @@
   </button>
 
   @if (placePickMode()) {
-  <!-- Place/area pick mode — search selects the area, no pin needed -->
-  <div class="pick-banner" [class.pick-banner--place]="locationPicked()">
-    @if (!locationPicked()) {
-    <i class="bi bi-search pick-banner-icon pick-banner-icon--search"></i>
-    <span class="pick-banner-text">Search for a place to tag your post</span>
-    <button class="pick-cancel-btn" type="button" (click)="donePickingLocation()">Cancel</button>
-    } @else {
-    <i class="bi bi-check-circle-fill pick-banner-icon pick-banner-icon--ok"></i>
-    <span class="pick-banner-text">Post belongs to <strong>{{ state.text() }}</strong></span>
-    <button class="pick-done-btn" type="button" (click)="donePickingLocation()">
+  <!-- Place/area pick mode — the centered search bar (+ top-left back button)
+       already prompts for a search, so nothing shows here until a place is
+       picked, then this confirm card matches the search bar's look. -->
+  @if (locationPicked()) {
+  <div class="place-confirm-card">
+    <span class="place-confirm-icon"><i class="bi bi-geo-alt-fill"></i></span>
+    <span class="place-confirm-text">
+      <span class="place-confirm-label">Location set</span>
+      <span class="place-confirm-value">{{ state.text() }}</span>
+    </span>
+    <button class="place-confirm-btn" type="button" (click)="donePickingLocation()">
       <i class="bi bi-check-lg"></i> Confirm & back
     </button>
-    }
   </div>
+  }
   } @else {
   <!-- Pinpoint pick mode — tap the map to drop a pin -->
   <div class="pick-banner" [class.pick-banner--done]="locationPicked()">
@@ -444,5 +510,10 @@
     </button>
   </section>
   }
-  <div #mapContainer id="map" class="map-container"></div>
+  <div
+    #mapContainer
+    id="map"
+    class="map-container"
+    [class.map-container--dim]="pickMode() && placePickMode()"
+  ></div>
 </div>

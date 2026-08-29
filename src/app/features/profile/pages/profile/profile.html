@@ -79,38 +79,74 @@
         <a [href]="'tel:' + phone" class="business-contact-link">
           <i class="bi bi-telephone-fill" aria-hidden="true"></i> {{ phone }}
         </a>
-        }
-        @if (currentUser()?.googleMapsUrl; as mapsUrl) {
+        } @if (currentUser()?.googleMapsUrl; as mapsUrl) {
         <a [href]="mapsUrl" target="_blank" rel="noopener noreferrer" class="business-contact-link">
           <i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Directions
         </a>
         }
       </div>
 
-      @if (currentUser()?.socialInstagram || currentUser()?.socialFacebook || currentUser()?.socialX || currentUser()?.socialLinkedin || currentUser()?.socialYoutube || currentUser()?.socialWhatsapp) {
+      @if (currentUser()?.socialInstagram || currentUser()?.socialFacebook || currentUser()?.socialX
+      || currentUser()?.socialLinkedin || currentUser()?.socialYoutube ||
+      currentUser()?.socialWhatsapp) {
       <div class="business-social-row">
         @if (currentUser()?.socialInstagram; as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
-        }
-        @if (currentUser()?.socialFacebook; as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
-        }
-        @if (currentUser()?.socialX; as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="X"><i class="bi bi-twitter-x"></i></a>
-        }
-        @if (currentUser()?.socialLinkedin; as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
-        }
-        @if (currentUser()?.socialYoutube; as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
-        }
-        @if (currentUser()?.socialWhatsapp; as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="social-icon-link" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        <a
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-icon-link"
+          aria-label="Instagram"
+          ><i class="bi bi-instagram"></i
+        ></a>
+        } @if (currentUser()?.socialFacebook; as url) {
+        <a
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-icon-link"
+          aria-label="Facebook"
+          ><i class="bi bi-facebook"></i
+        ></a>
+        } @if (currentUser()?.socialX; as url) {
+        <a
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-icon-link"
+          aria-label="X"
+          ><i class="bi bi-twitter-x"></i
+        ></a>
+        } @if (currentUser()?.socialLinkedin; as url) {
+        <a
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-icon-link"
+          aria-label="LinkedIn"
+          ><i class="bi bi-linkedin"></i
+        ></a>
+        } @if (currentUser()?.socialYoutube; as url) {
+        <a
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-icon-link"
+          aria-label="YouTube"
+          ><i class="bi bi-youtube"></i
+        ></a>
+        } @if (currentUser()?.socialWhatsapp; as url) {
+        <a
+          [href]="url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="social-icon-link"
+          aria-label="WhatsApp"
+          ><i class="bi bi-whatsapp"></i
+        ></a>
         }
       </div>
-      }
-
-      @if (currentUser()?.openingHours?.length) {
+      } @if (currentUser()?.openingHours?.length) {
       <div class="opening-hours-view">
         @for (h of currentUser()?.openingHours; track h.day) {
         <div class="opening-hours-row">
@@ -119,9 +155,7 @@
         </div>
         }
       </div>
-      }
-
-      @if (businessOffers().length) {
+      } @if (businessOffers().length) {
       <h4 class="business-photos-title">Today's offers</h4>
       <div class="business-offers-grid">
         @for (offer of businessOffers(); track offer.id) {
@@ -139,9 +173,7 @@
         </div>
         }
       </div>
-      }
-
-      @if (businessItems().length) {
+      } @if (businessItems().length) {
       <h4 class="business-photos-title">Products &amp; services</h4>
       <div class="business-offers-grid">
         @for (item of businessItems(); track item.id) {
@@ -153,23 +185,18 @@
             <strong>{{ item.name }}</strong>
             @if (item.description) {
             <p>{{ item.description }}</p>
-            }
-            @if (item.price) {
+            } @if (item.price) {
             <small>
               @if (item.offerPrice) {
-              <span class="price-strike">₹{{ item.price }}</span> ₹{{ item.offerPrice }}
-              } @else {
-              ₹{{ item.price }}
-              }
+              <span class="price-strike">₹{{ item.price }}</span> ₹{{ item.offerPrice }} } @else {
+              ₹{{ item.price }} }
             </small>
             }
           </div>
         </div>
         }
       </div>
-      }
-
-      @if (currentUser()?.businessImages?.length) {
+      } @if (currentUser()?.businessImages?.length) {
       <h4 class="business-photos-title">Shop photos</h4>
       <div class="business-photos-grid">
         @for (url of currentUser()?.businessImages; track url) {
@@ -369,7 +396,12 @@
         @if (editCoverImageUrl(); as coverUrl) {
         <div class="shop-image-thumb">
           <img [src]="coverUrl" alt="Cover" />
-          <button type="button" class="shop-image-remove" aria-label="Remove cover" (click)="removeCoverImage()">
+          <button
+            type="button"
+            class="shop-image-remove"
+            aria-label="Remove cover"
+            (click)="removeCoverImage()"
+          >
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
@@ -380,7 +412,13 @@
           } @else {
           <i class="bi bi-image" aria-hidden="true"></i>
           }
-          <input type="file" accept="image/*" hidden [disabled]="uploadingCoverImage()" (change)="onCoverImageSelect($event)" />
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            [disabled]="uploadingCoverImage()"
+            (change)="onCoverImageSelect($event)"
+          />
         </label>
         }
       </div>
@@ -404,9 +442,19 @@
             Closed
           </label>
           @if (!h.closed) {
-          <input type="time" class="tm-input oh-time" [value]="h.open" (input)="setOpeningTime(h.day, 'open', $any($event.target).value)" />
+          <input
+            type="time"
+            class="tm-input oh-time"
+            [value]="h.open"
+            (input)="setOpeningTime(h.day, 'open', $any($event.target).value)"
+          />
           <span>–</span>
-          <input type="time" class="tm-input oh-time" [value]="h.close" (input)="setOpeningTime(h.day, 'close', $any($event.target).value)" />
+          <input
+            type="time"
+            class="tm-input oh-time"
+            [value]="h.close"
+            (input)="setOpeningTime(h.day, 'close', $any($event.target).value)"
+          />
           }
         </div>
         }
@@ -414,12 +462,85 @@
 
       <label class="edit-label">Social links (optional)</label>
       <div class="socials-edit mb-3">
-        <input class="tm-input" type="url" placeholder="Instagram" [value]="editSocialInstagram()" (input)="editSocialInstagram.set($any($event.target).value)" />
-        <input class="tm-input" type="url" placeholder="Facebook" [value]="editSocialFacebook()" (input)="editSocialFacebook.set($any($event.target).value)" />
-        <input class="tm-input" type="url" placeholder="X / Twitter" [value]="editSocialX()" (input)="editSocialX.set($any($event.target).value)" />
-        <input class="tm-input" type="url" placeholder="LinkedIn" [value]="editSocialLinkedin()" (input)="editSocialLinkedin.set($any($event.target).value)" />
-        <input class="tm-input" type="url" placeholder="YouTube" [value]="editSocialYoutube()" (input)="editSocialYoutube.set($any($event.target).value)" />
-        <input class="tm-input" type="url" placeholder="WhatsApp link" [value]="editSocialWhatsapp()" (input)="editSocialWhatsapp.set($any($event.target).value)" />
+        <input
+          class="tm-input"
+          type="url"
+          placeholder="Instagram"
+          [value]="editSocialInstagram()"
+          (input)="editSocialInstagram.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input"
+          type="url"
+          placeholder="Facebook"
+          [value]="editSocialFacebook()"
+          (input)="editSocialFacebook.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input"
+          type="url"
+          placeholder="X / Twitter"
+          [value]="editSocialX()"
+          (input)="editSocialX.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input"
+          type="url"
+          placeholder="LinkedIn"
+          [value]="editSocialLinkedin()"
+          (input)="editSocialLinkedin.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input"
+          type="url"
+          placeholder="YouTube"
+          [value]="editSocialYoutube()"
+          (input)="editSocialYoutube.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input"
+          type="url"
+          placeholder="WhatsApp link"
+          [value]="editSocialWhatsapp()"
+          (input)="editSocialWhatsapp.set($any($event.target).value)"
+        />
+      </div>
+
+      <label class="edit-label">Connections</label>
+      <div class="connections-list mb-3">
+        @for (summary of connectionSummaries(); track summary.provider) {
+        <div class="connection-row">
+          <i class="bi connection-icon" [class]="providerIcon(summary.provider)"></i>
+          <div class="connection-info">
+            <span class="connection-name">{{ providerLabel(summary.provider) }}</span>
+            @if (summary.connected) {
+            <span class="connection-status connection-status--connected">
+              <i class="bi bi-check-circle-fill"></i> Connected @if (summary.accountName) { — {{
+              summary.accountName }} }
+            </span>
+            } @else {
+            <span class="connection-status">Not connected</span>
+            }
+          </div>
+          @if (summary.connected) {
+          <button
+            class="tm-btn tm-btn-outline connection-action"
+            type="button"
+            (click)="disconnectIntegration(summary.provider)"
+          >
+            Disconnect
+          </button>
+          } @else {
+          <button
+            class="tm-btn tm-btn-outline connection-action"
+            type="button"
+            (click)="connectIntegration(summary.provider)"
+          >
+            Connect
+          </button>
+          }
+        </div>
+        }
       </div>
 
       <label class="edit-label">Today's offers</label>
@@ -433,7 +554,12 @@
             <strong>{{ offer.title }}</strong>
             <small>Until {{ offer.validUntil | date: 'd MMM' }}</small>
           </div>
-          <button type="button" class="shop-image-remove" aria-label="Remove offer" (click)="removeOffer(offer)">
+          <button
+            type="button"
+            class="shop-image-remove"
+            aria-label="Remove offer"
+            (click)="removeOffer(offer)"
+          >
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
@@ -448,12 +574,40 @@
           } @else {
           <i class="bi bi-plus-lg" aria-hidden="true"></i>
           }
-          <input type="file" accept="image/*" hidden [disabled]="uploadingOfferImage()" (change)="onOfferImageSelect($event)" />
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            [disabled]="uploadingOfferImage()"
+            (change)="onOfferImageSelect($event)"
+          />
         </label>
-        <input class="tm-input mb-2" type="text" placeholder="Offer title" [value]="newOfferTitle()" (input)="newOfferTitle.set($any($event.target).value)" />
-        <input class="tm-input mb-2" type="text" placeholder="Description (optional)" [value]="newOfferDescription()" (input)="newOfferDescription.set($any($event.target).value)" />
-        <input class="tm-input mb-2" type="date" [value]="newOfferValidUntil()" (input)="newOfferValidUntil.set($any($event.target).value)" />
-        <button class="tm-btn tm-btn-outline w-full" type="button" [disabled]="savingOffer()" (click)="addOffer()">
+        <input
+          class="tm-input mb-2"
+          type="text"
+          placeholder="Offer title"
+          [value]="newOfferTitle()"
+          (input)="newOfferTitle.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input mb-2"
+          type="text"
+          placeholder="Description (optional)"
+          [value]="newOfferDescription()"
+          (input)="newOfferDescription.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input mb-2"
+          type="date"
+          [value]="newOfferValidUntil()"
+          (input)="newOfferValidUntil.set($any($event.target).value)"
+        />
+        <button
+          class="tm-btn tm-btn-outline w-full"
+          type="button"
+          [disabled]="savingOffer()"
+          (click)="addOffer()"
+        >
           {{ savingOffer() ? 'Adding…' : 'Add offer' }}
         </button>
       </div>
@@ -471,7 +625,12 @@
             <small>₹{{ item.price }}</small>
             }
           </div>
-          <button type="button" class="shop-image-remove" aria-label="Remove item" (click)="removeItem(item)">
+          <button
+            type="button"
+            class="shop-image-remove"
+            aria-label="Remove item"
+            (click)="removeItem(item)"
+          >
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
@@ -486,13 +645,48 @@
           } @else {
           <i class="bi bi-plus-lg" aria-hidden="true"></i>
           }
-          <input type="file" accept="image/*" hidden [disabled]="uploadingItemImage()" (change)="onItemImageSelect($event)" />
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            [disabled]="uploadingItemImage()"
+            (change)="onItemImageSelect($event)"
+          />
         </label>
-        <input class="tm-input mb-2" type="text" placeholder="Item / service name" [value]="newItemName()" (input)="newItemName.set($any($event.target).value)" />
-        <input class="tm-input mb-2" type="text" placeholder="Description (optional)" [value]="newItemDescription()" (input)="newItemDescription.set($any($event.target).value)" />
-        <input class="tm-input mb-2" type="number" placeholder="Price" [value]="newItemPrice()" (input)="newItemPrice.set($any($event.target).value)" />
-        <input class="tm-input mb-2" type="number" placeholder="Offer price (optional)" [value]="newItemOfferPrice()" (input)="newItemOfferPrice.set($any($event.target).value)" />
-        <button class="tm-btn tm-btn-outline w-full" type="button" [disabled]="savingItem()" (click)="addItem()">
+        <input
+          class="tm-input mb-2"
+          type="text"
+          placeholder="Item / service name"
+          [value]="newItemName()"
+          (input)="newItemName.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input mb-2"
+          type="text"
+          placeholder="Description (optional)"
+          [value]="newItemDescription()"
+          (input)="newItemDescription.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input mb-2"
+          type="number"
+          placeholder="Price"
+          [value]="newItemPrice()"
+          (input)="newItemPrice.set($any($event.target).value)"
+        />
+        <input
+          class="tm-input mb-2"
+          type="number"
+          placeholder="Offer price (optional)"
+          [value]="newItemOfferPrice()"
+          (input)="newItemOfferPrice.set($any($event.target).value)"
+        />
+        <button
+          class="tm-btn tm-btn-outline w-full"
+          type="button"
+          [disabled]="savingItem()"
+          (click)="addItem()"
+        >
           {{ savingItem() ? 'Adding…' : 'Add item' }}
         </button>
       </div>

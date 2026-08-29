@@ -341,7 +341,7 @@ export class SignupPage implements OnInit {
 
   readonly canSubmit = computed(() => {
     const pick = this.hoodPick();
-    const hoodOk = !!pick && !!pick.state && !!pick.district;
+    const hoodOk = !!pick && !!pick.state && !!pick.country && !!pick.district;
     if (this.loading()) return false;
     if (this.accountType() === 'business') {
       return hoodOk && !!this.businessEstablishedYear();
@@ -424,12 +424,12 @@ export class SignupPage implements OnInit {
       .then(async (res) => {
         const results = (await res.json()) as NominatimResult[];
         if (signal.aborted) return;
-        // Keep any result that has a state AND some district-like admin level.
-        // Nominatim's tagging varies by country — for big metros the district
-        // often sits in `city` (e.g. Delhi) or `city_district`, not
-        // `state_district`, so we fall back through several fields.
+        // Keep any result that has a state, a country, AND some district-like
+        // admin level. Nominatim's tagging varies by country — for big metros
+        // the district often sits in `city` (e.g. Delhi) or `city_district`,
+        // not `state_district`, so we fall back through several fields.
         const filtered = results.filter(
-          (r) => !!r.address?.state && !!SignupPage.districtOf(r.address),
+          (r) => !!r.address?.state && !!r.address?.country && !!SignupPage.districtOf(r.address),
         );
         this.hoodResults.set(filtered);
         this.hoodSearching.set(false);

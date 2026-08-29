@@ -185,6 +185,58 @@
   gap: 8px;
 }
 
+.connections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.connection-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  background: var(--tm-surface);
+}
+
+.connection-icon {
+  font-size: 20px;
+  color: var(--tm-text-secondary);
+  flex-shrink: 0;
+}
+
+.connection-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.connection-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tm-text);
+}
+
+.connection-status {
+  font-size: 12px;
+  color: var(--tm-text-secondary);
+}
+
+.connection-status--connected {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.connection-action {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
 .business-offers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

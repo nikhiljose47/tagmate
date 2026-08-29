@@ -6,6 +6,10 @@ export interface Tag {
   /** Snapshot of optional business contact info at post time — set only for business accounts. */
   businessPhone?: string;
   businessWebsite?: string;
+  /** Snapshot of the poster's public WhatsApp click-to-chat link (`AppUser.socialWhatsapp`)
+   *  at post time. Preferred over `businessPhone` for the `whatsapp` CTA — see
+   *  business-post-content.component.ts's `ctaHref`. */
+  businessWhatsapp?: string;
   /** How the post was composed. Business posts may be created by any account type. */
   postType?: 'personal' | 'business';
   /** Lightweight business intent — simpler than the tag category, shown as the headline chip. */
@@ -38,6 +42,8 @@ export interface Tag {
   eventEnd?: string;
   pollOptions?: string[];
   pollVotes?: Record<string, string[]>; // optionIndex -> array of usernames
+  /** Personal-post card background — a preset hex swatch, e.g. "#fef3c7". Unset = default. */
+  backgroundColor?: string;
   /** Template metadata — set for business posts created after the Step 1 migration.
    *  Null/undefined on old posts; those continue to render from `highlight` alone. */
   /** The specific template variant used, e.g. "general", "todays_special". */

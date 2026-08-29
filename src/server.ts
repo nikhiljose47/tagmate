@@ -151,7 +151,14 @@ export const reqHandler = createRequestHandler(async (req) => {
       if (!q.trim() || q.length > 200) {
         return applySecurityHeaders(jsonResponse({ error: 'Invalid boundary query.' }, 400));
       }
-      proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&addressdetails=1&q=${encodeURIComponent(q)}`;
+      // Clamp to Nominatim's own default (10) so callers (e.g. the place-search
+      // suggestions list) can ask for more results without opening this up to abuse.
+      const requestedLimit = Number(url.searchParams.get('limit'));
+      const limit =
+        Number.isFinite(requestedLimit) && requestedLimit > 0
+          ? Math.min(Math.trunc(requestedLimit), 10)
+          : 10;
+      proxyUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&polygon_geojson=1&addressdetails=1&limit=${limit}&q=${encodeURIComponent(q)}`;
     } else if (url.pathname === '/api/nominatim/lookup') {
       const osmIds = url.searchParams.get('osm_ids') || '';
       if (!osmIds.trim() || osmIds.length > 1000) {
