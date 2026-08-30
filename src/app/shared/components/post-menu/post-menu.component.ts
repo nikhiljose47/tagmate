@@ -30,25 +30,48 @@ export class PostMenuComponent {
 
   private readonly elementRef = inject(ElementRef<HTMLElement>);
 
+  // `toggle()` stops propagation so clicking one post's kebab never bubbles
+  // to `document` — which means the outside-click listener below never sees
+  // it, so a second post's menu opening couldn't close a still-open first
+  // one. Tracking the single open instance here closes it explicitly instead
+  // of relying on that bubbling.
+  private static current: PostMenuComponent | null = null;
+
   toggle(event: Event): void {
     event.stopPropagation();
-    this.open.update((v) => !v);
+    if (this.open()) {
+      this.close();
+      return;
+    }
+    PostMenuComponent.current?.close();
+    PostMenuComponent.current = this;
+    this.open.set(true);
   }
 
   onDelete(): void {
-    this.open.set(false);
+    this.close();
     this.deletePost.emit();
   }
 
   onReport(): void {
-    this.open.set(false);
+    this.close();
     this.reportPost.emit();
+  }
+
+  private close(): void {
+    this.open.set(false);
+    if (PostMenuComponent.current === this) PostMenuComponent.current = null;
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (this.open() && !this.elementRef.nativeElement.contains(event.target as Node)) {
-      this.open.set(false);
+      this.close();
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.open()) this.close();
   }
 }

@@ -144,7 +144,41 @@
           variant="detail"
           [showEventRange]="!isEventLike(post)"
         />
-        } @else {
+        } @if (post.postType === 'business' && post.userId === platform.myUid() &&
+        publications().length) {
+        <div class="publish-status">
+          @if (websitePublication(); as site) {
+          <div class="publish-status-row">
+            <i class="bi bi-check-circle-fill publish-status-icon publish-status-icon--ok"></i>
+            <span>Website — Published</span>
+          </div>
+          } @if (instagramPublication(); as ig) {
+          <div class="publish-status-row">
+            @switch (ig.status) { @case ('published') {
+            <i class="bi bi-check-circle-fill publish-status-icon publish-status-icon--ok"></i>
+            <span>Instagram — Published</span>
+            } @case ('failed') {
+            <i class="bi bi-x-circle-fill publish-status-icon publish-status-icon--failed"></i>
+            <span>Instagram — Failed. {{ ig.errorMessage }}</span>
+            <button
+              type="button"
+              class="text-action"
+              [disabled]="retryingPublicationId() === ig.id"
+              (click)="retryInstagramPublish(ig)"
+            >
+              Retry
+            </button>
+            } @case ('publishing') {
+            <i class="bi bi-hourglass-split publish-status-icon"></i>
+            <span>Instagram — Publishing…</span>
+            } @default {
+            <i class="bi bi-hourglass-split publish-status-icon"></i>
+            <span>Instagram — Pending</span>
+            } }
+          </div>
+          }
+        </div>
+        } @if (post.postType !== 'business') {
         <p
           class="detail-caption"
           [class.detail-caption--bg]="!!post.backgroundColor"

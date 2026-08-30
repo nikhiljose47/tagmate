@@ -15,6 +15,7 @@ describe('rowToBusinessIntegration', () => {
     provider_account_id: 'ig-123',
     provider_account_name: '@examplebusiness',
     token_expires_at: null,
+    metadata: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   };
@@ -28,6 +29,7 @@ describe('rowToBusinessIntegration', () => {
       providerAccountId: 'ig-123',
       providerAccountName: '@examplebusiness',
       tokenExpiresAt: null,
+      metadata: {},
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     });

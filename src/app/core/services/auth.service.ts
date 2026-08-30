@@ -121,6 +121,14 @@ export class AuthService implements OnDestroy {
     return from(this.signOutAndClearUserStorage());
   }
 
+  /** The current Supabase access token, for calling our own authenticated
+   *  Cloudflare Pages Functions (`Authorization: Bearer <token>`) — the same
+   *  pattern `deleteAccount()` below uses. `null` if signed out. */
+  async getAccessToken(): Promise<string | null> {
+    const { data } = await this.client.auth.getSession();
+    return data.session?.access_token ?? null;
+  }
+
   /**
    * Permanently deletes the signed-in user's account (profile, posts,
    * messages, etc. server-side, then the auth login itself) and clears the
@@ -191,15 +199,20 @@ export class AuthService implements OnDestroy {
       body: JSON.stringify(body),
       cache: 'no-store',
     });
-    const payload = (await response.json().catch(() => ({}))) as {
-      error?: string;
-      code?: string;
-    };
-    if (!response.ok) {
+    // A non-JSON response (e.g. an HTML error/fallback page from routing
+    // that never reached the actual function) is never a valid success —
+    // treat it as a failure instead of silently parsing it into `{}` and
+    // letting callers destructure undefined fields off a "successful" call.
+    const isJson = response.headers.get('content-type')?.includes('application/json') ?? false;
+    const payload = isJson
+      ? ((await response.json().catch(() => null)) as { error?: string; code?: string } | null)
+      : null;
+
+    if (!response.ok || !payload) {
       const error: EdgeAuthError = new Error(
-        payload.error || 'Authentication service unavailable.',
+        payload?.error || 'Authentication service unavailable.',
       );
-      error.code = payload.code;
+      error.code = payload?.code;
       throw error;
     }
     return payload as T;

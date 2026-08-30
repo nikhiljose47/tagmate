@@ -1,20 +1,10 @@
 <header class="app-topbar">
-  <!-- ── Brand + hood/place (left) ── -->
+  <!-- ── Brand (left) ── -->
   <div class="topbar-left">
     <a class="topbar-brand" routerLink="/feed-beta" aria-label="Tagmate home">
       <img class="topbar-logo" src="assets/tagmate-logo.svg" alt="" width="28" height="28" />
       <span class="topbar-wordmark">Tagmate</span>
     </a>
-
-    <button
-      type="button"
-      class="hood-chip"
-      (click)="openHoodModal()"
-      [attr.title]="hoodChipLabel()"
-      [attr.aria-label]="'Change your hood or place — currently ' + hoodChipLabel()"
-    >
-      <span class="hood-chip-code" aria-hidden="true">{{ hoodChipCode() }}</span>
-    </button>
   </div>
 
   <!-- ── Nav icons (desktop only, like Facebook) ── -->
@@ -22,11 +12,11 @@
     <a class="topbar-nav-btn" routerLink="/feed-beta" routerLinkActive="active" aria-label="Home">
       <i class="bi bi-house" aria-hidden="true"></i>
     </a>
-    <a class="topbar-nav-btn" routerLink="/hood" routerLinkActive="active" aria-label="Map">
-      <i class="bi bi-map" aria-hidden="true"></i>
-    </a>
     <a class="topbar-nav-btn" routerLink="/post" routerLinkActive="active" aria-label="Post">
       <i class="bi bi-plus-square" aria-hidden="true"></i>
+    </a>
+    <a class="topbar-nav-btn" routerLink="/messages" routerLinkActive="active" aria-label="Messages">
+      <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
     </a>
   </nav>
 
@@ -39,10 +29,14 @@
         [tmClickOutsideEnabled]="postSearchOpen()"
         (tmClickOutside)="closePostSearch()"
       >
-        <i class="bi bi-search" aria-hidden="true"></i>
+        <i class="bi bi-search hood-search-icon" aria-hidden="true"></i>
         <input
           type="search"
-          [placeholder]="'Search posts or tags in ' + hoodChipLabel()"
+          [placeholder]="
+            searchStateLabel()
+              ? 'Search posts & tags in ' + searchStateLabel()
+              : 'Search posts & tags'
+          "
           [ngModel]="postSearchQuery()"
           (focus)="openPostSearch()"
           (ngModelChange)="onPostSearchChange($event)"
@@ -50,12 +44,53 @@
         />
         @if (isPostSearching()) {
         <span class="search-spinner" aria-label="Searching"></span>
-        } @if (postSearchOpen()) {
+        }
+
+        <span
+          class="hood-filter-wrap"
+          [tmClickOutsideEnabled]="tagFilterOpen()"
+          (tmClickOutside)="closeTagFilter()"
+        >
+          <button
+            type="button"
+            class="hood-filter-btn"
+            [class.active]="tagFilterOpen()"
+            (click)="toggleTagFilter()"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="tagFilterOpen()"
+            aria-label="Filter by tag"
+          >
+            <i class="bi bi-funnel" aria-hidden="true"></i>
+          </button>
+
+          @if (tagFilterOpen()) {
+          <section class="hood-filter-menu" role="menu" aria-label="Filter by tag">
+            @if (!tagFilterOptions().length) {
+            <div class="hood-filter-empty">No tags yet in this hood.</div>
+            } @for (option of tagFilterOptions(); track option.key) {
+            <button
+              type="button"
+              class="hood-filter-option"
+              role="menuitem"
+              [class.active]="isActiveTagFilter(option.key)"
+              (click)="selectTagFilter(option.key)"
+            >
+              {{ option.label }}
+            </button>
+            }
+          </section>
+          }
+        </span>
+
+        @if (postSearchOpen()) {
         <section class="hood-search-results" aria-label="Search results">
           @if (postSearchQuery().trim().length < 2) {
           <div class="hood-search-hint">
             <i class="bi bi-signpost-split" aria-hidden="true"></i>
-            <span>Type a phrase to find posts and tags near {{ hoodChipLabel() }}</span>
+            <span
+              >Type a phrase to find posts and tags in {{ searchStateLabel() || hoodChipLabel()
+              }}</span
+            >
           </div>
           } @else if (postSearchResults().length === 0 && !isPostSearching()) {
           <div class="hood-search-empty">
@@ -118,14 +153,6 @@
 
   <!-- ── Actions (right) ── -->
   <div class="topbar-actions">
-    <a
-      class="topbar-icon-btn topbar-icon-btn--messages"
-      routerLink="/messages"
-      aria-label="Open messages"
-    >
-      <i class="bi bi-chat-left-dots" aria-hidden="true"></i>
-    </a>
-
     <button
       class="topbar-icon-btn"
       type="button"
@@ -144,6 +171,7 @@
       (tmClickOutside)="userMenuOpen.set(false)"
     >
       <button
+        #userMenuTrigger
         class="user-menu-trigger"
         type="button"
         (click)="userMenuOpen.update(v => !v)"
@@ -158,41 +186,61 @@
       @if (userMenuOpen()) {
       <section class="user-menu" role="menu">
         <div class="user-menu-profile">
-          <span class="user-avatar user-avatar--lg"
-            >{{ (session.user()?.name || 'TM').slice(0, 2).toUpperCase() }}</span
-          >
-          <span class="user-menu-info">
-            <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
-            <small
-              >{{ session.user()?.isGuest ? 'Guest workspace' : 'Operations workspace' }}</small
+          <div class="user-menu-profile-top">
+            <span class="user-avatar user-avatar--lg"
+              >{{ (session.user()?.name || 'TM').slice(0, 2).toUpperCase() }}</span
             >
-          </span>
-        </div>
-
-        <a routerLink="/profile" role="menuitem" (click)="userMenuOpen.set(false)">
-          <i class="bi bi-person" aria-hidden="true"></i>
-          Profile
-        </a>
-
-        <div class="theme-section" aria-label="Theme options">
-          <p>Theme</p>
-          @for (item of visibleThemes(); track item.key) {
-          <button
-            type="button"
-            role="menuitem"
-            [class.active]="theme.currentTheme() === item.key"
-            (click)="setTheme(item.key)"
-          >
-            <i class="bi" [class]="item.icon" aria-hidden="true"></i>
-            {{ item.label }}
-          </button>
+            <span class="user-menu-info">
+              <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
+              @if (hood().state) {
+              <small>Hood: {{ hood().state }}</small>
+              }
+            </span>
+          </div>
+          @if (homeHoodLabel()) {
+          <small class="user-menu-info-hood">
+            <i class="bi bi-geo-alt" aria-hidden="true"></i>
+            {{ homeHoodLabel() }}
+          </small>
           }
         </div>
 
-        <button type="button" role="menuitem" class="danger" (click)="logout()">
-          <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-          Sign out
-        </button>
+        <div class="user-menu-divider" role="separator"></div>
+
+        <div class="user-menu-group">
+          <a routerLink="/profile" role="menuitem" (click)="userMenuOpen.set(false)">
+            <i class="bi bi-person" aria-hidden="true"></i>
+            Profile
+          </a>
+
+          <a routerLink="/hood" role="menuitem" (click)="userMenuOpen.set(false)">
+            <i class="bi bi-map" aria-hidden="true"></i>
+            Map
+          </a>
+        </div>
+
+        <div class="user-menu-group">
+          <button type="button" role="menuitem" (click)="toggleDarkMode()">
+            <i class="bi" [class]="theme.isDarkMode() ? 'bi-moon-fill' : 'bi-sun-fill'" aria-hidden="true"></i>
+            <span class="dark-mode-label">Dark mode</span>
+            <span class="dark-mode-switch" [class.on]="theme.isDarkMode()" aria-hidden="true">
+              <span class="dark-mode-knob"></span>
+            </span>
+          </button>
+        </div>
+
+        <div class="user-menu-group">
+          <button
+            type="button"
+            role="menuitem"
+            class="danger"
+            [disabled]="loggingOut()"
+            (click)="logout()"
+          >
+            <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+            Sign out
+          </button>
+        </div>
       </section>
       }
     </div>

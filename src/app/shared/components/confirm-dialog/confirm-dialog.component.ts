@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, inject } from '@angular/core';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
@@ -10,4 +10,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 })
 export class ConfirmDialogComponent {
   protected readonly dialog = inject(ConfirmDialogService);
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.dialog.state()) this.dialog.respond(false);
+  }
 }

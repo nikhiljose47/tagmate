@@ -217,7 +217,7 @@ export class TagDataService {
     limit: number,
     offset: number,
     search?: string,
-    scope?: { tag?: string; postSubtype?: string },
+    scope?: { tag?: string; postSubtype?: string; state?: string; country?: string },
   ): Observable<{ data: T[] | null; error: unknown }> {
     let query = this.client
       .from(table)
@@ -228,6 +228,9 @@ export class TagDataService {
 
     if (scope?.tag) query = query.eq('tag', scope.tag);
     if (scope?.postSubtype) query = query.eq('post_subtype', scope.postSubtype);
+    // Case-insensitive since stored casing isn't guaranteed consistent across posts.
+    if (scope?.state) query = query.ilike('state', scope.state);
+    if (scope?.country) query = query.ilike('country', scope.country);
 
     if (search) {
       const sanitized = search.replace(/[,()%]/g, '').trim();

@@ -9,18 +9,26 @@ describe('BusinessIntegrationService', () => {
   let service: BusinessIntegrationService;
   let getRowsSpy: jasmine.Spy;
   let updateRowsWhereSpy: jasmine.Spy;
+  let getAccessTokenSpy: jasmine.Spy;
+  let fetchSpy: jasmine.Spy;
 
   beforeEach(() => {
     getRowsSpy = jasmine.createSpy('getRows').and.returnValue(of({ data: [], error: null }));
     updateRowsWhereSpy = jasmine
       .createSpy('updateRowsWhere')
       .and.returnValue(of({ data: null, error: null }));
+    getAccessTokenSpy = jasmine.createSpy('getAccessToken').and.resolveTo('test-token');
+    fetchSpy = spyOn(window, 'fetch');
 
     TestBed.configureTestingModule({
       providers: [
         {
           provide: SupabaseService,
-          useValue: { getRows: getRowsSpy, updateRowsWhere: updateRowsWhereSpy },
+          useValue: {
+            getRows: getRowsSpy,
+            updateRowsWhere: updateRowsWhereSpy,
+            getAccessToken: getAccessTokenSpy,
+          },
         },
       ],
     });
@@ -57,6 +65,7 @@ describe('BusinessIntegrationService', () => {
         provider_account_id: 'ig-1',
         provider_account_name: '@shop',
         token_expires_at: null,
+        metadata: {},
         created_at: 'now',
         updated_at: 'now',
       },
@@ -68,6 +77,7 @@ describe('BusinessIntegrationService', () => {
         provider_account_id: null,
         provider_account_name: null,
         token_expires_at: null,
+        metadata: {},
         created_at: 'now',
         updated_at: 'now',
       },
@@ -91,5 +101,38 @@ describe('BusinessIntegrationService', () => {
       { user_id: 'u1', provider: IntegrationProvider.Instagram },
       { status: IntegrationStatus.Disconnected },
     );
+  });
+
+  it('requestInstagramAuthorizationUrl calls the backend with a bearer token and returns the URL', async () => {
+    fetchSpy.and.resolveTo(
+      new Response(
+        JSON.stringify({ authorizationUrl: 'https://www.instagram.com/oauth/authorize?x=1' }),
+      ),
+    );
+
+    const url = await service.requestInstagramAuthorizationUrl();
+
+    expect(url).toBe('https://www.instagram.com/oauth/authorize?x=1');
+    const [path, init] = fetchSpy.calls.mostRecent().args;
+    expect(path).toBe('/api/integrations/instagram/connect');
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer test-token');
+  });
+
+  it('requestInstagramAuthorizationUrl surfaces the backend error message on failure', async () => {
+    fetchSpy.and.resolveTo(
+      new Response(JSON.stringify({ error: 'You must be signed in.' }), { status: 401 }),
+    );
+    await expectAsync(service.requestInstagramAuthorizationUrl()).toBeRejectedWithError(
+      'You must be signed in.',
+    );
+  });
+
+  it('disconnectInstagram calls the backend disconnect endpoint with a bearer token', async () => {
+    fetchSpy.and.resolveTo(new Response(JSON.stringify({ connected: false })));
+    await service.disconnectInstagram();
+    const [path, init] = fetchSpy.calls.mostRecent().args;
+    expect(path).toBe('/api/integrations/instagram/disconnect');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer test-token');
   });
 });

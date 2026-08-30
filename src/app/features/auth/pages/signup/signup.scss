@@ -367,6 +367,11 @@
   padding-left: 2px;
 }
 
+/* Reserves the hint's line height so it appearing/disappearing while typing doesn't reflow the page. */
+.field-hint-slot {
+  min-height: 15px;
+}
+
 .field-hint-error {
   color: var(--tm-danger);
   font-weight: 600;

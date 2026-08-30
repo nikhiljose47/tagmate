@@ -41,41 +41,6 @@
   flex-shrink: 0;
 }
 
-.hood-chip {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  min-width: 34px;
-  height: 30px;
-  border: 1px solid var(--tm-border);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--tm-bg) 74%, var(--tm-surface));
-  padding: 0 8px;
-  color: var(--tm-text);
-  font: inherit;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 54%, transparent);
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--tm-primary) 7%, var(--tm-bg));
-    border-color: color-mix(in srgb, var(--tm-primary) 35%, var(--tm-border));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tm-primary) 10%, transparent);
-  }
-}
-
-.hood-chip-code {
-  display: block;
-  font-size: 11px;
-  font-weight: 900;
-  color: var(--tm-primary-text);
-  text-transform: uppercase;
-  line-height: 1;
-}
-
 .topbar-logo {
   width: 32px;
   height: 32px;
@@ -153,7 +118,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: min(100%, 660px);
   min-width: 0;
 }
@@ -680,7 +645,6 @@
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  width: auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -696,9 +660,16 @@
   border-color: color-mix(in srgb, var(--tm-primary) 50%, var(--tm-border));
 }
 
+.hood-search-icon {
+  order: 0;
+  flex: 0 0 auto;
+  color: var(--tm-muted);
+}
+
 .hood-search input {
   width: 100%;
   min-width: 0;
+  order: 1;
   border: 0;
   outline: 0;
   background: transparent;
@@ -708,12 +679,99 @@
 }
 
 .search-spinner {
+  order: 2;
+}
+
+.search-spinner {
   width: 14px;
   height: 14px;
   border: 2px solid color-mix(in srgb, var(--tm-primary) 18%, transparent);
   border-top-color: var(--tm-primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+}
+
+/* ── Tag filter button (right end of the search bar) ─────────── */
+
+.hood-filter-wrap {
+  order: 3;
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  margin-left: 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--tm-border);
+}
+
+.hood-filter-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tm-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.hood-filter-btn:hover {
+  background: color-mix(in srgb, var(--tm-text) 8%, transparent);
+  color: var(--tm-text);
+}
+
+.hood-filter-btn.active {
+  background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
+  color: var(--tm-primary-text);
+}
+
+.hood-filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 9300;
+  min-width: 160px;
+  max-width: 220px;
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  background: var(--tm-surface);
+  padding: 6px;
+  box-shadow: var(--tm-shadow-lg);
+}
+
+.hood-filter-option {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 0 10px;
+  color: var(--tm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hood-filter-option:hover,
+.hood-filter-option.active {
+  background: color-mix(in srgb, var(--tm-primary) 9%, transparent);
+  color: var(--tm-primary-text);
+}
+
+.hood-filter-empty {
+  padding: 10px;
+  color: var(--tm-muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 /* ── Hood search results ──────────────────────────────────── */
@@ -843,6 +901,16 @@
   font-size: 16px;
   cursor: pointer;
   transition: background 0.15s;
+
+  /* Keeps the visible circle compact but extends the actual tap target
+     toward the 44x44 minimum — nothing here clips overflow, so this works
+     (unlike the thumbnail remove buttons, which sit inside an
+     overflow:hidden tile and can't use this trick). */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
 }
 
 .topbar-icon-btn:hover {
@@ -873,6 +941,7 @@
 }
 
 .user-menu-trigger {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -880,6 +949,14 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
+
+  /* Same tap-target extension as .topbar-icon-btn — keeps the avatar's
+     visual size compact while widening the actual clickable area. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
 }
 
 .user-avatar {
@@ -895,37 +972,42 @@
 }
 
 .user-avatar--lg {
-  width: 40px;
-  height: 40px;
-  font-size: 14px;
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
 }
 
 .user-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 9px);
   right: 0;
   z-index: 9300;
-  width: 240px;
-  display: grid;
-  gap: 2px;
+  width: 214px;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--tm-border);
-  border-radius: 10px;
+  border-radius: 13px;
   background: var(--tm-surface);
-  padding: 6px;
+  padding: 7px;
   box-shadow: var(--tm-shadow-lg);
 }
 
 .user-menu-profile {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 9px 13px;
+}
+
+.user-menu-profile-top {
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 8px 10px;
-  border-bottom: 1px solid var(--tm-border);
-  margin-bottom: 4px;
+  gap: 11px;
 }
 
 .user-menu-info {
   display: grid;
+  gap: 2px;
   min-width: 0;
   text-align: left;
 }
@@ -938,7 +1020,8 @@
 }
 
 .user-menu-info strong {
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--tm-text);
 }
 
@@ -947,22 +1030,59 @@
   font-size: 11px;
 }
 
+.user-menu-info-hood {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--tm-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  i {
+    margin-top: 1px;
+    font-size: 10px;
+  }
+}
+
+.user-menu-divider {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--tm-border);
+}
+
+.user-menu-group {
+  display: grid;
+  gap: 2px;
+  padding: 2px 0;
+}
+
 .user-menu a,
 .user-menu button {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 36px;
+  gap: 11px;
+  min-height: 34px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
-  padding: 0 10px;
+  padding: 0 9px;
   color: var(--tm-text);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   text-align: left;
   text-decoration: none;
+  transition: background 0.12s ease;
+
+  i {
+    flex: 0 0 auto;
+    width: 16px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--tm-muted);
+  }
 }
 
 .user-menu a:hover,
@@ -970,27 +1090,54 @@
 .user-menu button.active {
   background: color-mix(in srgb, var(--tm-primary) 9%, transparent);
   color: var(--tm-primary-text);
+
+  i {
+    color: var(--tm-primary-text);
+  }
 }
 
-.theme-section {
-  display: grid;
-  gap: 2px;
-  border-top: 1px solid var(--tm-border);
-  border-bottom: 1px solid var(--tm-border);
-  padding: 6px 0;
+.dark-mode-label {
+  flex: 1;
 }
 
-.theme-section p {
-  margin: 0 10px 2px;
-  color: var(--tm-muted);
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.dark-mode-switch {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--tm-border);
+  padding: 2px;
+  transition: background 0.15s ease;
+}
+
+.dark-mode-switch.on {
+  background: var(--tm-primary);
+}
+
+.dark-mode-knob {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.dark-mode-switch.on .dark-mode-knob {
+  transform: translateX(14px);
 }
 
 .user-menu .danger {
   color: var(--tm-danger);
+
+  i {
+    color: var(--tm-danger);
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--tm-danger) 9%, transparent);
+  }
 }
 
 /* ── Keyframes ────────────────────────────────────────────── */
@@ -1054,17 +1201,6 @@
     display: none;
   }
 
-  .hood-chip {
-    flex: 0 0 auto;
-    min-width: 32px;
-    height: 30px;
-    padding: 0 7px;
-  }
-
-  .hood-chip-code {
-    display: block;
-  }
-
   .hood-search {
     min-height: 36px;
   }
@@ -1079,6 +1215,10 @@
     width: 28px;
     height: 28px;
     font-size: 11px;
+  }
+
+  .user-menu {
+    max-width: calc(100vw - 24px);
   }
 
   .hood-modal {

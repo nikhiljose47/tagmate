@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { LocalNotification } from '../../../core/models/tag.model';
 import { SocialInteractionsService } from '../../../core/services/social-interactions.service';
@@ -30,8 +37,33 @@ export class NotificationDrawerComponent {
       .filter((item) => !this.isBlockedActor(item) && !this.isToday(item.createdAt)),
   );
 
+  private previousFocus: HTMLElement | null = null;
+
+  /** The drawer is opened from outside this component (the topbar bell
+   *  button sets the signal directly), so the trigger element is captured
+   *  here reactively rather than at a single call site. */
+  private readonly trackOpenState = effect(() => {
+    if (this.social.notificationsOpen()) {
+      this.previousFocus = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    }
+  });
+
+  constructor() {
+    void this.trackOpenState;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.social.notificationsOpen()) this.close();
+  }
+
   protected close(): void {
     this.social.notificationsOpen.set(false);
+    const target = this.previousFocus;
+    this.previousFocus = null;
+    queueMicrotask(() => target?.focus());
   }
 
   protected async open(item: LocalNotification): Promise<void> {

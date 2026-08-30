@@ -106,12 +106,42 @@ export class InMemoryTagRepository implements ITagRepository {
     limit: number,
     offset: number,
     search?: string,
-    scope?: { tag?: string; postSubtype?: string },
+    scope?: { tag?: string; postSubtype?: string; state?: string; country?: string },
   ): Observable<Tag[]> {
-    return this.getFiltered(
-      { search, tags: scope?.tag ? [scope.tag] : undefined, postSubtype: scope?.postSubtype },
-      limit,
-      offset,
+    return this.tags$.pipe(
+      map((all) => {
+        let result = all.filter((t) => !t.publishStatus || t.publishStatus === 'published');
+
+        if (scope?.tag) result = result.filter((t) => t.tag === scope.tag);
+        if (scope?.postSubtype) result = result.filter((t) => t.postSubtype === scope.postSubtype);
+        if (scope?.state) {
+          const state = scope.state.toLowerCase();
+          result = result.filter((t) => t.state?.trim().toLowerCase() === state);
+        }
+        if (scope?.country) {
+          const country = scope.country.toLowerCase();
+          result = result.filter((t) => t.country?.trim().toLowerCase() === country);
+        }
+        if (search) {
+          const q = search.toLowerCase();
+          result = result.filter(
+            (t) =>
+              t.highlight.toLowerCase().includes(q) ||
+              (t.title?.toLowerCase().includes(q) ?? false) ||
+              t.username.toLowerCase().includes(q) ||
+              (t.businessName?.toLowerCase().includes(q) ?? false) ||
+              t.tag?.toLowerCase().includes(q),
+          );
+        }
+
+        result = [...result].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+
+        const start = offset ?? 0;
+        const end = limit ? start + limit : undefined;
+        return result.slice(start, end);
+      }),
     );
   }
 

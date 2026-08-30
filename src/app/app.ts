@@ -81,6 +81,15 @@ export class App {
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
+      // No upload zone in the app supports drag-and-drop (all are click-to-
+      // browse `<input type=file>`) and nothing else here preventDefaults a
+      // dragover/drop — so accidentally dragging a file over the app would
+      // otherwise fall through to the browser's default action, which is to
+      // navigate away and display the file. This guard makes that a no-op
+      // app-wide instead.
+      document.addEventListener('dragover', (event) => event.preventDefault());
+      document.addEventListener('drop', (event) => event.preventDefault());
+
       // Fire prefetches immediately so data arrives during the splash window.
       this.preload.prefetch();
       this.router.events

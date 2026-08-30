@@ -2,8 +2,11 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
   OnDestroy,
+  ViewChild,
+  effect,
   inject,
   signal,
   computed,
@@ -22,7 +25,6 @@ import { ToastService } from '../../core/services/toast.service';
 import { Store } from '@ngrx/store';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
 import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
-import { placeCode } from '../../core/data/state-codes';
 
 interface NominatimPlace {
   place_id: number;
@@ -143,11 +145,22 @@ export class AppTopbarComponent implements OnDestroy {
     return h?.place?.trim() || h?.district?.trim() || h?.state?.trim() || 'Set location';
   });
 
-  /** Short place code shown in the chip itself, e.g. "KA" for Karnataka. */
-  protected readonly hoodChipCode = computed(() => {
+  /** State name for the search placeholder — unlike hoodChipLabel, never falls back to a locality count. */
+  protected readonly searchStateLabel = computed(() => {
     const scope = this.workspace.feedBetaScope();
-    const stateName = scope?.location?.trim() || this.hood()?.state?.trim() || '';
-    return placeCode(stateName) || placeCode(this.hoodChipLabel());
+    if (scope?.location?.trim()) return scope.location.trim();
+    return this.hood()?.state?.trim() || '';
+  });
+
+  /**
+   * Registered home hood, e.g. "Marathahalli, Karnataka, India" — shown as a
+   * static info row in the user menu (matches the Profile settings format).
+   */
+  protected readonly homeHoodLabel = computed(() => {
+    const h = this.hood();
+    if (!h?.state) return '';
+    const locality = h.place || h.district;
+    return [locality, h.state, h.country].filter((part) => part?.trim()).join(', ');
   });
 
   /** Apple/Mac-style "change your location" modal — search, pick, Save, close. */
@@ -180,7 +193,52 @@ export class AppTopbarComponent implements OnDestroy {
   private postSearchTimeout?: ReturnType<typeof setTimeout>;
   private postSearchRequest = 0;
 
+  /** Filter button next to the search bar — a simple list of tags with posts in the current hood. */
+  protected readonly tagFilterOpen = signal(false);
+  protected readonly tagFilterOptions = computed(() =>
+    this.workspace.feedBetaCategories().map((category) => ({
+      key: category,
+      label: this.tagFilterLabel(category),
+    })),
+  );
+
+  protected toggleTagFilter(): void {
+    this.closePostSearch();
+    this.tagFilterOpen.update((v) => !v);
+  }
+
+  protected closeTagFilter(): void {
+    this.tagFilterOpen.set(false);
+  }
+
+  protected isActiveTagFilter(category: string): boolean {
+    return this.workspace.feedBetaScope()?.category === category;
+  }
+
+  /** Applies the chosen tag as the active feed category, scoped to the current hood. */
+  protected selectTagFilter(category: string): void {
+    this.closeTagFilter();
+    const scope = this.workspace.feedBetaScope();
+    if (scope) this.workspace.feedBetaScope.set({ ...scope, category });
+  }
+
+  private tagFilterLabel(category: string): string {
+    return category.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
   protected readonly userMenuOpen = signal(false);
+  @ViewChild('userMenuTrigger') private userMenuTrigger?: ElementRef<HTMLElement>;
+  private wasUserMenuOpen = false;
+
+  /** The trigger is a single, always-the-same button, so closing just refocuses it directly. */
+  private readonly restoreUserMenuFocus = effect(() => {
+    const isOpen = this.userMenuOpen();
+    const wasOpen = this.wasUserMenuOpen;
+    this.wasUserMenuOpen = isOpen;
+    if (isOpen || !wasOpen) return;
+    const trigger = this.userMenuTrigger?.nativeElement;
+    if (trigger) queueMicrotask(() => trigger.focus());
+  });
   protected readonly allThemes: { key: AppTheme; label: string; icon: string }[] = [
     { key: 'light', label: 'Light', icon: 'bi-sun-fill' },
     { key: 'dark', label: 'Dark', icon: 'bi-moon-fill' },
@@ -201,6 +259,7 @@ export class AppTopbarComponent implements OnDestroy {
   private readonly routerEvents: Subscription;
 
   constructor() {
+    void this.restoreUserMenuFocus;
     this.routerEvents = this.router.events.subscribe((event) => {
       if (!(event instanceof NavigationEnd)) return;
       this.closePostSearch();
@@ -216,8 +275,12 @@ export class AppTopbarComponent implements OnDestroy {
 
   // ── Hood picker modal ───────────────────────────────────────────────────
 
+  private hoodModalTrigger: HTMLElement | null = null;
+
   /** Opens the modal with a blank search box and no pending pick. */
   protected openHoodModal(): void {
+    this.hoodModalTrigger =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.hoodModalQuery.set('');
     this.hoodModalSelection.set(null);
     this.hoodModalOpen.set(true);
@@ -232,6 +295,9 @@ export class AppTopbarComponent implements OnDestroy {
     this.nominatimAbort?.abort();
     this.nominatimResults.set([]);
     this.isNominatimLoading.set(false);
+    const target = this.hoodModalTrigger;
+    this.hoodModalTrigger = null;
+    queueMicrotask(() => target?.focus());
   }
 
   /** Typing in the modal search box — filters known areas and queries Nominatim. */
@@ -314,6 +380,7 @@ export class AppTopbarComponent implements OnDestroy {
   }
 
   protected openPostSearch(): void {
+    this.closeTagFilter();
     this.postSearchOpen.set(true);
   }
 
@@ -399,7 +466,7 @@ export class AppTopbarComponent implements OnDestroy {
     const category =
       currentCategory && hasPostsIn(currentCategory)
         ? currentCategory
-        : (area.categories[0] ?? 'around');
+        : this.topCategoryFor(area);
     this.workspace.feedBetaScope.set({
       areaId: area.id,
       location: area.label,
@@ -407,6 +474,20 @@ export class AppTopbarComponent implements OnDestroy {
       hood: area.hood,
       category,
     });
+  }
+
+  /** Category with the most posts in this area (not just the first present). */
+  private topCategoryFor(area: FeedBetaArea): string {
+    let best = 'around';
+    let bestCount = -1;
+    for (const category of area.categories) {
+      const count = area.categoryCounts[category as keyof typeof area.categoryCounts] ?? 0;
+      if (count > bestCount) {
+        bestCount = count;
+        best = category;
+      }
+    }
+    return best;
   }
 
   /**
@@ -486,6 +567,7 @@ export class AppTopbarComponent implements OnDestroy {
   protected closeHomeMenusOnEscape(): void {
     this.userMenuOpen.set(false);
     this.closePostSearch();
+    this.closeTagFilter();
     if (this.hoodModalOpen()) this.closeHoodModal();
   }
 
@@ -495,11 +577,24 @@ export class AppTopbarComponent implements OnDestroy {
     this.toast.show('Theme updated.', 'success');
   }
 
+  /** Single switch in the user menu — flips between light and dark only. */
+  protected toggleDarkMode(): void {
+    this.theme.setTheme(this.theme.isDarkMode() ? 'light' : 'dark');
+  }
+
+  protected readonly loggingOut = signal(false);
+
   protected async logout(): Promise<void> {
-    await this.session.logout();
-    this.userMenuOpen.set(false);
-    this.toast.show('Logged out.', 'success');
-    await this.router.navigate(['/login']);
+    if (this.loggingOut()) return;
+    this.loggingOut.set(true);
+    try {
+      await this.session.logout();
+      this.userMenuOpen.set(false);
+      this.toast.show('Logged out.', 'success');
+      await this.router.navigate(['/login']);
+    } finally {
+      this.loggingOut.set(false);
+    }
   }
 
   /** Commits a Nominatim global-search result as the active feed scope. */

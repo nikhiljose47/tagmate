@@ -1,0 +1,175 @@
+<div class="wa-inbox">
+  <header class="wa-inbox-head">
+    <h1><i class="bi bi-whatsapp"></i> WhatsApp Inbox</h1>
+    <a class="text-action" routerLink="/profile">Back to profile</a>
+  </header>
+
+  @switch (connectionState()) { @case ('loading') {
+  <div class="wa-state-panel">Loading…</div>
+  } @case ('disconnected') {
+  <div class="wa-state-panel">
+    <i class="bi bi-whatsapp wa-state-icon"></i>
+    <p>Connect WhatsApp Business to receive and reply to customer messages.</p>
+    <a class="tm-btn tm-btn-primary" routerLink="/profile">Connect WhatsApp</a>
+  </div>
+  } @case ('error') {
+  <div class="wa-state-panel">
+    <i class="bi bi-exclamation-triangle-fill wa-state-icon wa-state-icon--warn"></i>
+    <p>Your WhatsApp connection needs attention before messages can be sent or received.</p>
+    <a class="tm-btn tm-btn-primary" routerLink="/profile">Go to Connections</a>
+  </div>
+  } @case ('connected') {
+  <div class="wa-inbox-body">
+    <aside class="wa-conversation-list">
+      @if (loadingConversations()) {
+      <div class="wa-state-panel wa-state-panel--inline">Loading conversations…</div>
+      } @else if (!conversations().length) {
+      <div class="wa-state-panel wa-state-panel--inline">
+        <p>No WhatsApp conversations yet.</p>
+        <small
+          >Customer messages sent to your connected WhatsApp Business number will appear
+          here.</small
+        >
+      </div>
+      } @else { @for (conv of conversations(); track conv.id) {
+      <button
+        type="button"
+        class="wa-conversation-row"
+        [class.wa-conversation-row--active]="selectedConversation()?.id === conv.id"
+        (click)="selectConversation(conv)"
+      >
+        <span class="wa-conversation-name"
+          >{{ conv.customerName || conv.customerPhone || conv.customerWaId }}</span
+        >
+        <span class="wa-conversation-time">{{ conv.lastMessageAt | date: 'short' }}</span>
+      </button>
+      } }
+    </aside>
+
+    <section class="wa-thread">
+      @if (!selectedConversation()) {
+      <div class="wa-state-panel wa-state-panel--inline">
+        Select a conversation to view messages.
+      </div>
+      } @else {
+      <header class="wa-thread-head">
+        <strong
+          >{{ selectedConversation()!.customerName || selectedConversation()!.customerPhone ||
+          selectedConversation()!.customerWaId }}</strong
+        >
+      </header>
+
+      <div class="wa-message-list">
+        @if (loadingMessages()) {
+        <div class="wa-state-panel wa-state-panel--inline">Loading messages…</div>
+        } @for (message of messages(); track message.id) {
+        <div
+          class="wa-message"
+          [class.wa-message--outbound]="message.direction === 'outbound'"
+          [class.wa-message--failed]="message.status === 'failed'"
+        >
+          <p>{{ message.textBody }}</p>
+          @if (message.direction === 'outbound') {
+          <span class="wa-message-status">
+            @switch (message.status) { @case ('failed') {
+            <i class="bi bi-exclamation-circle-fill"></i> Failed to send
+            <button
+              type="button"
+              class="text-action"
+              [disabled]="isRetrying(message.id)"
+              (click)="retry(message)"
+            >
+              Retry
+            </button>
+            } @case ('read') {
+            <i class="bi bi-check2-all"></i> Read } @case ('delivered') {
+            <i class="bi bi-check2-all"></i> Delivered } @default {
+            <i class="bi bi-check2"></i> Sent } }
+          </span>
+          }
+        </div>
+        }
+      </div>
+
+      @if (showTemplatePicker()) {
+      <div class="wa-template-picker">
+        <p>
+          It's been more than 24 hours since this customer messaged — send an approved template
+          instead.
+        </p>
+        <select
+          class="tm-input"
+          [ngModel]="selectedTemplateName()"
+          (ngModelChange)="onTemplateSelected($event)"
+        >
+          <option value="" disabled>Choose a template…</option>
+          @for (tpl of templates(); track tpl.name) {
+          <option [value]="tpl.name">{{ tpl.preview }}</option>
+          }
+        </select>
+
+        @if (selectedTemplate(); as template) { @if (template.variableCount > 0) {
+        <div class="wa-template-vars">
+          @for (value of templateParameters(); track $index) {
+          <input
+            class="tm-input"
+            type="text"
+            [placeholder]="
+              'Variable ' +
+              ($index + 1) +
+              (template.exampleValues[$index] ? ' (e.g. ' + template.exampleValues[$index] + ')' : '')
+            "
+            [ngModel]="value"
+            (ngModelChange)="setTemplateParameter($index, $event)"
+          />
+          }
+        </div>
+        }
+        <p class="wa-template-preview">{{ templatePreview() }}</p>
+        }
+
+        <button
+          type="button"
+          class="tm-btn tm-btn-primary"
+          [disabled]="!templateReadyToSend() || sending()"
+          (click)="sendTemplate()"
+        >
+          Send template
+        </button>
+      </div>
+      } @else {
+      <div class="wa-reply-box">
+        <input
+          class="tm-input"
+          type="text"
+          placeholder="Type a message…"
+          [disabled]="outsideServiceWindow() || sending()"
+          [ngModel]="replyText()"
+          (ngModelChange)="replyText.set($event)"
+          (keyup.enter)="send()"
+        />
+        <button
+          type="button"
+          class="tm-btn tm-btn-primary"
+          [disabled]="outsideServiceWindow() || sending() || !replyText().trim()"
+          (click)="send()"
+        >
+          Send
+        </button>
+      </div>
+      @if (outsideServiceWindow()) {
+      <p class="wa-window-hint">
+        More than 24 hours since the customer's last message —
+        <button
+          type="button"
+          class="text-action"
+          (click)="showTemplatePicker.set(true); loadTemplates()"
+        >
+          send a template instead
+        </button>
+      </p>
+      } } }
+    </section>
+  </div>
+  } }
+</div>

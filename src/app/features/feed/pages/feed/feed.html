@@ -243,6 +243,12 @@
     </article>
     }
 
+    @if (isLoadingMore()) {
+    <div class="feed-more" role="status" aria-live="polite">
+      <span class="feed-more-spinner" aria-hidden="true"></span>
+    </div>
+    }
+
     <div #scrollSentinel style="height: 1px; visibility: hidden"></div>
   </section>
 

@@ -607,6 +607,35 @@
   }
 }
 
+/* ── Load-more indicator (bottom of the infinite scroll) ─────── */
+
+.feed-more {
+  display: grid;
+  padding: 20px 0 28px;
+  place-items: center;
+}
+
+.feed-more-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid color-mix(in srgb, var(--tm-muted) 35%, transparent);
+  border-top-color: var(--tm-text);
+  border-radius: 50%;
+  animation: feed-spin 0.7s linear infinite;
+}
+
+@keyframes feed-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-more-spinner {
+    animation: none;
+  }
+}
+
 @media (min-width: 768px) {
   .scroll-top-btn {
     bottom: 24px;

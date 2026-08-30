@@ -69,18 +69,24 @@ function applySecurityHeaders(res: Response, nonce?: string): Response {
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
 
+  // https://connect.facebook.net (SDK script) + https://*.facebook.com (the
+  // Embedded Signup popup/iframe itself) are needed only for the WhatsApp
+  // "Connect" button (functions/api/integrations/whatsapp/*) — see
+  // docs/WHATSAPP_INTEGRATION_SETUP.md. No other Meta call happens from the
+  // browser; all Graph API requests are server-side.
   const scriptSrc = nonce
-    ? `'self' 'nonce-${nonce}' https://*.supabase.co https://*.maptiler.com`
-    : `'self' https://*.supabase.co https://*.maptiler.com`;
+    ? `'self' 'nonce-${nonce}' https://*.supabase.co https://*.maptiler.com https://connect.facebook.net`
+    : `'self' https://*.supabase.co https://*.maptiler.com https://connect.facebook.net`;
 
   const csp = [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
-    "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://*.maptiler.com https://nominatim.openstreetmap.org",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://*.maptiler.com https://nominatim.openstreetmap.org https://*.facebook.com https://*.facebook.net",
     "img-src 'self' data: blob: https://*.supabase.co https://*.maptiler.com",
-    "child-src 'self' blob:",
+    "child-src 'self' blob: https://*.facebook.com",
+    "frame-src 'self' https://*.facebook.com",
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",
   ].join('; ');

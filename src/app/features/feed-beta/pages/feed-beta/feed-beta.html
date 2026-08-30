@@ -1,4 +1,17 @@
 <div class="fb-scroller" #scroller>
+  <div
+    class="fb-pull-indicator"
+    [class.settling]="isPullSettling()"
+    [style.height.px]="pullDistance()"
+    aria-hidden="true"
+  >
+    <span
+      class="fb-pull-spinner"
+      [class.ready]="pullDistance() >= PULL_THRESHOLD || refreshing()"
+      [class.spinning]="refreshing()"
+    ></span>
+  </div>
+
   @if (isLoading()) {
   <div class="fb-slide fb-slide--skeleton" aria-busy="true" aria-label="Loading feed">
     <div class="fb-body">

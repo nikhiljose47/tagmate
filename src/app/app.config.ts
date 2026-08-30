@@ -5,7 +5,7 @@ import {
   provideZonelessChangeDetection,
   isDevMode,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideStore } from '@ngrx/store';
 
@@ -31,7 +31,11 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideHttpClient(withFetch(), withInterceptors([loggingInterceptor, errorInterceptor])),
     provideZonelessChangeDetection(),
-    provideRouter(routes),
+    // Restores the window's scroll offset on browser Back/Forward — was left
+    // at Angular's default (disabled) app-wide, so Back always landed at the
+    // top of the page. feed-beta's own scroller is a separate inner element
+    // (not window scroll), so this doesn't touch its scroll-snap behavior.
+    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
     provideClientHydration(withEventReplay()),
     provideStore({ userPref: userPrefReducer }, { metaReducers: [hoodPersistMetaReducer] }),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },

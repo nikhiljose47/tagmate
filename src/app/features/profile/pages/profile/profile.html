@@ -41,11 +41,21 @@
         >
           <i class="bi bi-pencil"></i>
         </button>
-        <button class="tm-btn tm-btn-danger logout-btn" type="button" (click)="logout()">
+        <button
+          class="tm-btn tm-btn-danger logout-btn"
+          type="button"
+          [disabled]="loggingOut()"
+          (click)="logout()"
+        >
           <i class="bi bi-box-arrow-right"></i> Logout
         </button>
         } @else {
-        <button class="tm-btn tm-btn-primary logout-btn" type="button" (click)="logout()">
+        <button
+          class="tm-btn tm-btn-primary logout-btn"
+          type="button"
+          [disabled]="loggingOut()"
+          (click)="logout()"
+        >
           <i class="bi bi-box-arrow-in-right"></i> Sign In
         </button>
         }
@@ -361,8 +371,19 @@
       >
       <div class="shop-images-grid mb-3">
         @for (url of editBusinessImages(); track url; let i = $index) {
-        <div class="shop-image-thumb">
-          <img [src]="url" alt="Shop photo" />
+        <div
+          class="shop-image-thumb"
+          [class.shop-image-thumb--dragging]="draggedBusinessImageIndex() === i"
+          [class.shop-image-thumb--drop-target]="
+            businessImageDropTargetIndex() === i && draggedBusinessImageIndex() !== i
+          "
+          draggable="true"
+          (dragstart)="onBusinessImageDragStart(i, $event)"
+          (dragover)="onBusinessImageDragOver(i, $event)"
+          (drop)="onBusinessImageDrop(i, $event)"
+          (dragend)="onBusinessImageDragEnd()"
+        >
+          <img [src]="url" alt="Shop photo" draggable="false" />
           <button
             type="button"
             class="shop-image-remove"
@@ -518,11 +539,30 @@
               <i class="bi bi-check-circle-fill"></i> Connected @if (summary.accountName) { — {{
               summary.accountName }} }
             </span>
+            @if ($any(summary.metadata)['displayPhoneNumber']; as phone) {
+            <span class="connection-status">{{ phone }}</span>
+            } } @else if (summary.status === 'error' && $any(summary.metadata)['setupIncomplete']) {
+            <span class="connection-status connection-status--expired">
+              <i class="bi bi-exclamation-triangle-fill"></i> Setup incomplete — we connected your
+              account but could not activate messaging.
+            </span>
+            } @else if (summary.status === 'expired' || summary.status === 'error') {
+            <span class="connection-status connection-status--expired">
+              <i class="bi bi-exclamation-triangle-fill"></i> Connection expired
+            </span>
             } @else {
             <span class="connection-status">Not connected</span>
             }
           </div>
-          @if (summary.connected) {
+          @if (summary.provider === 'whatsapp' && summary.connected) {
+          <button
+            class="tm-btn tm-btn-outline connection-action"
+            type="button"
+            (click)="goToWhatsAppInbox()"
+          >
+            Manage
+          </button>
+          } @if (summary.connected) {
           <button
             class="tm-btn tm-btn-outline connection-action"
             type="button"
@@ -534,9 +574,13 @@
           <button
             class="tm-btn tm-btn-outline connection-action"
             type="button"
+            [disabled]="connectingProvider() === summary.provider"
             (click)="connectIntegration(summary.provider)"
           >
-            Connect
+            @if (connectingProvider() === summary.provider) { Connecting… } @else if (summary.status
+            === 'error' && $any(summary.metadata)['setupIncomplete']) { Retry Setup } @else if
+            (summary.status === 'expired' || summary.status === 'error') { Reconnect } @else {
+            Connect }
           </button>
           }
         </div>
@@ -558,6 +602,7 @@
             type="button"
             class="shop-image-remove"
             aria-label="Remove offer"
+            [disabled]="isPendingAction(offer.id)"
             (click)="removeOffer(offer)"
           >
             <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -629,6 +674,7 @@
             type="button"
             class="shop-image-remove"
             aria-label="Remove item"
+            [disabled]="isPendingAction(item.id)"
             (click)="removeItem(item)"
           >
             <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -858,11 +904,28 @@
           </div>
         </div>
         <div class="post-card-lifecycle">
-          <button type="button" class="pcl-btn" (click)="extendPost(tag, 240)">Extend +4h</button>
-          <button type="button" class="pcl-btn" (click)="markSoldOrFull(tag)">
+          <button
+            type="button"
+            class="pcl-btn"
+            [disabled]="isPendingAction(tag.id)"
+            (click)="extendPost(tag, 240)"
+          >
+            Extend +4h
+          </button>
+          <button
+            type="button"
+            class="pcl-btn"
+            [disabled]="isPendingAction(tag.id)"
+            (click)="markSoldOrFull(tag)"
+          >
             Mark Sold/Full
           </button>
-          <button type="button" class="pcl-btn pcl-btn--danger" (click)="endPostNow(tag)">
+          <button
+            type="button"
+            class="pcl-btn pcl-btn--danger"
+            [disabled]="isPendingAction(tag.id)"
+            (click)="endPostNow(tag)"
+          >
             End Now
           </button>
         </div>

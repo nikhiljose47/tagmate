@@ -33,6 +33,8 @@ import {
   isEventLikePost,
 } from '../../../../core/models/social.model';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { PostPublicationService } from '../../../../core/services/post-publication.service';
+import { PostPublication } from '../../../../core/models/post-publication.model';
 import {
   BusinessPostContentComponent,
   formatEventRange,
@@ -70,8 +72,12 @@ export class PostDetailPage implements OnInit {
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly publicationsApi = inject(PostPublicationService);
 
   protected readonly post = signal<Tag | null>(null);
+  /** Website/Instagram publish status — owner-only, business posts only. */
+  protected readonly publications = signal<PostPublication[]>([]);
+  protected readonly retryingPublicationId = signal<string | null>(null);
   protected readonly currentImage = computed(() => this.post()?.images[this.mediaIndex()] ?? null);
   protected readonly relatedPosts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -138,6 +144,9 @@ export class PostDetailPage implements OnInit {
           if (post) {
             this.loadRelated(post);
             void this.platform.hydratePostTrust(this.social.postKey(post));
+            if (post.postType === 'business' && post.userId === this.platform.myUid() && post.id) {
+              this.loadPublications(post.id);
+            }
           }
         },
         error: (err) => {
@@ -204,19 +213,24 @@ export class PostDetailPage implements OnInit {
 
   protected addComment(): void {
     const post = this.post();
-    if (!post) return;
-    this.social.addComment(post, this.commentText());
+    const text = this.commentText().trim();
+    // Guard on the trimmed text itself (not just the button's [disabled],
+    // which lags a tick behind) — clearing the signal synchronously below
+    // means a genuine second click always sees it empty here and no-ops.
+    if (!post || !text) return;
     this.commentText.set('');
     this.mentionSuggestions.set([]);
+    this.social.addComment(post, text);
   }
 
   protected addReply(parentId: string): void {
     const post = this.post();
-    if (!post) return;
-    this.social.addComment(post, this.replyText(), 'You', parentId);
+    const text = this.replyText().trim();
+    if (!post || !text) return;
     this.replyText.set('');
     this.replyTo.set(null);
     this.mentionSuggestions.set([]);
+    this.social.addComment(post, text, 'You', parentId);
   }
 
   protected upvoteComment(commentId: string): void {
@@ -372,10 +386,11 @@ export class PostDetailPage implements OnInit {
 
   protected sendMessage(): void {
     const post = this.post();
-    if (!post) return;
-    this.social.sendMessage(post, this.messageText());
+    const text = this.messageText().trim();
+    if (!post || !text) return;
     this.messageText.set('');
     this.showMessageBox.set(false);
+    this.social.sendMessage(post, text);
   }
 
   protected openMap(): void {
@@ -463,6 +478,45 @@ export class PostDetailPage implements OnInit {
         },
         error: (err) => this.logger.error('Failed to load related posts', err),
       });
+  }
+
+  private loadPublications(postId: string): void {
+    this.publicationsApi
+      .getForPost(postId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (rows) => this.publications.set(rows),
+        error: (err) => this.logger.error('Failed to load publish status', err),
+      });
+  }
+
+  protected instagramPublication(): PostPublication | undefined {
+    return this.publications().find((p) => p.provider === 'instagram');
+  }
+
+  protected websitePublication(): PostPublication | undefined {
+    return this.publications().find((p) => p.provider === 'website');
+  }
+
+  async retryInstagramPublish(publication: PostPublication): Promise<void> {
+    this.retryingPublicationId.set(publication.id);
+    try {
+      await this.publicationsApi.retryInstagram(publication.id);
+      this.toast.show('Retrying Instagram publish…', 'info');
+      const postId = this.post()?.id;
+      if (postId) {
+        // The actual Meta call runs server-side in the background — reload
+        // once immediately and once shortly after so the result shows up
+        // without requiring a manual page refresh.
+        this.loadPublications(postId);
+        setTimeout(() => this.loadPublications(postId), 4000);
+      }
+    } catch (err: unknown) {
+      this.logger.error('Failed to retry Instagram publish', err);
+      this.toast.show('Could not retry right now. Try again.', 'danger');
+    } finally {
+      this.retryingPublicationId.set(null);
+    }
   }
 
   private slugFor(value: string): string {

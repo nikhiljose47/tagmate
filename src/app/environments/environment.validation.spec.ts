@@ -8,6 +8,9 @@ describe('validateEnvironment', () => {
     mapTilerApiKey: 'map-key',
     supabaseUrl: 'https://example.supabase.co',
     supabaseAnonKey: 'anon-key',
+    metaAppId: '',
+    metaGraphApiVersion: 'v21.0',
+    whatsappEmbeddedSignupConfigId: '',
   };
 
   it('accepts complete HTTPS configuration', () => {

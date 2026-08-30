@@ -70,6 +70,44 @@ export class BusinessPhotosPage {
     this.shopImages.update((imgs) => imgs.filter((_, i) => i !== index));
   }
 
+  // ── Drag-to-reorder (plain HTML5 DnD, no @angular/cdk dependency) ───────
+  draggedShopImageIndex = signal<number | null>(null);
+  shopImageDropTargetIndex = signal<number | null>(null);
+
+  onShopImageDragStart(index: number, event: DragEvent): void {
+    this.draggedShopImageIndex.set(index);
+    event.dataTransfer?.setData('text/plain', String(index));
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  }
+
+  onShopImageDragOver(index: number, event: DragEvent): void {
+    if (this.draggedShopImageIndex() === null) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.shopImageDropTargetIndex.set(index);
+  }
+
+  onShopImageDrop(index: number, event: DragEvent): void {
+    event.preventDefault();
+    const from = this.draggedShopImageIndex();
+    this.draggedShopImageIndex.set(null);
+    this.shopImageDropTargetIndex.set(null);
+    if (from === null || from === index) return;
+
+    this.shopImages.update((imgs) => {
+      const next = [...imgs];
+      const [moved] = next.splice(from, 1);
+      if (moved === undefined) return imgs;
+      next.splice(index, 0, moved);
+      return next;
+    });
+  }
+
+  onShopImageDragEnd(): void {
+    this.draggedShopImageIndex.set(null);
+    this.shopImageDropTargetIndex.set(null);
+  }
+
   async onLogoSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];

@@ -12,8 +12,19 @@
     >
     <div class="bp-images-grid">
       @for (url of shopImages(); track url; let i = $index) {
-      <div class="bp-image-thumb">
-        <img [src]="url" alt="Shop photo" />
+      <div
+        class="bp-image-thumb"
+        [class.bp-image-thumb--dragging]="draggedShopImageIndex() === i"
+        [class.bp-image-thumb--drop-target]="
+          shopImageDropTargetIndex() === i && draggedShopImageIndex() !== i
+        "
+        draggable="true"
+        (dragstart)="onShopImageDragStart(i, $event)"
+        (dragover)="onShopImageDragOver(i, $event)"
+        (drop)="onShopImageDrop(i, $event)"
+        (dragend)="onShopImageDragEnd()"
+      >
+        <img [src]="url" alt="Shop photo" draggable="false" />
         <button
           type="button"
           class="bp-image-remove"

@@ -194,11 +194,13 @@
                   ></i>
                 </button>
               </div>
-              @if (password() && !isPasswordStrong(password())) {
-              <span class="field-hint field-hint-error"
-                >Min. 8 chars with uppercase, lowercase and a number.</span
-              >
-              }
+              <div class="field-hint-slot field-hint-slot--wrap">
+                @if (password() && !isPasswordStrong(password())) {
+                <span class="field-hint field-hint-error"
+                  >Min. 8 chars with uppercase, lowercase and a number.</span
+                >
+                }
+              </div>
             </div>
           </div>
 
@@ -227,11 +229,13 @@
                 [disabled]="loading()"
                 autocomplete="username"
               />
-              @if (usernameChecking()) {
-              <span class="field-hint">Checking availability…</span>
-              } @else if (usernameTaken()) {
-              <span class="field-hint field-hint-error">That username is taken.</span>
-              }
+              <div class="field-hint-slot">
+                @if (usernameChecking()) {
+                <span class="field-hint">Checking availability…</span>
+                } @else if (usernameTaken()) {
+                <span class="field-hint field-hint-error">That username is taken.</span>
+                }
+              </div>
             </div>
           </div>
 
@@ -498,6 +502,13 @@
               ><i class="bi bi-check-circle-fill" aria-hidden="true"></i> New website created for
               this business</span
             >
+            } @else if (!generatingWebsite() && !businessWebsite()) {
+            <span class="field-hint"
+              >No website link yet.
+              <button type="button" class="link-btn" (click)="useGeneratedWebsite()">
+                Generate one
+              </button>
+            </span>
             }
             <button type="button" class="link-btn" [disabled]="loading()" (click)="useOwnWebsite()">
               Already have a website? Use your own link instead
@@ -562,14 +573,22 @@
       <!-- ── Business name confirmation popup ── -->
       @if (showNameConfirmDialog()) {
       <div class="modal-overlay" (click)="cancelNameConfirm()">
-        <div class="modal-card" (click)="$event.stopPropagation()">
-          <h2 class="modal-title">Confirm business name</h2>
+        <div
+          class="modal-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-name-title"
+          (click)="$event.stopPropagation()"
+        >
+          <h2 class="modal-title" id="confirm-name-title">Confirm business name</h2>
           <p class="modal-copy">
             You entered <strong>"{{ businessName().trim() }}"</strong> — this cannot be changed
             later. Confirm this is correct?
           </p>
           <div class="modal-actions">
-            <button type="button" class="tm-btn" (click)="cancelNameConfirm()">Cancel</button>
+            <button type="button" class="tm-btn" autofocus (click)="cancelNameConfirm()">
+              Cancel
+            </button>
             <button type="button" class="tm-btn tm-btn-primary" (click)="confirmBusinessName()">
               Confirm
             </button>

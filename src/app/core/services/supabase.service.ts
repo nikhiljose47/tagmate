@@ -73,6 +73,10 @@ export class SupabaseService {
     return this.auth.deleteAccount();
   }
 
+  getAccessToken(): Promise<string | null> {
+    return this.auth.getAccessToken();
+  }
+
   resetPassword(email: string) {
     return this.auth.resetPassword(email);
   }

@@ -25,6 +25,7 @@ import { MediaCompressionService } from '../../../../core/services/media-compres
 import { BusinessOfferService } from '../../../../core/services/business-offer.service';
 import { BusinessItemService } from '../../../../core/services/business-item.service';
 import { BusinessIntegrationService } from '../../../../core/services/business-integration.service';
+import { FacebookSdkService } from '../../../../core/services/facebook-sdk.service';
 import {
   BusinessOffer,
   BusinessItem,
@@ -146,6 +147,7 @@ export class ProfilePage implements OnInit {
   private readonly offersApi = inject(BusinessOfferService);
   private readonly itemsApi = inject(BusinessItemService);
   private readonly integrationsApi = inject(BusinessIntegrationService);
+  private readonly facebookSdk = inject(FacebookSdkService);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly theme = inject(ThemeService);
@@ -249,6 +251,7 @@ export class ProfilePage implements OnInit {
   ngOnInit(): void {
     this.social.activateRealtime();
     this.settings.set(this.readProfileSettings());
+    this.handleInstagramOAuthRedirect();
     this.tagRepo
       .getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -320,13 +323,78 @@ export class ProfilePage implements OnInit {
     return provider === IntegrationProvider.Instagram ? 'bi-instagram' : 'bi-whatsapp';
   }
 
-  /** Step 2 wires this up to real OAuth — for now it's a placeholder so the UI
-   *  structure (and the "Connect" click target) already exists. */
-  connectIntegration(provider: IntegrationProvider): void {
-    this.toast.show(`Connecting ${this.providerLabel(provider)} is coming soon.`, 'info');
+  goToWhatsAppInbox(): void {
+    void this.router.navigate(['/whatsapp']);
+  }
+
+  connectingProvider = signal<IntegrationProvider | null>(null);
+
+  async connectIntegration(provider: IntegrationProvider): Promise<void> {
+    if (provider === IntegrationProvider.Instagram) {
+      try {
+        const authorizationUrl = await this.integrationsApi.requestInstagramAuthorizationUrl();
+        // A full-page navigation, not a fetch — the browser needs to actually
+        // land on Instagram's own login/consent screen.
+        window.location.href = authorizationUrl;
+      } catch (err: unknown) {
+        this.logger.error('Failed to start Instagram connect', err);
+        this.toast.show('Could not start Instagram sign-in. Try again.', 'danger');
+      }
+      return;
+    }
+
+    if (provider === IntegrationProvider.Whatsapp) {
+      this.connectingProvider.set(provider);
+      try {
+        const sessionId = await this.integrationsApi.requestWhatsAppSignupSession();
+        const code = await this.facebookSdk.launchWhatsAppEmbeddedSignup();
+        if (!code) {
+          this.toast.show('WhatsApp sign-in was cancelled.', 'info');
+          return;
+        }
+        const summary = await this.integrationsApi.completeWhatsAppSignup(sessionId, code);
+        this.loadIntegrations();
+        this.toast.show(
+          summary.connected
+            ? 'WhatsApp connected.'
+            : 'We connected your account but could not activate messaging. Retry setup from Connections.',
+          summary.connected ? 'success' : 'warning',
+        );
+      } catch (err: unknown) {
+        this.logger.error('Failed to connect WhatsApp', err);
+        this.toast.show(
+          err instanceof Error ? err.message : 'Could not connect WhatsApp. Try again.',
+          'danger',
+        );
+      } finally {
+        this.connectingProvider.set(null);
+      }
+    }
   }
 
   async disconnectIntegration(provider: IntegrationProvider): Promise<void> {
+    if (provider === IntegrationProvider.Instagram) {
+      try {
+        await this.integrationsApi.disconnectInstagram();
+        this.loadIntegrations();
+        this.toast.show('Instagram disconnected.', 'success');
+      } catch (err: unknown) {
+        this.logger.error('Failed to disconnect Instagram', err);
+        this.toast.show('Could not disconnect right now. Try again.', 'danger');
+      }
+      return;
+    }
+    if (provider === IntegrationProvider.Whatsapp) {
+      try {
+        await this.integrationsApi.disconnectWhatsApp();
+        this.loadIntegrations();
+        this.toast.show('WhatsApp disconnected.', 'success');
+      } catch (err: unknown) {
+        this.logger.error('Failed to disconnect WhatsApp', err);
+        this.toast.show('Could not disconnect right now. Try again.', 'danger');
+      }
+      return;
+    }
     const uid = this.sessionService.user()?.uid;
     if (!uid) return;
     try {
@@ -337,6 +405,30 @@ export class ProfilePage implements OnInit {
       this.logger.error('Failed to disconnect integration', err);
       this.toast.show('Could not disconnect right now. Try again.', 'danger');
     }
+  }
+
+  /** Handles the `?instagram=connected|error` redirect from
+   *  functions/api/integrations/instagram/callback.js, then strips the query
+   *  param so a page refresh doesn't re-show the toast. */
+  private handleInstagramOAuthRedirect(): void {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('instagram');
+    if (!result) return;
+    if (result === 'connected') {
+      this.toast.show('Instagram connected.', 'success');
+      this.loadIntegrations();
+    } else if (result === 'error') {
+      const reason = params.get('reason');
+      const message =
+        reason === 'denied'
+          ? 'Instagram sign-in was cancelled.'
+          : reason === 'unsupported_account_type'
+            ? 'Only Instagram Business or Creator accounts can be connected.'
+            : 'Could not connect Instagram. Please try again.';
+      this.toast.show(message, 'danger');
+    }
+    void this.router.navigate([], { queryParams: {}, replaceUrl: true });
   }
 
   async deleteTag(tag: Tag): Promise<void> {
@@ -493,6 +585,44 @@ export class ProfilePage implements OnInit {
     this.editBusinessImages.update((imgs) => imgs.filter((_, i) => i !== index));
   }
 
+  // ── Drag-to-reorder (plain HTML5 DnD, no @angular/cdk dependency) ───────
+  draggedBusinessImageIndex = signal<number | null>(null);
+  businessImageDropTargetIndex = signal<number | null>(null);
+
+  onBusinessImageDragStart(index: number, event: DragEvent): void {
+    this.draggedBusinessImageIndex.set(index);
+    event.dataTransfer?.setData('text/plain', String(index));
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  }
+
+  onBusinessImageDragOver(index: number, event: DragEvent): void {
+    if (this.draggedBusinessImageIndex() === null) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.businessImageDropTargetIndex.set(index);
+  }
+
+  onBusinessImageDrop(index: number, event: DragEvent): void {
+    event.preventDefault();
+    const from = this.draggedBusinessImageIndex();
+    this.draggedBusinessImageIndex.set(null);
+    this.businessImageDropTargetIndex.set(null);
+    if (from === null || from === index) return;
+
+    this.editBusinessImages.update((imgs) => {
+      const next = [...imgs];
+      const [moved] = next.splice(from, 1);
+      if (moved === undefined) return imgs;
+      next.splice(index, 0, moved);
+      return next;
+    });
+  }
+
+  onBusinessImageDragEnd(): void {
+    this.draggedBusinessImageIndex.set(null);
+    this.businessImageDropTargetIndex.set(null);
+  }
+
   async onOfferImageSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -542,12 +672,15 @@ export class ProfilePage implements OnInit {
   }
 
   async removeOffer(offer: BusinessOffer): Promise<void> {
+    if (this.isPendingAction(offer.id)) return;
+    this.setPendingAction(offer.id, true);
     try {
       await firstValueFrom(this.offersApi.delete(offer.id));
       this.businessOffers.update((offers) => offers.filter((o) => o.id !== offer.id));
     } catch (err) {
       this.logger.error('Failed to remove offer', err);
       this.toast.show('Could not remove the offer.', 'danger');
+      this.setPendingAction(offer.id, false);
     }
   }
 
@@ -602,12 +735,15 @@ export class ProfilePage implements OnInit {
   }
 
   async removeItem(item: BusinessItem): Promise<void> {
+    if (this.isPendingAction(item.id)) return;
+    this.setPendingAction(item.id, true);
     try {
       await firstValueFrom(this.itemsApi.delete(item.id));
       this.businessItems.update((items) => items.filter((i) => i.id !== item.id));
     } catch (err) {
       this.logger.error('Failed to remove item', err);
       this.toast.show('Could not remove the item.', 'danger');
+      this.setPendingAction(item.id, false);
     }
   }
 
@@ -709,8 +845,27 @@ export class ProfilePage implements OnInit {
     this.myTags.update((tags) => tags.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
 
+  /** Per-row in-flight guard shared by the post/offer/item actions below — keyed
+   *  by the row's own id, so a rapid double-click can't fire the same mutation
+   *  twice while still letting other rows' actions run independently. */
+  protected readonly pendingActionIds = signal<ReadonlySet<string>>(new Set());
+
+  protected isPendingAction(id: string | undefined): boolean {
+    return !!id && this.pendingActionIds().has(id);
+  }
+
+  private setPendingAction(id: string, pending: boolean): void {
+    this.pendingActionIds.update((current) => {
+      const next = new Set(current);
+      if (pending) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
   async extendPost(tag: Tag, addMinutes: number): Promise<void> {
-    if (!tag.id) return;
+    if (!tag.id || this.isPendingAction(tag.id)) return;
+    this.setPendingAction(tag.id, true);
     try {
       const updated = await firstValueFrom(
         this.tagRepo.update(tag.id, {
@@ -723,22 +878,36 @@ export class ProfilePage implements OnInit {
     } catch (err) {
       this.logger.error('Failed to extend post', err);
       this.toast.show('Could not extend the post.', 'danger');
+    } finally {
+      this.setPendingAction(tag.id, false);
     }
   }
 
   async markSoldOrFull(tag: Tag): Promise<void> {
-    const ok = await this.platform.setPostStatus(tag, 'resolved', '');
-    if (ok && tag.id) {
-      this.patchMyTag(tag.id, { currentStatus: 'resolved' });
-      this.toast.show('Marked sold/full.', 'success');
+    if (!tag.id || this.isPendingAction(tag.id)) return;
+    this.setPendingAction(tag.id, true);
+    try {
+      const ok = await this.platform.setPostStatus(tag, 'resolved', '');
+      if (ok && tag.id) {
+        this.patchMyTag(tag.id, { currentStatus: 'resolved' });
+        this.toast.show('Marked sold/full.', 'success');
+      }
+    } finally {
+      this.setPendingAction(tag.id, false);
     }
   }
 
   async endPostNow(tag: Tag): Promise<void> {
-    const ok = await this.platform.setPostStatus(tag, 'cancelled', '');
-    if (ok && tag.id) {
-      this.patchMyTag(tag.id, { currentStatus: 'cancelled' });
-      this.toast.show('Post ended.', 'success');
+    if (!tag.id || this.isPendingAction(tag.id)) return;
+    this.setPendingAction(tag.id, true);
+    try {
+      const ok = await this.platform.setPostStatus(tag, 'cancelled', '');
+      if (ok && tag.id) {
+        this.patchMyTag(tag.id, { currentStatus: 'cancelled' });
+        this.toast.show('Post ended.', 'success');
+      }
+    } finally {
+      this.setPendingAction(tag.id, false);
     }
   }
 
@@ -803,7 +972,11 @@ export class ProfilePage implements OnInit {
     void this.router.navigate(['/post/edit', key]);
   }
 
+  protected readonly loggingOut = signal(false);
+
   async logout(): Promise<void> {
+    if (this.loggingOut()) return;
+    this.loggingOut.set(true);
     try {
       await this.sessionService.logout();
       this.toast.show('Logged out.', 'success');
@@ -811,6 +984,7 @@ export class ProfilePage implements OnInit {
     } catch (err) {
       this.logger.error('Logout failed', err);
       this.toast.show('Could not log out.', 'danger');
+      this.loggingOut.set(false);
     }
   }
 

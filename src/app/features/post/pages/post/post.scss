@@ -222,7 +222,9 @@
   padding: 8px 10px;
   border: 1px solid #e3c274;
   border-radius: 8px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   box-sizing: border-box;
 
   &:focus-within {
@@ -311,7 +313,7 @@
   flex-wrap: wrap;
 }
 
-/* Individual tile (image or video) */
+/* Individual tile (image or video) — drag-to-reorder source */
 .media-tile {
   position: relative;
   width: 53px;
@@ -320,9 +322,19 @@
   overflow: hidden;
   flex-shrink: 0;
   background: var(--tm-bg);
+  cursor: grab;
+  transition: opacity 0.15s ease;
 
   /* Subtle ring to separate from background */
   box-shadow: 0 0 0 1px var(--tm-border);
+
+  &--dragging {
+    opacity: 0.4;
+  }
+
+  &--drop-target {
+    box-shadow: 0 0 0 2px var(--tm-primary);
+  }
 }
 
 .media-thumb {
@@ -345,11 +357,16 @@
 }
 
 .media-remove {
+  // `.media-tile`'s `overflow: hidden` (needed to clip the thumbnail to its
+  // rounded corner) also clips any hit-area a button here tries to extend
+  // beyond the tile's own 53px box — so a true 44x44 tap target isn't
+  // achievable without enlarging the thumbnail itself. This is the largest
+  // size that still fits the corner without swallowing the image.
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.55);
@@ -760,7 +777,9 @@
   }
 
   &--active {
-    box-shadow: 0 0 0 2px var(--tm-surface), 0 0 0 4px var(--tm-primary);
+    box-shadow:
+      0 0 0 2px var(--tm-surface),
+      0 0 0 4px var(--tm-primary);
   }
 }
 
@@ -1629,6 +1648,58 @@
 
 .preview-actions--business {
   flex-wrap: wrap;
+}
+
+/* ── Step 6 (Instagram): publish-destination checkboxes ───────────────── */
+.publish-destinations {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--tm-border);
+}
+
+.publish-destination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-text);
+  cursor: pointer;
+
+  &--locked {
+    color: var(--tm-text-secondary);
+    cursor: default;
+  }
+
+  &--disabled {
+    color: var(--tm-text-secondary);
+    cursor: not-allowed;
+  }
+}
+
+.publish-destination-hint {
+  margin: 0 0 0 24px;
+  color: var(--tm-text-secondary);
+  font-size: 12px;
+}
+
+.publish-destination--connect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm-text-secondary);
+
+  small {
+    display: block;
+    font-weight: 500;
+    font-size: 11px;
+  }
 }
 
 /* ── Step 5.A: draft / schedule / publish ─────────────────────────────── */

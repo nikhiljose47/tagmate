@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  HostListener,
   signal,
   computed,
   inject,
@@ -250,17 +251,33 @@ export class SignupPage implements OnInit {
     this.businessLogo.set(null);
   }
 
+  private nameConfirmTrigger: HTMLElement | null = null;
+
   requestConfirmBusinessName(): void {
     if (!this.businessName().trim() || this.businessNameConfirmed()) return;
+    this.nameConfirmTrigger =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.showNameConfirmDialog.set(true);
   }
 
-  cancelNameConfirm(): void {
+  private closeNameConfirmDialog(): void {
     this.showNameConfirmDialog.set(false);
+    const target = this.nameConfirmTrigger;
+    this.nameConfirmTrigger = null;
+    queueMicrotask(() => target?.focus());
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.showNameConfirmDialog()) this.cancelNameConfirm();
+  }
+
+  cancelNameConfirm(): void {
+    this.closeNameConfirmDialog();
   }
 
   async confirmBusinessName(): Promise<void> {
-    this.showNameConfirmDialog.set(false);
+    this.closeNameConfirmDialog();
     this.businessNameConfirmed.set(true);
     await this.generateWebsite();
   }
@@ -344,19 +361,36 @@ export class SignupPage implements OnInit {
     const hoodOk = !!pick && !!pick.state && !!pick.country && !!pick.district;
     if (this.loading()) return false;
     if (this.accountType() === 'business') {
-      return hoodOk && !!this.businessEstablishedYear();
+      return (
+        hoodOk &&
+        !!this.businessEstablishedYear() &&
+        this.canProceedBusinessIdentityStep() &&
+        this.canProceedCategoryStep() &&
+        this.canProceedBusinessMediaStep()
+      );
     }
     return hoodOk && !!this.birthMonth() && !!this.birthDay() && !!this.birthYear();
   });
 
+  /**
+   * Re-checks the *current* step's own gate before advancing — the disabled
+   * attribute on the Continue button is the usual guard, but a fast enough
+   * double-click can fire two `nextStep()` calls before Angular re-renders
+   * that binding, letting the second call skip a whole step. This makes
+   * `nextStep()` itself the source of truth, not just button timing.
+   */
   nextStep(): void {
     if (this.step() === 1) {
+      if (!this.canProceedStep1()) return;
       this.step.set(this.accountType() === 'business' ? 2 : 5);
     } else if (this.step() === 2) {
+      if (!this.canProceedBusinessIdentityStep()) return;
       this.step.set(3);
     } else if (this.step() === 3) {
+      if (!this.canProceedCategoryStep()) return;
       this.step.set(4);
     } else if (this.step() === 4) {
+      if (!this.canProceedBusinessMediaStep()) return;
       this.step.set(5);
     }
   }

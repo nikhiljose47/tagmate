@@ -40,7 +40,7 @@ export class SupabaseTagRepository implements ITagRepository {
     limit: number,
     offset: number,
     search?: string,
-    scope?: { tag?: string; postSubtype?: string },
+    scope?: { tag?: string; postSubtype?: string; state?: string; country?: string },
   ): Observable<Tag[]> {
     return this.tagData.getLatestPaginated<TagRow>('tags', limit, offset, search, scope).pipe(
       retry({ count: 3, delay: 2000 }),

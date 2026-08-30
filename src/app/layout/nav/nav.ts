@@ -1,10 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { SocialPlatformService } from '../../core/services/social-platform.service';
 import { FeatureFlagsService, AppFeatureFlags } from '../../core/services/feature-flags.service';
+import { UserSessionService } from '../../core/services/user-session.service';
 import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
 
 interface NavItem {
@@ -14,6 +22,7 @@ interface NavItem {
   label: string;
   mobile?: boolean;
   adminOnly?: boolean;
+  businessOnly?: boolean;
   featureFlag?: keyof AppFeatureFlags;
 }
 
@@ -28,11 +37,15 @@ interface NavItem {
 export class NavComponent {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly sessionService = inject(UserSessionService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly featureFlags = inject(FeatureFlagsService);
 
   private readonly session = toSignal(this.auth.session$, { initialValue: null });
   readonly isAdmin = computed(() => this.session()?.user?.app_metadata?.['role'] === 'admin');
+  readonly isBusinessAccount = computed(
+    () => this.sessionService.user()?.accountType === 'business',
+  );
 
   readonly navItems: NavItem[] = [
     {
@@ -42,7 +55,6 @@ export class NavComponent {
       label: 'Home',
       mobile: true,
     },
-    { route: '/hood', icon: 'bi-map', activeIcon: 'bi-map-fill', label: 'Map', mobile: true },
     // Island is intentionally hidden for now.
     {
       route: '/post',
@@ -57,6 +69,13 @@ export class NavComponent {
       activeIcon: 'bi-chat-left-dots-fill',
       label: 'Messages',
       mobile: true,
+    },
+    {
+      route: '/whatsapp',
+      icon: 'bi-whatsapp',
+      activeIcon: 'bi-whatsapp',
+      label: 'WhatsApp',
+      businessOnly: true,
     },
     { route: '/reports', icon: 'bi-flag', activeIcon: 'bi-flag-fill', label: 'Reports' },
     {
@@ -73,12 +92,6 @@ export class NavComponent {
       label: 'Admin',
       adminOnly: true,
     },
-    {
-      route: '/profile',
-      icon: 'bi-person',
-      activeIcon: 'bi-person-fill',
-      label: 'Profile',
-    },
   ];
 
   readonly moreMenuOpen = signal(false);
@@ -86,6 +99,7 @@ export class NavComponent {
   readonly visibleNavItems = computed(() =>
     this.navItems.filter((item) => {
       if (item.adminOnly && !this.isAdmin()) return false;
+      if (item.businessOnly && !this.isBusinessAccount()) return false;
       if (item.featureFlag === 'enableHoodIsland' && !this.featureFlags.enableHoodIsland())
         return false;
       if (item.featureFlag === 'enableAnalytics' && !this.featureFlags.enableAnalytics())
@@ -115,6 +129,11 @@ export class NavComponent {
 
   closeMore(): void {
     this.moreMenuOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.moreMenuOpen()) this.closeMore();
   }
 
   goTo(route: string): void {

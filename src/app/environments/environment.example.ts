@@ -7,4 +7,7 @@ export const environment: AppEnvironment = {
   mapTilerApiKey: '',
   supabaseUrl: '',
   supabaseAnonKey: '',
+  metaAppId: '',
+  metaGraphApiVersion: 'v21.0',
+  whatsappEmbeddedSignupConfigId: '',
 };

@@ -14,7 +14,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 import { ContrastTextPipe } from '../../../../shared/pipes/contrast-text.pipe';
 import { ActivatedRoute, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, take } from 'rxjs';
 import { PostCta, PostIntent, PublishStatus, Tag } from '../../../../core/models/tag.model';
 import { SharedStateService, PostDraft } from '../../../../core/services/shared-state.service';
 import { UserSessionService } from '../../../../core/services/user-session.service';
@@ -43,6 +43,9 @@ import {
 } from '../../data/post-template-registry';
 import { PostTemplateRegistryService } from '../../services/post-template-registry.service';
 import { PostTemplateAnalyticsService } from '../../services/post-template-analytics.service';
+import { BusinessIntegrationService } from '../../../../core/services/business-integration.service';
+import { PostPublicationService } from '../../../../core/services/post-publication.service';
+import { IntegrationProvider, IntegrationStatus } from '../../../../core/enums/integration.enum';
 import {
   BUSINESS_TAG_CATEGORIES,
   PERSONAL_TAG_CATEGORIES,
@@ -207,6 +210,8 @@ export class PostPage implements OnDestroy {
   private readonly workspace = inject(WorkspaceStateService);
   private readonly templateRegistry = inject(PostTemplateRegistryService);
   private readonly templateAnalytics = inject(PostTemplateAnalyticsService);
+  private readonly integrationsApi = inject(BusinessIntegrationService);
+  private readonly publicationsApi = inject(PostPublicationService);
 
   public readonly shared = inject(SharedStateService);
   private readonly router = inject(Router);
@@ -446,6 +451,11 @@ export class PostPage implements OnDestroy {
   // ── Signals (required for zoneless CD) ──────────────────────────────────
   isSubmitting = signal(false);
   mediaItems = signal<MediaItem[]>([]);
+  /** Whether this business has a CONNECTED Instagram integration — loaded
+   *  when entering preview (see loadInstagramConnection()). */
+  instagramConnected = signal(false);
+  /** "Publish to Instagram" checkbox in the preview step. */
+  publishToInstagram = signal(false);
   showMapHint = signal(false);
   locationErrorVisible = signal(false);
   shakeLocation = signal(false);
@@ -966,6 +976,45 @@ export class PostPage implements OnDestroy {
     });
   }
 
+  // ── Drag-to-reorder (media thumbnails) ──────────────────────────────────
+  // Plain HTML5 DnD — no @angular/cdk dependency in this project.
+  protected readonly draggedMediaIndex = signal<number | null>(null);
+  protected readonly mediaDropTargetIndex = signal<number | null>(null);
+
+  onMediaDragStart(index: number, event: DragEvent): void {
+    this.draggedMediaIndex.set(index);
+    event.dataTransfer?.setData('text/plain', String(index));
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  }
+
+  onMediaDragOver(index: number, event: DragEvent): void {
+    if (this.draggedMediaIndex() === null) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.mediaDropTargetIndex.set(index);
+  }
+
+  onMediaDrop(index: number, event: DragEvent): void {
+    event.preventDefault();
+    const from = this.draggedMediaIndex();
+    this.draggedMediaIndex.set(null);
+    this.mediaDropTargetIndex.set(null);
+    if (from === null || from === index) return;
+
+    this.mediaItems.update((items) => {
+      const next = [...items];
+      const [moved] = next.splice(from, 1);
+      if (moved === undefined) return items;
+      next.splice(index, 0, moved);
+      return next;
+    });
+  }
+
+  onMediaDragEnd(): void {
+    this.draggedMediaIndex.set(null);
+    this.mediaDropTargetIndex.set(null);
+  }
+
   isVideo(item: MediaItem): boolean {
     return item.type === 'video';
   }
@@ -1050,7 +1099,28 @@ export class PostPage implements OnDestroy {
   openPreview(f: NgForm): void {
     if (!this.validateDetails(f)) return;
     this.step.set('preview');
+    if (this.postType() === 'business') this.loadInstagramConnection();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private loadInstagramConnection(): void {
+    this.integrationsApi
+      .getIntegration(IntegrationProvider.Instagram)
+      .pipe(take(1))
+      .subscribe((integration) => {
+        this.instagramConnected.set(integration?.status === IntegrationStatus.Connected);
+        // Media requirement may already be known by now; default the checkbox
+        // on for a connected business with media, off otherwise — never force
+        // a destination the business hasn't actively kept checked.
+        if (!this.instagramConnected() || !this.hasPublishableMedia()) {
+          this.publishToInstagram.set(false);
+        }
+      });
+  }
+
+  /** Instagram requires an image or video — a text-only post can't be published there. */
+  hasPublishableMedia(): boolean {
+    return this.mediaItems().length > 0;
   }
 
   editPost(): void {
@@ -1153,7 +1223,8 @@ export class PostPage implements OnDestroy {
   /** Owner-only action while editing a scheduled post: pull it back to draft. */
   async moveToDraft(): Promise<void> {
     const id = this.editingPostId();
-    if (!id) return;
+    if (!id || this.isSubmitting()) return;
+    this.isSubmitting.set(true);
     try {
       await firstValueFrom(
         this.tagRepo.update(id, {
@@ -1167,6 +1238,8 @@ export class PostPage implements OnDestroy {
     } catch (e) {
       this.logger.error('Failed to move post back to draft', e);
       this.toast.show('Could not update the post. Please try again.', 'danger');
+    } finally {
+      this.isSubmitting.set(false);
     }
   }
 
@@ -1341,6 +1414,20 @@ export class PostPage implements OnDestroy {
         }
       }
 
+      if (status === 'published' && this.postType() === 'business' && saved.id) {
+        const destinations: ('website' | 'instagram')[] =
+          this.instagramConnected() && this.publishToInstagram() && this.hasPublishableMedia()
+            ? ['website', 'instagram']
+            : ['website'];
+        // Fire-and-forget: website recording is near-instant, and Instagram
+        // (if requested) runs in the background server-side — the post is
+        // already saved and shown either way, so a publish-tracking failure
+        // here must never block or fail the post itself.
+        this.publicationsApi.requestPublish(saved.id, destinations).catch((err: unknown) => {
+          this.logger.error('Failed to record publish destinations', err);
+        });
+      }
+
       if (status === 'published') {
         this.telemetry.track('activation.post-created', { kind: saved.tag ?? 'tag' });
         this.submitted.emit(saved);
@@ -1374,7 +1461,8 @@ export class PostPage implements OnDestroy {
    *  deletion path as any other post, no separate drafts system. */
   async deleteCurrentPost(): Promise<void> {
     const id = this.editingPostId();
-    if (!id) return;
+    if (!id || this.isSubmitting()) return;
+    this.isSubmitting.set(true);
     try {
       await firstValueFrom(this.tagRepo.delete(id));
       this.toast.show('Deleted.', 'success');
@@ -1383,6 +1471,7 @@ export class PostPage implements OnDestroy {
     } catch (e) {
       this.logger.error('Failed to delete post', e);
       this.toast.show('Could not delete the post. Please try again.', 'danger');
+      this.isSubmitting.set(false);
     }
   }
 

@@ -362,6 +362,7 @@ export class UserSessionService {
   /** Generates a unique `multi-tenant-web.nikhiljose47.workers.dev/<code>/<business-name-slug>` link — throws if generation fails. */
   async generateBusinessWebsite(businessName: string): Promise<string> {
     const { website } = await this.supabase.generateBusinessWebsite(businessName);
+    if (!website) throw new Error('Could not generate a website link.');
     return website;
   }
 

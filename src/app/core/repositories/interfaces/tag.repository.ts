@@ -32,14 +32,15 @@ export interface ITagRepository {
   ): Observable<Tag[]>;
   /**
    * `scope` is optional and additive (Step 4.B) — existing 3-arg call sites
-   * behave exactly as before. When supplied, `tag`/`postSubtype` are pushed
-   * down to the query instead of always loading unrelated posts.
+   * behave exactly as before. When supplied, `tag`/`postSubtype`/`state`/
+   * `country` are pushed down to the query instead of always loading
+   * unrelated posts.
    */
   getPaginated(
     limit: number,
     offset: number,
     search?: string,
-    scope?: { tag?: string; postSubtype?: string },
+    scope?: { tag?: string; postSubtype?: string; state?: string; country?: string },
   ): Observable<Tag[]>;
   getById(id: string): Observable<Tag | null>;
   getByUserId(userId: string): Observable<Tag[]>;

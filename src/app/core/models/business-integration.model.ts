@@ -17,6 +17,10 @@ export interface BusinessIntegration {
   providerAccountId: string | null;
   providerAccountName: string | null;
   tokenExpiresAt: string | null;
+  /** Non-secret, provider-specific extra fields — e.g. WhatsApp's
+   *  `WhatsAppIntegrationMetadata` (WABA/phone identifiers). Never contains
+   *  a token; see the column comment on `business_integrations.metadata`. */
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,4 +32,5 @@ export interface ConnectionSummary {
   connected: boolean;
   status: IntegrationStatus;
   accountName: string | null;
+  metadata: Record<string, unknown>;
 }

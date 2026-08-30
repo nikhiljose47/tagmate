@@ -16,8 +16,10 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
 import { Subject, takeUntil } from 'rxjs';
+import { selectHood } from '../../../../store/user-preferences/user-preference.selectors';
 import { Tag } from '../../../../core/models/tag.model';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -106,6 +108,8 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly platform = inject(SocialPlatformService);
   private readonly toast = inject(ToastService);
   protected readonly workspace = inject(WorkspaceStateService);
+  private readonly store = inject(Store);
+  private readonly hood = this.store.selectSignal(selectHood);
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -113,9 +117,24 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly loadError = signal(false);
   protected readonly hasMore = signal(true);
 
+  // ── Pull-to-refresh ──────────────────────────────────────────────────────
+  // `.fb-scroller` suppresses scroll-chaining (`overscroll-behavior-y: contain`)
+  // so the browser's native pull-to-refresh never fires here — this replaces it.
+  protected readonly pullDistance = signal(0);
+  protected readonly isPullSettling = signal(false);
+  protected readonly refreshing = signal(false);
+  protected readonly PULL_THRESHOLD = 64;
+  private readonly PULL_MAX = 100;
+  private pullStartY: number | null = null;
+  private touchMoveListener?: (event: TouchEvent) => void;
+  private touchEndListener?: (event: TouchEvent) => void;
+
   private offset = 0;
   private readonly PAGE_SIZE = 25;
   private readonly destroy$ = new Subject<void>();
+
+  /** Area (state+country) the currently-loaded page of posts is scoped to — `null` before the very first, unscoped discovery load. */
+  private loadedAreaId: string | null = null;
 
   @ViewChild('scroller') private scroller?: ElementRef<HTMLElement>;
   @ViewChild('scrollSentinel') private sentinel?: ElementRef<HTMLElement>;
@@ -214,11 +233,53 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // Areas are already sorted by post count (see areasFor) — pick the top one
-    // deterministically instead of a random area on every navigation.
+    // Default to the user's own home hood, not whichever state happens to have
+    // the most posts — a Karnataka user shouldn't land on a Delhi feed.
+    const home = this.hood();
+    const homeState = home?.state?.trim();
+    if (homeState) {
+      const norm = (s: string) => s.trim().toLowerCase();
+      const homeArea = areas.find((area) => norm(area.label) === norm(homeState));
+      if (homeArea) {
+        this.workspace.feedBetaScope.set(this.toScope(homeArea, this.topCategoryFor(homeArea)));
+        return;
+      }
+
+      // No posts yet in the user's home hood — scope there anyway (freeform)
+      // so the empty state offers to be the first post in *their* hood,
+      // instead of silently falling back to someone else's state.
+      this.workspace.feedBetaScope.set({
+        areaId: this.scopeKey(homeState),
+        location: homeState,
+        country: home?.country?.trim() || homeState,
+        hood: home?.place?.trim() || home?.district?.trim() || homeState,
+        category: 'around',
+        freeform: true,
+      });
+      return;
+    }
+
+    // No home hood on file (e.g. guest session) — fall back to the busiest
+    // area, sorted deterministically by post count (see areasFor).
     const topArea = areas[0];
     if (!topArea) return;
-    this.workspace.feedBetaScope.set(this.toScope(topArea, topArea.categories[0] ?? 'around'));
+    this.workspace.feedBetaScope.set(this.toScope(topArea, this.topCategoryFor(topArea)));
+  });
+
+  /** Refetches scoped to state+country once an area is settled on, instead of paging the global feed. */
+  private readonly scopedReload = effect(() => {
+    const scope = this.workspace.feedBetaScope();
+    // Ignore null/freeform rather than clearing loadedAreaId on them — loadPosts(true) transiently
+    // empties posts(), which briefly nulls the scope too; treating that as "no area" would refetch forever.
+    if (!scope || scope.freeform) return;
+
+    const areaId = scope.areaId;
+    if (areaId === this.loadedAreaId) return;
+    this.loadedAreaId = areaId;
+
+    this.offset = 0;
+    this.hasMore.set(true);
+    this.loadPosts(true);
   });
 
   private readonly scrollScopeToTop = effect(() => {
@@ -254,6 +315,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   constructor() {
     void this.syncFeedScope;
+    void this.scopedReload;
     void this.scrollScopeToTop;
   }
 
@@ -302,6 +364,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.watchCenteredSlide();
+    this.watchPullToRefresh();
 
     if (typeof IntersectionObserver === 'undefined') return;
 
@@ -335,6 +398,14 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.activeSlideObserver?.disconnect();
     if (this.scrollListener && this.scroller) {
       this.scroller.nativeElement.removeEventListener('scroll', this.scrollListener);
+    }
+    if (this.scroller) {
+      const el = this.scroller.nativeElement;
+      if (this.touchMoveListener) el.removeEventListener('touchmove', this.touchMoveListener);
+      if (this.touchEndListener) {
+        el.removeEventListener('touchend', this.touchEndListener);
+        el.removeEventListener('touchcancel', this.touchEndListener);
+      }
     }
     this.destroy$.next();
     this.destroy$.complete();
@@ -405,8 +476,12 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.toast.show(saved ? 'Post saved.' : 'Post removed from saved.', 'success');
   }
 
+  private locationDrawerTrigger: HTMLElement | null = null;
+
   protected openLocation(slide: BetaSlide): void {
     if (!this.hasCoordinates(slide.post)) return;
+    this.locationDrawerTrigger =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.mapSlide.set(slide);
     requestAnimationFrame(() => void this.renderDrawerMap(slide));
   }
@@ -424,6 +499,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   protected closeLocation(): void {
     this.mapSlide.set(null);
     this.destroyDrawerMap();
+    const target = this.locationDrawerTrigger;
+    this.locationDrawerTrigger = null;
+    queueMicrotask(() => target?.focus());
   }
 
   @HostListener('document:keydown.escape')
@@ -645,6 +723,87 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.loadPosts(true);
   }
 
+  private currentScopeFilter(): { state?: string; country: string } | undefined {
+    const scope = this.workspace.feedBetaScope();
+    if (!scope || scope.freeform) return undefined;
+    // `location` falls back to the country name when a post has no `state` (see areasFor/toScope).
+    const hasDistinctState =
+      scope.location.trim().toLowerCase() !== scope.country.trim().toLowerCase();
+    return { state: hasDistinctState ? scope.location : undefined, country: scope.country };
+  }
+
+  /** Wires up touch tracking on the scroller for pull-to-refresh (see `pullDistance` above). */
+  private watchPullToRefresh(): void {
+    const el = this.scroller?.nativeElement;
+    if (!el || typeof TouchEvent === 'undefined') return;
+
+    el.addEventListener(
+      'touchstart',
+      (event: TouchEvent) => {
+        if (this.refreshing() || el.scrollTop > 0) {
+          this.pullStartY = null;
+          return;
+        }
+        this.pullStartY = event.touches[0]?.clientY ?? null;
+      },
+      { passive: true },
+    );
+
+    // Needs to be non-passive to preventDefault the native scroll/bounce while pulling.
+    this.touchMoveListener = (event: TouchEvent) => {
+      if (this.pullStartY === null) return;
+      const currentY = event.touches[0]?.clientY;
+      if (currentY === undefined) return;
+      const delta = currentY - this.pullStartY;
+      if (delta <= 0 || el.scrollTop > 0) {
+        this.pullStartY = null;
+        this.pullDistance.set(0);
+        return;
+      }
+      event.preventDefault();
+      this.isPullSettling.set(false);
+      this.pullDistance.set(Math.min(delta * 0.5, this.PULL_MAX));
+    };
+    el.addEventListener('touchmove', this.touchMoveListener, { passive: false });
+
+    this.touchEndListener = () => {
+      this.pullStartY = null;
+      this.isPullSettling.set(true);
+      if (this.pullDistance() >= this.PULL_THRESHOLD) {
+        this.pullDistance.set(this.PULL_THRESHOLD);
+        this.pullToRefresh();
+      } else {
+        this.pullDistance.set(0);
+      }
+    };
+    el.addEventListener('touchend', this.touchEndListener);
+    el.addEventListener('touchcancel', this.touchEndListener);
+  }
+
+  /** Refetches the top of the current scope without blanking the feed first (unlike `retry()`/reset loads). */
+  private pullToRefresh(): void {
+    if (this.refreshing()) return;
+    this.refreshing.set(true);
+    this.offset = 0;
+
+    this.tagRepo.getPaginated(this.PAGE_SIZE, 0, undefined, this.currentScopeFilter()).subscribe({
+      next: (newPosts) => {
+        this.posts.set(newPosts);
+        this.hasMore.set(newPosts.length === this.PAGE_SIZE);
+        this.refreshing.set(false);
+        this.isPullSettling.set(true);
+        this.pullDistance.set(0);
+      },
+      error: (err) => {
+        this.logger.error('Pull-to-refresh failed', err);
+        this.toast.show('Could not refresh the feed.', 'danger');
+        this.refreshing.set(false);
+        this.isPullSettling.set(true);
+        this.pullDistance.set(0);
+      },
+    });
+  }
+
   private loadPosts(reset = false): void {
     if (reset) {
       this.isLoading.set(true);
@@ -654,7 +813,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     }
     this.loadError.set(false);
 
-    this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset).subscribe({
+    this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset, undefined, this.currentScopeFilter()).subscribe({
       next: (newPosts) => {
         if (reset) {
           this.posts.set(newPosts);
@@ -705,6 +864,20 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     if (parts.length <= 1) return parts[0] ?? raw;
     // The first segment is usually a street/road; the second is the neighbourhood.
     return parts[1]!;
+  }
+
+  /** Category with the most posts in this area (not just the first present). */
+  private topCategoryFor(area: FeedBetaArea): string {
+    let best = 'around';
+    let bestCount = -1;
+    for (const category of area.categories) {
+      const count = area.categoryCounts[category as keyof typeof area.categoryCounts] ?? 0;
+      if (count > bestCount) {
+        bestCount = count;
+        best = category;
+      }
+    }
+    return best;
   }
 
   private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {

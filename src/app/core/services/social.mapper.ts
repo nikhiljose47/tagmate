@@ -6,12 +6,19 @@ import {
 } from '../models/tag.model';
 import { BusinessIntegration } from '../models/business-integration.model';
 import { PostPublication } from '../models/post-publication.model';
+import { WhatsAppConversation, WhatsAppMessage } from '../models/whatsapp.model';
 import {
   IntegrationProvider,
   IntegrationStatus,
   PublicationDestination,
   PublicationStatus,
 } from '../enums/integration.enum';
+import {
+  ConversationStatus,
+  MessageDirection,
+  MessageStatus,
+  MessageType,
+} from '../enums/whatsapp.enum';
 
 /** `users` row used by profile lookup and search queries. */
 export interface UserRow {
@@ -271,6 +278,7 @@ export interface BusinessIntegrationRow {
   provider_account_id: string | null;
   provider_account_name: string | null;
   token_expires_at: string | null;
+  metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -284,6 +292,7 @@ export function rowToBusinessIntegration(row: BusinessIntegrationRow): BusinessI
     providerAccountId: row.provider_account_id,
     providerAccountName: row.provider_account_name,
     tokenExpiresAt: row.token_expires_at,
+    metadata: row.metadata ?? {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -313,6 +322,78 @@ export function rowToPostPublication(row: PostPublicationRow): PostPublication {
     errorCode: row.error_code,
     errorMessage: row.error_message,
     publishedAt: row.published_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** `whatsapp_conversations` row (snake_case, matches the Supabase table). */
+export interface WhatsAppConversationRow {
+  id: string;
+  business_id: string;
+  integration_id: string;
+  customer_wa_id: string;
+  customer_phone: string | null;
+  customer_name: string | null;
+  last_message_at: string | null;
+  last_customer_message_at: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function rowToWhatsAppConversation(row: WhatsAppConversationRow): WhatsAppConversation {
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    integrationId: row.integration_id,
+    customerWaId: row.customer_wa_id,
+    customerPhone: row.customer_phone,
+    customerName: row.customer_name,
+    lastMessageAt: row.last_message_at,
+    lastCustomerMessageAt: row.last_customer_message_at,
+    status: row.status as ConversationStatus,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** `whatsapp_messages` row (snake_case, matches the Supabase table). */
+export interface WhatsAppMessageRow {
+  id: string;
+  business_id: string;
+  conversation_id: string;
+  integration_id: string;
+  provider_message_id: string | null;
+  direction: string;
+  type: string;
+  text_body: string | null;
+  provider_media_id: string | null;
+  media_url: string | null;
+  status: string;
+  error_code: string | null;
+  error_message: string | null;
+  provider_timestamp: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function rowToWhatsAppMessage(row: WhatsAppMessageRow): WhatsAppMessage {
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    conversationId: row.conversation_id,
+    integrationId: row.integration_id,
+    providerMessageId: row.provider_message_id,
+    direction: row.direction as MessageDirection,
+    type: row.type as MessageType,
+    textBody: row.text_body,
+    providerMediaId: row.provider_media_id,
+    mediaUrl: row.media_url,
+    status: row.status as MessageStatus,
+    errorCode: row.error_code,
+    errorMessage: row.error_message,
+    providerTimestamp: row.provider_timestamp,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

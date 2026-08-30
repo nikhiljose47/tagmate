@@ -360,16 +360,61 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  scroll-snap-type: y proximity;
+  // mandatory (not proximity) so scroll-snap-stop below actually caps one swipe to one slide
+  scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scrollbar-width: none;
   /* Neutral background shows through as the gap between cards below. */
   padding-top: 0;
   background: var(--tm-bg, #f1f5f9);
+  // Without this, the browser's scroll-anchoring "helpfully" adjusts scrollTop
+  // to cancel out the pull-indicator's height growth below, silently
+  // swallowing the whole gesture.
+  overflow-anchor: none;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* ── Pull-to-refresh indicator ────────────────────────────────── */
+
+.fb-pull-indicator {
+  display: grid;
+  place-items: center;
+  height: 0;
+  overflow: hidden;
+  scroll-snap-align: none;
+
+  &.settling {
+    transition: height 0.25s ease;
+  }
+}
+
+.fb-pull-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid color-mix(in srgb, var(--tm-muted) 35%, transparent);
+  border-top-color: var(--tm-muted);
+  border-radius: 50%;
+  transition:
+    border-top-color 0.15s ease,
+    transform 0.15s ease;
+
+  &.ready {
+    border-top-color: var(--tm-primary);
+    transform: scale(1.1);
+  }
+
+  &.spinning {
+    animation: fb-spin 0.7s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-pull-spinner.spinning {
+    animation: none;
   }
 }
 
@@ -812,15 +857,15 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  min-height: 34px;
+  min-height: 44px;
 }
 
 .fb-card-actions button,
 .fb-card-actions a {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   background: transparent;

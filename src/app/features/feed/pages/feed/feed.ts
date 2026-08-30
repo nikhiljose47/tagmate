@@ -18,6 +18,7 @@ import { Store } from '@ngrx/store';
 import { Tag } from '../../../../core/models/tag.model';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
+import { BoundingBox } from '../../../../core/repositories/interfaces/tag.repository';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { SharedStateService } from '../../../../core/services/shared-state.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
@@ -35,6 +36,9 @@ import { WorkspaceStateService } from '../../../../layout/workspace/workspace-st
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 
 type FeedMode = 'latest' | 'nearby' | 'following';
+
+/** Radius (km) used to build the bounding box for "Nearby" mode's server-side geo query. */
+const NEARBY_RADIUS_KM = 25;
 
 @Component({
   selector: 'app-feed',
@@ -207,10 +211,30 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset, this.searchText().trim()).subscribe({
-      next: (newPosts) => this.handleLoadedPosts(newPosts, reset),
-      error: (err) => this.handleLoadError(err),
-    });
+    if (this.mode() === 'nearby') {
+      // Server-side bounding-box query (same RPC hood.ts uses), not a client-side distance sort.
+      const fallbackLat = this.hood()?.coords?.lat ?? 0;
+      const fallbackLng = this.hood()?.coords?.lng ?? 0;
+      const [lat, lng] = this.proximityCoords() ?? [fallbackLat, fallbackLng];
+      this.tagRepo.getInBounds(this.boundingBoxAround(lat, lng, NEARBY_RADIUS_KM)).subscribe({
+        next: (posts) => {
+          this.handleLoadedPosts(posts, true);
+          this.hasMore.set(false); // bounding-box fetch already returns everything in range
+        },
+        error: (err) => this.handleLoadError(err),
+      });
+      return;
+    }
+
+    const category = this.selectedCategory();
+    const scope = category !== 'all' ? { tag: category } : undefined;
+
+    this.tagRepo
+      .getPaginated(this.PAGE_SIZE, this.offset, this.searchText().trim(), scope)
+      .subscribe({
+        next: (newPosts) => this.handleLoadedPosts(newPosts, reset),
+        error: (err) => this.handleLoadError(err),
+      });
   }
 
   protected loadMore(): void {
@@ -276,7 +300,12 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   protected setCategory(category: string): void {
+    if (this.selectedCategory() === category) return;
     this.selectedCategory.set(category);
+    // Re-fetch scoped to this tag server-side instead of filtering the loaded page.
+    this.offset = 0;
+    this.hasMore.set(true);
+    this.loadPosts(true);
   }
 
   protected async toggleTopicFollow(): Promise<void> {
@@ -389,6 +418,18 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
     const fallbackLng = this.hood()?.coords?.lng ?? 0;
     const [lat, lng] = this.proximityCoords() ?? [fallbackLat, fallbackLng];
     return Math.pow(post.lat - lat, 2) + Math.pow(post.lng - lng, 2);
+  }
+
+  /** A rough (square, not circular) bounding box of `radiusKm` around a point — ~111km/degree latitude. */
+  private boundingBoxAround(lat: number, lng: number, radiusKm: number): BoundingBox {
+    const latDelta = radiusKm / 111;
+    const lngDelta = radiusKm / (111 * Math.max(Math.cos((lat * Math.PI) / 180), 0.01));
+    return {
+      minLat: lat - latDelta,
+      maxLat: lat + latDelta,
+      minLng: lng - lngDelta,
+      maxLng: lng + lngDelta,
+    };
   }
 
   private handleLoadedPosts(newPosts: Tag[], reset: boolean): void {

@@ -59,12 +59,23 @@
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--tm-border);
+  cursor: grab;
+  transition: opacity 0.15s ease;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+
+  &--dragging {
+    opacity: 0.4;
+  }
+
+  &--drop-target {
+    border-color: var(--tm-primary);
+    box-shadow: 0 0 0 2px var(--tm-primary);
   }
 }
 

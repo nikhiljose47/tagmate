@@ -93,6 +93,12 @@ export const routes: Routes = [
     loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES),
   },
   {
+    path: 'whatsapp',
+    canActivate: [authGuard, businessPhotosGuard],
+    loadChildren: () =>
+      import('./features/whatsapp/whatsapp.routes').then((m) => m.WHATSAPP_ROUTES),
+  },
+  {
     path: 'users/:uid',
     canActivate: [authGuard, businessPhotosGuard],
     loadComponent: () =>

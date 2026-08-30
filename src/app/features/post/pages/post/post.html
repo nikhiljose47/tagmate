@@ -101,8 +101,7 @@
         <span class="step-details-tag">
           {{ formData.tag | tagEmoji }} {{ tagLabel($any(formData.tag)) }}
         </span>
-        }
-        @if (postType() === 'personal' && helpSuggestions(); as help) {
+        } @if (postType() === 'personal' && helpSuggestions(); as help) {
         <div
           class="help-tips"
           (mouseenter)="showHelpPanel.set(true)"
@@ -231,7 +230,17 @@
         </div>
         <div class="media-grid">
           @for (item of mediaItems(); track item.previewUrl; let i = $index) {
-          <div class="media-tile" [class.media-tile--video]="isVideo(item)">
+          <div
+            class="media-tile"
+            [class.media-tile--video]="isVideo(item)"
+            [class.media-tile--dragging]="draggedMediaIndex() === i"
+            [class.media-tile--drop-target]="mediaDropTargetIndex() === i && draggedMediaIndex() !== i"
+            draggable="true"
+            (dragstart)="onMediaDragStart(i, $event)"
+            (dragover)="onMediaDragOver(i, $event)"
+            (drop)="onMediaDrop(i, $event)"
+            (dragend)="onMediaDragEnd()"
+          >
             @if (isVideo(item)) {
             <video
               [src]="item.previewUrl"
@@ -239,10 +248,16 @@
               muted
               playsinline
               preload="metadata"
+              draggable="false"
             ></video>
             <span class="media-badge"><i class="bi bi-play-circle-fill"></i></span>
             } @else {
-            <img [src]="item.previewUrl" alt="Selected post media" class="media-thumb" />
+            <img
+              [src]="item.previewUrl"
+              alt="Selected post media"
+              class="media-thumb"
+              draggable="false"
+            />
             }
             <button
               type="button"
@@ -534,7 +549,40 @@
         </div>
       </article>
 
-      @if (postType() === 'business') { @if (showScheduleForm()) {
+      @if (postType() === 'business') {
+      <div class="publish-destinations">
+        <span class="field-title">Publish to</span>
+        <label class="publish-destination publish-destination--locked">
+          <input type="checkbox" checked disabled />
+          <span>Website</span>
+        </label>
+        @if (instagramConnected()) {
+        <label
+          class="publish-destination"
+          [class.publish-destination--disabled]="!hasPublishableMedia()"
+        >
+          <input
+            type="checkbox"
+            [checked]="publishToInstagram()"
+            [disabled]="!hasPublishableMedia()"
+            (change)="publishToInstagram.set($any($event.target).checked)"
+          />
+          <span>Instagram</span>
+        </label>
+        @if (!hasPublishableMedia()) {
+        <p class="publish-destination-hint">
+          Instagram requires an image or video. Add media to publish this post to Instagram.
+        </p>
+        } } @else {
+        <div class="publish-destination publish-destination--connect">
+          <span>Instagram <small>Not connected</small></span>
+          <button type="button" class="text-action" (click)="goToProfile()">
+            Connect Instagram
+          </button>
+        </div>
+        }
+      </div>
+      } @if (postType() === 'business') { @if (showScheduleForm()) {
       <div class="schedule-form">
         <div class="schedule-form-fields">
           <label>
@@ -602,11 +650,21 @@
       @if (editingPostId()) {
       <div class="preview-owner-actions">
         @if (editingPublishStatus() === 'scheduled') {
-        <button type="button" class="text-action" (click)="moveToDraft()">
+        <button
+          type="button"
+          class="text-action"
+          [disabled]="isSubmitting()"
+          (click)="moveToDraft()"
+        >
           Move back to draft
         </button>
         }
-        <button type="button" class="text-action text-action--danger" (click)="deleteCurrentPost()">
+        <button
+          type="button"
+          class="text-action text-action--danger"
+          [disabled]="isSubmitting()"
+          (click)="deleteCurrentPost()"
+        >
           Delete
         </button>
       </div>

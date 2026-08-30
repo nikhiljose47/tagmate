@@ -46,6 +46,7 @@ export class BusinessIntegrationService {
             connected: row?.status === IntegrationStatus.Connected,
             status: row?.status ?? IntegrationStatus.Disconnected,
             accountName: row?.providerAccountName ?? null,
+            metadata: row?.metadata ?? {},
           } satisfies ConnectionSummary;
         });
       }),
@@ -67,6 +68,84 @@ export class BusinessIntegrationService {
 
   // upsertIntegration()/updateIntegrationStatus() are intentionally NOT implemented
   // client-side: writing a 'connected' row requires proof of a completed OAuth
-  // flow, which only the backend (service-role key) can attest to. Step 2 adds
-  // those as Cloudflare Pages Function endpoints once Instagram OAuth exists.
+  // flow, which only the backend (service-role key) can attest to — see the
+  // functions/api/integrations/instagram/* Pages Functions below instead.
+
+  /** Starts the Instagram OAuth flow: gets a one-time authorization URL from
+   *  the backend (bound to this business via a server-side `state` row) and
+   *  hands it back for the caller to navigate to. A plain top-level
+   *  navigation can't carry an Authorization header, so this has to be a
+   *  `fetch()` first, then `window.location.href = authorizationUrl`. */
+  async requestInstagramAuthorizationUrl(): Promise<string> {
+    const response = await this.authorizedFetch('/api/integrations/instagram/connect');
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || 'Could not start Instagram sign-in.');
+    }
+    const { authorizationUrl } = (await response.json()) as { authorizationUrl: string };
+    return authorizationUrl;
+  }
+
+  /** Disconnects Instagram through the backend (best-effort remote
+   *  revocation + local credential removal) — prefer this over
+   *  `disconnectIntegration()` for providers that have a real OAuth backend. */
+  async disconnectInstagram(): Promise<void> {
+    const response = await this.authorizedFetch('/api/integrations/instagram/disconnect', {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || 'Could not disconnect Instagram.');
+    }
+  }
+
+  /** Starts a WhatsApp Embedded Signup attempt: mints a one-time session
+   *  bound to this business (same pattern as Instagram's `oauth_states`),
+   *  used to prove ownership when `completeWhatsAppSignup()` is called after
+   *  Meta's Embedded Signup popup finishes. */
+  async requestWhatsAppSignupSession(): Promise<string> {
+    const response = await this.authorizedFetch('/api/integrations/whatsapp/connect-session');
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || 'Could not start WhatsApp sign-in.');
+    }
+    const { sessionId } = (await response.json()) as { sessionId: string };
+    return sessionId;
+  }
+
+  /** Finishes Embedded Signup with the authorization `code` Meta's JS SDK
+   *  returned from the popup flow, plus the `sessionId` from
+   *  `requestWhatsAppSignupSession()`. All Meta API calls happen server-side. */
+  async completeWhatsAppSignup(sessionId: string, code: string): Promise<ConnectionSummary> {
+    const response = await this.authorizedFetch('/api/integrations/whatsapp/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, code }),
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || 'Could not connect WhatsApp.');
+    }
+    return response.json();
+  }
+
+  async disconnectWhatsApp(): Promise<void> {
+    const response = await this.authorizedFetch('/api/integrations/whatsapp/disconnect', {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || 'Could not disconnect WhatsApp.');
+    }
+  }
+
+  private async authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+    const token = await this.supabase.getAccessToken();
+    if (!token) throw new Error('You must be signed in.');
+    return fetch(path, {
+      ...init,
+      headers: { ...init.headers, Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+  }
 }

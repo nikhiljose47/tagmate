@@ -263,6 +263,39 @@
   white-space: pre-wrap;
 }
 
+.publish-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--tm-border);
+  border-radius: 10px;
+  background: var(--tm-surface);
+}
+
+.publish-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--tm-text);
+}
+
+.publish-status-icon {
+  font-size: 14px;
+  color: var(--tm-text-secondary);
+  flex-shrink: 0;
+
+  &--ok {
+    color: #16a34a;
+  }
+
+  &--failed {
+    color: #dc2626;
+  }
+}
+
 .comments-panel {
   display: grid;
   gap: 10px;
