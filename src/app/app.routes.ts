@@ -99,6 +99,17 @@ export const routes: Routes = [
       import('./features/whatsapp/whatsapp.routes').then((m) => m.WHATSAPP_ROUTES),
   },
   {
+    path: 'referrals',
+    canActivate: [authGuard, businessPhotosGuard],
+    loadChildren: () =>
+      import('./features/referrals/referrals.routes').then((m) => m.REFERRALS_ROUTES),
+  },
+  {
+    path: 'rewards',
+    canActivate: [authGuard, businessPhotosGuard],
+    loadChildren: () => import('./features/rewards/rewards.routes').then((m) => m.REWARDS_ROUTES),
+  },
+  {
     path: 'users/:uid',
     canActivate: [authGuard, businessPhotosGuard],
     loadComponent: () =>

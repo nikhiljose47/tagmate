@@ -78,6 +78,7 @@ export class NavComponent {
       businessOnly: true,
     },
     { route: '/reports', icon: 'bi-flag', activeIcon: 'bi-flag-fill', label: 'Reports' },
+    { route: '/referrals', icon: 'bi-gift', activeIcon: 'bi-gift-fill', label: 'Refer & Earn' },
     {
       route: '/analytics',
       icon: 'bi-bar-chart',

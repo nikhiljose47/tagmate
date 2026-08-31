@@ -11,36 +11,50 @@ import { UserRow } from './social.mapper';
 export class TagDataService {
   private readonly clientService = inject(SupabaseClientService);
   private readonly client = this.clientService.client;
+  /** Untyped view onto the same client, used only where `table`/`name` is a
+   *  runtime string rather than a literal known at compile time — the
+   *  generated `Database` type only accepts its own literal union, so a
+   *  generic `string` can't satisfy `.from()`/`.rpc()` directly. Callers
+   *  still get real typing via each method's own `<T>` generic and return
+   *  cast. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly raw: any = this.client;
 
   private requireSuccess<T extends { error: unknown }>(result: T): T {
     if (result.error) throw result.error;
     return result;
   }
 
+  /** Wraps a Supabase promise built via `this.raw` (necessarily untyped —
+   *  see `raw` above) back into a typed Observable, so callers keep the
+   *  `{ data, error }` shape TS can check without the `any` leaking out. */
+  private wrap<T>(promise: unknown): Observable<T> {
+    return from(promise as Promise<T>);
+  }
+
   addRow<T>(table: string, data: Record<string, unknown>) {
-    return from(this.client.from(table).insert(data).select().single<T>()).pipe(
-      map((result) => this.requireSuccess(result)),
-    );
+    return this.wrap<{ data: T; error: unknown }>(
+      this.raw.from(table).insert(data).select().single(),
+    ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   getRows<T>(
     table: string,
     condition?: { field: string; op: '=='; value: unknown },
   ): Observable<{ data: T[] | null; error: unknown }> {
-    let query = this.client.from(table).select('*');
+    let query = this.raw.from(table).select('*');
     if (condition) {
       query = query.eq(condition.field, condition.value as string);
     }
-    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{
-      data: T[] | null;
-      error: unknown;
-    }>;
+    return this.wrap<{ data: T[] | null; error: unknown }>(query).pipe(
+      map((result) => this.requireSuccess(result)),
+    );
   }
 
   getRow<T>(table: string, id: string): Observable<{ data: T | null; error: unknown }> {
-    return from(this.client.from(table).select('*').eq('id', id).single<T>()).pipe(
-      map((result) => this.requireSuccess(result)),
-    ) as Observable<{ data: T | null; error: unknown }>;
+    return this.wrap<{ data: T | null; error: unknown }>(
+      this.raw.from(table).select('*').eq('id', id).single(),
+    ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   getUserById(uid: string): Observable<AppUser | null> {
@@ -125,31 +139,31 @@ export class TagDataService {
   }
 
   updateRow<T>(table: string, id: string, data: Partial<T>) {
-    return from(
-      this.client
+    return this.wrap<{ data: T; error: unknown }>(
+      this.raw
         .from(table)
         .update(data as Record<string, unknown>)
         .eq('id', id)
         .select()
-        .single<T>(),
+        .single(),
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   deleteRow(table: string, id: string) {
-    return from(this.client.from(table).delete().eq('id', id)).pipe(
+    return this.wrap<{ error: unknown }>(this.raw.from(table).delete().eq('id', id)).pipe(
       map((result) => this.requireSuccess(result)),
     );
   }
 
   deleteRowsWhere(table: string, matchers: Record<string, unknown>) {
-    return from(this.client.from(table).delete().match(matchers)).pipe(
+    return this.wrap<{ error: unknown }>(this.raw.from(table).delete().match(matchers)).pipe(
       map((result) => this.requireSuccess(result)),
     );
   }
 
   updateRowsWhere<T>(table: string, matchers: Record<string, unknown>, data: Partial<T>) {
-    return from(
-      this.client
+    return this.wrap<{ error: unknown }>(
+      this.raw
         .from(table)
         .update(data as Record<string, unknown>)
         .match(matchers),
@@ -174,15 +188,15 @@ export class TagDataService {
     name: string,
     params: Record<string, unknown>,
   ): Observable<{ data: T | null; error: unknown }> {
-    return from(this.client.rpc(name, params)).pipe(
+    return this.wrap<{ data: T | null; error: unknown }>(this.raw.rpc(name, params)).pipe(
       map((result) => this.requireSuccess(result)),
-    ) as Observable<{ data: T | null; error: unknown }>;
+    );
   }
 
   upsertRow<T extends Record<string, unknown>>(table: string, data: T, onConflict?: string) {
-    return from(this.client.from(table).upsert(data, onConflict ? { onConflict } : undefined)).pipe(
-      map((result) => this.requireSuccess(result)),
-    );
+    return this.wrap<{ error: unknown }>(
+      this.raw.from(table).upsert(data, onConflict ? { onConflict } : undefined),
+    ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   getRowsIn<T>(
@@ -192,24 +206,18 @@ export class TagDataService {
     columns = '*',
   ): Observable<{ data: T[] | null; error: unknown }> {
     if (!values.length) return of({ data: [], error: null });
-    return from(
-      this.client
+    return this.wrap<{ data: T[] | null; error: unknown }>(
+      this.raw
         .from(table)
         .select(columns)
         .in(field, values as (string | number)[]),
-    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{
-      data: T[] | null;
-      error: unknown;
-    }>;
+    ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   getLatest<T>(table: string, limit: number): Observable<{ data: T[] | null; error: unknown }> {
-    return from(
-      this.client.from(table).select('*').order('created_at', { ascending: false }).limit(limit),
-    ).pipe(map((result) => this.requireSuccess(result))) as Observable<{
-      data: T[] | null;
-      error: unknown;
-    }>;
+    return this.wrap<{ data: T[] | null; error: unknown }>(
+      this.raw.from(table).select('*').order('created_at', { ascending: false }).limit(limit),
+    ).pipe(map((result) => this.requireSuccess(result)));
   }
 
   getLatestPaginated<T>(
@@ -219,7 +227,7 @@ export class TagDataService {
     search?: string,
     scope?: { tag?: string; postSubtype?: string; state?: string; country?: string },
   ): Observable<{ data: T[] | null; error: unknown }> {
-    let query = this.client
+    let query = this.raw
       .from(table)
       .select('*')
       .eq('publish_status', 'published') // Step 5.A: public paginated feeds never include drafts/scheduled posts
@@ -241,10 +249,9 @@ export class TagDataService {
       );
     }
 
-    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{
-      data: T[] | null;
-      error: unknown;
-    }>;
+    return this.wrap<{ data: T[] | null; error: unknown }>(query).pipe(
+      map((result) => this.requireSuccess(result)),
+    );
   }
 
   getFilteredRows<T>(
@@ -265,7 +272,7 @@ export class TagDataService {
     limit?: number,
     offset?: number,
   ): Observable<{ data: T[] | null; error: unknown }> {
-    let query = this.client.from(table).select('*');
+    let query = this.raw.from(table).select('*');
 
     if (!filters.includeUnpublished) {
       query = query.eq('publish_status', 'published');
@@ -307,10 +314,9 @@ export class TagDataService {
       query = query.limit(limit);
     }
 
-    return from(query).pipe(map((result) => this.requireSuccess(result))) as Observable<{
-      data: T[] | null;
-      error: unknown;
-    }>;
+    return this.wrap<{ data: T[] | null; error: unknown }>(query).pipe(
+      map((result) => this.requireSuccess(result)),
+    );
   }
 
   fetchTagsInBounds(

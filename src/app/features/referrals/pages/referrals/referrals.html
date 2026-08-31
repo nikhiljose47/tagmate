@@ -1,0 +1,93 @@
+<div class="referrals-page">
+  <header class="page-header">
+    <h1>Refer &amp; earn</h1>
+    <p class="page-sub">Invite friends to Tagmate and earn a promotional reward once they qualify.</p>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state" role="status">Loading your referral details…</div>
+  } @else if (loadError()) {
+    <div class="error-state" role="alert">
+      <p>{{ loadError() }}</p>
+    </div>
+  } @else {
+    <section class="code-card">
+      <span class="code-label">Your referral code</span>
+      <div class="code-row">
+        <span class="code-value">{{ code()?.code }}</span>
+      </div>
+
+      <div class="link-row">
+        <span class="link-value">{{ referralLink() }}</span>
+      </div>
+
+      <div class="action-row">
+        <button type="button" class="action-btn action-btn--secondary" (click)="copyLink()">
+          <i class="bi bi-clipboard" aria-hidden="true"></i>
+          Copy link
+        </button>
+        <button type="button" class="action-btn action-btn--primary" (click)="shareLink()">
+          <i class="bi bi-share" aria-hidden="true"></i>
+          Share
+        </button>
+      </div>
+    </section>
+
+    @if (campaignActive()) {
+      <div class="cta-banner">
+        Earn {{ formattedRewardAmount() }} for each qualified referral.
+      </div>
+    } @else {
+      <div class="cta-banner cta-banner--muted">
+        Referral rewards aren't active right now — check back soon.
+      </div>
+    }
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{{ summary()?.qualifiedReferrals ?? 0 }}</span>
+        <span class="stat-label">Qualified referrals</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ (summary()?.totalReferrals ?? 0) - (summary()?.qualifiedReferrals ?? 0) }}</span>
+        <span class="stat-label">Pending referrals</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ (summary()?.totalEarnedAmount ?? 0) / 100 | number: '1.0-2' }}</span>
+        <span class="stat-label">Total earned (₹)</span>
+      </div>
+    </section>
+
+    <section class="how-it-works">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li>Invite friends using your link</li>
+        <li>They register using your link</li>
+        <li>They complete the required qualifying action</li>
+        <li>You receive a promotional reward</li>
+      </ol>
+    </section>
+
+    <section class="referral-history">
+      <div class="section-header">
+        <h2>Referral history</h2>
+        <a routerLink="/rewards" class="section-link">View rewards</a>
+      </div>
+
+      @if (history().length === 0) {
+        <p class="empty-copy">Share your referral link to invite your first user.</p>
+      } @else {
+        <ul class="history-list">
+          @for (item of history(); track item.id; let i = $index) {
+            <li class="history-item">
+              <span class="history-title">Referral #{{ i + 1 }}</span>
+              <span class="history-status" [class]="'status-' + item.status.toLowerCase()">
+                {{ statusLabel(item.status) }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

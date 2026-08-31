@@ -1,0 +1,47 @@
+<div class="scratch-card">
+  @if (isLocked()) {
+    <div class="scratch-state scratch-state--waiting" role="status">
+      <span class="scratch-icon" aria-hidden="true">⏳</span>
+      <p>Your referral hasn't qualified yet.</p>
+    </div>
+  } @else if (isRevealedState()) {
+    <div class="scratch-state scratch-state--revealed">
+      <span class="scratch-label">{{ statusLabel() }}</span>
+      <span class="scratch-amount">{{ formattedAmount() }}</span>
+    </div>
+  } @else {
+    <div class="scratch-surface" #surface>
+      <div class="scratch-underlay">
+        @if (revealing()) {
+          <span class="scratch-spinner" aria-hidden="true"></span>
+          <p>Revealing your reward…</p>
+        } @else if (errorMessage()) {
+          <p class="scratch-error">{{ errorMessage() }}</p>
+        } @else {
+          <span class="scratch-hint" aria-hidden="true">🎁</span>
+          <p>Scratch to reveal</p>
+        }
+      </div>
+      <canvas
+        #canvasEl
+        class="scratch-canvas"
+        [class.scratch-canvas--hidden]="revealing() || !!errorMessage()"
+        aria-hidden="true"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointerleave)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)"
+      ></canvas>
+    </div>
+    <button
+      type="button"
+      class="scratch-reveal-btn"
+      [disabled]="revealing()"
+      [attr.aria-label]="errorMessage() ? 'Try revealing your reward again' : 'Reveal reward'"
+      (click)="reveal()"
+    >
+      {{ errorMessage() ? 'Try again' : revealing() ? 'Revealing…' : 'Reveal reward' }}
+    </button>
+  }
+</div>

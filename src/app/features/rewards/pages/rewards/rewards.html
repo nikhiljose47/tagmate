@@ -1,0 +1,237 @@
+<div class="rewards-page">
+  <header class="page-header">
+    <h1>Rewards</h1>
+    <a routerLink="/referrals" class="section-link">Invite more friends</a>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state" role="status">Loading your rewards…</div>
+  } @else if (loadError()) {
+    <div class="error-state" role="alert">
+      <p>{{ loadError() }}</p>
+    </div>
+  } @else {
+    <section class="summary-row">
+      <div class="summary-card">
+        <span class="summary-value">{{ (summary()?.availableAmount ?? 0) / 100 | number: '1.0-2' }}</span>
+        <span class="summary-label">Available (₹)</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-value">{{ (summary()?.pendingAmount ?? 0) / 100 | number: '1.0-2' }}</span>
+        <span class="summary-label">Pending payout (₹)</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-value">{{ (summary()?.paidAmount ?? 0) / 100 | number: '1.0-2' }}</span>
+        <span class="summary-label">Paid (₹)</span>
+      </div>
+    </section>
+
+    @if ((summary()?.unrevealedCount ?? 0) > 0) {
+      <div class="unrevealed-banner">
+        You have {{ summary()!.unrevealedCount }} reward{{ summary()!.unrevealedCount === 1 ? '' : 's' }}
+        waiting to be scratched!
+      </div>
+    }
+
+    <section class="payout-card">
+      @if (!settings()?.payoutEnabled) {
+        <p class="payout-disabled">Withdrawals aren't available yet — check back soon.</p>
+      } @else {
+        <div class="payout-minimum">
+          Minimum withdrawal: <strong>{{ formatRupees(settings()?.minimumPayoutAmount ?? 0) }}</strong>
+        </div>
+
+        @if (!destination()) {
+          <div class="add-destination">
+            <label for="upi-input">Add payout method (UPI ID)</label>
+            <div class="add-destination-row">
+              <input
+                id="upi-input"
+                type="text"
+                inputmode="email"
+                placeholder="name@bank"
+                [ngModel]="upiInput()"
+                (ngModelChange)="upiInput.set($event)"
+                [disabled]="savingDestination()"
+              />
+              <button
+                type="button"
+                class="action-btn action-btn--primary"
+                [disabled]="savingDestination() || !upiInput().trim()"
+                (click)="saveUpiDestination()"
+              >
+                {{ savingDestination() ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="destination-row">
+            <span class="destination-label">Payout method</span>
+            <span class="destination-value">UPI • {{ destination()!.maskedIdentifier }}</span>
+          </div>
+
+          @if (!showConfirm()) {
+            <button
+              type="button"
+              class="action-btn action-btn--primary withdraw-btn"
+              [disabled]="!canWithdraw()"
+              (click)="openConfirm()"
+            >
+              Withdraw reward
+            </button>
+            @if (!canWithdraw() && (summary()?.availableAmount ?? 0) > 0) {
+              <p class="section-hint">
+                Available balance is below the minimum withdrawal amount.
+              </p>
+            }
+          } @else {
+            <div class="confirm-panel" role="dialog" aria-label="Confirm withdrawal">
+              <p class="confirm-title">
+                Withdraw {{ formatRupees(summary()?.availableAmount ?? 0) }}
+              </p>
+              <p class="confirm-sub">To: {{ destination()!.maskedIdentifier }}</p>
+              <div class="confirm-actions">
+                <button
+                  type="button"
+                  class="action-btn action-btn--secondary"
+                  [disabled]="requestingPayout()"
+                  (click)="closeConfirm()"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  class="action-btn action-btn--primary"
+                  [disabled]="requestingPayout()"
+                  (click)="confirmWithdraw()"
+                >
+                  {{ requestingPayout() ? 'Processing payout…' : 'Confirm withdrawal' }}
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </section>
+
+    @if (rewards().length === 0) {
+      <div class="empty-state">
+        <p>No rewards yet.</p>
+        <a routerLink="/referrals" class="section-link">Share your referral link to get started.</a>
+      </div>
+    } @else {
+      @if (eligibleRewards().length > 0) {
+        <section class="reward-section">
+          <h2>Available rewards</h2>
+          <div class="reward-cards">
+            @for (r of eligibleRewards(); track r.id) {
+              <article class="reward-card">
+                <div class="reward-meta">
+                  <span class="reward-source">Referral reward</span>
+                  <span class="reward-date">{{ r.createdAt | date: 'd MMM y' }}</span>
+                  <span class="reward-status">{{ statusLabel(r.status) }}</span>
+                </div>
+                <tm-scratch-reward
+                  [rewardId]="r.id"
+                  [status]="r.status"
+                  [amount]="r.rewardAmount"
+                  (revealed)="onRevealed(r.id, $event)"
+                />
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (lockedRewards().length > 0) {
+        <section class="reward-section">
+          <h2>Pending rewards</h2>
+          <p class="section-hint">Your referral is waiting for the qualifying action.</p>
+          <div class="reward-cards">
+            @for (r of lockedRewards(); track r.id) {
+              <article class="reward-card">
+                <div class="reward-meta">
+                  <span class="reward-source">Referral reward</span>
+                  <span class="reward-date">{{ r.createdAt | date: 'd MMM y' }}</span>
+                  <span class="reward-status">{{ statusLabel(r.status) }}</span>
+                </div>
+                <tm-scratch-reward [rewardId]="r.id" [status]="r.status" [amount]="r.rewardAmount" />
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (revealedRewards().length > 0) {
+        <section class="reward-section">
+          <h2>Revealed rewards</h2>
+          <div class="reward-cards">
+            @for (r of revealedRewards(); track r.id) {
+              <article class="reward-card">
+                <div class="reward-meta">
+                  <span class="reward-source">Referral reward</span>
+                  <span class="reward-date">{{ r.createdAt | date: 'd MMM y' }}</span>
+                  <span class="reward-status">{{ statusLabel(r.status) }}</span>
+                </div>
+                <tm-scratch-reward [rewardId]="r.id" [status]="r.status" [amount]="r.rewardAmount" />
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (paidSectionRewards().length > 0) {
+        <section class="reward-section">
+          <h2>Reserved for payout</h2>
+          <p class="section-hint">These rewards are part of a payout in progress — see the history below.</p>
+          <div class="reward-cards">
+            @for (r of paidSectionRewards(); track r.id) {
+              <article class="reward-card">
+                <div class="reward-meta">
+                  <span class="reward-source">Referral reward</span>
+                  <span class="reward-date">{{ r.createdAt | date: 'd MMM y' }}</span>
+                  <span class="reward-status">{{ statusLabel(r.status) }}</span>
+                </div>
+                <tm-scratch-reward [rewardId]="r.id" [status]="r.status" [amount]="r.rewardAmount" />
+              </article>
+            }
+          </div>
+        </section>
+      }
+    }
+
+    <section class="payout-history">
+      <h2>Payout history</h2>
+      @if (payoutHistory().length === 0) {
+        <p class="empty-copy">No payouts yet.</p>
+      } @else {
+        <ul class="history-list">
+          @for (p of payoutHistory(); track p.id) {
+            <li class="history-item">
+              <div class="history-main">
+                <span class="history-amount">{{ formatRupees(p.amount) }}</span>
+                <span class="history-destination">UPI • {{ destination()?.maskedIdentifier }}</span>
+              </div>
+              <div class="history-side">
+                <span class="history-status" [class]="'status-' + p.status.toLowerCase()">
+                  {{ payoutStatusLabel(p.status) }}
+                </span>
+                <span class="history-date">{{ p.createdAt | date: 'd MMM y' }}</span>
+                @if (p.status === 'PROCESSING' || p.status === 'QUEUED') {
+                  <button
+                    type="button"
+                    class="check-status-btn"
+                    [disabled]="reconcilingId() === p.id"
+                    (click)="checkStatus(p.id)"
+                  >
+                    {{ reconcilingId() === p.id ? 'Checking…' : 'Check status' }}
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

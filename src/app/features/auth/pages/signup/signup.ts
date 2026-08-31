@@ -10,14 +10,21 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 import { MediaService } from '../../../../core/services/media.service';
 import { MediaCompressionService } from '../../../../core/services/media-compression.service';
+import { ReferralService } from '../../../../core/services/referral.service';
 import { AccountType } from '../../../../core/models/app-user.model';
 import { isValidUsername, normalizeUsername } from '../../../../core/utils/auth-identifier.utils';
+import {
+  clearPendingReferralCode,
+  isPlausibleReferralCode,
+  readPendingReferralCode,
+  stashPendingReferralCode,
+} from '../../../../core/utils/referral-attribution.util';
 import { TagCategory } from '../../../../core/enums/tag-category.enum';
 import {
   BUSINESS_TAG_CATEGORIES,
@@ -409,9 +416,11 @@ export class SignupPage implements OnInit {
 
   private readonly session = inject(UserSessionService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly media = inject(MediaService);
   private readonly mediaCompression = inject(MediaCompressionService);
+  private readonly referral = inject(ReferralService);
   public readonly theme = inject(ThemeService);
 
   private destroyed = false;
@@ -423,10 +432,31 @@ export class SignupPage implements OnInit {
   }
 
   ngOnInit(): void {
+    // Only ever a temporary transport for the code until it's handed to the
+    // server (see attributeReferralIfPending()) — the server independently
+    // resolves and validates it; this is never trusted on its own.
+    const ref = this.route.snapshot.queryParamMap.get('ref');
+    if (ref && isPlausibleReferralCode(ref)) stashPendingReferralCode(ref);
+
     this.session.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
       if (this.destroyed) return;
       if (!user.isGuest) this.router.navigateByUrl('/feed-beta');
     });
+  }
+
+  /** Best-effort: a stashed `?ref=` code is submitted once the account has a
+   *  real session, then cleared unless the failure looks transient (network/
+   *  auth hiccup), in which case it's left for the next attempt. Never
+   *  blocks or fails signup itself — referral attribution is not part of
+   *  account creation. */
+  private async attributeReferralIfPending(): Promise<void> {
+    const code = readPendingReferralCode();
+    if (!code) return;
+
+    const outcome = await this.referral.registerReferral(code);
+    if (outcome.ok || outcome.code === 'invalid_referral_code' || outcome.code === 'self_referral') {
+      clearPendingReferralCode();
+    }
   }
 
   onHoodInput(value: string): void {
@@ -659,6 +689,7 @@ export class SignupPage implements OnInit {
           if (this.accountType() === 'business' && this.businessLogo()) {
             await this.uploadBusinessLogo(res.uid);
           }
+          await this.attributeReferralIfPending();
           this.router.navigateByUrl('/feed-beta');
         }
       } else {
@@ -723,6 +754,7 @@ export class SignupPage implements OnInit {
       if (this.accountType() === 'business' && this.businessLogo()) {
         await this.uploadBusinessLogo(res.uid);
       }
+      await this.attributeReferralIfPending();
       this.router.navigateByUrl('/feed-beta');
     } catch (error) {
       if (!this.destroyed) {
