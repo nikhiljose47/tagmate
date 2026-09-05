@@ -480,95 +480,10 @@
 }
 
 /* ── Intent chips (business "what are you offering") ─────────── */
-.step-subtitle--tight {
-  margin: 0 0 8px;
-}
-
-.intent-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.intent-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 12px;
-  border: 1.5px solid var(--tm-border);
-  border-radius: 999px;
-  background: var(--tm-bg);
-  color: var(--tm-text);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    background 0.12s,
-    color 0.12s;
-
-  i {
-    font-size: 12px;
-  }
-
-  &:hover {
-    border-color: var(--tm-primary);
-  }
-
-  &.intent-chip--active {
-    border-color: var(--tm-primary);
-    background: var(--tm-primary);
-    color: #fff;
-  }
-}
-
-/* ── Business fields (price / availability / more options) ───── */
-.business-fields {
-  display: grid;
-  gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--tm-border);
-}
-
-.business-fields-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
 .field-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.more-options {
-  margin-top: 2px;
-
-  summary {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--tm-muted);
-    cursor: pointer;
-    list-style: none;
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    &::before {
-      content: '+ ';
-    }
-  }
-
-  &[open] summary::before {
-    content: '– ';
-  }
-
-  .field-group {
-    margin-top: 10px;
-  }
 }
 
 /* ── Quick expiry chips (business) ───────────────────────────── */
@@ -787,48 +702,6 @@
   /* Follows the swatch button's own [style.color] (dark on light swatches,
    * light on dark swatches) so the check stays visible on every color. */
   color: inherit;
-}
-
-/* ── Quick-fill template card ────────────── */
-.quick-fill-card {
-  margin: 12px 14px 0;
-  padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--tm-primary) 25%, var(--tm-border));
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--tm-primary) 5%, var(--tm-surface));
-}
-
-.quick-fill-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--tm-text);
-
-  i {
-    color: var(--tm-primary);
-  }
-}
-
-.quick-fill-fields {
-  display: grid;
-  gap: 10px;
-}
-
-.quick-fill-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.quick-fill-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--tm-muted);
 }
 
 /* ── Meta ───────────────────────────────── */
@@ -1133,13 +1006,6 @@
     color: var(--tm-primary-text);
   }
 
-  /* Active state for the preview toggle */
-  &.foot-action--active {
-    border-color: var(--tm-primary);
-    color: var(--tm-primary-text);
-    background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
-  }
-
   &.foot-action--danger:hover {
     border-color: var(--tm-danger);
     color: var(--tm-danger);
@@ -1251,98 +1117,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-.kind-step,
 .preview-step {
   padding: 24px 18px 18px;
 }
 
-.step-eyebrow {
-  margin: 0 0 6px;
-  color: var(--tm-primary-text);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.kind-step h1,
 .step-tag h1 {
   margin: 0 0 6px;
   color: var(--tm-text);
   font-size: 22px;
   line-height: 1.2;
   font-weight: 800;
-}
-
-.kind-options {
-  display: grid;
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.kind-option {
-  display: grid;
-  grid-template-columns: 42px 1fr 20px;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 88px;
-  padding: 14px;
-  border: 1px solid var(--tm-border);
-  border-radius: 8px;
-  background: var(--tm-surface);
-  color: var(--tm-text);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-}
-
-.kind-option:hover,
-.kind-option:focus-visible {
-  border-color: var(--tm-primary);
-  background: color-mix(in srgb, var(--tm-primary) 4%, var(--tm-surface));
-  outline: none;
-}
-
-.kind-option--business:hover,
-.kind-option--business:focus-visible {
-  border-color: #0f766e;
-  background: color-mix(in srgb, #0f766e 5%, var(--tm-surface));
-}
-
-.kind-option > span:nth-child(2) {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.kind-option strong {
-  font-size: 15px;
-}
-
-.kind-option small {
-  color: var(--tm-muted);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.kind-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--tm-primary) 10%, var(--tm-surface));
-  color: var(--tm-primary-text);
-  font-size: 18px;
-}
-
-.kind-option--business .kind-icon {
-  background: color-mix(in srgb, #0f766e 12%, var(--tm-surface));
-  color: #0f766e;
 }
 
 .step-tag {
@@ -1390,56 +1174,6 @@
 .step-details-head {
   min-height: 48px;
   padding: 8px 14px;
-}
-
-.quick-fill-card {
-  margin: 14px;
-  padding: 14px;
-  border-color: color-mix(in srgb, #0f766e 35%, var(--tm-border));
-  border-left: 3px solid #0f766e;
-  border-radius: 8px;
-  background: color-mix(in srgb, #0f766e 4%, var(--tm-surface));
-}
-
-.quick-fill-head {
-  align-items: flex-start;
-}
-
-.quick-fill-head > span {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.quick-fill-head strong {
-  font-size: 13px;
-}
-
-.quick-fill-head small {
-  color: var(--tm-muted);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.quick-fill-head i {
-  color: #0f766e;
-}
-
-.quick-fill-fields {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.quick-fill-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 10px 0 0;
-  color: var(--tm-muted);
-  font-size: 11px;
-}
-
-.quick-fill-status.ready {
-  color: #15803d;
 }
 
 .field-title {
@@ -1782,19 +1516,16 @@
     background: var(--tm-surface);
   }
 
-  .kind-step,
   .preview-step,
   .step-tag {
     padding: 18px 14px;
   }
 
-  .kind-step h1,
   .step-tag h1 {
     font-size: 20px;
   }
 
-  .tag-grid,
-  .quick-fill-fields {
+  .tag-grid {
     grid-template-columns: 1fr;
   }
 
