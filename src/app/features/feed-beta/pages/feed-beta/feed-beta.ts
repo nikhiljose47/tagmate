@@ -813,27 +813,32 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     }
     this.loadError.set(false);
 
-    this.tagRepo.getPaginated(this.PAGE_SIZE, this.offset, undefined, this.currentScopeFilter()).subscribe({
-      next: (newPosts) => {
-        if (reset) {
-          this.posts.set(newPosts);
-        } else {
-          this.posts.update((current) => {
-            const seen = new Set(current.map((item) => this.social.postKey(item)));
-            return [...current, ...newPosts.filter((item) => !seen.has(this.social.postKey(item)))];
-          });
-        }
-        this.hasMore.set(newPosts.length === this.PAGE_SIZE);
-        this.isLoading.set(false);
-        this.isLoadingMore.set(false);
-      },
-      error: (err) => {
-        this.logger.error('Failed to load beta feed', err);
-        this.loadError.set(true);
-        this.isLoading.set(false);
-        this.isLoadingMore.set(false);
-      },
-    });
+    this.tagRepo
+      .getPaginated(this.PAGE_SIZE, this.offset, undefined, this.currentScopeFilter())
+      .subscribe({
+        next: (newPosts) => {
+          if (reset) {
+            this.posts.set(newPosts);
+          } else {
+            this.posts.update((current) => {
+              const seen = new Set(current.map((item) => this.social.postKey(item)));
+              return [
+                ...current,
+                ...newPosts.filter((item) => !seen.has(this.social.postKey(item))),
+              ];
+            });
+          }
+          this.hasMore.set(newPosts.length === this.PAGE_SIZE);
+          this.isLoading.set(false);
+          this.isLoadingMore.set(false);
+        },
+        error: (err) => {
+          this.logger.error('Failed to load beta feed', err);
+          this.loadError.set(true);
+          this.isLoading.set(false);
+          this.isLoadingMore.set(false);
+        },
+      });
   }
 
   /** Best available place/address text for the fixed top row. */

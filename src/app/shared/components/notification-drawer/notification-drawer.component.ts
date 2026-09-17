@@ -44,9 +44,8 @@ export class NotificationDrawerComponent {
    *  here reactively rather than at a single call site. */
   private readonly trackOpenState = effect(() => {
     if (this.social.notificationsOpen()) {
-      this.previousFocus = document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
+      this.previousFocus =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
     }
   });
 

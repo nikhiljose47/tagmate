@@ -907,9 +907,9 @@ export class HoodPage implements AfterViewInit, OnDestroy {
         switchMap((q) => {
           if (q.length < 3) return of<NominatimSearchResult[]>([]);
           return this.http
-            .get<NominatimSearchResult[]>(
-              `/api/nominatim/boundary?limit=10&q=${encodeURIComponent(q)}`,
-            )
+            .get<
+              NominatimSearchResult[]
+            >(`/api/nominatim/boundary?limit=10&q=${encodeURIComponent(q)}`)
             .pipe(catchError(() => of<NominatimSearchResult[]>([])));
         }),
         map((results) => this.dedupePlaceResults(results)),

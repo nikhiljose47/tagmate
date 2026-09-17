@@ -730,11 +730,18 @@ export class SignupPage implements OnInit {
     this.resendError.set('');
     this.resendingEmail.set(true);
     try {
-      const res: any = await this.session.resendConfirmationEmail(this.email());
-      if (res === true || (typeof res === 'object' && res?.ok)) {
+      const res: unknown = await this.session.resendConfirmationEmail(this.email());
+      if (
+        res === true ||
+        (typeof res === 'object' && res !== null && (res as { ok?: boolean }).ok)
+      ) {
         this.resendSent.set(true);
       } else {
-        const msg = (typeof res === 'object' && (res?.message || res?.error)) || '';
+        const errObj =
+          typeof res === 'object' && res !== null
+            ? (res as { message?: string; error?: string })
+            : null;
+        const msg = errObj?.message || errObj?.error || '';
         this.resendError.set(
           isRateLimitError(msg)
             ? RATE_LIMIT_MESSAGE

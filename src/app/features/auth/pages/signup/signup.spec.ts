@@ -2,6 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SignupPage } from './signup';
 import { testProviders } from '../../../../test-providers';
 import { UserSessionService } from '../../../../core/services/user-session.service';
+import { UserModel } from '../../../../core/models/user.model';
+import { AuthResponse } from '../../../../core/models/auth-response.model';
 import { of } from 'rxjs';
 
 describe('SignupPage (Auth & Signup Specialist Tests)', () => {
@@ -22,16 +24,13 @@ describe('SignupPage (Auth & Signup Specialist Tests)', () => {
         'updateAvatarUrl',
       ],
       {
-        user$: of({ isGuest: true } as any),
+        user$: of({ isGuest: true, username: 'guest', email: null } as UserModel),
       },
     );
 
     await TestBed.configureTestingModule({
       imports: [SignupPage],
-      providers: [
-        ...testProviders,
-        { provide: UserSessionService, useValue: sessionSpy },
-      ],
+      providers: [...testProviders, { provide: UserSessionService, useValue: sessionSpy }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SignupPage);
@@ -165,7 +164,9 @@ describe('SignupPage (Auth & Signup Specialist Tests)', () => {
 
       // Verify DOM select elements have the values
       const compiled = fixture.nativeElement as HTMLElement;
-      const selects = compiled.querySelectorAll('.birthday-row select') as NodeListOf<HTMLSelectElement>;
+      const selects = compiled.querySelectorAll(
+        '.birthday-row select',
+      ) as NodeListOf<HTMLSelectElement>;
       expect(selects.length).toBe(3);
       expect(selects[0]!.value).toBe('6');
       expect(selects[1]!.value).toBe('15');
@@ -206,7 +207,7 @@ describe('SignupPage (Auth & Signup Specialist Tests)', () => {
           ok: false,
           code: 'rate_limit',
           message: 'over_email_send_rate_limit: email rate limit exceeded',
-        } as any),
+        } as AuthResponse),
       );
 
       await component.signup();
@@ -218,9 +219,7 @@ describe('SignupPage (Auth & Signup Specialist Tests)', () => {
 
     it('displays friendly message when resendConfirmationEmail throws or returns a rate limit error', async () => {
       component.email.set('test@example.com');
-      sessionSpy.resendConfirmationEmail.and.rejectWith(
-        new Error('email rate limit exceeded'),
-      );
+      sessionSpy.resendConfirmationEmail.and.rejectWith(new Error('email rate limit exceeded'));
 
       await component.resendConfirmationEmail();
 

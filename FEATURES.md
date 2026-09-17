@@ -221,4 +221,3 @@ Before deploying changes:
     - Click "Edit profile" and confirm the Display Name input has helper hint "Your public display name shown on your posts and comments."
     - Confirm the Username is shown as a read-only field with the "Unique handle (cannot be changed)" badge matching all theme palettes.
     - Edit the Display Name and save; confirm the profile header updates the display name while the `@username` handle remains constant.
-

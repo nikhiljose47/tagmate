@@ -182,14 +182,18 @@ export class UserSessionService {
     if (!current) return { ok: false, code: 'no-user', message: 'Not signed in.' };
     try {
       await firstValueFrom(
-        this.supabase.updateRowsWhere('users', { uid: current.uid }, {
-          home_state: hood.state,
-          home_country: hood.country,
-          home_district: hood.district,
-          home_place: hood.place ?? null,
-          home_lat: hood.lat ?? null,
-          home_lng: hood.lng ?? null,
-        }),
+        this.supabase.updateRowsWhere(
+          'users',
+          { uid: current.uid },
+          {
+            home_state: hood.state,
+            home_country: hood.country,
+            home_district: hood.district,
+            home_place: hood.place ?? null,
+            home_lat: hood.lat ?? null,
+            home_lng: hood.lng ?? null,
+          },
+        ),
       );
       const nextHood = new Hood({
         name: hood.place || hood.district || hood.state,
@@ -468,7 +472,14 @@ export class UserSessionService {
           created_at: new Date().toISOString(),
         }),
       );
-      this.user.set({ uid, name: username, username, isGuest: false, email, accountType: 'personal' });
+      this.user.set({
+        uid,
+        name: username,
+        username,
+        isGuest: false,
+        email,
+        accountType: 'personal',
+      });
       return {
         ok: true,
         uid,
@@ -516,41 +527,45 @@ export class UserSessionService {
     if (!current) return false;
     try {
       await firstValueFrom(
-        this.supabase.updateRowsWhere('users', { uid: current.uid }, {
-          business_name: fields.businessName.trim() || null,
-          business_phone: fields.businessPhone.trim() || null,
-          business_website: fields.businessWebsite.trim() || null,
-          ...(fields.businessCategory !== undefined
-            ? { business_category: fields.businessCategory.trim() || null }
-            : {}),
-          ...(fields.businessImages !== undefined
-            ? { business_images: fields.businessImages }
-            : {}),
-          ...(fields.avatarUrl !== undefined ? { avatar_url: fields.avatarUrl || null } : {}),
-          ...(fields.coverImageUrl !== undefined
-            ? { cover_image_url: fields.coverImageUrl || null }
-            : {}),
-          ...(fields.openingHours !== undefined ? { opening_hours: fields.openingHours } : {}),
-          ...(fields.googleMapsUrl !== undefined
-            ? { google_maps_url: fields.googleMapsUrl.trim() || null }
-            : {}),
-          ...(fields.socialInstagram !== undefined
-            ? { social_instagram: fields.socialInstagram.trim() || null }
-            : {}),
-          ...(fields.socialFacebook !== undefined
-            ? { social_facebook: fields.socialFacebook.trim() || null }
-            : {}),
-          ...(fields.socialX !== undefined ? { social_x: fields.socialX.trim() || null } : {}),
-          ...(fields.socialLinkedin !== undefined
-            ? { social_linkedin: fields.socialLinkedin.trim() || null }
-            : {}),
-          ...(fields.socialYoutube !== undefined
-            ? { social_youtube: fields.socialYoutube.trim() || null }
-            : {}),
-          ...(fields.socialWhatsapp !== undefined
-            ? { social_whatsapp: fields.socialWhatsapp.trim() || null }
-            : {}),
-        }),
+        this.supabase.updateRowsWhere(
+          'users',
+          { uid: current.uid },
+          {
+            business_name: fields.businessName.trim() || null,
+            business_phone: fields.businessPhone.trim() || null,
+            business_website: fields.businessWebsite.trim() || null,
+            ...(fields.businessCategory !== undefined
+              ? { business_category: fields.businessCategory.trim() || null }
+              : {}),
+            ...(fields.businessImages !== undefined
+              ? { business_images: fields.businessImages }
+              : {}),
+            ...(fields.avatarUrl !== undefined ? { avatar_url: fields.avatarUrl || null } : {}),
+            ...(fields.coverImageUrl !== undefined
+              ? { cover_image_url: fields.coverImageUrl || null }
+              : {}),
+            ...(fields.openingHours !== undefined ? { opening_hours: fields.openingHours } : {}),
+            ...(fields.googleMapsUrl !== undefined
+              ? { google_maps_url: fields.googleMapsUrl.trim() || null }
+              : {}),
+            ...(fields.socialInstagram !== undefined
+              ? { social_instagram: fields.socialInstagram.trim() || null }
+              : {}),
+            ...(fields.socialFacebook !== undefined
+              ? { social_facebook: fields.socialFacebook.trim() || null }
+              : {}),
+            ...(fields.socialX !== undefined ? { social_x: fields.socialX.trim() || null } : {}),
+            ...(fields.socialLinkedin !== undefined
+              ? { social_linkedin: fields.socialLinkedin.trim() || null }
+              : {}),
+            ...(fields.socialYoutube !== undefined
+              ? { social_youtube: fields.socialYoutube.trim() || null }
+              : {}),
+            ...(fields.socialWhatsapp !== undefined
+              ? { social_whatsapp: fields.socialWhatsapp.trim() || null }
+              : {}),
+          },
+        ),
       );
       this.user.set({
         ...current,

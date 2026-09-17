@@ -409,7 +409,10 @@
   display: block;
   margin-top: 6px;
   font-size: 0.75rem;
-  color: var(--tm-muted, var(--tm-text-secondary, color-mix(in srgb, var(--tm-text) 55%, transparent)));
+  color: var(
+    --tm-muted,
+    var(--tm-text-secondary, color-mix(in srgb, var(--tm-text) 55%, transparent))
+  );
   line-height: 1.4;
 }
 

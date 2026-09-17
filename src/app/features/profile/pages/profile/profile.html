@@ -29,8 +29,7 @@
         <h2 class="profile-name">{{ currentUser()?.name || user.username || 'My Profile' }}</h2>
         @if (!user.isGuest) {
         <span class="profile-handle">@{{ currentUser()?.username || user.username }}</span>
-        }
-        @if (user.isGuest) {
+        } @if (user.isGuest) {
         <span class="guest-badge">Guest</span>
         }
       </div>

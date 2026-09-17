@@ -16,15 +16,15 @@ describe('ProfilePage (Bug #4 Disambiguation)', () => {
     socialPlatformSpy = jasmine.createSpyObj('SocialPlatformService', ['updateOwnProfile']);
     socialPlatformSpy.updateOwnProfile.and.resolveTo(true);
 
-    socialInteractionsSpy = jasmine.createSpyObj('SocialInteractionsService', [
-      'activateRealtime',
-      'isSaved',
-      'isHidden',
-      'postKey',
-      'confirmAndDeletePost',
-    ], {
-      postDeleted$: { pipe: () => ({ subscribe: () => {} }) } as unknown as SocialInteractionsService['postDeleted$'],
-    });
+    socialInteractionsSpy = jasmine.createSpyObj(
+      'SocialInteractionsService',
+      ['activateRealtime', 'isSaved', 'isHidden', 'postKey', 'confirmAndDeletePost'],
+      {
+        postDeleted$: {
+          pipe: () => ({ subscribe: () => {} }),
+        } as unknown as SocialInteractionsService['postDeleted$'],
+      },
+    );
     socialInteractionsSpy.isSaved.and.returnValue(false);
     socialInteractionsSpy.isHidden.and.returnValue(false);
 
@@ -97,7 +97,10 @@ describe('ProfilePage (Bug #4 Disambiguation)', () => {
     component.editName.set('Nikhil J.');
     await component.saveProfile();
 
-    expect(socialPlatformSpy.updateOwnProfile).toHaveBeenCalledWith('Nikhil J.', 'Hello from Bangalore!');
+    expect(socialPlatformSpy.updateOwnProfile).toHaveBeenCalledWith(
+      'Nikhil J.',
+      'Hello from Bangalore!',
+    );
     expect(component.editMode()).toBeFalse();
     expect(toastSpy.show).toHaveBeenCalledWith('Profile saved.', 'success');
   });

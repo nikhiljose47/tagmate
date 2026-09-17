@@ -241,9 +241,7 @@
         <a class="post-tag" [routerLink]="['/posts', postKey(post)]">#{{ post.tag | lowercase }}</a>
       </div>
     </article>
-    }
-
-    @if (isLoadingMore()) {
+    } @if (isLoadingMore()) {
     <div class="feed-more" role="status" aria-live="polite">
       <span class="feed-more-spinner" aria-hidden="true"></span>
     </div>
