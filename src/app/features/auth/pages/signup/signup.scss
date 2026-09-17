@@ -732,6 +732,23 @@
   }
 }
 
+.confirm-email-subtip {
+  margin: -4px 0 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tm-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+
+  i {
+    color: var(--tm-primary);
+    flex-shrink: 0;
+  }
+}
+
 .otp-input {
   text-align: center;
   font-size: 22px;

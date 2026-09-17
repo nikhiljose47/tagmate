@@ -101,6 +101,17 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
   - **Media Upload Extension Support (Bug #11)**: Expanded video MIME/extension validation to support desktop/mobile video formats (`.mp4`, `.mov`, `.webm`, `.m4v`, `.mkv`, `.avi`).
   - **Poll Option Validation (Bug #12)**: Added client validation requiring at least 2 non-empty poll options before previewing or publishing a poll post.
   - **Idempotent Like Counting (Bug #13)**: Fixed double-incrementing like counts when opening post details or scrolling comments by reconciling optimistic like deltas against hydrated base counts.
+- **Bug Report #3 Comprehensive Remediations**:
+  - **Dynamic Birthday Days & Strict Calendar Validation (Bug #5)**: Converted `days` into a `computed` signal dynamically adjusting between 28, 29 (leap years via `(year % 4 === 0 && year % 100 !== 0) || year % 400 === 0`), 30, and 31 days based on `birthMonth()` and `birthYear()`, with an effect resetting out-of-range days, and strictly validating calendar date accuracy in `isOldEnough()` to reject non-existent calendar dates (e.g. 31 Feb) with "Please enter a valid calendar date."
+  - **Date of Birth State Persistence (Bug #7)**: Added `[selected]` option bindings to birthday and business established year dropdowns in Step 5 (`birthMonth`, `birthDay`, `birthYear`) so selections are preserved without resetting to default values when navigating back and forth across wizard steps.
+  - **Email Confirmation Subtip & Friendly Rate Limit Errors (Bug #6, Bugs #1 & #2)**: Added an informational tip in the confirmation email step advising users they can click the email confirmation link if no 6-digit code is provided (`.confirm-email-subtip`). Handled Supabase auth email rate limits in `signup()` and `resendConfirmationEmail()` with friendly, actionable messaging ("Too many email requests sent recently. Please wait a few minutes before trying again or check your inbox/spam folder.").
+  - **Profile @handle vs Display Name Disambiguation (Bug #4, Bug #7)**: Disambiguated `@handle` (unique username) and display name across profile headers, edit sheets, and post author cards:
+    - Profile header displays the user's Display Name as the main heading (`currentUser()?.name || user.username || 'My Profile'`) and displays the unique handle underneath (`@{{ currentUser()?.username || user.username }}`).
+    - Profile edit card features an editable Display Name input with helper hint (`Your public display name shown on your posts and comments.`) alongside a read-only Username handle box with fixed badge (`Unique handle (cannot be changed)`).
+    - Exposed `username?: string` on `AppUser` and preserved handle integrity across display name mutations and session restorations.
+  - **Post Media Size & Format Guidance (Bug #8)**: Added explicit media size hint (`Photos up to 15 MB • Videos up to 30 MB (max 30s)`) in post composer media picker to avoid silent rejections or unexpected file failures.
+  - **Post Composition & Form Usability (Bug #9)**: Streamlined post creation validation feedback and input responsiveness across compose steps.
+  - **Desktop Feed Scrollbar Restoration (Bug #10)**: Restored subtle, themed vertical scrollbar (`thin`, 6px rounded thumb matching `--tm-text` opacity) on `.fb-scroller` for desktop viewports (`>= 761px`) while preserving the borderless, immersive Reels view on mobile (`< 761px`).
 
 ### Production Optimizations & Telemetry
 
@@ -199,3 +210,15 @@ Before deploying changes:
    - Refresh a protected route with a valid persisted session and confirm it does not flash or redirect to `/login`.
    - Confirm a normal account and an account with only `user_metadata.role = "admin"` are redirected away from `/admin`.
    - Confirm an account with trusted `app_metadata.role = "admin"` can enter `/admin` and moderate a post under the deployed RLS policy.
+10. **Post Media Size Guidance (Bug #8)**:
+    - Open `/post` composer and verify that the helper text "Photos up to 15 MB • Videos up to 30 MB (max 30s)" renders clearly beneath the media grid with proper theme-adapted muted contrast.
+11. **Desktop Feed Scrollbar (Bug #10)**:
+    - On desktop viewports (>= 761px), verify a subtle themed vertical scrollbar is visible and draggable on `.fb-scroller` in Feed Beta.
+    - On mobile viewports (< 761px), verify the scrollbar remains completely hidden (`scrollbar-width: none`) for an uninterrupted Reels experience.
+12. **Profile Display Name vs Username Disambiguation (Bug #4)**:
+    - Navigate to `/profile` as an authenticated user.
+    - Confirm the main profile heading displays the user's Display Name and the unique `@username` handle is clearly shown beneath it.
+    - Click "Edit profile" and confirm the Display Name input has helper hint "Your public display name shown on your posts and comments."
+    - Confirm the Username is shown as a read-only field with the "Unique handle (cannot be changed)" badge matching all theme palettes.
+    - Edit the Display Name and save; confirm the profile header updates the display name while the `@username` handle remains constant.
+

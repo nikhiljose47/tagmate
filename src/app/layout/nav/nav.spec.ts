@@ -21,7 +21,7 @@ describe('NavComponent', () => {
     const component = fixture.componentInstance;
     expect(component.navItems.length).toBeGreaterThan(0);
     expect(component.navItems[0]!.label).toBe('Home');
-    expect(component.navItems[1]!.label).toBe('Map');
+    expect(component.navItems[1]!.label).toBe('Post');
   });
 
   it('should render nav links in template', () => {

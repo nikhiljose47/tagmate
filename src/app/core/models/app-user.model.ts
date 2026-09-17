@@ -5,6 +5,7 @@ export type AccountType = 'personal' | 'business';
 export interface AppUser {
   uid: string;
   name: string;
+  username?: string;
   isGuest: boolean;
   email?: string;
   bio?: string;

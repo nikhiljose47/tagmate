@@ -50,4 +50,46 @@ describe('UserSessionService', () => {
     expect(supabase.signInWithPassword).toHaveBeenCalledWith('user@example.com', 'Password123!');
     expect(supabase.signInWithUsername).not.toHaveBeenCalled();
   });
+
+  it('exposes username handle distinct from display name on AppUser', () => {
+    service.user.set({
+      uid: 'user-1',
+      name: 'Alice Wonderland',
+      username: 'alicew',
+      isGuest: false,
+      accountType: 'personal',
+    });
+
+    expect(service.user()?.name).toBe('Alice Wonderland');
+    expect(service.user()?.username).toBe('alicew');
+  });
+
+  it('maps UserModel username to unique handle instead of display name when set', (done) => {
+    service.user.set({
+      uid: 'user-1',
+      name: 'Alice Wonderland',
+      username: 'alicew',
+      isGuest: false,
+      accountType: 'personal',
+    });
+
+    service.user$.subscribe((userModel) => {
+      expect(userModel.username).toBe('alicew');
+      done();
+    });
+  });
+
+  it('falls back UserModel username to name when username is not set', (done) => {
+    service.user.set({
+      uid: 'user-2',
+      name: 'Bob Smith',
+      isGuest: false,
+      accountType: 'personal',
+    });
+
+    service.user$.subscribe((userModel) => {
+      expect(userModel.username).toBe('Bob Smith');
+      done();
+    });
+  });
 });

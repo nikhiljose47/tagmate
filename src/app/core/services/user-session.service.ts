@@ -35,7 +35,7 @@ export class UserSessionService {
         ? {
             uid: u.uid,
             email: u.email ?? null,
-            username: u.name,
+            username: u.username || u.name,
             isGuest: u.isGuest,
           }
         : {
@@ -56,9 +56,12 @@ export class UserSessionService {
           }
 
           const uid = session.user.id;
-          const name =
+          const metaUsername =
             (session.user.user_metadata?.['username'] as string | undefined) ??
-            session.user.email?.split('@')[0] ??
+            session.user.email?.split('@')[0];
+          const name =
+            (session.user.user_metadata?.['full_name'] as string | undefined) ??
+            metaUsername ??
             'User';
           const isGuest = session.user.is_anonymous ?? false;
           const metaAccountType =
@@ -81,6 +84,7 @@ export class UserSessionService {
           const fallbackUser: AppUser = {
             uid,
             name,
+            username: metaUsername,
             isGuest,
             email: session.user.email ?? undefined,
             accountType: metaAccountType,
@@ -96,7 +100,11 @@ export class UserSessionService {
           return this.supabase.getCurrentUserById(uid).pipe(
             switchMap((appUser) => {
               if (appUser) {
-                return of({ ...appUser, email: session.user.email ?? undefined });
+                return of({
+                  ...appUser,
+                  username: metaUsername ?? appUser.username ?? appUser.name,
+                  email: session.user.email ?? undefined,
+                });
               }
 
               // First-authenticated-session insert. If metadata carries a hood
@@ -460,7 +468,7 @@ export class UserSessionService {
           created_at: new Date().toISOString(),
         }),
       );
-      this.user.set({ uid, name: username, isGuest: false, email, accountType: 'personal' });
+      this.user.set({ uid, name: username, username, isGuest: false, email, accountType: 'personal' });
       return {
         ok: true,
         uid,

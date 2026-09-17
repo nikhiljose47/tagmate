@@ -76,6 +76,9 @@
           We've sent a 6-digit code to <strong>{{ email() }}</strong>. Enter it below to finish
           creating your account.
         </p>
+        <p class="confirm-email-subtip">
+          <i class="bi bi-info-circle"></i> If your confirmation email contains a link instead of a 6-digit code, you can click the link in your email to confirm your account.
+        </p>
 
         <input
           type="text"
@@ -614,9 +617,9 @@
               (change)="businessEstablishedYear.set($any($event.target).value)"
               [disabled]="loading()"
             >
-              <option value="" disabled selected>Year</option>
+              <option value="" disabled [selected]="!businessEstablishedYear()">Year</option>
               @for (y of years; track y) {
-              <option [value]="y">{{ y }}</option>
+              <option [value]="y" [selected]="businessEstablishedYear() === '' + y">{{ y }}</option>
               }
             </select>
             <span class="field-hint">When did this business start?</span>
@@ -631,9 +634,9 @@
                 (change)="birthMonth.set($any($event.target).value)"
                 [disabled]="loading()"
               >
-                <option value="" disabled selected>Month</option>
+                <option value="" disabled [selected]="!birthMonth()">Month</option>
                 @for (m of months; track m; let i = $index) {
-                <option [value]="i + 1">{{ m }}</option>
+                <option [value]="i + 1" [selected]="birthMonth() === '' + (i + 1)">{{ m }}</option>
                 }
               </select>
               <select
@@ -642,9 +645,9 @@
                 (change)="birthDay.set($any($event.target).value)"
                 [disabled]="loading()"
               >
-                <option value="" disabled selected>Day</option>
-                @for (d of days; track d) {
-                <option [value]="d">{{ d }}</option>
+                <option value="" disabled [selected]="!birthDay()">Day</option>
+                @for (d of days(); track d) {
+                <option [value]="d" [selected]="birthDay() === '' + d">{{ d }}</option>
                 }
               </select>
               <select
@@ -653,9 +656,9 @@
                 (change)="birthYear.set($any($event.target).value)"
                 [disabled]="loading()"
               >
-                <option value="" disabled selected>Year</option>
+                <option value="" disabled [selected]="!birthYear()">Year</option>
                 @for (y of years; track y) {
-                <option [value]="y">{{ y }}</option>
+                <option [value]="y" [selected]="birthYear() === '' + y">{{ y }}</option>
                 }
               </select>
             </div>

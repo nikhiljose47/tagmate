@@ -5,6 +5,7 @@ import {
   HostListener,
   signal,
   computed,
+  effect,
   inject,
   DestroyRef,
 } from '@angular/core';
@@ -27,6 +28,12 @@ import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
 
 const MIN_AGE = 13;
 const MAX_SHOP_IMAGES = 5;
+const RATE_LIMIT_MESSAGE =
+  'Too many email requests sent recently. Please wait a few minutes before trying again or check your inbox/spam folder.';
+
+function isRateLimitError(msg: string): boolean {
+  return /rate[ _-]limit/i.test(msg);
+}
 const MONTHS = [
   'January',
   'February',
@@ -151,7 +158,20 @@ export class SignupPage implements OnInit {
   private usernameCheckTimer: ReturnType<typeof setTimeout> | undefined;
 
   readonly months = MONTHS;
-  readonly days = Array.from({ length: 31 }, (_, i) => i + 1);
+  readonly days = computed(() => {
+    const month = Number(this.birthMonth());
+    const year = Number(this.birthYear());
+    if (!month) return Array.from({ length: 31 }, (_, i) => i + 1);
+
+    let maxDays = 31;
+    if ([4, 6, 9, 11].includes(month)) {
+      maxDays = 30;
+    } else if (month === 2) {
+      const isLeap = year > 0 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0);
+      maxDays = isLeap ? 29 : 28;
+    }
+    return Array.from({ length: maxDays }, (_, i) => i + 1);
+  });
   readonly years = (() => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 100 }, (_, i) => currentYear - i);
@@ -420,6 +440,14 @@ export class SignupPage implements OnInit {
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
     });
+
+    effect(() => {
+      const max = this.days().length;
+      const currentDay = Number(this.birthDay());
+      if (currentDay && currentDay > max) {
+        this.birthDay.set('');
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -564,13 +592,22 @@ export class SignupPage implements OnInit {
     }
   }
 
-  private isOldEnough(): boolean {
+  isOldEnough(): boolean {
     const month = Number(this.birthMonth());
     const day = Number(this.birthDay());
     const year = Number(this.birthYear());
     if (!month || !day || !year) return false;
 
     const birthDate = new Date(year, month - 1, day);
+    if (
+      birthDate.getFullYear() !== year ||
+      birthDate.getMonth() !== month - 1 ||
+      birthDate.getDate() !== day
+    ) {
+      this.error.set('Please enter a valid calendar date.');
+      return false;
+    }
+
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const hasHadBirthdayThisYear =
@@ -578,7 +615,12 @@ export class SignupPage implements OnInit {
       (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
     if (!hasHadBirthdayThisYear) age--;
 
-    return age >= MIN_AGE;
+    if (age < MIN_AGE) {
+      this.error.set(`You must be at least ${MIN_AGE} years old to sign up.`);
+      return false;
+    }
+
+    return true;
   }
 
   resetSignupForm(): void {
@@ -595,7 +637,9 @@ export class SignupPage implements OnInit {
 
     const isBusiness = this.accountType() === 'business';
     if (!isBusiness && !this.isOldEnough()) {
-      this.error.set(`You must be at least ${MIN_AGE} years old to sign up.`);
+      if (!this.error()) {
+        this.error.set(`You must be at least ${MIN_AGE} years old to sign up.`);
+      }
       return;
     }
 
@@ -663,15 +707,16 @@ export class SignupPage implements OnInit {
         }
       } else {
         if ('code' in res && res.code === 'username_taken') this.usernameTaken.set(true);
-        this.error.set(res.message ?? 'Signup failed');
+        const msg = res.message ?? 'Signup failed';
+        this.error.set(isRateLimitError(msg) ? RATE_LIMIT_MESSAGE : msg);
       }
     } catch (error) {
       if (!this.destroyed) {
-        this.error.set(
+        const msg =
           error instanceof Error
             ? error.message
-            : 'Could not validate your account details. Please try again.',
-        );
+            : 'Could not validate your account details. Please try again.';
+        this.error.set(isRateLimitError(msg) ? RATE_LIMIT_MESSAGE : msg);
       }
     } finally {
       if (!this.destroyed) {
@@ -685,11 +730,26 @@ export class SignupPage implements OnInit {
     this.resendError.set('');
     this.resendingEmail.set(true);
     try {
-      const ok = await this.session.resendConfirmationEmail(this.email());
-      if (ok) {
+      const res: any = await this.session.resendConfirmationEmail(this.email());
+      if (res === true || (typeof res === 'object' && res?.ok)) {
         this.resendSent.set(true);
       } else {
-        this.resendError.set("Couldn't resend right now — try again in a moment.");
+        const msg = (typeof res === 'object' && (res?.message || res?.error)) || '';
+        this.resendError.set(
+          isRateLimitError(msg)
+            ? RATE_LIMIT_MESSAGE
+            : msg || "Couldn't resend right now — try again in a moment.",
+        );
+      }
+    } catch (error) {
+      if (!this.destroyed) {
+        const msg =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : "Couldn't resend right now — try again in a moment.";
+        this.resendError.set(isRateLimitError(msg) ? RATE_LIMIT_MESSAGE : msg);
       }
     } finally {
       this.resendingEmail.set(false);

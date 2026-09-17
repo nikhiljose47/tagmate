@@ -405,6 +405,14 @@
   }
 }
 
+.media-size-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--tm-muted, var(--tm-text-secondary, color-mix(in srgb, var(--tm-text) 55%, transparent)));
+  line-height: 1.4;
+}
+
 /* ── Category chips ─────────────────────── */
 /* Two compact rows that scroll sideways — all categories reachable without eating vertical space. */
 /* ── Step 1: tag picker ──────────────────── */

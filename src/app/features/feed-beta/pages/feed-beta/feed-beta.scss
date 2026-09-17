@@ -376,6 +376,26 @@
   &::-webkit-scrollbar {
     display: none;
   }
+
+  @media (min-width: 761px) {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--tm-text) 22%, transparent) transparent;
+
+    &::-webkit-scrollbar {
+      display: block;
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, var(--tm-text) 22%, transparent);
+      border-radius: 9999px;
+      &:hover {
+        background: color-mix(in srgb, var(--tm-text) 36%, transparent);
+      }
+    }
+  }
 }
 
 /* ── Pull-to-refresh indicator ────────────────────────────────── */

@@ -26,7 +26,10 @@
   <div class="profile-info">
     <div class="info-row">
       <div>
-        <h2 class="profile-name">{{ user.username || 'My Profile' }}</h2>
+        <h2 class="profile-name">{{ currentUser()?.name || user.username || 'My Profile' }}</h2>
+        @if (!user.isGuest) {
+        <span class="profile-handle">@{{ currentUser()?.username || user.username }}</span>
+        }
         @if (user.isGuest) {
         <span class="guest-badge">Guest</span>
         }
@@ -269,13 +272,21 @@
     <div class="edit-card">
       <label class="edit-label">Display Name</label>
       <input
-        class="tm-input mb-3"
+        class="tm-input mb-1"
         type="text"
         [value]="editName()"
         (input)="editName.set($any($event.target).value)"
         maxlength="40"
         placeholder="Your name"
       />
+      <span class="edit-hint mb-3">Your public display name shown on your posts and comments.</span>
+
+      <label class="edit-label">Username</label>
+      <div class="profile-handle-readonly mb-3">
+        <span>@{{ user.username }}</span>
+        <span class="handle-fixed-badge">Unique handle (cannot be changed)</span>
+      </div>
+
       <label class="edit-label">Bio</label>
       <textarea
         class="tm-input mb-3"
