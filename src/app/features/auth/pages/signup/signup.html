@@ -174,9 +174,10 @@
             </div>
 
             <div class="field-group">
-              <label class="field-label">Password</label>
+              <label class="field-label" for="signup-password">Password</label>
               <div class="password-field">
                 <input
+                  id="signup-password"
                   [type]="showPassword() ? 'text' : 'password'"
                   class="tm-input"
                   placeholder="Min. 8 characters"
@@ -190,7 +191,7 @@
                   class="password-toggle"
                   (click)="showPassword.set(!showPassword())"
                   [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
-                  tabindex="-1"
+                  [attr.aria-pressed]="showPassword()"
                 >
                   <i
                     class="bi"

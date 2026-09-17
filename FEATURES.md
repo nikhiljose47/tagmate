@@ -221,3 +221,9 @@ Before deploying changes:
     - Click "Edit profile" and confirm the Display Name input has helper hint "Your public display name shown on your posts and comments."
     - Confirm the Username is shown as a read-only field with the "Unique handle (cannot be changed)" badge matching all theme palettes.
     - Edit the Display Name and save; confirm the profile header updates the display name while the `@username` handle remains constant.
+13. **Login & Signup Password Visibility Toggle Keyboard Accessibility**:
+    - Navigate to `/login` or `/login/signup`.
+    - Focus the Password field and press `Tab`.
+    - Confirm keyboard focus smoothly advances to the password visibility toggle button (`Show password`).
+    - Press `Space` or `Enter` to toggle visibility; confirm the button's accessible name switches between `Show password` and `Hide password` with updated `aria-pressed` state and the input type toggles between `password` and `text`.
+    - Confirm the button receives high-contrast `:focus-visible` styling matching the active theme palette.

@@ -82,9 +82,10 @@
           </div>
 
           <div class="field-group">
-            <label class="field-label">Password</label>
+            <label class="field-label" for="password">Password</label>
             <div class="password-field">
               <input
+                id="password"
                 [type]="showPassword() ? 'text' : 'password'"
                 class="tm-input"
                 placeholder="Password"
@@ -99,7 +100,7 @@
                 class="password-toggle"
                 (click)="showPassword.set(!showPassword())"
                 [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
-                tabindex="-1"
+                [attr.aria-pressed]="showPassword()"
               >
                 <i class="bi" [ngClass]="showPassword() ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
               </button>

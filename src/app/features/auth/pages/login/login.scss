@@ -259,6 +259,12 @@
     color: var(--tm-text);
     background: color-mix(in srgb, var(--tm-text) 8%, transparent);
   }
+
+  &:focus-visible {
+    color: var(--tm-text);
+    outline: 2px solid var(--tm-primary);
+    outline-offset: 1px;
+  }
 }
 
 .password-toggle i {
