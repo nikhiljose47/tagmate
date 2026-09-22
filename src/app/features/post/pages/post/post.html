@@ -397,16 +397,12 @@
           }
         </div>
         @if (showCustomExpiry()) {
-        <select
-          class="tm-input"
-          [(ngModel)]="formData.expiresIn"
-          name="expiresInCustom"
+        <app-dropdown
+          [options]="expiryDropdownOptions"
+          [value]="formData.expiresIn + ''"
+          (valueChange)="onExpiryChange($event)"
           aria-label="Custom post lifetime"
-        >
-          @for (option of expiryOptions; track option.value) {
-          <option [ngValue]="option.value">{{ option.label }}</option>
-          }
-        </select>
+        ></app-dropdown>
         }
       </div>
       } @if (postType() === 'business') {
@@ -422,19 +418,16 @@
             <span><i class="bi bi-calendar-event"></i> Event</span>
           </label>
           @if (!isHotNow() && postType() === 'personal') {
-          <label class="expiry-pill">
+          <div class="expiry-pill expiry-pill--dropdown">
             <i class="bi bi-clock-history" aria-hidden="true"></i>
-            <select
-              class="expiry-select"
-              [(ngModel)]="formData.expiresIn"
-              name="expiresIn"
+            <app-dropdown
+              [compact]="true"
+              [options]="expiryDropdownOptions"
+              [value]="formData.expiresIn + ''"
+              (valueChange)="onExpiryChange($event)"
               aria-label="Post lifetime"
-            >
-              @for (option of expiryOptions; track option.value) {
-              <option [ngValue]="option.value">{{ option.label }}</option>
-              }
-            </select>
-          </label>
+            ></app-dropdown>
+          </div>
           }
         </div>
         <div class="foot-right">

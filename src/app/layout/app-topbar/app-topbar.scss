@@ -230,6 +230,9 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
+  /* Purely informational tip — must never intercept clicks meant for
+     sibling controls (search, filter) it happens to overlap while shown. */
+  pointer-events: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -917,6 +920,13 @@
   background: color-mix(in srgb, var(--tm-text) 10%, var(--tm-bg));
 }
 
+/* Notifications now live in the mobile bottom nav — hide the topbar duplicate there. */
+@media (max-width: 1023px) {
+  .topbar-icon-btn--notifications {
+    display: none;
+  }
+}
+
 .notification-badge {
   position: absolute;
   top: -2px;
@@ -1152,14 +1162,11 @@
 
 @media (max-width: 760px) {
   .app-topbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'left actions'
-      'center center';
-    row-gap: 6px;
-    column-gap: 10px;
-    height: 88px;
-    padding: 7px 12px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'left center actions';
+    column-gap: 8px;
+    height: 56px;
+    padding: 0 10px;
   }
 
   /* Messages icon lives in the mobile bottom nav — hide the topbar duplicate. */
@@ -1189,6 +1196,7 @@
 
   .topbar-search-row {
     width: 100%;
+    gap: 4px;
   }
 
   .topbar-logo {
@@ -1203,6 +1211,8 @@
 
   .hood-search {
     min-height: 36px;
+    gap: 6px;
+    padding: 0 8px;
   }
 
   .topbar-icon-btn {

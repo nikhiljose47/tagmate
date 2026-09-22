@@ -25,6 +25,7 @@ import {
   tagCategoryLabel,
 } from '../../../../shared/constants/business-tags';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
+import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
 
 const MIN_AGE = 13;
 const MAX_SHOP_IMAGES = 5;
@@ -83,7 +84,7 @@ interface HoodPick {
   selector: 'app-signup',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe],
+  imports: [CommonModule, FormsModule, RouterLink, TagEmojiPipe, DropdownComponent],
   templateUrl: './signup.html',
   styleUrls: ['./signup.scss'],
 })
@@ -176,6 +177,18 @@ export class SignupPage implements OnInit {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 100 }, (_, i) => currentYear - i);
   })();
+
+  readonly yearOptions: DropdownOption[] = this.years.map((y) => ({
+    label: String(y),
+    value: String(y),
+  }));
+  readonly monthOptions: DropdownOption[] = this.months.map((m, i) => ({
+    label: m,
+    value: String(i + 1),
+  }));
+  readonly dayOptions = computed<DropdownOption[]>(() =>
+    this.days().map((d) => ({ label: String(d), value: String(d) })),
+  );
 
   /** Internal step is 1 (account) / 2 (business identity, business only) / 3
    *  (business category, business only) / 4 (business photos + website, business

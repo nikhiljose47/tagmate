@@ -97,16 +97,12 @@
           It's been more than 24 hours since this customer messaged — send an approved template
           instead.
         </p>
-        <select
-          class="tm-input"
-          [ngModel]="selectedTemplateName()"
-          (ngModelChange)="onTemplateSelected($event)"
-        >
-          <option value="" disabled>Choose a template…</option>
-          @for (tpl of templates(); track tpl.name) {
-          <option [value]="tpl.name">{{ tpl.preview }}</option>
-          }
-        </select>
+        <app-dropdown
+          [options]="templateOptions()"
+          [value]="selectedTemplateName()"
+          (valueChange)="onTemplateSelected($event)"
+          placeholder="Choose a template…"
+        ></app-dropdown>
 
         @if (selectedTemplate(); as template) { @if (template.variableCount > 0) {
         <div class="wa-template-vars">

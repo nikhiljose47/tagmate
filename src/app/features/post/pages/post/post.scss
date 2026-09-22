@@ -909,6 +909,16 @@
   }
 }
 
+.expiry-pill--dropdown {
+  app-dropdown ::ng-deep .tm-dropdown-trigger {
+    border: none;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    color: var(--tm-text);
+  }
+}
+
 .expiry-select {
   border: none;
   background: transparent;

@@ -351,15 +351,12 @@
     <section class="comments-panel tm-panel">
       <div class="comments-heading">
         <h2>Comments</h2>
-        <select
-          class="tm-input"
-          [ngModel]="commentSort()"
-          (ngModelChange)="commentSort.set($event)"
+        <app-dropdown
+          [options]="commentSortOptions"
+          [value]="commentSort()"
+          (valueChange)="onCommentSortChange($event)"
           aria-label="Sort comments"
-        >
-          <option value="helpful">Most helpful</option>
-          <option value="newest">Newest</option>
-        </select>
+        ></app-dropdown>
       </div>
 
       @if ((post.comments?.length || 0) === 0 && social.commentsFor(post).length === 0) {

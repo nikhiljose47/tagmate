@@ -275,6 +275,10 @@ body {
   min-width: 320px;
   min-height: 100dvh;
   overflow-x: hidden;
+  // Without this, Android Chrome's native pull-to-refresh still fires at the
+  // document level ahead of any in-page pull-to-refresh (e.g. feed-beta's),
+  // even though the scrolling element underneath sets its own `contain`.
+  overscroll-behavior-y: contain;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -309,6 +313,7 @@ html {
   min-width: 320px;
   background: var(--tm-bg);
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
 }
 
 img,

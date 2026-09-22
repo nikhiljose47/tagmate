@@ -122,33 +122,36 @@
                  in the same feed, styled per-post rather than by a global toggle. -->
       <div class="fb-business-body">
         @if (slide.imageUrls.length && isLive(slide.key)) {
-        <div
-          class="fb-business-media"
-          [class.single]="slide.imageUrls.length === 1"
-          (scroll)="onImageStripScroll(slide.key, $event, slide.imageUrls.length)"
-        >
-          @for (image of slide.imageUrls; track image; let i = $index) {
-          <a
-            class="fb-business-media-frame"
-            [routerLink]="['/posts', slide.key]"
-            [attr.aria-label]="'Open post image ' + (i + 1)"
+        <div class="fb-business-media">
+          <div
+            class="fb-business-media-strip"
+            [class.single]="slide.imageUrls.length === 1"
+            (scroll)="onImageStripScroll(slide.key, $event, slide.imageUrls.length)"
           >
-            <img
-              class="fb-business-media-img"
-              [src]="image"
-              [alt]="slide.post.highlight || 'Post image'"
-              decoding="async"
-            />
-          </a>
+            @for (image of slide.imageUrls; track image; let i = $index) {
+            <a
+              class="fb-business-media-frame"
+              [routerLink]="['/posts', slide.key]"
+              [attr.aria-label]="'Open post image ' + (i + 1)"
+            >
+              <img
+                class="fb-business-media-img"
+                [src]="image"
+                [alt]="slide.post.highlight || 'Post image'"
+                decoding="async"
+              />
+            </a>
+            }
+          </div>
+          @if (slide.imageUrls.length > 1) {
+          <div class="fb-media-dots" aria-label="Image position">
+            @for (image of slide.imageUrls; track image; let i = $index) {
+            <span class="fb-media-dot" [class.active]="imageIndex(slide.key) === i"></span>
+            }
+          </div>
           }
         </div>
-        @if (slide.imageUrls.length > 1) {
-        <div class="fb-media-dots fb-media-dots--business" aria-label="Image position">
-          @for (image of slide.imageUrls; track image; let i = $index) {
-          <span class="fb-media-dot" [class.active]="imageIndex(slide.key) === i"></span>
-          }
-        </div>
-        } }
+        }
         <div class="fb-business-content">
           <div class="fb-business-badges">
             @if (slide.post.intent) {

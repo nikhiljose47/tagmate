@@ -754,12 +754,22 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
       if (this.pullStartY === null) return;
       const currentY = event.touches[0]?.clientY;
       if (currentY === undefined) return;
-      const delta = currentY - this.pullStartY;
-      if (delta <= 0 || el.scrollTop > 0) {
+
+      if (el.scrollTop > 0) {
         this.pullStartY = null;
         this.pullDistance.set(0);
         return;
       }
+
+      const delta = currentY - this.pullStartY;
+      if (delta <= 0) {
+        // Sensor jitter, or the finger briefly reversed — keep tracking from
+        // the same start point instead of abandoning the gesture, otherwise
+        // the browser never sees preventDefault() and runs its own refresh.
+        this.pullDistance.set(0);
+        return;
+      }
+
       event.preventDefault();
       this.isPullSettling.set(false);
       this.pullDistance.set(Math.min(delta * 0.5, this.PULL_MAX));

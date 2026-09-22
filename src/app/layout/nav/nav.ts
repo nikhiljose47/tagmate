@@ -1,19 +1,11 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  HostListener,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
-import { RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, computed } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { SocialPlatformService } from '../../core/services/social-platform.service';
+import { SocialInteractionsService } from '../../core/services/social-interactions.service';
 import { FeatureFlagsService, AppFeatureFlags } from '../../core/services/feature-flags.service';
 import { UserSessionService } from '../../core/services/user-session.service';
-import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
 
 interface NavItem {
   route: string;
@@ -30,15 +22,15 @@ interface NavItem {
   selector: 'app-nav',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, ClickOutsideDirective],
+  imports: [RouterLink, RouterLinkActive],
   templateUrl: './nav.html',
   styleUrls: ['./nav.scss'],
 })
 export class NavComponent {
-  private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly sessionService = inject(UserSessionService);
   protected readonly platform = inject(SocialPlatformService);
+  protected readonly social = inject(SocialInteractionsService);
   protected readonly featureFlags = inject(FeatureFlagsService);
 
   private readonly session = toSignal(this.auth.session$, { initialValue: null });
@@ -77,7 +69,6 @@ export class NavComponent {
       label: 'WhatsApp',
       businessOnly: true,
     },
-    { route: '/reports', icon: 'bi-flag', activeIcon: 'bi-flag-fill', label: 'Reports' },
     {
       route: '/analytics',
       icon: 'bi-bar-chart',
@@ -94,8 +85,6 @@ export class NavComponent {
     },
   ];
 
-  readonly moreMenuOpen = signal(false);
-
   readonly visibleNavItems = computed(() =>
     this.navItems.filter((item) => {
       if (item.adminOnly && !this.isAdmin()) return false;
@@ -108,36 +97,7 @@ export class NavComponent {
     }),
   );
 
-  readonly moreMenuItems = computed(() => this.visibleNavItems().filter((item) => !item.mobile));
-
-  readonly currentUrl = toSignal(
-    this.router.events.pipe(
-      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      map((e) => e.urlAfterRedirects),
-      startWith(this.router.url),
-    ),
-    { initialValue: this.router.url },
-  );
-
-  isActive(route: string): boolean {
-    return this.currentUrl().startsWith(route);
-  }
-
-  toggleMore(): void {
-    this.moreMenuOpen.update((v) => !v);
-  }
-
-  closeMore(): void {
-    this.moreMenuOpen.set(false);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (this.moreMenuOpen()) this.closeMore();
-  }
-
-  goTo(route: string): void {
-    this.closeMore();
-    void this.router.navigateByUrl(route);
+  openNotifications(): void {
+    this.social.notificationsOpen.set(true);
   }
 }

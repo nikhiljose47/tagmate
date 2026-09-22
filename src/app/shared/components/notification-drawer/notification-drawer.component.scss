@@ -18,6 +18,18 @@
   background: var(--tm-surface);
   box-shadow: -18px 0 45px rgba(15, 23, 42, 0.18);
 }
+
+/* Leave the bottom nav bar's strip free so it stays visible and clickable
+   while the drawer is open, instead of the drawer covering it. */
+@media (max-width: 1023px) {
+  .notification-backdrop {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .notification-drawer {
+    height: calc(100dvh - 64px - env(safe-area-inset-bottom));
+  }
+}
 .notification-drawer header {
   display: flex;
   align-items: center;

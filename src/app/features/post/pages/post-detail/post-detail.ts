@@ -33,6 +33,10 @@ import {
   isEventLikePost,
 } from '../../../../core/models/social.model';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import {
+  DropdownComponent,
+  DropdownOption,
+} from '../../../../shared/components/dropdown/dropdown.component';
 import { PostPublicationService } from '../../../../core/services/post-publication.service';
 import { PostPublication } from '../../../../core/models/post-publication.model';
 import {
@@ -56,6 +60,7 @@ import {
     LifespanBadgeComponent,
     PostMenuComponent,
     BusinessPostContentComponent,
+    DropdownComponent,
   ],
   templateUrl: './post-detail.html',
   styleUrl: './post-detail.scss',
@@ -88,6 +93,14 @@ export class PostDetailPage implements OnInit {
   protected readonly showMessageBox = signal(false);
   protected readonly mediaIndex = signal(0);
   protected readonly commentSort = signal<'helpful' | 'newest'>('helpful');
+  protected readonly commentSortOptions: DropdownOption[] = [
+    { label: 'Most helpful', value: 'helpful' },
+    { label: 'Newest', value: 'newest' },
+  ];
+
+  protected onCommentSortChange(value: string): void {
+    this.commentSort.set(value === 'newest' ? 'newest' : 'helpful');
+  }
   protected readonly editingCommentId = signal<string | null>(null);
   protected readonly editCommentText = signal('');
   protected readonly expandedThreads = signal(new Set<string>());

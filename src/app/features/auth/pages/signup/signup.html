@@ -613,56 +613,40 @@
           @if (accountType() === 'business') {
           <div class="field-group">
             <label class="field-label">Year established <span class="required">*</span></label>
-            <select
-              class="tm-input"
+            <app-dropdown
+              [options]="yearOptions"
               [value]="businessEstablishedYear()"
-              (change)="businessEstablishedYear.set($any($event.target).value)"
+              (valueChange)="businessEstablishedYear.set($event)"
               [disabled]="loading()"
-            >
-              <option value="" disabled [selected]="!businessEstablishedYear()">Year</option>
-              @for (y of years; track y) {
-              <option [value]="y" [selected]="businessEstablishedYear() === '' + y">{{ y }}</option>
-              }
-            </select>
+              placeholder="Year"
+            ></app-dropdown>
             <span class="field-hint">When did this business start?</span>
           </div>
           } @else {
           <div class="field-group">
             <label class="field-label">Birthday</label>
             <div class="birthday-row">
-              <select
-                class="tm-input"
+              <app-dropdown
+                [options]="monthOptions"
                 [value]="birthMonth()"
-                (change)="birthMonth.set($any($event.target).value)"
+                (valueChange)="birthMonth.set($event)"
                 [disabled]="loading()"
-              >
-                <option value="" disabled [selected]="!birthMonth()">Month</option>
-                @for (m of months; track m; let i = $index) {
-                <option [value]="i + 1" [selected]="birthMonth() === '' + (i + 1)">{{ m }}</option>
-                }
-              </select>
-              <select
-                class="tm-input"
+                placeholder="Month"
+              ></app-dropdown>
+              <app-dropdown
+                [options]="dayOptions()"
                 [value]="birthDay()"
-                (change)="birthDay.set($any($event.target).value)"
+                (valueChange)="birthDay.set($event)"
                 [disabled]="loading()"
-              >
-                <option value="" disabled [selected]="!birthDay()">Day</option>
-                @for (d of days(); track d) {
-                <option [value]="d" [selected]="birthDay() === '' + d">{{ d }}</option>
-                }
-              </select>
-              <select
-                class="tm-input"
+                placeholder="Day"
+              ></app-dropdown>
+              <app-dropdown
+                [options]="yearOptions"
                 [value]="birthYear()"
-                (change)="birthYear.set($any($event.target).value)"
+                (valueChange)="birthYear.set($event)"
                 [disabled]="loading()"
-              >
-                <option value="" disabled [selected]="!birthYear()">Year</option>
-                @for (y of years; track y) {
-                <option [value]="y" [selected]="birthYear() === '' + y">{{ y }}</option>
-                }
-              </select>
+                placeholder="Year"
+              ></app-dropdown>
             </div>
           </div>
           }

@@ -17,6 +17,10 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { WhatsAppConversation, WhatsAppMessage } from '../../../../core/models/whatsapp.model';
 import { IntegrationProvider, IntegrationStatus } from '../../../../core/enums/integration.enum';
+import {
+  DropdownComponent,
+  DropdownOption,
+} from '../../../../shared/components/dropdown/dropdown.component';
 
 const SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -24,7 +28,7 @@ const SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
   selector: 'app-whatsapp-inbox',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, DropdownComponent],
   templateUrl: './whatsapp-inbox.html',
   styleUrl: './whatsapp-inbox.scss',
 })
@@ -51,6 +55,9 @@ export class WhatsAppInboxPage implements OnInit {
 
   readonly selectedTemplate = computed(
     () => this.templates().find((t) => t.name === this.selectedTemplateName()) ?? null,
+  );
+  readonly templateOptions = computed<DropdownOption[]>(() =>
+    this.templates().map((t) => ({ label: t.preview, value: t.name })),
   );
 
   /** Live preview with entered values substituted into `{{1}}`-style

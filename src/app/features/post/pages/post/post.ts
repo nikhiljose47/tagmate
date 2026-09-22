@@ -53,6 +53,10 @@ import {
 } from '../../../../shared/constants/business-tags';
 import { BusinessPostTemplatePickerComponent } from '../../components/business-template-picker/business-template-picker.component';
 import { TemplateFormComponent } from '../../components/template-form/template-form.component';
+import {
+  DropdownComponent,
+  DropdownOption,
+} from '../../../../shared/components/dropdown/dropdown.component';
 
 /**
  * Step flow for the post composer.
@@ -192,6 +196,7 @@ export const BACKGROUND_COLORS: readonly string[] = [
     ContrastTextPipe,
     BusinessPostTemplatePickerComponent,
     TemplateFormComponent,
+    DropdownComponent,
   ],
   templateUrl: './post.html',
   styleUrls: ['./post.scss'],
@@ -540,6 +545,15 @@ export class PostPage implements OnDestroy {
     { label: '3 days', value: 4320 },
     { label: '1 week', value: 10080 },
   ];
+
+  readonly expiryDropdownOptions: DropdownOption[] = this.expiryOptions.map((o) => ({
+    label: o.label,
+    value: String(o.value),
+  }));
+
+  onExpiryChange(value: string): void {
+    this.formData.expiresIn = Number(value);
+  }
 
   /** True when the top-right Hot Now toggle is on. Plain method (not signal)
    *  because `formData` is a POJO — a computed() would cache the initial value
