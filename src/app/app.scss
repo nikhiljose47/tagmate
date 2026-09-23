@@ -55,14 +55,14 @@
   grid-template-columns: 30px minmax(0, 1fr) 28px;
   align-items: center;
   gap: 10px;
-  width: min(390px, calc(100vw - 24px));
+  width: min(420px, calc(100vw - 24px));
   min-height: 46px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--tm-border, rgba(15, 23, 42, 0.08));
   border-radius: 8px;
-  background: #ffffff;
-  padding: 8px 9px 8px 10px;
-  color: #111827;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
+  background: var(--tm-surface, #ffffff);
+  padding: 10px 12px;
+  color: var(--tm-text, #111827);
+  box-shadow: var(--tm-shadow-lg, 0 16px 34px rgba(15, 23, 42, 0.14));
   animation: toastIn 0.22s ease-out;
 }
 
@@ -79,13 +79,12 @@
 
 .app-toast-text {
   min-width: 0;
-  overflow: hidden;
-  color: #111827;
+  color: var(--tm-text, #111827);
   font-size: 13px;
-  font-weight: 750;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .app-toast-close {
@@ -96,11 +95,15 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #111827;
+  color: var(--tm-text, #111827);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
 }
 
 .app-toast-close:hover {
-  background: rgba(15, 23, 42, 0.08);
+  opacity: 1;
+  background: rgba(125, 125, 125, 0.12);
 }
 
 /* ─────────────────────────────────────────────────────────────

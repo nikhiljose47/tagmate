@@ -414,7 +414,7 @@
               <button
                 type="button"
                 class="tag-card"
-                [class.tag-card--active]="businessCategory() === tag"
+                [class.tag-card--active]="!isCustomCategory() && businessCategory() === tag"
                 [disabled]="loading()"
                 (click)="selectBusinessCategory(tag)"
               >
@@ -422,7 +422,35 @@
                 <span class="tag-card-label">{{ tagCategoryLabel(tag) }}</span>
               </button>
               }
+              <button
+                type="button"
+                class="tag-card"
+                [class.tag-card--active]="isCustomCategory()"
+                [disabled]="loading()"
+                (click)="selectOtherCategory()"
+              >
+                <span class="tag-card-emoji">✨</span>
+                <span class="tag-card-label">Other</span>
+              </button>
             </div>
+
+            @if (isCustomCategory()) {
+            <div class="field-group" style="margin-top: 14px">
+              <label class="field-label">Custom category <span class="required">*</span></label>
+              <input
+                type="text"
+                class="tm-input"
+                placeholder="e.g. Florist, Consulting, Tattoo Studio..."
+                [value]="customCategoryText()"
+                (input)="onCustomCategoryInput($any($event.target).value)"
+                maxlength="50"
+                [disabled]="loading()"
+              />
+              <span class="field-hint"
+                >Specify your business type so neighbors know what you offer.</span
+              >
+            </div>
+            }
           </div>
 
           <div class="step-actions">

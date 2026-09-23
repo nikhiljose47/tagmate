@@ -6,6 +6,7 @@ import { SocialPlatformService } from '../../core/services/social-platform.servi
 import { SocialInteractionsService } from '../../core/services/social-interactions.service';
 import { FeatureFlagsService, AppFeatureFlags } from '../../core/services/feature-flags.service';
 import { UserSessionService } from '../../core/services/user-session.service';
+import { WorkspaceStateService } from '../workspace/workspace-state.service';
 
 interface NavItem {
   route: string;
@@ -29,6 +30,7 @@ interface NavItem {
 export class NavComponent {
   private readonly auth = inject(AuthService);
   private readonly sessionService = inject(UserSessionService);
+  private readonly workspace = inject(WorkspaceStateService);
   protected readonly platform = inject(SocialPlatformService);
   protected readonly social = inject(SocialInteractionsService);
   protected readonly featureFlags = inject(FeatureFlagsService);
@@ -38,6 +40,20 @@ export class NavComponent {
   readonly isBusinessAccount = computed(
     () => this.sessionService.user()?.accountType === 'business',
   );
+
+  onHomeClick(): void {
+    const scope = this.workspace.feedBetaScope();
+    if (scope?.category === 'hot-now') {
+      const area = this.workspace.feedBetaAreas().find((a) => a.id === scope.areaId);
+      const fallbackCat = area
+        ? (area.categoryCounts['around'] > 0 ? 'around' : area.categories[0] || 'around')
+        : 'around';
+      this.workspace.feedBetaScope.set({
+        ...scope,
+        category: fallbackCat,
+      });
+    }
+  }
 
   readonly navItems: NavItem[] = [
     {

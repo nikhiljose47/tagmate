@@ -551,6 +551,9 @@ export class SocialInteractionsService implements OnDestroy {
       await firstValueFrom(this.commentsApi.softDelete(comment.id, deletedAt));
       return true;
     } catch (error) {
+      if ((error as { code?: string })?.code === 'PGRST116') {
+        return true;
+      }
       this.comments.update((state) => ({
         ...state,
         [key]: (state[key] ?? []).map((item) => (item.id === comment.id ? previous : item)),

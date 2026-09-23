@@ -42,6 +42,11 @@
     <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
     {{ ctaLabel() }}
   </a>
+  } @else if (cta() === 'message') {
+  <a class="bpc-cta" [routerLink]="['/messages']" [queryParams]="messageQueryParams()">
+    <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>
+    {{ ctaLabel() }}
+  </a>
   } @else if (fallbackLink(); as link) {
   <a class="bpc-cta" [routerLink]="link">
     <i class="bi" [class]="ctaIcon()" aria-hidden="true"></i>

@@ -141,33 +141,20 @@ export class PostDetailPage implements OnInit {
 
   ngOnInit(): void {
     this.social.activateRealtime();
-    const id = decodeURIComponent(this.route.snapshot.paramMap.get('id') ?? '');
-    if (!id) {
-      this.isLoading.set(false);
-      return;
-    }
 
-    this.tagRepo
-      .getById(id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (post) => {
-          this.post.set(post);
-          this.isLoading.set(false);
-          if (post) {
-            this.loadRelated(post);
-            void this.platform.hydratePostTrust(this.social.postKey(post));
-            if (post.postType === 'business' && post.userId === this.platform.myUid() && post.id) {
-              this.loadPublications(post.id);
-            }
-          }
-        },
-        error: (err) => {
-          this.logger.error('Failed to load post detail', err);
-          this.toast.show('Could not load this post.', 'danger');
-          this.isLoading.set(false);
-        },
-      });
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = decodeURIComponent(params.get('id') ?? '');
+      if (!id) {
+        this.isLoading.set(false);
+        return;
+      }
+      this.mediaIndex.set(0);
+      this.showMessageBox.set(false);
+      this.loadPost(id);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
 
     // If this post (or one shown in "related") gets deleted anywhere, react immediately.
     this.social.postDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((deletedKey) => {
@@ -274,12 +261,40 @@ export class PostDetailPage implements OnInit {
       this.editingCommentId.set(null);
   }
 
+  private loadPost(id: string): void {
+    this.isLoading.set(true);
+    this.tagRepo
+      .getById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (post) => {
+          this.post.set(post);
+          this.isLoading.set(false);
+          if (post) {
+            this.loadRelated(post);
+            void this.platform.hydratePostTrust(this.social.postKey(post));
+            if (post.postType === 'business' && post.userId === this.platform.myUid() && post.id) {
+              this.loadPublications(post.id);
+            }
+          }
+        },
+        error: (err) => {
+          this.logger.error('Failed to load post detail', err);
+          this.toast.show('Could not load this post.', 'danger');
+          this.isLoading.set(false);
+        },
+      });
+  }
+
   protected async deleteComment(comment: ThreadedComment): Promise<void> {
     const post = this.post();
     if (!post) return;
+    const hasReplies = (this.repliesByComment()[comment.id] ?? []).length > 0;
     const confirmed = await this.confirmDialog.confirm({
       title: 'Delete comment?',
-      message: 'The comment text will be removed while replies remain visible.',
+      message: hasReplies
+        ? 'The comment text will be removed while replies remain visible.'
+        : 'Are you sure you want to delete this comment? This action cannot be undone.',
       confirmText: 'Delete',
       danger: true,
     });

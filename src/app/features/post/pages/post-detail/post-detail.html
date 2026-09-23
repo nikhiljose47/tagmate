@@ -434,7 +434,7 @@
           }
         </div>
         @for (reply of (repliesByComment()[comment.id] ??
-        []).slice(expandedThreads().has(comment.id) ? 0 : 3); track reply.id) {
+        []).slice(0, expandedThreads().has(comment.id) ? undefined : 3); track reply.id) {
         <div class="comment-row comment-row--reply" [id]="'comment-' + reply.id">
           <div class="comment-main">
             <div class="comment-author-line">

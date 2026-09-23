@@ -45,9 +45,18 @@
         All quiet in {{ workspace.feedBetaScope()?.location || 'your area' }}. When someone flags a
         post as Hot Now, it will show up here for 2 hours.
       </p>
-      <a class="fb-first-post-btn fb-first-post-btn--hot-now" routerLink="/post"
-        >Post an urgent update</a
-      >
+      <div class="fb-first-post-actions">
+        <button
+          type="button"
+          class="fb-first-post-btn fb-first-post-btn--clear"
+          (click)="clearHotNowFilter()"
+        >
+          Show all posts
+        </button>
+        <a class="fb-first-post-btn fb-first-post-btn--hot-now" routerLink="/post"
+          >Post an urgent update</a
+        >
+      </div>
     </div>
     } @else if (workspace.feedBetaScope()?.freeform) {
     <div class="fb-first-post">
@@ -64,7 +73,16 @@
     />
     }
   </div>
-  } @else { @for (slide of slides(); track slide.key) {
+  } @else {
+  @if (workspace.feedBetaScope()?.category === 'hot-now') {
+  <div class="fb-hot-now-banner">
+    <span class="fb-hot-now-banner-label">🔥 Showing Hot Now posts</span>
+    <button type="button" class="fb-hot-now-banner-clear" (click)="clearHotNowFilter()">
+      Show all posts <i class="bi bi-x-circle" aria-hidden="true"></i>
+    </button>
+  </div>
+  }
+  @for (slide of slides(); track slide.key) {
   <article
     class="fb-slide"
     [class.fb-slide--business]="slide.post.postType === 'business'"
@@ -235,10 +253,19 @@
       </div>
 
       @if (slide.imageUrls.length) {
-      <div class="fb-caption">
+      <div
+        class="fb-caption"
+        [class.fb-caption--custom-bg]="!!slide.post.backgroundColor"
+        [style.background]="slide.post.backgroundColor || null"
+        [style.color]="slide.post.backgroundColor ? (slide.post.backgroundColor | contrastText) : null"
+      >
         <p class="fb-caption-text">{{ slide.post.highlight || 'Untitled post' }}</p>
         @if (slide.post.tag) {
-        <span class="fb-caption-tag">#{{ slide.post.tag }}</span>
+        <span
+          class="fb-caption-tag"
+          [style.color]="slide.post.backgroundColor ? (slide.post.backgroundColor | contrastText) : null"
+          >#{{ slide.post.tag }}</span
+        >
         }
       </div>
       } }

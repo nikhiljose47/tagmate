@@ -490,16 +490,41 @@ export class AppTopbarComponent implements OnDestroy {
 
   /**
    * Home-hood shortcut: jump to the user's home hood on the feed, filtered to
-   * `hot-now`. If posts already exist for the user's state+country the existing
-   * feed area is used; otherwise a freeform scope is set (empty-state UX).
+   * `hot-now`. If already active, toggles off the hot-now filter so the user
+   * can return to the regular feed.
    */
   protected onHotNowChipClick(): void {
-    const alreadyActive = this.workspace.feedBetaScope()?.category === 'hot-now';
-    if (!alreadyActive && !this.hasHotNowActivity()) {
+    const scope = this.workspace.feedBetaScope();
+    const alreadyActive = scope?.category === 'hot-now';
+    if (alreadyActive) {
+      this.clearHotNowCategory();
+      return;
+    }
+    if (!this.hasHotNowActivity()) {
       this.showHotNowInfo();
       return;
     }
     this.openHomeHoodFeed();
+  }
+
+  protected onHomeClick(): void {
+    const scope = this.workspace.feedBetaScope();
+    if (scope?.category === 'hot-now') {
+      this.clearHotNowCategory();
+    }
+  }
+
+  private clearHotNowCategory(): void {
+    const current = this.workspace.feedBetaScope();
+    if (!current) return;
+    const area = this.workspace.feedBetaAreas().find((a) => a.id === current.areaId);
+    const fallbackCat = area
+      ? (area.categoryCounts['around'] > 0 ? 'around' : area.categories[0] || 'around')
+      : 'around';
+    this.workspace.feedBetaScope.set({
+      ...current,
+      category: fallbackCat,
+    });
   }
 
   private showHotNowInfo(): void {

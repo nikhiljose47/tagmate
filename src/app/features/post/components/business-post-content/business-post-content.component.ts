@@ -214,4 +214,12 @@ export class BusinessPostContentComponent {
         return null;
     }
   });
+
+  readonly messageQueryParams = computed(() => {
+    const p = this.post();
+    return {
+      user: p.userId,
+      name: p.businessName || p.username || 'Business',
+    };
+  });
 }

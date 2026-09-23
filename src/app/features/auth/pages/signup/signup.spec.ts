@@ -162,15 +162,26 @@ describe('SignupPage (Auth & Signup Specialist Tests)', () => {
       expect(component.birthDay()).toBe('15');
       expect(component.birthYear()).toBe('1998');
 
-      // Verify DOM select elements have the values
+      // Verify DOM dropdown elements have the values
       const compiled = fixture.nativeElement as HTMLElement;
-      const selects = compiled.querySelectorAll(
-        '.birthday-row select',
-      ) as NodeListOf<HTMLSelectElement>;
-      expect(selects.length).toBe(3);
-      expect(selects[0]!.value).toBe('6');
-      expect(selects[1]!.value).toBe('15');
-      expect(selects[2]!.value).toBe('1998');
+      const dropdowns = compiled.querySelectorAll('.birthday-row app-dropdown');
+      expect(dropdowns.length).toBe(3);
+      const labels = compiled.querySelectorAll('.birthday-row .tm-dropdown-trigger-label');
+      expect(labels[0]?.textContent?.trim()).toBe('June');
+      expect(labels[1]?.textContent?.trim()).toBe('15');
+      expect(labels[2]?.textContent?.trim()).toBe('1998');
+    });
+
+    it('supports selecting "Other" category and entering custom category text (TM-007)', () => {
+      component.accountType.set('business');
+      component.selectOtherCategory();
+      expect(component.isCustomCategory()).toBe(true);
+      expect(component.canProceedCategoryStep()).toBe(false);
+
+      component.onCustomCategoryInput('Custom Florist');
+      expect(component.customCategoryText()).toBe('Custom Florist');
+      expect(component.businessCategory()).toBe('Custom Florist');
+      expect(component.canProceedCategoryStep()).toBe(true);
     });
   });
 

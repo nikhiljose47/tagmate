@@ -405,17 +405,25 @@
 .name-confirm-btn {
   flex-shrink: 0;
   padding: 0 16px;
+  height: 42px;
   border: none;
   border-radius: 10px;
   background: var(--tm-primary);
-  color: var(--tm-primary-text);
+  color: #ffffff;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  transition: opacity 0.12s;
+  transition: opacity 0.15s, background-color 0.15s, box-shadow 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--tm-primary-hover);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--tm-primary) 35%, transparent);
+  }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
+    background: var(--tm-border);
+    color: var(--tm-muted);
     cursor: not-allowed;
   }
 }
@@ -424,6 +432,11 @@
   background: transparent;
   border: 1.5px solid var(--tm-border);
   color: var(--tm-text);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--tm-text) 5%, transparent);
+    color: var(--tm-text);
+  }
 }
 
 /* ── Shop photos ───────────────────────────────────────── */
