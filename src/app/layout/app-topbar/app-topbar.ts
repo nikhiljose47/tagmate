@@ -519,7 +519,9 @@ export class AppTopbarComponent implements OnDestroy {
     if (!current) return;
     const area = this.workspace.feedBetaAreas().find((a) => a.id === current.areaId);
     const fallbackCat = area
-      ? (area.categoryCounts['around'] > 0 ? 'around' : area.categories[0] || 'around')
+      ? area.categoryCounts['around'] > 0
+        ? 'around'
+        : area.categories[0] || 'around'
       : 'around';
     this.workspace.feedBetaScope.set({
       ...current,

@@ -1,4 +1,5 @@
 import { resolveWhatsappHref } from './business-post-content.component';
+import type { Tag } from '../../../../core/models/tag.model';
 
 describe('resolveWhatsappHref (whatsapp CTA destination)', () => {
   it('prefers a full businessWhatsapp URL as-is', () => {
@@ -46,7 +47,7 @@ describe('BusinessPostContentComponent (TM-012)', () => {
       cta: 'message',
       tag: 'food',
       highlight: 'Special Coffee',
-    } as any);
+    } as unknown as Tag);
     fixture.detectChanges();
 
     expect(component.messageQueryParams()).toEqual({

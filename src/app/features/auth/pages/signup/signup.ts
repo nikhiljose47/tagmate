@@ -25,7 +25,10 @@ import {
   tagCategoryLabel,
 } from '../../../../shared/constants/business-tags';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
-import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
+import {
+  DropdownComponent,
+  DropdownOption,
+} from '../../../../shared/components/dropdown/dropdown.component';
 
 const MIN_AGE = 13;
 const MAX_SHOP_IMAGES = 5;

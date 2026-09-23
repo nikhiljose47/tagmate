@@ -46,7 +46,9 @@ export class NavComponent {
     if (scope?.category === 'hot-now') {
       const area = this.workspace.feedBetaAreas().find((a) => a.id === scope.areaId);
       const fallbackCat = area
-        ? (area.categoryCounts['around'] > 0 ? 'around' : area.categories[0] || 'around')
+        ? area.categoryCounts['around'] > 0
+          ? 'around'
+          : area.categories[0] || 'around'
         : 'around';
       this.workspace.feedBetaScope.set({
         ...scope,

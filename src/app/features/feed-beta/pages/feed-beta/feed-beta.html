@@ -73,16 +73,14 @@
     />
     }
   </div>
-  } @else {
-  @if (workspace.feedBetaScope()?.category === 'hot-now') {
+  } @else { @if (workspace.feedBetaScope()?.category === 'hot-now') {
   <div class="fb-hot-now-banner">
     <span class="fb-hot-now-banner-label">🔥 Showing Hot Now posts</span>
     <button type="button" class="fb-hot-now-banner-clear" (click)="clearHotNowFilter()">
       Show all posts <i class="bi bi-x-circle" aria-hidden="true"></i>
     </button>
   </div>
-  }
-  @for (slide of slides(); track slide.key) {
+  } @for (slide of slides(); track slide.key) {
   <article
     class="fb-slide"
     [class.fb-slide--business]="slide.post.postType === 'business'"

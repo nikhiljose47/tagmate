@@ -90,7 +90,10 @@ export class DropdownComponent implements ControlValueAccessor, OnDestroy {
       // usable list, so the panel never renders partly off-screen (fixed
       // positioning means the page can't be scrolled to reach it).
       const openAbove = spaceBelow < 120 && spaceAbove > spaceBelow;
-      const maxHeight = Math.max(120, Math.min(maxPanelHeight, openAbove ? spaceAbove : spaceBelow));
+      const maxHeight = Math.max(
+        120,
+        Math.min(maxPanelHeight, openAbove ? spaceAbove : spaceBelow),
+      );
       const style: Record<string, string> = { 'max-height': `${maxHeight}px` };
       if (openAbove) {
         style['bottom'] = `${window.innerHeight - rect.top + gap}px`;

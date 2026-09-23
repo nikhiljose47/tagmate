@@ -245,21 +245,21 @@
   --tm-shadow-lg: 0 14px 36px rgba(4, 12, 8, 0.7);
 }
 
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"] {
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
   cursor: pointer;
 }
 
-.dark input[type="date"]::-webkit-calendar-picker-indicator,
-.dark input[type="time"]::-webkit-calendar-picker-indicator,
-.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.midnight input[type="date"]::-webkit-calendar-picker-indicator,
-.midnight input[type="time"]::-webkit-calendar-picker-indicator,
-.midnight input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.forest input[type="date"]::-webkit-calendar-picker-indicator,
-.forest input[type="time"]::-webkit-calendar-picker-indicator,
-.forest input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+.dark input[type='date']::-webkit-calendar-picker-indicator,
+.dark input[type='time']::-webkit-calendar-picker-indicator,
+.dark input[type='datetime-local']::-webkit-calendar-picker-indicator,
+.midnight input[type='date']::-webkit-calendar-picker-indicator,
+.midnight input[type='time']::-webkit-calendar-picker-indicator,
+.midnight input[type='datetime-local']::-webkit-calendar-picker-indicator,
+.forest input[type='date']::-webkit-calendar-picker-indicator,
+.forest input[type='time']::-webkit-calendar-picker-indicator,
+.forest input[type='datetime-local']::-webkit-calendar-picker-indicator {
   filter: invert(0.85);
   cursor: pointer;
 }
