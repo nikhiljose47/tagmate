@@ -1,6 +1,6 @@
 {
-  "name": "tagmate",
-  "short_name": "tagmate",
+  "name": "todbook",
+  "short_name": "todbook",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",

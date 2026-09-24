@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   EventEmitter,
+  HostListener,
   Output,
   OnDestroy,
   signal,
@@ -205,6 +207,7 @@ export class PostPage implements OnDestroy {
   @Output() discarded = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<Tag>();
 
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly userSession = inject(UserSessionService);
   private readonly mediaService = inject(MediaService);
   private readonly tagRepo = inject(TAG_REPOSITORY);
@@ -301,13 +304,13 @@ export class PostPage implements OnDestroy {
         if (def) this.templateValueCache.set(def.id, { ...this.templateValues() });
       }
       // Old drafts may hold a value outside the personal dropdown presets —
-      // snap to 1 hour. Business posts use free-form quick-expiry chips
+      // snap to 2 hours. Business posts use free-form quick-expiry chips
       // (e.g. "Today" resolves to an arbitrary minute count), so leave those alone.
       if (
         this.postType() === 'personal' &&
         !this.expiryOptions.some((o) => o.value === this.formData.expiresIn)
       ) {
-        this.formData.expiresIn = 60;
+        this.formData.expiresIn = 120;
       }
       // Resuming a draft (e.g. after the pick-location round-trip, or "Post
       // Again"/"Edit & Post" from My Posts) — the user already picked a tag,
@@ -537,13 +540,12 @@ export class PostPage implements OnDestroy {
 
   /** Post lifetime presets — `expiresIn` is minutes app-wide (see LifespanPipe). */
   readonly expiryOptions = [
-    { label: '15 min', value: 15 },
-    { label: '1 hour', value: 60 },
+    { label: '30 min', value: 30 },
     { label: '2 hours', value: 120 },
-    { label: '6 hours', value: 360 },
     { label: '1 day', value: 1440 },
     { label: '3 days', value: 4320 },
     { label: '1 week', value: 10080 },
+    { label: '2 weeks', value: 20160 },
   ];
 
   readonly expiryDropdownOptions: DropdownOption[] = this.expiryOptions.map((o) => ({
@@ -572,7 +574,7 @@ export class PostPage implements OnDestroy {
 
   formData = {
     headline: '',
-    expiresIn: 60,
+    expiresIn: 120,
     tag: '',
     intent: '' as PostIntent | '',
     price: '',
@@ -744,13 +746,13 @@ export class PostPage implements OnDestroy {
    * Top-right "Hot Now" toggle. Turning it on pins tag='hot-now' and shortens
    * the expiry to 2 hours, then jumps to the details step (hot-now has no
    * quick-fill template — it's meant to be typed fast). Turning it off
-   * restores the 1-hour default, clears the tag, and returns to step 1 so
+   * restores the 2-hour default, clears the tag, and returns to step 1 so
    * the user can pick a category again.
    */
   toggleHotNow(): void {
     if (this.isHotNow()) {
       this.formData.tag = '';
-      this.formData.expiresIn = 60;
+      this.formData.expiresIn = 120;
       this.syncTemplateValues();
       this.step.set('tag');
     } else {
@@ -820,6 +822,25 @@ export class PostPage implements OnDestroy {
   onHeadlineChange(value: string): void {
     this.formData.headline = value;
     if (this.postType() === 'business') this.isHighlightManuallyEdited.set(true);
+  }
+
+  /** Mouse-wheel scrolling anywhere on this page silently does nothing unless
+   *  forwarded manually — confirmed across plain buttons/text as well as the
+   *  headline `<textarea>` (which additionally has its own native "consume
+   *  wheel for internal scroll" behavior, hence its `overflow-y: hidden` in
+   *  post.scss — its 280-char cap always fits, so there's nothing to lose).
+   *  Only forwarded when nothing between the event target and this host is
+   *  itself genuinely scrollable (e.g. the location search results list, or
+   *  a dropdown panel), so their own internal scrolling still works. */
+  @HostListener('wheel', ['$event'])
+  onWheel(event: WheelEvent): void {
+    let el: HTMLElement | null = event.target as HTMLElement | null;
+    while (el && el !== this.elementRef.nativeElement) {
+      const style = getComputedStyle(el);
+      if (/(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight) return;
+      el = el.parentElement;
+    }
+    window.scrollBy(0, event.deltaY);
   }
 
   /** Handles the { key, value } event from TemplateFormComponent. */
@@ -1497,7 +1518,7 @@ export class PostPage implements OnDestroy {
     this.mediaItems.set([]);
     this.formData = {
       headline: '',
-      expiresIn: 60,
+      expiresIn: 120,
       tag: '',
       intent: '',
       price: '',

@@ -445,12 +445,12 @@ export class PostDetailPage implements OnInit {
   protected async sharePost(): Promise<void> {
     const post = this.post();
     if (!post) return;
-    const text = post.highlight || 'Check out this Tagmate post.';
+    const text = post.highlight || 'Check out this Todbook post.';
     const url = typeof window !== 'undefined' ? window.location.href : '';
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Tagmate post', text, url });
+        await navigator.share({ title: 'Todbook post', text, url });
         return;
       }
 

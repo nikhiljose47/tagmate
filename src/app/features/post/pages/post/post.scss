@@ -253,6 +253,13 @@
   outline: none;
   font-family: inherit;
   box-sizing: border-box;
+  /* Textareas default to `overflow: auto`, so a mouse positioned over this
+     (large, empty-most-of-the-time) field would try to scroll ITS OWN
+     content instead of chaining the wheel event up to the page — leaving
+     the whole composer only scrollable by dragging the scrollbar directly.
+     There's no internal scroll UX here (no resize, height tracks content),
+     so suppress it and let scroll always reach the page. */
+  overflow-y: hidden;
 
   &::placeholder {
     color: color-mix(in srgb, currentColor 55%, transparent);

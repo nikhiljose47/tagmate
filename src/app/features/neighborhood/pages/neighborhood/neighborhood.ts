@@ -448,7 +448,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       this.messages.set([
         {
           sender: 'ai',
-          text: `Hi neighbor! I'm your local Tagmate AI Concierge for ${this.name}. Ask me about traffic alerts, active sales, local events, or neighborhood highlights!`,
+          text: `Hi neighbor! I'm your local Todbook AI Concierge for ${this.name}. Ask me about traffic alerts, active sales, local events, or neighborhood highlights!`,
           time: new Date(),
         },
       ]);

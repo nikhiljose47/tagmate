@@ -31,6 +31,7 @@ export const PERSONAL_TAG_CATEGORIES: readonly TagCategory[] = [
   TagCategory.Notice,
   TagCategory.Alert,
   TagCategory.Poll,
+  TagCategory.Available,
 ];
 
 const TAG_LABELS: Partial<Record<TagCategory, string>> = {
@@ -41,6 +42,7 @@ const TAG_LABELS: Partial<Record<TagCategory, string>> = {
   [TagCategory.Notice]: 'Notice',
   [TagCategory.Alert]: 'Alert',
   [TagCategory.Poll]: 'Poll',
+  [TagCategory.Available]: 'Available',
   [TagCategory.Shop]: 'Shop & retail',
   [TagCategory.Food]: 'Food & dining',
   [TagCategory.Service]: 'Services & repair',

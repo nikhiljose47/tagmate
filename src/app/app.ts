@@ -40,7 +40,7 @@ const SPLASH_FADE_MS = 450;
   styleUrl: './app.scss',
 })
 export class App {
-  protected readonly title = signal('tagmate');
+  protected readonly title = signal('todbook');
   protected readonly toast = inject(ToastService);
   protected readonly network = inject(NetworkService);
 

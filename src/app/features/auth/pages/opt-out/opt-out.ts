@@ -17,7 +17,7 @@ import { SupabaseService } from '../../../../core/services/supabase.service';
           <i class="bi bi-shield-check"></i>
         </div>
         <h1>Email Preferences & Opt-Out</h1>
-        <p class="subtitle">Manage non-essential email communications from Tagmate.</p>
+        <p class="subtitle">Manage non-essential email communications from Todbook.</p>
 
         @if (submitted()) {
           <div class="success-message">
@@ -140,7 +140,7 @@ export class OptOutComponent {
   readonly error = signal(
     this.token
       ? ''
-      : 'This email-preference link is missing or invalid. Request a new email from Tagmate.',
+      : 'This email-preference link is missing or invalid. Request a new email from Todbook.',
   );
   readonly hasValidToken = computed(() =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(this.token),
@@ -159,7 +159,7 @@ export class OptOutComponent {
       );
       if (!data) {
         this.error.set(
-          'This email-preference link is no longer valid. Request a new email from Tagmate.',
+          'This email-preference link is no longer valid. Request a new email from Todbook.',
         );
         return;
       }

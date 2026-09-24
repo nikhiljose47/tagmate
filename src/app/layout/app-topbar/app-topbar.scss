@@ -41,37 +41,10 @@
   flex-shrink: 0;
 }
 
-.topbar-logo {
-  width: 32px;
-  height: 32px;
-  display: block;
-  border-radius: 8px;
-  padding: 6px;
-  background: var(--tm-text);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-  filter: invert(1);
-
-  :host-context(.dark) &,
-  :host-context(.midnight) & {
-    background: #fff;
-    filter: none;
-  }
-
-  :host-context(.forest) & {
-    background: #d1fae5;
-    filter: none;
-  }
-
-  :host-context(.sepia) & {
-    background: #433422;
-    filter: invert(1);
-  }
-}
-
 .topbar-wordmark {
-  font-size: 18px;
-  font-weight: 850;
-  line-height: 1;
+  display: block;
+  height: 20px;
+  width: auto;
 }
 
 /* ── Nav icons (desktop only) ─────────────────────────────── */
@@ -1199,16 +1172,6 @@
     gap: 4px;
   }
 
-  .topbar-logo {
-    width: 28px;
-    height: 28px;
-    padding: 5px;
-  }
-
-  .topbar-wordmark {
-    display: none;
-  }
-
   .hood-search {
     min-height: 36px;
     gap: 6px;
@@ -1244,10 +1207,6 @@
     gap: 10px;
     height: 50px;
     padding: 0 16px;
-  }
-
-  .topbar-wordmark {
-    display: none;
   }
 
   .topbar-search-row {

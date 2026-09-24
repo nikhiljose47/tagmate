@@ -25,6 +25,7 @@ export enum TagCategory {
   Alert = 'alert',
   Poll = 'poll',
   HotNow = 'hot-now',
+  Available = 'available',
 }
 
 export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
@@ -49,6 +50,7 @@ export const TAG_COLORS: Readonly<Record<TagCategory, [string, string]>> = {
   [TagCategory.Alert]: ['#ef4444', '#b91c1c'],
   [TagCategory.Poll]: ['#38bdf8', '#0369a1'],
   [TagCategory.HotNow]: ['#f97316', '#dc2626'],
+  [TagCategory.Available]: ['#059669', '#047857'],
 };
 
 export const TAG_EMOJIS: Readonly<Record<TagCategory, string>> = {
@@ -73,4 +75,5 @@ export const TAG_EMOJIS: Readonly<Record<TagCategory, string>> = {
   [TagCategory.Alert]: '⚠️',
   [TagCategory.Poll]: '🗳️',
   [TagCategory.HotNow]: '🔥',
+  [TagCategory.Available]: '🏷️',
 };

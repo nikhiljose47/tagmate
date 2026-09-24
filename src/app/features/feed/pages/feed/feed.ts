@@ -350,7 +350,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   protected async sharePost(post: Tag): Promise<void> {
-    const text = post.highlight || 'Check out this Tagmate post.';
+    const text = post.highlight || 'Check out this Todbook post.';
     const url =
       typeof window !== 'undefined'
         ? `${window.location.origin}/posts/${encodeURIComponent(this.postKey(post))}`
@@ -358,7 +358,7 @@ export class FeedPage implements OnInit, OnDestroy, AfterViewInit {
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Tagmate post', text, url });
+        await navigator.share({ title: 'Todbook post', text, url });
         return;
       }
 

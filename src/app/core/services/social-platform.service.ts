@@ -187,7 +187,7 @@ export class SocialPlatformService implements OnDestroy {
         return {
           uid,
           name: user?.name || 'Guest Neighbor',
-          bio: 'Neighbor in Tagmate community',
+          bio: 'Neighbor in Todbook community',
           reputation: user?.reputation ?? 0,
         };
       }
@@ -204,7 +204,7 @@ export class SocialPlatformService implements OnDestroy {
       return {
         uid,
         name: 'Guest Neighbor',
-        bio: 'Neighbor in Tagmate community',
+        bio: 'Neighbor in Todbook community',
         reputation: 0,
       };
     }

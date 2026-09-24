@@ -1,9 +1,14 @@
 <header class="app-topbar">
   <!-- ── Brand (left) ── -->
   <div class="topbar-left">
-    <a class="topbar-brand" routerLink="/feed-beta" aria-label="Tagmate home">
-      <img class="topbar-logo" src="assets/tagmate-logo.svg" alt="" width="28" height="28" />
-      <span class="topbar-wordmark">Tagmate</span>
+    <a class="topbar-brand" routerLink="/feed-beta" aria-label="Todbook home">
+      <img
+        class="topbar-wordmark"
+        src="assets/brand/todbook_text_logo.svg"
+        alt="Todbook"
+        width="100"
+        height="25"
+      />
     </a>
   </div>
 
@@ -196,7 +201,7 @@
               >{{ (session.user()?.name || 'TM').slice(0, 2).toUpperCase() }}</span
             >
             <span class="user-menu-info">
-              <strong>{{ session.user()?.name || 'Tagmate' }}</strong>
+              <strong>{{ session.user()?.name || 'Todbook' }}</strong>
               @if (hood().state) {
               <small>Hood: {{ hood().state }}</small>
               }

@@ -68,10 +68,9 @@
 }
 
 .hero-wordmark {
-  font-size: 22px;
-  font-weight: 900;
-  color: #fff;
-  letter-spacing: -0.02em;
+  display: block;
+  height: 35px;
+  width: auto;
 }
 
 .hero-copy {
@@ -179,10 +178,9 @@
 }
 
 .mobile-wordmark {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--tm-text);
-  letter-spacing: -0.02em;
+  display: block;
+  height: 30px;
+  width: auto;
 }
 
 /* ── Step block ─────────────────────────────────────────── */
