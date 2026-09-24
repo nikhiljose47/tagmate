@@ -131,7 +131,7 @@ export class TagDataService {
         .update(data as Record<string, unknown>)
         .eq('id', id)
         .select()
-        .single<T>(),
+        .maybeSingle<T>(),
     ).pipe(map((result) => this.requireSuccess(result)));
   }
 

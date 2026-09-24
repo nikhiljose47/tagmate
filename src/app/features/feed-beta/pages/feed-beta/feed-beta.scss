@@ -602,6 +602,16 @@
   gap: 3px;
   padding: 9px 14px 7px;
   background: var(--tm-surface);
+
+  &.fb-caption--custom-bg {
+    .fb-caption-text {
+      color: inherit;
+    }
+    .fb-caption-tag {
+      color: inherit;
+      opacity: 0.85;
+    }
+  }
 }
 
 .fb-caption-text {
@@ -1033,6 +1043,40 @@
   place-items: center;
 }
 
+.fb-hot-now-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: color-mix(in srgb, #dc2626 12%, var(--tm-surface));
+  border-bottom: 1px solid color-mix(in srgb, #dc2626 25%, var(--tm-border));
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 650;
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+
+  .fb-hot-now-banner-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid color-mix(in srgb, #dc2626 40%, transparent);
+    border-radius: 999px;
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: color-mix(in srgb, #dc2626 15%, transparent);
+    }
+  }
+}
+
 .fb-first-post--hot-now {
   .fb-first-post-icon {
     filter: drop-shadow(0 0 12px color-mix(in srgb, #dc2626 45%, transparent));
@@ -1044,6 +1088,26 @@
 
 .fb-first-post-btn--hot-now {
   background: #dc2626 !important;
+}
+
+.fb-first-post-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.fb-first-post-btn--clear {
+  background: transparent !important;
+  border: 1.5px solid var(--tm-border);
+  color: var(--tm-text) !important;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--tm-text) 6%, transparent) !important;
+  }
 }
 
 .fb-first-post {

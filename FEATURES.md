@@ -112,6 +112,20 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
   - **Post Media Size & Format Guidance (Bug #8)**: Added explicit media size hint (`Photos up to 15 MB • Videos up to 30 MB (max 30s)`) in post composer media picker to avoid silent rejections or unexpected file failures.
   - **Post Composition & Form Usability (Bug #9)**: Streamlined post creation validation feedback and input responsiveness across compose steps.
   - **Desktop Feed Scrollbar Restoration (Bug #10)**: Restored subtle, themed vertical scrollbar (`thin`, 6px rounded thumb matching `--tm-text` opacity) on `.fb-scroller` for desktop viewports (`>= 761px`) while preserving the borderless, immersive Reels view on mobile (`< 761px`).
+- **Bug Report #4 Comprehensive Remediations (TM-001 to TM-014)**:
+  - **Thread Reply Visibility (TM-001)**: Fixed offset calculation in `post-detail.html` where `.slice(expandedThreads().has(comment.id) ? 0 : 3)` improperly hid replies on comments with $\le 3$ replies. Updated to `.slice(0, expandedThreads().has(comment.id) ? undefined : 3)` so replies are immediately visible up to 3 when collapsed and fully expanded on toggle.
+  - **Comment Deletion Confirmation Copy (TM-002)**: Updated `deleteComment()` in `post-detail.ts` to dynamically distinguish whether a comment has nested replies. If replies exist, shows "Replies will remain visible as a preserved thread."; otherwise displays standard message "Are you sure you want to delete this comment? This action cannot be undone."
+  - **Comment Soft Deletion Database Resilience (TM-003)**: Updated `updateRow()` in `tag-data.service.ts` to use `.maybeSingle()` instead of `.single()`, preventing PostgREST `PGRST116` error ("0 rows returned") when database RLS policies filter out soft-deleted records (`is_deleted = true`). Handled `PGRST116` gracefully in `social-interactions.service.ts`.
+  - **Post Detail Neighbor Navigation (TM-004)**: Added reactive route parameter subscription in `post-detail.ts` using `route.paramMap.pipe(takeUntilDestroyed(this.destroyRef))` with extracted `loadPost(id)` and scroll-to-top, fixing Angular router component reuse when clicking cards in "More from this neighbor".
+  - **Upload Limit & File Type Validation Visibility (TM-005, TM-010)**: Enforced media upload limits (15 MB photo, 30 MB / 30s video) and supported format restrictions. Resolved toast notification truncation in `app.scss` by removing `nowrap` and `text-overflow: ellipsis`, enabling responsive multi-line wrapping with theme background and border contrast.
+  - **Name Confirm Button Contrast & States (TM-006)**: Polished `.name-confirm-btn` in `signup.scss` with high-contrast text (`#ffffff`), theme-aware hover states, and clear disabled opacity (`0.45`) with muted borders across light and dark themes.
+  - **Custom Business Category Support ("Other") (TM-007)**: Added an "Other" option to the Step 3 business category grid in `signup.html` with an interactive custom text input, validated min-length, and persisted custom category strings in user metadata.
+  - **External Registration Triage (TM-008)**: Audited and closed invalid bug report where tester was verifying OpenStreetMap's external signup form (`openstreetmap.org/user/new`) rather than Tagmate.
+  - **Dark Mode Calendar Picker Contrast (TM-009)**: Configured `color-scheme: dark` for `.dark`, `.midnight`, and `.forest` themes in `styles.scss` and applied `filter: invert(0.85)` to `::-webkit-calendar-picker-indicator` across all native date/time pickers.
+  - **Hot Now Filter Exits & Navigation (TM-011)**: Implemented toggle-off logic on the Hot Now chip in `app-topbar.ts` when already active, added `onHomeClick()` to clear the filter on logo/home click, and added "Show all posts" action buttons to both the Hot Now empty state and active feed banners in `feed-beta.html`.
+  - **Offer Post "Message" CTA Routing (TM-012)**: Updated `business-post-content.component.ts` and `.html` to route `message` CTAs to `['/messages']` with `queryParams: { user: post.userId, name: post.businessName || post.username }`, directly initiating direct message conversations with the business.
+  - **Preserved Custom Post Background with Attachments (TM-013)**: Extended custom `backgroundColor` and `contrastText` bindings to `.fb-caption` in `feed-beta.html` and styled `.fb-caption--custom-bg` in `feed-beta.scss` so selected background colors display accurately when photos/media are attached.
+  - **Authentication Layout Verification (TM-014)**: Verified resolution of Forgot Password UI layout in commit `cb2b465` (`.signup-split` design), ensuring uniform centered card structure matching Login and Signup screens.
 
 ### Production Optimizations & Telemetry
 
@@ -227,3 +241,25 @@ Before deploying changes:
     - Confirm keyboard focus smoothly advances to the password visibility toggle button (`Show password`).
     - Press `Space` or `Enter` to toggle visibility; confirm the button's accessible name switches between `Show password` and `Hide password` with updated `aria-pressed` state and the input type toggles between `password` and `text`.
     - Confirm the button receives high-contrast `:focus-visible` styling matching the active theme palette.
+14. **Thread Reply Expansion (TM-001)**:
+    - View a post with 1, 2, or 3 replies. Verify that replies are immediately visible.
+    - View a post with > 3 replies. Confirm the first 3 are visible, and clicking "View all N replies" smoothly reveals the remainder.
+15. **Comment Deletion Confirmation Copy (TM-002)**:
+    - On a comment with no replies, trigger deletion and confirm the dialog warns "Are you sure you want to delete this comment? This action cannot be undone."
+    - On a comment that has replies, trigger deletion and confirm the dialog explicitly notes "Replies will remain visible as a preserved thread."
+16. **Post Detail Neighbor Links (TM-004)**:
+    - In Post Details, click another post under "More from this neighbor".
+    - Confirm the route transitions to the new post ID, the page scrolls to top, and the new post's content and comments load without reload failure.
+17. **Date/Time Picker Contrast (TM-009)**:
+    - Switch to Dark, Midnight, or Forest theme and navigate to `/post` (Event enabled).
+    - Confirm the native calendar and clock picker indicators are crisp, inverted white/light icons with full visibility against the dark input background.
+18. **Multi-line Toast Notifications (TM-010)**:
+    - Attempt an invalid action (e.g. upload an unsupported file).
+    - Confirm the toast alert wraps to multiple lines without truncation or ellipsis, preserving complete readability across all themes.
+19. **Hot Now Feed Exits (TM-011)**:
+    - Click the Hot Now fire chip to enter the Hot Now feed.
+    - Click the active chip again, or click the Brand/Home icon, or click "Show all posts" in the feed banner or empty state.
+    - Confirm the feed filter resets cleanly and all neighborhood posts reappear.
+20. **Offer Post Message CTA (TM-012)**:
+    - On an offer or business post in the feed with CTA "Message", click "Message".
+    - Confirm the application opens `/messages` with query parameters pointing to the business owner, opening or staging a direct conversation thread.

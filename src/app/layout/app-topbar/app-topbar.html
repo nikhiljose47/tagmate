@@ -1,20 +1,26 @@
 <header class="app-topbar">
   <!-- ── Brand (left) ── -->
   <div class="topbar-left">
-    <a class="topbar-brand" routerLink="/feed-beta" aria-label="Todbook home">
-      <img
-        class="topbar-wordmark"
-        src="assets/brand/todbook_text_logo.svg"
-        alt="Todbook"
-        width="100"
-        height="25"
-      />
+    <a
+      class="topbar-brand"
+      routerLink="/feed-beta"
+      (click)="onHomeClick()"
+      aria-label="Tagmate home"
+    >
+      <img class="topbar-logo" src="assets/tagmate-logo.svg" alt="" width="28" height="28" />
+      <span class="topbar-wordmark">Tagmate</span>
     </a>
   </div>
 
   <!-- ── Nav icons (desktop only, like Facebook) ── -->
   <nav class="topbar-nav" aria-label="Main navigation">
-    <a class="topbar-nav-btn" routerLink="/feed-beta" routerLinkActive="active" aria-label="Home">
+    <a
+      class="topbar-nav-btn"
+      routerLink="/feed-beta"
+      (click)="onHomeClick()"
+      routerLinkActive="active"
+      aria-label="Home"
+    >
       <i class="bi bi-house" aria-hidden="true"></i>
     </a>
     <a class="topbar-nav-btn" routerLink="/post" routerLinkActive="active" aria-label="Post">

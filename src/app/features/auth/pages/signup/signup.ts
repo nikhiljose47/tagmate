@@ -25,7 +25,10 @@ import {
   tagCategoryLabel,
 } from '../../../../shared/constants/business-tags';
 import { TagEmojiPipe } from '../../../../shared/pipes/tag-emoji.pipe';
-import { DropdownComponent, DropdownOption } from '../../../../shared/components/dropdown/dropdown.component';
+import {
+  DropdownComponent,
+  DropdownOption,
+} from '../../../../shared/components/dropdown/dropdown.component';
 
 const MIN_AGE = 13;
 const MAX_SHOP_IMAGES = 5;
@@ -118,14 +121,30 @@ export class SignupPage implements OnInit {
   businessLogo = signal<{ file: File; previewUrl: string } | null>(null);
   /** Required for business accounts — every post they make uses this tag, so
    *  there's no per-post category picker anymore (see post.ts). */
-  businessCategory = signal<TagCategory | ''>('');
+  businessCategory = signal<TagCategory | string>('');
   readonly businessTags = BUSINESS_TAG_CATEGORIES;
   readonly tagCategoryLabel = tagCategoryLabel;
+  /** Whether the user picked "Other" to enter a custom category. */
+  isCustomCategory = signal(false);
+  customCategoryText = signal('');
   /** Business accounts give a founding year instead of a personal birthday (see the final step). */
   businessEstablishedYear = signal('');
 
   selectBusinessCategory(tag: TagCategory): void {
+    this.isCustomCategory.set(false);
     this.businessCategory.set(tag);
+  }
+
+  selectOtherCategory(): void {
+    this.isCustomCategory.set(true);
+    this.businessCategory.set(this.customCategoryText().trim());
+  }
+
+  onCustomCategoryInput(value: string): void {
+    this.customCategoryText.set(value);
+    if (this.isCustomCategory()) {
+      this.businessCategory.set(value.trim());
+    }
   }
 
   birthMonth = signal('');
@@ -226,7 +245,12 @@ export class SignupPage implements OnInit {
   readonly canProceedBusinessIdentityStep = computed(() => this.businessNameConfirmed());
 
   /** Step 3: business category. */
-  readonly canProceedCategoryStep = computed(() => !!this.businessCategory());
+  readonly canProceedCategoryStep = computed(() => {
+    if (this.isCustomCategory()) {
+      return this.customCategoryText().trim().length >= 2;
+    }
+    return !!this.businessCategory();
+  });
 
   /** Step 4: shop photos (required) + website (required). */
   readonly canProceedBusinessMediaStep = computed(() => {

@@ -723,6 +723,21 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.loadPosts(true);
   }
 
+  protected clearHotNowFilter(): void {
+    const current = this.workspace.feedBetaScope();
+    if (!current) return;
+    const area = this.workspace.feedBetaAreas().find((a) => a.id === current.areaId);
+    const fallbackCat = area
+      ? area.categoryCounts['around'] > 0
+        ? 'around'
+        : area.categories[0] || 'around'
+      : 'around';
+    this.workspace.feedBetaScope.set({
+      ...current,
+      category: fallbackCat,
+    });
+  }
+
   private currentScopeFilter(): { state?: string; country: string } | undefined {
     const scope = this.workspace.feedBetaScope();
     if (!scope || scope.freeform) return undefined;
