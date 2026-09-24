@@ -3,6 +3,15 @@
    Full-width edge-to-edge, logo left, search center, actions right
 ───────────────────────────────────────────────────────────── */
 
+/* The header is a single grid: row 1 is the main bar (brand/nav/search/
+   actions), row 2 is the optional feed-category chip strip (feed-beta only).
+   Both rows share the header's background/blur so the strip reads as part
+   of the topbar rather than a separate bar, and height is auto — it just
+   collapses to nothing when the strip isn't rendered, so there's no
+   separate "tagged" height to keep in sync by hand. The strip is placed in
+   the SAME grid column as `.topbar-center` (see `.topbar-tag-strip` below)
+   so it centers under the search bar itself, not under the full header
+   width — the two rows can have very different left/right column widths. */
 .app-topbar {
   position: fixed;
   top: 0;
@@ -11,10 +20,10 @@
   z-index: 9000;
   display: grid;
   grid-template-columns: minmax(176px, auto) auto minmax(320px, 1fr) auto;
+  grid-template-rows: 35px auto;
   align-items: center;
-  gap: 16px;
-  height: 50px;
-  padding: 0 18px;
+  column-gap: 16px;
+  padding: 6px 18px 0;
   border-bottom: 1px solid var(--tm-border);
   background: color-mix(in srgb, var(--tm-surface) 94%, transparent);
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
@@ -34,8 +43,8 @@
 .topbar-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
   min-width: max-content;
+  padding: 0;
   text-decoration: none;
   color: var(--tm-text);
   flex-shrink: 0;
@@ -43,8 +52,24 @@
 
 .topbar-wordmark {
   display: block;
-  height: 20px;
-  width: auto;
+  width: 90px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.topbar-wordmark--icon {
+  display: none;
+  width: 28px;
+}
+
+@media (max-width: 1023px) {
+  .topbar-wordmark--text {
+    display: none;
+  }
+
+  .topbar-wordmark--icon {
+    display: block;
+  }
 }
 
 /* ── Nav icons (desktop only) ─────────────────────────────── */
@@ -58,12 +83,12 @@
 .topbar-nav-btn {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 35px;
+  height: 35px;
   border-radius: 8px;
   color: var(--tm-muted);
   text-decoration: none;
-  font-size: 18px;
+  font-size: 17px;
   transition:
     background 0.15s,
     color 0.15s;
@@ -624,7 +649,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
+  min-height: 30px;
   border: 1px solid var(--tm-border);
   border-radius: 8px;
   background: color-mix(in srgb, var(--tm-bg) 78%, var(--tm-surface));
@@ -667,87 +692,101 @@
   animation: spin 0.7s linear infinite;
 }
 
-/* ── Tag filter button (right end of the search bar) ─────────── */
+/* ── Hood indicator (right end of the search bar) ─────────────── */
+/* Read-only — just names the hood the search/feed is scoped to. It replaced
+   a clickable tag-filter dropdown; that filtering now lives in the tag-chip
+   strip below the search row instead. */
 
-.hood-filter-wrap {
+.hood-indicator {
   order: 3;
-  position: relative;
   flex: 0 0 auto;
   display: flex;
+  align-items: center;
+  gap: 4px;
   margin-left: 2px;
   padding-left: 8px;
+  max-width: 120px;
   border-left: 1px solid var(--tm-border);
+  color: var(--tm-muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: default;
 }
 
-.hood-filter-btn {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
+.hood-indicator-icon {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--tm-primary-text);
+}
+
+.hood-indicator-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tag-chip strip (feed category switcher, below the search row) ──── */
+/* Row 2 of the same grid, pinned to the SAME column as `.topbar-center` —
+   that's what centers it under the search bar instead of the full header
+   width (the left/actions columns aren't equal width, so "centered on the
+   header" and "centered on the search bar" are different points). */
+
+.topbar-tag-strip {
+  grid-column: 3;
+  grid-row: 2;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tag-chip {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 22px;
+  padding: 0 12px;
+  border: 1px solid var(--tm-border);
+  border-radius: 999px;
+  background: var(--tm-bg);
   color: var(--tm-muted);
-  font-size: 13px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background 0.15s,
-    color 0.15s;
-}
+    color 0.15s,
+    border-color 0.15s;
 
-.hood-filter-btn:hover {
-  background: color-mix(in srgb, var(--tm-text) 8%, transparent);
-  color: var(--tm-text);
-}
+  /* Extends the tap target beyond the visible pill without growing it —
+     keeps the strip compact (important on mobile) while staying tappable. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+  }
 
-.hood-filter-btn.active {
-  background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
-  color: var(--tm-primary-text);
-}
+  &:hover {
+    border-color: color-mix(in srgb, var(--tm-primary) 40%, var(--tm-border));
+    color: var(--tm-text);
+  }
 
-.hood-filter-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 9300;
-  min-width: 160px;
-  max-width: 220px;
-  display: grid;
-  gap: 2px;
-  border: 1px solid var(--tm-border);
-  border-radius: 10px;
-  background: var(--tm-surface);
-  padding: 6px;
-  box-shadow: var(--tm-shadow-lg);
-}
-
-.hood-filter-option {
-  display: flex;
-  align-items: center;
-  min-height: 36px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  padding: 0 10px;
-  color: var(--tm-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.hood-filter-option:hover,
-.hood-filter-option.active {
-  background: color-mix(in srgb, var(--tm-primary) 9%, transparent);
-  color: var(--tm-primary-text);
-}
-
-.hood-filter-empty {
-  padding: 10px;
-  color: var(--tm-muted);
-  font-size: 12px;
-  text-align: center;
+  &.active {
+    border-color: var(--tm-primary);
+    background: var(--tm-primary);
+    color: #fff;
+  }
 }
 
 /* ── Hood search results ──────────────────────────────────── */
@@ -867,14 +906,14 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 33px;
+  height: 33px;
   border: 0;
   border-radius: 50%;
   background: var(--tm-bg);
   color: var(--tm-text);
   text-decoration: none;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   transition: background 0.15s;
 
@@ -945,8 +984,8 @@
 .user-avatar {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 31px;
+  height: 31px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--tm-primary), var(--tm-primary-hover));
   color: #fff;
@@ -1136,10 +1175,17 @@
 @media (max-width: 760px) {
   .app-topbar {
     grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 30px auto;
     grid-template-areas: 'left center actions';
     column-gap: 8px;
-    height: 56px;
-    padding: 0 10px;
+    padding: 6px 10px 0;
+  }
+
+  /* Row 1 uses named areas here (3 columns instead of 4, since .topbar-nav
+     is hidden) — "column 3" no longer means the search column, so the strip
+     needs its own mobile override to stay under column 2 (center/search). */
+  .topbar-tag-strip {
+    grid-column: 2;
   }
 
   /* Messages icon lives in the mobile bottom nav — hide the topbar duplicate. */
@@ -1173,15 +1219,31 @@
   }
 
   .hood-search {
-    min-height: 36px;
+    min-height: 28px;
     gap: 6px;
     padding: 0 8px;
   }
 
+  .hood-indicator {
+    max-width: 84px;
+    padding-left: 6px;
+  }
+
+  .topbar-tag-strip {
+    gap: 5px;
+    padding: 4px 0;
+  }
+
+  .tag-chip {
+    min-height: 18px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
   .topbar-icon-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 15px;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
   }
 
   .user-avatar {
@@ -1204,8 +1266,7 @@
 @media (min-width: 761px) and (max-width: 1023px) {
   .app-topbar {
     grid-template-columns: minmax(132px, auto) auto minmax(240px, 1fr) auto;
-    gap: 10px;
-    height: 50px;
+    column-gap: 10px;
     padding: 0 16px;
   }
 

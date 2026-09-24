@@ -25,6 +25,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { Store } from '@ngrx/store';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
 import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
+import { PERSONAL_TAG_CATEGORIES, tagCategoryLabel } from '../../shared/constants/business-tags';
 
 interface NominatimPlace {
   place_id: number;
@@ -152,6 +153,21 @@ export class AppTopbarComponent implements OnDestroy {
     return this.hood()?.state?.trim() || '';
   });
 
+  /** Label of the active feed category chip, or null when none is selected
+   *  (or the active scope is 'hot-now', which has its own toggle and isn't
+   *  one of the tagFilterOptions chips). */
+  protected readonly selectedTagLabel = computed(() => {
+    const category = this.workspace.feedBetaScope()?.category;
+    if (!category || category === 'hot-now') return null;
+    return tagCategoryLabel(category);
+  });
+
+  /** Search input placeholder — mentions the active tag filter when one is set. */
+  protected readonly searchPlaceholder = computed(() => {
+    const tag = this.selectedTagLabel();
+    return tag ? `Search or filter posts in ${tag}` : 'Search or filter posts';
+  });
+
   /**
    * Registered home hood, e.g. "Marathahalli, Karnataka, India" — shown as a
    * static info row in the user menu (matches the Profile settings format).
@@ -193,23 +209,14 @@ export class AppTopbarComponent implements OnDestroy {
   private postSearchTimeout?: ReturnType<typeof setTimeout>;
   private postSearchRequest = 0;
 
-  /** Filter button next to the search bar — a simple list of tags with posts in the current hood. */
-  protected readonly tagFilterOpen = signal(false);
-  protected readonly tagFilterOptions = computed(() =>
-    this.workspace.feedBetaCategories().map((category) => ({
-      key: category,
-      label: this.tagFilterLabel(category),
-    })),
-  );
-
-  protected toggleTagFilter(): void {
-    this.closePostSearch();
-    this.tagFilterOpen.update((v) => !v);
-  }
-
-  protected closeTagFilter(): void {
-    this.tagFilterOpen.set(false);
-  }
+  /** Feed category chips below the search row — every personal tag, same set
+   *  as the post composer offers, regardless of whether it has posts yet in
+   *  this hood (an empty one just falls through to the feed's own "No posts
+   *  in this scope" empty state). */
+  protected readonly tagFilterOptions = PERSONAL_TAG_CATEGORIES.map((category) => ({
+    key: category as string,
+    label: tagCategoryLabel(category),
+  }));
 
   protected isActiveTagFilter(category: string): boolean {
     return this.workspace.feedBetaScope()?.category === category;
@@ -217,13 +224,8 @@ export class AppTopbarComponent implements OnDestroy {
 
   /** Applies the chosen tag as the active feed category, scoped to the current hood. */
   protected selectTagFilter(category: string): void {
-    this.closeTagFilter();
     const scope = this.workspace.feedBetaScope();
     if (scope) this.workspace.feedBetaScope.set({ ...scope, category });
-  }
-
-  private tagFilterLabel(category: string): string {
-    return category.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 
   protected readonly userMenuOpen = signal(false);
@@ -380,7 +382,6 @@ export class AppTopbarComponent implements OnDestroy {
   }
 
   protected openPostSearch(): void {
-    this.closeTagFilter();
     this.postSearchOpen.set(true);
   }
 
@@ -592,7 +593,6 @@ export class AppTopbarComponent implements OnDestroy {
   protected closeHomeMenusOnEscape(): void {
     this.userMenuOpen.set(false);
     this.closePostSearch();
-    this.closeTagFilter();
     if (this.hoodModalOpen()) this.closeHoodModal();
   }
 

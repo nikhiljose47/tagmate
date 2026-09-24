@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="Todbook logo">
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Todbook logo" viewBox="223.54 33 756.16 212">
   <defs>
     <linearGradient id="todbookGradient" x1="0%" y1="50%" x2="100%" y2="50%">
       <stop offset="0%" stop-color="#173B7A"/>
@@ -6,8 +6,5 @@
       <stop offset="100%" stop-color="#0A7ED0"/>
     </linearGradient>
   </defs>
-  <text x="600" y="205" text-anchor="middle"
-        fill="url(#todbookGradient)"
-        font-family="Arial Rounded MT Bold, Poppins, Nunito, Arial, sans-serif"
-        font-size="190" font-weight="700" letter-spacing="-5">Todbook</text>
+  <text x="600" y="205" text-anchor="middle" fill="url(#todbookGradient)" font-family="Arial Rounded MT Bold, Poppins, Nunito, Arial, sans-serif" font-size="190" font-weight="700" letter-spacing="-5">Todbook</text>
 </svg>

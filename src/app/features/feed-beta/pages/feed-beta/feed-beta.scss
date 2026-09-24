@@ -13,25 +13,39 @@
    predictably and the app shell — topbar + nav — never moves.
 ───────────────────────────────────────────────────────────── */
 
+/* The topbar grows a second row (the feed-category chip strip) only on this
+   page — `main-container`'s shared padding-top doesn't know about that, so
+   this page alone has to push its own content down to clear it: 30px on
+   tablet/desktop, 26px on phones. This MUST be `padding-top`, not
+   `margin-top`: :host has no border/padding of its own otherwise, so a
+   margin on it collapses straight through `.workspace-router` (which also
+   has no padding) and escapes into `.main-container` — extra space that
+   isn't deducted from anyone's height budget, overflowing the page by
+   exactly this amount. Padding never collapses, so the height below
+   subtracts only the topbar's base (untagged) size — the strip's height
+   is accounted for by shrinking the box from the inside via padding, not
+   by an outer offset. */
 :host {
   display: flex;
   flex-direction: column;
   /* Wide desktop: app topbar, no bottom bar. */
-  height: calc(100dvh - 50px);
+  height: calc(100dvh - 42px);
+  padding-top: 30px;
   overflow: hidden;
 }
 
 /* Tablet / narrow desktop: app topbar + 64px bottom bar. */
 @media (max-width: 1023px) {
   :host {
-    height: calc(100dvh - 50px - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 42px - 64px - env(safe-area-inset-bottom));
   }
 }
 
 /* Phones: app topbar uses two compact rows. */
 @media (max-width: 760px) {
   :host {
-    height: calc(100dvh - 88px - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
+    padding-top: 26px;
   }
 }
 
@@ -1004,6 +1018,7 @@
 }
 
 .fb-map-canvas {
+  position: relative;
   min-height: 0;
   flex: 1 1 auto;
   background: color-mix(in srgb, var(--tm-muted) 12%, var(--tm-surface));

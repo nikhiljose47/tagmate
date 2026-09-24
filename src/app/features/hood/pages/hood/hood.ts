@@ -35,6 +35,8 @@ import type {
   MapLayerMouseEvent,
   MapMouseEvent,
   Marker,
+  Popup,
+  StyleSpecification,
 } from 'maplibre-gl';
 
 import { environment } from '../../../../environments/environment';
@@ -59,6 +61,9 @@ import { WorkspaceStateService } from '../../../../layout/workspace/workspace-st
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { TelemetryService } from '../../../../core/services/telemetry.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { MAP_PERF_OPTIONS } from '../../../../core/map/map-defaults';
+import { MapStyleService } from '../../../../core/map/map-style.service';
+import { MapInstancePoolService } from '../../../../core/map/map-instance-pool.service';
 
 interface CountryBounds {
   minLat: number;
@@ -202,6 +207,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   protected readonly platform = inject(SocialPlatformService);
   private readonly telemetry = inject(TelemetryService);
   private readonly logger = inject(LoggerService);
+  private readonly mapStyle = inject(MapStyleService);
+  private readonly mapPool = inject(MapInstancePoolService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly viewportChange$ = new Subject<MapViewportQuery>();
@@ -215,10 +222,77 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private maplibre?: typeof import('maplibre-gl');
   private map?: MapLibreMap;
   private temporaryMarker?: Marker;
+  private markerPopup?: Popup;
   private resizeObserver?: ResizeObserver;
   private locationSelectionEnabled = false;
   private mapErrorShown = false;
   private mapInitialized = false;
+  /** Set in ngOnDestroy — initializeMap() awaits the style before constructing
+   *  a fresh map, so it must check this before proceeding in case the user
+   *  navigated away during that await (otherwise a map ends up attached to
+   *  an already-detached container: a silent, un-pooled WebGL leak). */
+  private destroyed = false;
+
+  /** Pool key this page's map is stored/restored under (see MapInstancePoolService). */
+  private static readonly POOL_KEY = 'hood';
+
+  // Stored as instance fields (not inline in registerMapEvents()) so cleanupMap()
+  // can `.off()` the exact same function reference when pooling the map instead
+  // of destroying it — otherwise a reused map would keep calling back into a
+  // dead component instance from its previous life.
+  private readonly onStyleLoad = (): void => {
+    const firstLoad = !this.mapInitialized;
+    if (firstLoad) {
+      this.mapInitialized = true;
+      this.registerMapEvents();
+      this.syncSelectedZoom();
+      this.map?.resize();
+    }
+
+    // Re-add sources/layers on every style load (initial + after setStyle).
+    this.addBoundarySourceAndLayers();
+    this.addPostSourceAndLayers();
+    void this.setBoundary(this.hood().name, false);
+    this.loadVisiblePosts();
+
+    // Instantly paint pre-fetched markers on first load.
+    if (firstLoad) {
+      const preloaded = this.preload.getHoodPosts();
+      if (preloaded?.length) {
+        this.updatePostSource(preloaded as MapPost[]);
+        const b = this.map!.getBounds();
+        const key = `${b.getWest().toFixed(2)},${b.getSouth().toFixed(2)},${b.getEast().toFixed(2)},${b.getNorth().toFixed(2)}`;
+        this.setInCache(this.postsCache, key, { posts: preloaded as MapPost[], ts: Date.now() });
+      }
+    }
+
+    // Enable pick mode cursor + click handling as soon as style is ready.
+    if (this.pickMode() && !this.locationSelectionEnabled) {
+      this.enableLocationSelection();
+    }
+  };
+
+  private readonly onMapError = (): void => {
+    // MapLibre also fires 'error' for recoverable issues (missing glyph ranges,
+    // missing sprite icons) that it falls back from on its own — those aren't
+    // style-load failures, so only alarm the user if the style never loaded at all.
+    if (!this.mapInitialized && !this.mapErrorShown) {
+      this.mapErrorShown = true;
+      this.showUserError('The map style could not be loaded. Please check the MapTiler API key.');
+    }
+  };
+
+  private readonly onMoveEnd = (): void => this.loadVisiblePosts();
+  private readonly onZoomEnd = (): void => this.ngZone.run(() => this.syncSelectedZoom());
+  private readonly onMapClick = (event: MapMouseEvent): void => this.handleMapClick(event);
+  private readonly onClusterClick = (event: MapLayerMouseEvent): void =>
+    void this.handleClusterClick(event);
+  private readonly onMarkerClick = (event: MapLayerMouseEvent): void =>
+    this.handleMarkerClick(event);
+  private readonly onClusterMouseEnter = (): void => this.setCursor('pointer');
+  private readonly onClusterMouseLeave = (): void => this.setCursorForMode();
+  private readonly onPostMouseEnter = (): void => this.setCursor('pointer');
+  private readonly onPostMouseLeave = (): void => this.setCursorForMode();
 
   private readonly postsCache = new globalThis.Map<string, { posts: MapPost[]; ts: number }>();
   private readonly reverseCache = new globalThis.Map<string, string>();
@@ -448,7 +522,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     if (this.currentStyle() === styleKey || !this.map) return;
     this.currentStyle.set(styleKey);
     // The 'style.load' handler in initializeMap() re-adds all sources/layers automatically.
-    this.ngZone.runOutsideAngular(() => this.map!.setStyle(this.getStyleUrl(styleKey)));
+    this.ngZone.runOutsideAngular(async () => {
+      const style = await this.resolveStyle(styleKey);
+      this.map?.setStyle(style);
+    });
   }
 
   togglePostsLayer(): void {
@@ -598,6 +675,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.destroy$.next();
     this.destroy$.complete();
     this.cleanupMap();
@@ -605,18 +683,56 @@ export class HoodPage implements AfterViewInit, OnDestroy {
 
   // ---------- private ----------
 
-  private initializeMap(): void {
+  private async initializeMap(): Promise<void> {
     if (!this.maplibre || !this.mapContainer?.nativeElement) return;
+
+    // Reuse a map left running from a previous visit to this page — its
+    // tiles, sources and layers are already loaded, so it reappears instantly
+    // instead of being rebuilt from scratch.
+    const pooled = this.mapPool.take(HoodPage.POOL_KEY);
+    if (pooled) {
+      this.map = pooled.map;
+      this.mapContainer.nativeElement.appendChild(pooled.container);
+      // `mapInitialized` is a per-component-instance field, not per-map — a
+      // fresh HoodPage instance always starts with it false even though the
+      // reused map itself has already loaded. Set it before calling
+      // onStyleLoad() below so its firstLoad branch (re-registering events,
+      // repainting stale preloaded posts) correctly skips, and don't call
+      // registerMapEvents() twice — onStyleLoad() would otherwise do it again.
+      this.mapInitialized = true;
+      this.map.on('style.load', this.onStyleLoad);
+      this.map.on('error', this.onMapError);
+      this.registerMapEvents();
+      this.map.resize();
+      // 'style.load' won't refire on its own for an already-loaded map, so
+      // run its "refresh everything" body directly to re-sync sources/
+      // boundary/posts for this instance.
+      this.onStyleLoad();
+
+      this.resizeObserver = new ResizeObserver(() => this.map?.resize());
+      this.resizeObserver.observe(this.mapContainer.nativeElement);
+      return;
+    }
 
     const coords = this.hood().coords;
     if (!environment.mapTilerApiKey) {
       this.showUserError('MapTiler API key is missing. Add it to the Angular environment.');
     }
 
+    const style = await this.resolveStyle(this.currentStyle());
+    // The user may have navigated away while the style above was resolving —
+    // bail out instead of attaching a fresh, never-pooled map to a container
+    // that's no longer in the document.
+    if (this.destroyed || !this.mapContainer?.nativeElement) return;
+
+    const hostEl = document.createElement('div');
+    hostEl.className = 'tm-pooled-map';
+    this.mapContainer.nativeElement.appendChild(hostEl);
+
     this.map = new this.maplibre.Map({
-      container: this.mapContainer.nativeElement,
+      container: hostEl,
       // Boot with whatever style the user last picked (persisted in localStorage).
-      style: this.getStyleUrl(this.currentStyle()),
+      style,
       center: [coords.lng, coords.lat],
       zoom: DEFAULT_ZOOM,
       minZoom: 4,
@@ -626,6 +742,7 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       dragRotate: false,
       pitchWithRotate: false,
       attributionControl: { compact: true },
+      ...MAP_PERF_OPTIONS,
     });
 
     this.map.addControl(
@@ -637,54 +754,19 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     // no tile rendering required. This means it fires even in headless/offscreen
     // environments. It also re-fires after setStyle() calls, letting us
     // rebuild sources/layers automatically on map style switches.
-    // 'style.load' fires as soon as the style JSON + sprites are ready —
-    // no tile rendering required. This means it fires even in headless/offscreen
-    // environments. It also re-fires after setStyle() calls, letting us
-    // rebuild sources/layers automatically on map style switches.
-    this.map.on('style.load', () => {
-      const firstLoad = !this.mapInitialized;
-      if (firstLoad) {
-        this.mapInitialized = true;
-        this.registerMapEvents();
-        this.syncSelectedZoom();
-        this.map?.resize();
-      }
-
-      // Re-add sources/layers on every style load (initial + after setStyle).
-      this.addBoundarySourceAndLayers();
-      this.addPostSourceAndLayers();
-      void this.setBoundary(this.hood().name, false);
-      this.loadVisiblePosts();
-
-      // Instantly paint pre-fetched markers on first load.
-      if (firstLoad) {
-        const preloaded = this.preload.getHoodPosts();
-        if (preloaded?.length) {
-          this.updatePostSource(preloaded as MapPost[]);
-          const b = this.map!.getBounds();
-          const key = `${b.getWest().toFixed(2)},${b.getSouth().toFixed(2)},${b.getEast().toFixed(2)},${b.getNorth().toFixed(2)}`;
-          this.setInCache(this.postsCache, key, { posts: preloaded as MapPost[], ts: Date.now() });
-        }
-      }
-
-      // Enable pick mode cursor + click handling as soon as style is ready.
-      if (this.pickMode() && !this.locationSelectionEnabled) {
-        this.enableLocationSelection();
-      }
-    });
-
-    this.map.on('error', () => {
-      // MapLibre also fires 'error' for recoverable issues (missing glyph ranges,
-      // missing sprite icons) that it falls back from on its own — those aren't
-      // style-load failures, so only alarm the user if the style never loaded at all.
-      if (!this.mapInitialized && !this.mapErrorShown) {
-        this.mapErrorShown = true;
-        this.showUserError('The map style could not be loaded. Please check the MapTiler API key.');
-      }
-    });
+    this.map.on('style.load', this.onStyleLoad);
+    this.map.on('error', this.onMapError);
 
     this.resizeObserver = new ResizeObserver(() => this.map?.resize());
     this.resizeObserver.observe(this.mapContainer.nativeElement);
+  }
+
+  /** The Streets option uses the shared, pre-fetched, clutter-trimmed Liberty
+   *  style object (see MapStyleService) instead of a bare URL, so switching to
+   *  it — or booting with it — never re-fetches the style JSON/TileJSON. */
+  private async resolveStyle(style: MapStyleKey): Promise<string | StyleSpecification> {
+    if (style === 'streets') return this.mapStyle.getLibertyStyle();
+    return this.getStyleUrl(style);
   }
 
   private addPostSourceAndLayers(): void {
@@ -868,15 +950,15 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private registerMapEvents(): void {
     if (!this.map) return;
 
-    this.map.on('moveend', () => this.loadVisiblePosts());
-    this.map.on('zoomend', () => this.ngZone.run(() => this.syncSelectedZoom()));
-    this.map.on('click', (event) => this.handleMapClick(event));
-    this.map.on('click', CLUSTERS_LAYER, (event) => void this.handleClusterClick(event));
-    this.map.on('click', INDIVIDUAL_POSTS_LAYER, (event) => this.handleMarkerClick(event));
-    this.map.on('mouseenter', CLUSTERS_LAYER, () => this.setCursor('pointer'));
-    this.map.on('mouseleave', CLUSTERS_LAYER, () => this.setCursorForMode());
-    this.map.on('mouseenter', INDIVIDUAL_POSTS_LAYER, () => this.setCursor('pointer'));
-    this.map.on('mouseleave', INDIVIDUAL_POSTS_LAYER, () => this.setCursorForMode());
+    this.map.on('moveend', this.onMoveEnd);
+    this.map.on('zoomend', this.onZoomEnd);
+    this.map.on('click', this.onMapClick);
+    this.map.on('click', CLUSTERS_LAYER, this.onClusterClick);
+    this.map.on('click', INDIVIDUAL_POSTS_LAYER, this.onMarkerClick);
+    this.map.on('mouseenter', CLUSTERS_LAYER, this.onClusterMouseEnter);
+    this.map.on('mouseleave', CLUSTERS_LAYER, this.onClusterMouseLeave);
+    this.map.on('mouseenter', INDIVIDUAL_POSTS_LAYER, this.onPostMouseEnter);
+    this.map.on('mouseleave', INDIVIDUAL_POSTS_LAYER, this.onPostMouseLeave);
   }
 
   private registerViewportRequests(): void {
@@ -1287,7 +1369,8 @@ export class HoodPage implements AfterViewInit, OnDestroy {
       container.appendChild(brEl);
       container.appendChild(spanEl);
 
-      new this.maplibre!.Popup({ closeButton: true, offset: 12 })
+      this.markerPopup?.remove();
+      this.markerPopup = new this.maplibre!.Popup({ closeButton: true, offset: 12 })
         .setLngLat([lng, lat])
         .setDOMContent(container)
         .addTo(this.map!);
@@ -1379,7 +1462,10 @@ export class HoodPage implements AfterViewInit, OnDestroy {
   private getStyleUrl(style: MapStyleKey): string {
     const key = environment.mapTilerApiKey;
     const urls: Record<MapStyleKey, string> = {
-      streets: `https://api.maptiler.com/maps/streets-v4/style.json?key=${key}`,
+      // OpenFreeMap Liberty — a clean, Google-Maps-like OSM vector style
+      // (light roads, subtle buildings, green parks, light-blue water),
+      // free and keyless, so it doesn't consume the MapTiler quota.
+      streets: 'https://tiles.openfreemap.org/styles/liberty',
       satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${key}`,
       hybrid: `https://api.maptiler.com/maps/hybrid/style.json?key=${key}`,
       outdoor: `https://api.maptiler.com/maps/outdoor-v2/style.json?key=${key}`,
@@ -1387,13 +1473,39 @@ export class HoodPage implements AfterViewInit, OnDestroy {
     return urls[style];
   }
 
+  /** Detaches the map for pooled reuse instead of destroying it — see
+   *  MapInstancePoolService. Every listener bound in initializeMap()/
+   *  registerMapEvents() must be unbound here with the exact same function
+   *  reference, or the pooled map keeps calling back into this dead
+   *  component instance after it's reused by a fresh one. */
   private cleanupMap(): void {
     this.disableLocationSelection();
-    this.mapInitialized = false;
     this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.temporaryMarker?.remove();
     this.temporaryMarker = undefined;
-    this.map?.remove();
+    this.markerPopup?.remove();
+    this.markerPopup = undefined;
+
+    if (!this.map) return;
+
+    this.map.off('style.load', this.onStyleLoad);
+    this.map.off('error', this.onMapError);
+    this.map.off('moveend', this.onMoveEnd);
+    this.map.off('zoomend', this.onZoomEnd);
+    this.map.off('click', this.onMapClick);
+    this.map.off('click', CLUSTERS_LAYER, this.onClusterClick);
+    this.map.off('click', INDIVIDUAL_POSTS_LAYER, this.onMarkerClick);
+    this.map.off('mouseenter', CLUSTERS_LAYER, this.onClusterMouseEnter);
+    this.map.off('mouseleave', CLUSTERS_LAYER, this.onClusterMouseLeave);
+    this.map.off('mouseenter', INDIVIDUAL_POSTS_LAYER, this.onPostMouseEnter);
+    this.map.off('mouseleave', INDIVIDUAL_POSTS_LAYER, this.onPostMouseLeave);
+
+    this.mapPool.put(HoodPage.POOL_KEY, {
+      map: this.map,
+      container: this.map.getContainer() as HTMLDivElement,
+    });
     this.map = undefined;
+    this.mapInitialized = false;
   }
 }

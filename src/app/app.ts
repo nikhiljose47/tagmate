@@ -92,6 +92,9 @@ export class App {
 
       // Fire prefetches immediately so data arrives during the splash window.
       this.preload.prefetch();
+      // Map prewarming waits for idle time — it's not on the critical path
+      // for anything the user sees first, just for whichever map they open.
+      this.preload.prewarmMaps();
       this.router.events
         .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
         .subscribe((event) =>

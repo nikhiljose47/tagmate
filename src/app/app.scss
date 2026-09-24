@@ -15,31 +15,31 @@
 
 /* Topbar is fixed (out-of-flow) — push content below it with padding-top */
 .main-container.with-nav {
-  padding-top: 50px;
-  min-height: calc(100dvh - 50px);
+  padding-top: 42px;
+  min-height: calc(100dvh - 42px);
 }
 
 .workspace-router.authenticated {
-  min-height: calc(100dvh - 50px);
+  min-height: calc(100dvh - 42px);
 }
 
 @media (max-width: 760px) {
   .main-container.with-nav {
-    padding-top: 88px;
+    padding-top: 37px;
   }
 
   .workspace-router.authenticated {
-    min-height: calc(100dvh - 88px - 64px - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
   }
 }
 
 @media (min-width: 761px) and (max-width: 1023px) {
   .main-container.with-nav {
-    padding-top: 50px;
+    padding-top: 42px;
   }
 
   .workspace-router.authenticated {
-    min-height: calc(100dvh - 50px);
+    min-height: calc(100dvh - 42px);
   }
 }
 
@@ -48,7 +48,7 @@
 ───────────────────────────────────────────────────────────── */
 .app-toast {
   position: fixed;
-  top: calc(50px + 12px);
+  top: calc(42px + 12px);
   right: 18px;
   z-index: 10000;
   display: grid;
@@ -122,7 +122,7 @@
 
 @media (max-width: 760px) {
   .app-toast {
-    top: calc(88px + 8px);
+    top: calc(37px + 8px);
     right: 12px;
     left: 12px;
     width: auto;

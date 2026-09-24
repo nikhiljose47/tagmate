@@ -2,7 +2,7 @@
 .map-wrapper {
   position: relative;
   width: 100%;
-  height: calc(100dvh - 50px - env(safe-area-inset-bottom));
+  height: calc(100dvh - 42px - env(safe-area-inset-bottom));
   min-height: 500px;
   overflow: hidden;
   background: var(--tm-bg);
@@ -1112,7 +1112,7 @@
 
 @media (max-width: 768px) {
   .map-wrapper {
-    height: calc(100dvh - 88px - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
     min-height: 440px;
   }
 

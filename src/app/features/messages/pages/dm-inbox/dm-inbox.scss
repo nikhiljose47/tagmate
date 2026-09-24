@@ -2,9 +2,20 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   width: 100%;
-  height: calc(100dvh - 50px); /* subtract top nav height if any */
+  height: calc(100dvh - 42px); /* subtract top nav height if any */
   background: var(--tm-bg);
   overflow: hidden;
+}
+
+/* Below 761px the bottom nav bar is visible too — its 64px + the mobile
+   topbar height both need to come out, or this page's own explicit height
+   forces `.main-container`/`.workspace-router` to grow past 100dvh (since
+   nothing here clips a too-tall child), which is what caused the outer
+   page scrollbar. */
+@media (max-width: 760px) {
+  .inbox-container {
+    height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
+  }
 }
 
 /* ── Sidebar Threads List ──────────────── */

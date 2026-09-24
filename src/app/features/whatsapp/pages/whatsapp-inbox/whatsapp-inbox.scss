@@ -1,9 +1,20 @@
 .wa-inbox {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 50px);
+  height: calc(100dvh - 42px);
   padding: 12px;
   box-sizing: border-box;
+}
+
+/* Below 761px the bottom nav bar is visible too — its 64px + the mobile
+   topbar height both need to come out, or this page's own explicit height
+   forces `.main-container`/`.workspace-router` to grow past 100dvh (since
+   nothing here clips a too-tall child), which is what caused the outer
+   page scrollbar. */
+@media (max-width: 760px) {
+  .wa-inbox {
+    height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
+  }
 }
 
 .wa-inbox-head {

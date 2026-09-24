@@ -544,8 +544,8 @@ export class PostPage implements OnDestroy {
     { label: '2 hours', value: 120 },
     { label: '1 day', value: 1440 },
     { label: '3 days', value: 4320 },
-    { label: '1 week', value: 10080 },
-    { label: '2 weeks', value: 20160 },
+    { label: '7 days', value: 10080 },
+    { label: '30 days', value: 43200 },
   ];
 
   readonly expiryDropdownOptions: DropdownOption[] = this.expiryOptions.map((o) => ({

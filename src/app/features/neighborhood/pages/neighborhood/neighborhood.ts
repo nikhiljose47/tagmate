@@ -16,9 +16,16 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
-import { environment } from '../../../../environments/environment';
+import type {
+  GeoJSONSource,
+  Map as MapLibreMap,
+  MapLayerMouseEvent,
+  Popup as MapLibrePopup,
+} from 'maplibre-gl';
+import type { Feature, Point } from 'geojson';
 import { Tag } from '../../../../core/models/tag.model';
+import { MAP_PERF_OPTIONS } from '../../../../core/map/map-defaults';
+import { MapStyleService } from '../../../../core/map/map-style.service';
 import { AppRoute } from '../../../../core/enums/route.enum';
 import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -32,6 +39,13 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { FeatureFlagsService } from '../../../../core/services/feature-flags.service';
+
+// MapLibre source/layer IDs for the clustered post markers on this page's map tab.
+const NBHD_POSTS_SOURCE = 'nbhd-posts-source';
+const NBHD_CLUSTERS_LAYER = 'nbhd-post-clusters';
+const NBHD_CLUSTER_COUNT_LAYER = 'nbhd-post-cluster-count';
+const NBHD_POINTS_LAYER = 'nbhd-individual-posts';
+const NBHD_POINTS_BG_LAYER = 'nbhd-individual-posts-bg';
 
 @Component({
   selector: 'app-neighborhood',
@@ -57,13 +71,20 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly featureFlags = inject(FeatureFlagsService);
+  private readonly mapStyle = inject(MapStyleService);
 
   private static readonly _mlPromise = import('maplibre-gl');
   private hoodMaplib?: typeof import('maplibre-gl');
   private hoodMap?: MapLibreMap;
-  private hoodMapMarkers: MapLibreMarker[] = [];
+  private hoodPopup?: MapLibrePopup;
   private hoodMapInitialized = false;
   private hoodResizeObs?: ResizeObserver;
+  /** Set in ngOnDestroy — initHoodMap() awaits the maplibre module + style
+   *  before constructing the map, so it must check this before proceeding in
+   *  case the user navigated away during that await (otherwise a map ends up
+   *  attached to an already-detached container — a silent WebGL leak). */
+  private pageDestroyed = false;
+  private initializingHoodMap = false;
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -333,7 +354,7 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       if (this.hoodMapInitialized) {
         setTimeout(() => {
           this.hoodMap?.resize();
-          if (hasPosts) this.updateHoodMarkers();
+          if (hasPosts) this.updateHoodSource();
         }, 50);
       } else if (hasPosts) {
         setTimeout(() => void this.initHoodMap(), 50);
@@ -387,8 +408,9 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.pageDestroyed = true;
     this.hoodResizeObs?.disconnect();
-    this.hoodMapMarkers.forEach((m) => m.remove());
+    this.hoodPopup?.remove();
     this.hoodMap?.remove();
   }
 
@@ -697,26 +719,39 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
 
   private async initHoodMap(): Promise<void> {
     if (this.hoodMapInitialized) {
-      this.updateHoodMarkers();
+      this.updateHoodSource();
       return;
     }
+    // The effect that calls initHoodMap() re-runs on every new post while
+    // hoodMapInitialized is still false (it only flips true once the map's
+    // 'load' event fires, after the await below) — without this guard, a
+    // post arriving mid-init would re-enter and construct a second map
+    // instance into the same container.
+    if (this.initializingHoodMap) return;
     const el = this.hoodMapEl?.nativeElement;
     if (!el) return;
 
     const posts = this.neighborhoodPosts().filter((p) => p.lat && p.lng);
     if (!posts.length) return;
 
-    const mod = await NeighborhoodPage._mlPromise;
+    this.initializingHoodMap = true;
+    const [mod, style] = await Promise.all([
+      NeighborhoodPage._mlPromise,
+      this.mapStyle.getLibertyStyle(),
+    ]);
+    if (this.pageDestroyed || !this.hoodMapEl?.nativeElement) {
+      this.initializingHoodMap = false;
+      return;
+    }
     this.hoodMaplib = (mod.default ?? mod) as typeof import('maplibre-gl');
     const ml = this.hoodMaplib;
-    const key = environment.mapTilerApiKey;
     const centerLat = posts.reduce((s, p) => s + p.lat, 0) / posts.length;
     const centerLng = posts.reduce((s, p) => s + p.lng, 0) / posts.length;
 
     this.ngZone.runOutsideAngular(() => {
       this.hoodMap = new ml.Map({
         container: el,
-        style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${key}`,
+        style,
         center: [centerLng, centerLat],
         zoom: 14,
         minZoom: 5,
@@ -724,12 +759,16 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
         attributionControl: { compact: true },
         dragRotate: false,
         pitchWithRotate: false,
+        ...MAP_PERF_OPTIONS,
       });
       this.hoodMap.addControl(new ml.NavigationControl({ showCompass: false }), 'bottom-right');
       this.hoodMap.on('load', () => {
         this.hoodMapInitialized = true;
+        this.initializingHoodMap = false;
+        this.addHoodPostLayers();
+        this.registerHoodMapEvents();
         this.ngZone.run(() => {
-          this.updateHoodMarkers();
+          this.updateHoodSource();
           if (posts.length > 1) this.fitHoodBounds(posts);
         });
       });
@@ -738,51 +777,196 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
     });
   }
 
-  private updateHoodMarkers(): void {
-    if (!this.hoodMap || !this.hoodMaplib) return;
-    const ml = this.hoodMaplib;
-    this.hoodMapMarkers.forEach((m) => m.remove());
-    this.hoodMapMarkers = [];
+  /** Clustered post source + layers — same look/behavior as the main Hood
+   *  map (cluster circles with counts, white circle + emoji per post), so
+   *  a handful of posts render the same way but hundreds don't turn into
+   *  hundreds of individual DOM markers. */
+  private addHoodPostLayers(): void {
+    if (!this.hoodMap) return;
 
-    for (const post of this.neighborhoodPosts().filter((p) => p.lat && p.lng)) {
-      const el = document.createElement('div');
-      el.className = 'hood-map-pin';
-      el.textContent = this.tagEmojiChar(post.tag);
-      el.title = post.highlight || post.tag;
-
-      const popupContent = document.createElement('div');
-      popupContent.className = 'hood-map-popup';
-
-      const strongEl = document.createElement('strong');
-      strongEl.textContent = post.highlight || 'Untitled';
-
-      const pEl = document.createElement('p');
-      const userLink = document.createElement('a');
-      userLink.href = `/users/${encodeURIComponent(post.userId)}`;
-      userLink.textContent = `@${post.username || 'Anonymous'}`;
-      pEl.appendChild(userLink);
-      pEl.appendChild(document.createTextNode(` · #${post.tag}`));
-
-      const postLink = document.createElement('a');
-      postLink.href = `/posts/${encodeURIComponent(this.social.postKey(post))}`;
-      postLink.textContent = 'View post →';
-
-      popupContent.appendChild(strongEl);
-      popupContent.appendChild(pEl);
-      popupContent.appendChild(postLink);
-
-      const popup = new ml.Popup({
-        offset: 28,
-        closeButton: true,
-        maxWidth: '220px',
-      }).setDOMContent(popupContent);
-
-      const marker = new ml.Marker({ element: el })
-        .setLngLat([post.lng, post.lat])
-        .setPopup(popup)
-        .addTo(this.hoodMap!);
-      this.hoodMapMarkers.push(marker);
+    if (!this.hoodMap.getSource(NBHD_POSTS_SOURCE)) {
+      this.hoodMap.addSource(NBHD_POSTS_SOURCE, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterRadius: 45,
+        clusterMaxZoom: 14,
+      });
     }
+
+    if (!this.hoodMap.getLayer(NBHD_CLUSTERS_LAYER)) {
+      this.hoodMap.addLayer({
+        id: NBHD_CLUSTERS_LAYER,
+        type: 'circle',
+        source: NBHD_POSTS_SOURCE,
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step',
+            ['get', 'point_count'],
+            '#2b7de9',
+            25,
+            '#f5a623',
+            100,
+            '#e14b3b',
+          ],
+          'circle-radius': ['step', ['get', 'point_count'], 16, 25, 22, 100, 30],
+          'circle-opacity': 0.88,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+
+    if (!this.hoodMap.getLayer(NBHD_CLUSTER_COUNT_LAYER)) {
+      this.hoodMap.addLayer({
+        id: NBHD_CLUSTER_COUNT_LAYER,
+        type: 'symbol',
+        source: NBHD_POSTS_SOURCE,
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 14,
+        },
+        paint: { 'text-color': '#ffffff' },
+      });
+    }
+
+    if (!this.hoodMap.getLayer(NBHD_POINTS_BG_LAYER)) {
+      this.hoodMap.addLayer({
+        id: NBHD_POINTS_BG_LAYER,
+        type: 'circle',
+        source: NBHD_POSTS_SOURCE,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': '#ffffff',
+          'circle-radius': 14,
+          'circle-opacity': 1,
+          'circle-stroke-width': 2,
+          // Same indigo the old .hood-map-pin CSS used for its border.
+          'circle-stroke-color': 'rgba(99, 102, 241, 0.45)',
+        },
+      });
+    }
+
+    if (!this.hoodMap.getLayer(NBHD_POINTS_LAYER)) {
+      this.hoodMap.addLayer({
+        id: NBHD_POINTS_LAYER,
+        type: 'symbol',
+        source: NBHD_POSTS_SOURCE,
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'text-field': [
+            'match',
+            ['get', 'tag'],
+            'event',
+            '🎉',
+            'sale',
+            '🛒',
+            'traffic',
+            '🚗',
+            'alert',
+            '⚠️',
+            'food',
+            '🍽️',
+            'market',
+            '🏪',
+            'question',
+            '❓',
+            'bulletin',
+            '📌',
+            '📍',
+          ],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 14,
+          'text-allow-overlap': true,
+        },
+      });
+    }
+  }
+
+  private registerHoodMapEvents(): void {
+    if (!this.hoodMap) return;
+    this.hoodMap.on('click', NBHD_CLUSTERS_LAYER, (event) =>
+      void this.handleHoodClusterClick(event),
+    );
+    this.hoodMap.on('click', NBHD_POINTS_LAYER, (event) => this.handleHoodPointClick(event));
+    this.hoodMap.on('mouseenter', NBHD_CLUSTERS_LAYER, () => this.setHoodCursor('pointer'));
+    this.hoodMap.on('mouseleave', NBHD_CLUSTERS_LAYER, () => this.setHoodCursor(''));
+    this.hoodMap.on('mouseenter', NBHD_POINTS_LAYER, () => this.setHoodCursor('pointer'));
+    this.hoodMap.on('mouseleave', NBHD_POINTS_LAYER, () => this.setHoodCursor(''));
+  }
+
+  private setHoodCursor(cursor: string): void {
+    if (this.hoodMap) this.hoodMap.getCanvas().style.cursor = cursor;
+  }
+
+  private async handleHoodClusterClick(event: MapLayerMouseEvent): Promise<void> {
+    if (!this.hoodMap) return;
+    const feature = event.features?.[0] as Feature<Point, { cluster_id?: number }> | undefined;
+    if (!feature) return;
+    const clusterId = feature.properties?.cluster_id;
+    const [lng, lat] = feature.geometry.coordinates;
+    if (clusterId === undefined || lng === undefined || lat === undefined) return;
+    const source = this.hoodMap.getSource(NBHD_POSTS_SOURCE) as GeoJSONSource | undefined;
+    if (!source) return;
+    const zoom = await source.getClusterExpansionZoom(clusterId);
+    this.hoodMap.easeTo({ center: [lng, lat], zoom, duration: 600 });
+  }
+
+  private handleHoodPointClick(event: MapLayerMouseEvent): void {
+    if (!this.hoodMap || !this.hoodMaplib) return;
+    const feature = event.features?.[0] as Feature<Point, { id: string }> | undefined;
+    if (!feature) return;
+    const post = this.neighborhoodPosts().find(
+      (p) => this.social.postKey(p) === feature.properties.id,
+    );
+    if (!post) return;
+    const [lng, lat] = feature.geometry.coordinates;
+    if (lng === undefined || lat === undefined) return;
+
+    const popupContent = document.createElement('div');
+    popupContent.className = 'hood-map-popup';
+
+    const strongEl = document.createElement('strong');
+    strongEl.textContent = post.highlight || 'Untitled';
+
+    const pEl = document.createElement('p');
+    const userLink = document.createElement('a');
+    userLink.href = `/users/${encodeURIComponent(post.userId)}`;
+    userLink.textContent = `@${post.username || 'Anonymous'}`;
+    pEl.appendChild(userLink);
+    pEl.appendChild(document.createTextNode(` · #${post.tag}`));
+
+    const postLink = document.createElement('a');
+    postLink.href = `/posts/${encodeURIComponent(this.social.postKey(post))}`;
+    postLink.textContent = 'View post →';
+
+    popupContent.appendChild(strongEl);
+    popupContent.appendChild(pEl);
+    popupContent.appendChild(postLink);
+
+    this.hoodPopup?.remove();
+    this.hoodPopup = new this.hoodMaplib.Popup({ offset: 28, closeButton: true, maxWidth: '220px' })
+      .setLngLat([lng, lat])
+      .setDOMContent(popupContent)
+      .addTo(this.hoodMap);
+  }
+
+  private updateHoodSource(): void {
+    if (!this.hoodMap) return;
+    const source = this.hoodMap.getSource(NBHD_POSTS_SOURCE) as GeoJSONSource | undefined;
+    if (!source) return;
+    const posts = this.neighborhoodPosts().filter((p) => p.lat && p.lng);
+    source.setData({
+      type: 'FeatureCollection',
+      features: posts.map((post) => ({
+        type: 'Feature',
+        properties: { id: this.social.postKey(post), tag: post.tag },
+        geometry: { type: 'Point', coordinates: [post.lng, post.lat] },
+      })),
+    });
   }
 
   private fitHoodBounds(posts: Tag[]): void {
@@ -796,19 +980,5 @@ export class NeighborhoodPage implements OnInit, OnDestroy {
       ],
       { padding: 56, maxZoom: 16, duration: 300 },
     );
-  }
-
-  private tagEmojiChar(tag: string): string {
-    const map: Record<string, string> = {
-      event: '🎉',
-      sale: '🛒',
-      traffic: '🚗',
-      alert: '⚠️',
-      food: '🍽️',
-      market: '🏪',
-      question: '❓',
-      bulletin: '📌',
-    };
-    return map[tag] ?? '📍';
   }
 }

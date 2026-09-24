@@ -41,6 +41,9 @@ import {
   WorkspaceStateService,
 } from '../../../../layout/workspace/workspace-state.service';
 import { resolveFeedScope } from '../../../../layout/workspace/feed-scope.util';
+import { MAP_PERF_OPTIONS } from '../../../../core/map/map-defaults';
+import { MapStyleService } from '../../../../core/map/map-style.service';
+import { MapInstancePoolService } from '../../../../core/map/map-instance-pool.service';
 
 /** One raster tile of the mini map, pre-offset so the post lands at box centre. */
 interface MapTile {
@@ -100,10 +103,14 @@ const EAGER_SLIDES = 3;
 })
 export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   private static readonly mapLibrePromise = import('maplibre-gl');
+  /** Pool key this drawer's map is stored/restored under (see MapInstancePoolService). */
+  private static readonly MAP_POOL_KEY = 'feed-drawer';
 
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly logger = inject(LoggerService);
   private readonly ngZone = inject(NgZone);
+  private readonly mapStyle = inject(MapStyleService);
+  private readonly mapPool = inject(MapInstancePoolService);
   protected readonly social = inject(SocialInteractionsService);
   private readonly platform = inject(SocialPlatformService);
   private readonly toast = inject(ToastService);
@@ -217,10 +224,10 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     if (current) {
       const currentArea = areas.find((area) => area.id === current.areaId);
       if (currentArea) {
-        const hasPostsIn = (cat: string) =>
-          (currentArea.categoryCounts[cat as keyof typeof currentArea.categoryCounts] ?? 0) > 0;
-        const category = hasPostsIn(current.category) ? current.category : 'around';
-        const next = this.toScope(currentArea, category);
+        // Keep the user's chosen tag even if it has zero posts right now —
+        // the feed's own "No posts in this scope" empty state handles that,
+        // rather than silently reassigning them to a different tag.
+        const next = this.toScope(currentArea, current.category);
         if (
           next.category !== current.category ||
           next.location !== current.location ||
@@ -541,43 +548,86 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     }
 
     try {
-      const module = await FeedBetaPage.mapLibrePromise;
+      // Only the fresh-create path actually needs the resolved style object,
+      // but fetching it in parallel costs nothing extra once it's cached
+      // (prewarmed at app start — see PreloadService.prewarmMaps()).
+      const [module, style] = await Promise.all([
+        FeedBetaPage.mapLibrePromise,
+        this.mapStyle.getLibertyStyle(),
+      ]);
       const mapLibre = (module.default ?? module) as typeof import('maplibre-gl');
-      if (this.mapSlide()?.key !== slide.key || !this.drawerMapElement?.nativeElement) return;
+      // `this.destroy$.closed` is true once ngOnDestroy has run — `mapSlide`
+      // and `drawerMapElement` don't get cleared on component destroy, so
+      // without this check a full-page navigation away while this await was
+      // in flight would still attach a fresh, never-pooled map to a
+      // container that's no longer in the document.
+      if (
+        this.destroy$.closed ||
+        this.mapSlide()?.key !== slide.key ||
+        !this.drawerMapElement?.nativeElement
+      ) {
+        return;
+      }
+
+      // Reuse a map left running from a previous drawer open — its tiles are
+      // already loaded, so the drawer's map appears instantly instead of
+      // rebuilding from scratch.
+      const pooled = this.mapPool.take(FeedBetaPage.MAP_POOL_KEY);
 
       this.ngZone.runOutsideAngular(() => {
-        this.drawerMap = new mapLibre.Map({
-          container: this.drawerMapElement!.nativeElement,
-          style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${environment.mapTilerApiKey}`,
-          center: [lng, lat],
-          zoom: 15,
-          minZoom: 3,
-          maxZoom: 19,
-          attributionControl: { compact: true },
-          dragRotate: false,
-          pitchWithRotate: false,
-        });
-        this.drawerMap.addControl(
-          new mapLibre.NavigationControl({ showCompass: false }),
-          'bottom-right',
-        );
+        if (pooled) {
+          this.drawerMap = pooled.map;
+          container.appendChild(pooled.container);
+          this.drawerMap.resize();
+          this.drawerMap.jumpTo({ center: [lng, lat], zoom: 15 });
+        } else {
+          const hostEl = document.createElement('div');
+          hostEl.className = 'tm-pooled-map';
+          container.appendChild(hostEl);
+          this.drawerMap = new mapLibre.Map({
+            container: hostEl,
+            style,
+            center: [lng, lat],
+            zoom: 15,
+            minZoom: 3,
+            maxZoom: 19,
+            attributionControl: { compact: true },
+            dragRotate: false,
+            pitchWithRotate: false,
+            ...MAP_PERF_OPTIONS,
+          });
+          this.drawerMap.addControl(
+            new mapLibre.NavigationControl({ showCompass: false }),
+            'bottom-right',
+          );
+        }
+
         this.drawerMarker = new mapLibre.Marker({ color: '#e11d48' })
           .setLngLat([lng, lat])
-          .addTo(this.drawerMap);
+          .addTo(this.drawerMap!);
         this.drawerResizeObserver = new ResizeObserver(() => this.drawerMap?.resize());
-        this.drawerResizeObserver.observe(this.drawerMapElement!.nativeElement);
+        this.drawerResizeObserver.observe(container);
       });
     } catch (error) {
       this.logger.error('Failed to open beta feed location map', error);
     }
   }
 
+  /** Detaches the map for pooled reuse instead of destroying it — see
+   *  MapInstancePoolService. No custom event listeners are bound directly
+   *  on `drawerMap` (only the marker, which is always recreated fresh), so
+   *  unlike the Hood map there's nothing else to unbind before pooling it. */
   private destroyDrawerMap(): void {
     this.drawerResizeObserver?.disconnect();
     this.drawerResizeObserver = undefined;
     this.drawerMarker?.remove();
     this.drawerMarker = undefined;
-    this.drawerMap?.remove();
+
+    if (!this.drawerMap) return;
+    this.mapPool.put(FeedBetaPage.MAP_POOL_KEY, {
+      map: this.drawerMap,
+      container: this.drawerMap.getContainer() as HTMLDivElement,
+    });
     this.drawerMap = undefined;
   }
 

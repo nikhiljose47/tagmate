@@ -1,11 +1,11 @@
 .post-page {
   width: 100%;
   /* NOT 100dvh: this renders inside .main-container.with-nav, which already
-     reserves the 50px topbar via padding-top. Claiming a full extra 100dvh
-     here stacks on top of that and always overflows the viewport by 50px —
+     reserves the 42px topbar via padding-top. Claiming a full extra 100dvh
+     here stacks on top of that and always overflows the viewport by 42px —
      a scrollbar shows even when the form content is shorter than one
      screen. Match the topbar-aware height used by the other routed pages. */
-  min-height: calc(100dvh - 50px);
+  min-height: calc(100dvh - 42px);
   background: var(--tm-bg);
   display: flex;
   justify-content: center;
@@ -14,7 +14,12 @@
 
 @media (max-width: 760px) {
   .post-page {
-    min-height: calc(100dvh - 88px);
+    /* Also subtract the bottom nav bar's 64px here — this page renders
+       inside `.main-container.with-nav`, which reserves that space via
+       padding-bottom on mobile. Omitting it made this element's own
+       min-height taller than its ancestors', which forces them to grow
+       past 100dvh and triggers an outer page scrollbar. */
+    min-height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
   }
 }
 

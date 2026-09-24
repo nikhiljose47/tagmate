@@ -1,14 +1,21 @@
 <header class="app-topbar">
   <!-- ── Brand (left) ── -->
   <div class="topbar-left">
-    <a
-      class="topbar-brand"
-      routerLink="/feed-beta"
-      (click)="onHomeClick()"
-      aria-label="Tagmate home"
-    >
-      <img class="topbar-logo" src="assets/tagmate-logo.svg" alt="" width="28" height="28" />
-      <span class="topbar-wordmark">Tagmate</span>
+    <a class="topbar-brand" routerLink="/feed-beta" (click)="onHomeClick()" aria-label="Todbook home">
+      <img
+        class="topbar-wordmark topbar-wordmark--text"
+        src="assets/brand/todbook_text_logo.svg"
+        alt="Todbook"
+        width="90"
+        height="28"
+      />
+      <img
+        class="topbar-wordmark topbar-wordmark--icon"
+        src="assets/brand/todbook-logo.svg"
+        alt="Todbook"
+        width="28"
+        height="28"
+      />
     </a>
   </div>
 
@@ -48,11 +55,7 @@
         <i class="bi bi-search hood-search-icon" aria-hidden="true"></i>
         <input
           type="search"
-          [placeholder]="
-            searchStateLabel()
-              ? 'Search posts & tags in ' + searchStateLabel()
-              : 'Search posts & tags'
-          "
+          [placeholder]="searchPlaceholder()"
           [ngModel]="postSearchQuery()"
           (focus)="openPostSearch()"
           (ngModelChange)="onPostSearchChange($event)"
@@ -62,40 +65,9 @@
         <span class="search-spinner" aria-label="Searching"></span>
         }
 
-        <span
-          class="hood-filter-wrap"
-          [tmClickOutsideEnabled]="tagFilterOpen()"
-          (tmClickOutside)="closeTagFilter()"
-        >
-          <button
-            type="button"
-            class="hood-filter-btn"
-            [class.active]="tagFilterOpen()"
-            (click)="toggleTagFilter()"
-            aria-haspopup="menu"
-            [attr.aria-expanded]="tagFilterOpen()"
-            aria-label="Filter by tag"
-          >
-            <i class="bi bi-funnel" aria-hidden="true"></i>
-          </button>
-
-          @if (tagFilterOpen()) {
-          <section class="hood-filter-menu" role="menu" aria-label="Filter by tag">
-            @if (!tagFilterOptions().length) {
-            <div class="hood-filter-empty">No tags yet in this hood.</div>
-            } @for (option of tagFilterOptions(); track option.key) {
-            <button
-              type="button"
-              class="hood-filter-option"
-              role="menuitem"
-              [class.active]="isActiveTagFilter(option.key)"
-              (click)="selectTagFilter(option.key)"
-            >
-              {{ option.label }}
-            </button>
-            }
-          </section>
-          }
+        <span class="hood-indicator" [attr.title]="hoodChipLabel()">
+          <i class="bi bi-geo-alt-fill hood-indicator-icon" aria-hidden="true"></i>
+          <span class="hood-indicator-label">{{ searchStateLabel() || hoodChipLabel() }}</span>
         </span>
 
         @if (postSearchOpen()) {
@@ -265,6 +237,23 @@
       }
     </div>
   </div>
+
+  <!-- ── Feed category chips — second row of the topbar itself ── -->
+  @if (isFeedBeta()) {
+  <nav class="topbar-tag-strip" aria-label="Feed category">
+    @for (option of tagFilterOptions; track option.key) {
+    <button
+      type="button"
+      class="tag-chip"
+      [class.active]="isActiveTagFilter(option.key)"
+      [attr.aria-pressed]="isActiveTagFilter(option.key)"
+      (click)="selectTagFilter(option.key)"
+    >
+      {{ option.label }}
+    </button>
+    }
+  </nav>
+  }
 </header>
 
 <!--
