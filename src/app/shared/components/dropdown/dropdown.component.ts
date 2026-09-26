@@ -8,6 +8,7 @@ import {
   Input,
   OnDestroy,
   Output,
+  ViewChild,
   forwardRef,
   inject,
   signal,
@@ -21,6 +22,8 @@ export interface DropdownOption {
   value: string;
   disabled?: boolean;
 }
+
+let nextDropdownId = 0;
 
 /**
  * Shared select-style dropdown: pill trigger + expanding option panel
@@ -59,15 +62,19 @@ export class DropdownComponent implements ControlValueAccessor, OnDestroy {
 
   protected readonly _value = signal<string | null>(null);
   protected readonly open = signal(false);
-  /** Set to fixed viewport coordinates on open, so the panel escapes any
-   *  ancestor `overflow: hidden` (e.g. the post composer card) instead of
-   *  being clipped like an absolutely-positioned one would be. */
+  protected readonly panelId = `tm-dropdown-panel-${++nextDropdownId}`;
   protected readonly panelStyle = signal<Record<string, string>>({});
+
+  @ViewChild('panel') private panelRef?: ElementRef<HTMLDivElement>;
 
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
-  private readonly reposition = (): void => this.close();
+  private readonly closeOnViewportChange = (event: Event): void => {
+    const panel = this.panelRef?.nativeElement;
+    if (event.type === 'scroll' && panel && event.composedPath().includes(panel)) return;
+    this.close();
+  };
 
   protected get selectedLabel(): string | null {
     return this.options.find((o) => o.value === this._value())?.label ?? null;
@@ -79,54 +86,65 @@ export class DropdownComponent implements ControlValueAccessor, OnDestroy {
       this.close();
       return;
     }
-    const trigger = this.elementRef.nativeElement.querySelector('.tm-dropdown-trigger');
+    const trigger = this.elementRef.nativeElement.querySelector(
+      '.tm-dropdown-trigger',
+    ) as HTMLElement | null;
     const rect = trigger?.getBoundingClientRect();
     if (rect) {
       const gap = 4;
+      const viewportPadding = 8;
       const maxPanelHeight = 260;
-      const spaceBelow = window.innerHeight - rect.bottom - gap;
-      const spaceAbove = rect.top - gap;
+      const spaceBelow = Math.max(0, window.innerHeight - rect.bottom - gap - viewportPadding);
+      const spaceAbove = Math.max(0, rect.top - gap - viewportPadding);
       // Flip above the trigger when there isn't enough room below for a
-      // usable list, so the panel never renders partly off-screen (fixed
-      // positioning means the page can't be scrolled to reach it).
+      // usable list. The popover top layer escapes transformed/blurred page
+      // shells while these coordinates keep every edge inside the viewport.
       const openAbove = spaceBelow < 120 && spaceAbove > spaceBelow;
-      const maxHeight = Math.max(
-        120,
-        Math.min(maxPanelHeight, openAbove ? spaceAbove : spaceBelow),
-      );
+      const maxHeight = Math.max(40, Math.min(maxPanelHeight, openAbove ? spaceAbove : spaceBelow));
       const style: Record<string, string> = { 'max-height': `${maxHeight}px` };
       if (openAbove) {
-        style['bottom'] = `${window.innerHeight - rect.top + gap}px`;
+        style['bottom'] = `${Math.max(viewportPadding, window.innerHeight - rect.top + gap)}px`;
       } else {
-        style['top'] = `${rect.bottom + gap}px`;
+        style['top'] = `${Math.min(
+          rect.bottom + gap,
+          window.innerHeight - viewportPadding - maxHeight,
+        )}px`;
       }
       if (this.compact) {
-        style['right'] = `${window.innerWidth - rect.right}px`;
+        style['right'] = `${Math.max(viewportPadding, window.innerWidth - rect.right)}px`;
       } else {
-        style['left'] = `${rect.left}px`;
-        style['width'] = `${rect.width}px`;
+        const width = Math.min(rect.width, window.innerWidth - viewportPadding * 2);
+        const left = Math.min(
+          Math.max(viewportPadding, rect.left),
+          window.innerWidth - viewportPadding - width,
+        );
+        style['left'] = `${left}px`;
+        style['width'] = `${width}px`;
       }
       this.panelStyle.set(style);
     }
     this.open.set(true);
+    const panel = this.panelRef?.nativeElement;
+    if (panel && !panel.matches(':popover-open')) panel.showPopover();
     this.onTouched();
-    window.addEventListener('scroll', this.reposition, true);
-    window.addEventListener('resize', this.reposition);
+    window.addEventListener('scroll', this.closeOnViewportChange, true);
+    window.addEventListener('resize', this.closeOnViewportChange);
   }
 
   select(option: DropdownOption): void {
     if (option.disabled) return;
     this._value.set(option.value);
-    this.open.set(false);
+    this.close();
     this.valueChange.emit(option.value);
     this.onChange(option.value);
   }
 
   close(): void {
-    if (!this.open()) return;
     this.open.set(false);
-    window.removeEventListener('scroll', this.reposition, true);
-    window.removeEventListener('resize', this.reposition);
+    const panel = this.panelRef?.nativeElement;
+    if (panel?.matches(':popover-open')) panel.hidePopover();
+    window.removeEventListener('scroll', this.closeOnViewportChange, true);
+    window.removeEventListener('resize', this.closeOnViewportChange);
   }
 
   @HostListener('document:keydown.escape')
@@ -135,8 +153,8 @@ export class DropdownComponent implements ControlValueAccessor, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('scroll', this.reposition, true);
-    window.removeEventListener('resize', this.reposition);
+    window.removeEventListener('scroll', this.closeOnViewportChange, true);
+    window.removeEventListener('resize', this.closeOnViewportChange);
   }
 
   writeValue(value: string | null): void {

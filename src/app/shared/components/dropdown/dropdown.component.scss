@@ -92,15 +92,24 @@
 
 .tm-dropdown-panel {
   position: fixed;
-  z-index: 1000;
+  inset: auto;
+  z-index: 10020;
+  margin: 0;
+  max-width: calc(100vw - 16px);
   max-height: 260px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 6px;
   border: 1px solid var(--tm-primary);
   border-radius: 16px;
   background: var(--tm-surface);
   box-shadow: var(--tm-shadow-lg);
   animation: tm-dropdown-pop 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tm-dropdown-panel::backdrop {
+  background: transparent;
+  pointer-events: none;
 }
 
 .tm-dropdown-option {
