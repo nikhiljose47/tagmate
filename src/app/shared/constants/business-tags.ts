@@ -37,7 +37,7 @@ export const PERSONAL_TAG_CATEGORIES: readonly TagCategory[] = [
 const TAG_LABELS: Partial<Record<TagCategory, string>> = {
   [TagCategory.Around]: 'Local update',
   [TagCategory.Dating]: 'Meet people',
-  [TagCategory.Game]: 'Games & sports',
+  [TagCategory.Game]: 'Games',
   [TagCategory.Help]: 'Ask for help',
   [TagCategory.Notice]: 'Notice',
   [TagCategory.Alert]: 'Alert',
