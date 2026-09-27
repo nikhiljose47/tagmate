@@ -1,7 +1,18 @@
 .profile-page {
   width: min(100%, 560px);
+  height: calc(100dvh - 42px);
   margin: 0 auto;
   padding-bottom: 40px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 760px) {
+  .profile-page {
+    height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
+  }
 }
 
 /* ── Cover + Avatar ─────────────────────── */
