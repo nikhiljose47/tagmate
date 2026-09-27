@@ -26,6 +26,7 @@ import { Store } from '@ngrx/store';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
 import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
 import { PERSONAL_TAG_CATEGORIES, tagCategoryLabel } from '../../shared/constants/business-tags';
+import { placeCode } from '../../core/data/state-codes';
 
 interface NominatimPlace {
   place_id: number;
@@ -138,6 +139,10 @@ export class AppTopbarComponent implements OnDestroy {
   protected readonly hotNowInfoOpen = signal(false);
   private hotNowInfoTimer?: ReturnType<typeof setTimeout>;
 
+  /** Mobile-only compact place code with a tap-to-reveal full-name tip. */
+  protected readonly hoodInfoOpen = signal(false);
+  private hoodInfoTimer?: ReturnType<typeof setTimeout>;
+
   /** Full "hood/place" name — used for accessibility labels, not display. */
   protected readonly hoodChipLabel = computed(() => {
     const scope = this.workspace.feedBetaScope();
@@ -152,6 +157,13 @@ export class AppTopbarComponent implements OnDestroy {
     if (scope?.location?.trim()) return scope.location.trim();
     return this.hood()?.state?.trim() || '';
   });
+
+  protected readonly hoodIndicatorFullLabel = computed(
+    () => this.searchStateLabel() || this.hoodChipLabel(),
+  );
+  protected readonly hoodIndicatorCode = computed(
+    () => placeCode(this.hoodIndicatorFullLabel()) || '--',
+  );
 
   /** Label of the active feed category chip, or null when none is selected
    *  (or the active scope is 'hot-now', which has its own toggle and isn't
@@ -270,9 +282,16 @@ export class AppTopbarComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.hotNowInfoTimer) clearTimeout(this.hotNowInfoTimer);
+    if (this.hoodInfoTimer) clearTimeout(this.hoodInfoTimer);
     if (this.postSearchTimeout) clearTimeout(this.postSearchTimeout);
     this.routerEvents.unsubscribe();
     this.nominatimAbort?.abort();
+  }
+
+  protected showHoodInfo(): void {
+    clearTimeout(this.hoodInfoTimer);
+    this.hoodInfoOpen.set(true);
+    this.hoodInfoTimer = setTimeout(() => this.hoodInfoOpen.set(false), 2500);
   }
 
   // ── Hood picker modal ───────────────────────────────────────────────────

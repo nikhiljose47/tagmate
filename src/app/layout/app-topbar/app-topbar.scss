@@ -698,6 +698,7 @@
    strip below the search row instead. */
 
 .hood-indicator {
+  position: relative;
   order: 3;
   flex: 0 0 auto;
   display: flex;
@@ -706,12 +707,24 @@
   margin-left: 2px;
   padding-left: 8px;
   max-width: 120px;
+  border: 0;
   border-left: 1px solid var(--tm-border);
+  background: transparent;
   color: var(--tm-muted);
+  font-family: inherit;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  cursor: default;
+  cursor: pointer;
+}
+
+.hood-indicator:hover {
+  color: var(--tm-text);
+}
+
+.hood-indicator:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tm-primary) 65%, transparent);
+  outline-offset: 2px;
 }
 
 .hood-indicator-icon {
@@ -724,6 +737,62 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.hood-indicator-label--code {
+  display: none;
+  letter-spacing: 0;
+}
+
+.hood-indicator-info {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: -6px;
+  z-index: 30;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  max-width: min(220px, 70vw);
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 5px;
+  background: var(--tm-surface);
+  color: var(--tm-secondary-text, #888);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: left;
+  animation: hoodInfoFade 0.15s ease-out;
+
+  i {
+    flex: 0 0 auto;
+    color: #9aa0a6;
+    font-size: 11px;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 12px;
+    bottom: 100%;
+    border: 4px solid transparent;
+    border-bottom-color: var(--tm-surface);
+  }
+}
+
+@keyframes hoodInfoFade {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Tag-chip strip (feed category switcher, below the search row) ──── */
@@ -1225,8 +1294,16 @@
   }
 
   .hood-indicator {
-    max-width: 84px;
+    max-width: 50px;
     padding-left: 6px;
+  }
+
+  .hood-indicator-label--full {
+    display: none;
+  }
+
+  .hood-indicator-label--code {
+    display: inline;
   }
 
   .topbar-tag-strip {

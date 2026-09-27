@@ -1,7 +1,12 @@
 <header class="app-topbar">
   <!-- ── Brand (left) ── -->
   <div class="topbar-left">
-    <a class="topbar-brand" routerLink="/feed-beta" (click)="onHomeClick()" aria-label="Todbook home">
+    <a
+      class="topbar-brand"
+      routerLink="/feed-beta"
+      (click)="onHomeClick()"
+      aria-label="Todbook home"
+    >
       <img
         class="topbar-wordmark topbar-wordmark--text"
         src="assets/brand/todbook_text_logo.svg"
@@ -65,10 +70,28 @@
         <span class="search-spinner" aria-label="Searching"></span>
         }
 
-        <span class="hood-indicator" [attr.title]="hoodChipLabel()">
+        <button
+          type="button"
+          class="hood-indicator"
+          [attr.title]="hoodIndicatorFullLabel()"
+          [attr.aria-label]="'Location: ' + hoodIndicatorFullLabel() + '. Show full place name'"
+          [attr.aria-expanded]="hoodInfoOpen()"
+          (click)="showHoodInfo()"
+        >
           <i class="bi bi-geo-alt-fill hood-indicator-icon" aria-hidden="true"></i>
-          <span class="hood-indicator-label">{{ searchStateLabel() || hoodChipLabel() }}</span>
-        </span>
+          <span class="hood-indicator-label hood-indicator-label--full"
+            >{{ hoodIndicatorFullLabel() }}</span
+          >
+          <span class="hood-indicator-label hood-indicator-label--code" aria-hidden="true"
+            >{{ hoodIndicatorCode() }}</span
+          >
+          @if (hoodInfoOpen()) {
+          <span class="hood-indicator-info" role="status">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            {{ hoodIndicatorFullLabel() }}
+          </span>
+          }
+        </button>
 
         @if (postSearchOpen()) {
         <section class="hood-search-results" aria-label="Search results">
