@@ -20,6 +20,7 @@ import { NetworkService } from './core/services/network.service';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 import { NotificationDrawerComponent } from './shared/components/notification-drawer/notification-drawer.component';
 import { TelemetryService } from './core/services/telemetry.service';
+import { AppUpdateService } from './core/services/app-update.service';
 
 /** Minimum time the static splash (#tm-splash in index.html) stays visible. */
 const SPLASH_SHOW_MS = 1800;
@@ -43,6 +44,7 @@ export class App {
   protected readonly title = signal('todbook');
   protected readonly toast = inject(ToastService);
   protected readonly network = inject(NetworkService);
+  protected readonly appUpdate = inject(AppUpdateService);
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly preload = inject(PreloadService);

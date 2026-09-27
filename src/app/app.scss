@@ -23,6 +23,113 @@
   min-height: calc(100dvh - 42px);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Application update — persistent, clear, and out of the way
+───────────────────────────────────────────────────────────── */
+.app-update {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10002;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto 28px;
+  align-items: center;
+  gap: 10px;
+  width: min(480px, calc(100vw - 24px));
+  min-height: 58px;
+  border: 1px solid var(--tm-border, rgba(15, 23, 42, 0.1));
+  border-radius: 8px;
+  background: var(--tm-surface, #ffffff);
+  padding: 10px 10px 10px 12px;
+  color: var(--tm-text, #111827);
+  box-shadow: var(--tm-shadow-lg, 0 16px 34px rgba(15, 23, 42, 0.16));
+  animation: updateNoticeIn 0.22s ease-out;
+}
+
+.app-update-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e8f5ee;
+  color: #166534;
+  font-size: 17px;
+}
+
+.app-update-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.app-update-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.app-update-copy span {
+  color: var(--tm-text-muted, #64748b);
+}
+
+.app-update-action {
+  min-height: 34px;
+  border: 1px solid #166534;
+  border-radius: 7px;
+  background: #166534;
+  padding: 6px 13px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.app-update-action:hover:not(:disabled) {
+  background: #14532d;
+}
+
+.app-update-action:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.app-update-dismiss {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tm-text, #111827);
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.app-update-dismiss:hover {
+  background: rgba(125, 125, 125, 0.12);
+  opacity: 1;
+}
+
+.app-update-action:focus-visible,
+.app-update-dismiss:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+@keyframes updateNoticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 760px) {
   .main-container.with-nav {
     padding-top: 37px;
@@ -121,6 +228,35 @@
 }
 
 @media (max-width: 760px) {
+  .app-update {
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+    grid-template-columns: 30px minmax(0, 1fr) auto 26px;
+    gap: 8px;
+    width: auto;
+    min-height: 54px;
+    padding: 8px;
+  }
+
+  .app-update.with-nav {
+    bottom: calc(64px + env(safe-area-inset-bottom) + 10px);
+  }
+
+  .app-update-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .app-update-copy span {
+    display: none;
+  }
+
+  .app-update-action {
+    min-height: 32px;
+    padding-inline: 11px;
+  }
+
   .app-toast {
     top: calc(37px + 8px);
     right: 12px;
@@ -130,6 +266,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .app-update,
   .app-toast {
     animation: none;
   }

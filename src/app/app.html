@@ -16,7 +16,39 @@
   </main>
 </div>
 
-@if (toast.message(); as message) {
+@if (appUpdate.updateReady()) {
+<aside
+  class="app-update"
+  [class.with-nav]="showNav()"
+  role="status"
+  aria-live="polite"
+  aria-label="Website update available"
+>
+  <span class="app-update-icon" aria-hidden="true">
+    <i class="bi bi-arrow-repeat"></i>
+  </span>
+  <span class="app-update-copy">
+    <strong>New version available</strong>
+    <span>Update to get the latest improvements.</span>
+  </span>
+  <button
+    type="button"
+    class="app-update-action"
+    [disabled]="appUpdate.reloading()"
+    (click)="appUpdate.reload()"
+  >
+    {{ appUpdate.reloading() ? 'Updating...' : 'Update' }}
+  </button>
+  <button
+    type="button"
+    class="app-update-dismiss"
+    aria-label="Dismiss update notice"
+    (click)="appUpdate.dismiss()"
+  >
+    <i class="bi bi-x-lg" aria-hidden="true"></i>
+  </button>
+</aside>
+} @if (toast.message(); as message) {
 <div class="app-toast" role="status" aria-live="polite">
   <span class="app-toast-icon" aria-hidden="true">
     <i class="bi" [ngClass]="toastIcon(message.tone)"></i>
