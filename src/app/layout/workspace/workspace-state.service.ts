@@ -87,6 +87,9 @@ export class WorkspaceStateService {
   readonly feedBetaAreas = signal<readonly FeedBetaArea[]>([]);
   readonly feedBetaCategories = signal<readonly string[]>([]);
   readonly feedBetaScope = signal<FeedBetaScope | null>(null);
+  /** Regular community posts by default; advertisements/services when enabled. */
+  readonly availableMode = signal(false);
+  readonly availableCategory = signal<string | null>(null);
   readonly feedBetaScopeDialogOpen = signal(false);
 
   readonly hasContext = computed(() => this.contextMode() !== 'empty' || !!this.selectedPost());

@@ -24,28 +24,57 @@
     </section>
     } @else {
 
-    <!-- ── Step 1a: Tag picker (personal flow — unchanged) ──────────────── -->
+    <!-- ── Step 1a: Local / advertisement post type ────────────────────── -->
     @if (step() === 'tag') {
     <section class="step-tag">
-      <h1 class="step-title">
-        {{ postType() === 'business' ? 'What is the business update?' : 'What is your post about?'
-        }}
-      </h1>
-      <p class="step-subtitle">
-        {{ postType() === 'business' ? 'Pick the closest tag and we will build the post with you.' :
-        'Pick a tag for your local feed.' }}
-      </p>
+      <h1 class="step-title">Create a local post</h1>
+      <p class="step-subtitle">Share with your local feed, or advertise something nearby.</p>
 
-      <div class="tag-grid" role="radiogroup" aria-label="Post tag">
-        @for (tag of activeTags(); track tag) {
+      <div class="post-kind-switch-row">
+        <span class="post-kind-label" [class.active]="availablePostMode()">
+          Create an advertisement
+        </span>
+        <button
+          type="button"
+          class="post-kind-toggle"
+          role="switch"
+          [attr.aria-checked]="availablePostMode()"
+          [class.on]="availablePostMode()"
+          (click)="toggleAvailablePostMode()"
+          aria-label="Post an advertisement or service"
+        >
+          <span></span>
+        </button>
+      </div>
+
+      @if (availablePostMode()) {
+      <div class="available-category-field" [class.is-invalid]="tagErrorVisible()">
+        <label>What is available?</label>
+        <app-dropdown
+          [options]="availableCategoryOptions"
+          [value]="formData.tag"
+          placeholder="Choose a category"
+          (valueChange)="onAvailableCategoryChange($event)"
+          aria-label="Available post category"
+        ></app-dropdown>
+        @if (tagErrorVisible()) {
+        <small>Choose a category to continue.</small>
+        }
+      </div>
+
+      <button type="button" class="post-btn post-kind-continue" (click)="continuePostKind()">
+        Continue <i class="bi bi-arrow-right" aria-hidden="true"></i>
+      </button>
+      } @else {
+      <div class="tag-grid" role="radiogroup" aria-label="Choose a post tag to continue">
+        @for (tag of personalTags; track tag) {
         <button type="button" class="tag-card" (click)="selectTag(tag)">
           <span class="tag-card-emoji">{{ tag | tagEmoji }}</span>
           <span class="tag-card-label">{{ tagLabel(tag) }}</span>
         </button>
         }
       </div>
-
-      @if (postType() === 'personal') {
+      } @if (postType() === 'personal') {
       <button
         type="button"
         class="hot-now-toggle hot-now-toggle--step1"

@@ -4,12 +4,12 @@
 ───────────────────────────────────────────────────────────── */
 
 /* The header is a single grid: row 1 is the main bar (brand/nav/search/
-   actions), row 2 is the optional feed-category chip strip (feed-beta only).
-   Both rows share the header's background/blur so the strip reads as part
+   actions), row 2 is the optional feed-mode switch (feed-beta only).
+   Both rows share the header's background/blur so the switch reads as part
    of the topbar rather than a separate bar, and height is auto — it just
    collapses to nothing when the strip isn't rendered, so there's no
    separate "tagged" height to keep in sync by hand. The strip is placed in
-   the SAME grid column as `.topbar-center` (see `.topbar-tag-strip` below)
+   the SAME grid column as `.topbar-center` (see `.topbar-service-strip` below)
    so it centers under the search bar itself, not under the full header
    width — the two rows can have very different left/right column widths. */
 .app-topbar {
@@ -699,7 +699,7 @@
 
 .hood-indicator {
   position: relative;
-  order: 3;
+  order: 4;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -716,6 +716,109 @@
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* Available-mode category picker, immediately before the hood code. */
+.available-category-trigger {
+  order: 3;
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 160px;
+  min-height: 24px;
+  border: 1px solid color-mix(in srgb, var(--tm-primary) 28%, var(--tm-border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tm-primary) 7%, var(--tm-surface));
+  padding: 0 7px;
+  color: var(--tm-primary-text);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &.active,
+  &:hover {
+    border-color: var(--tm-primary);
+    background: color-mix(in srgb, var(--tm-primary) 12%, var(--tm-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--tm-primary) 65%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.available-category-caret {
+  flex: 0 0 auto;
+  font-size: 8px;
+}
+
+.available-category-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 9400;
+  display: grid;
+  width: min(290px, calc(100vw - 24px));
+  max-height: min(410px, calc(100dvh - 100px));
+  overflow-y: auto;
+  border: 1px solid var(--tm-border);
+  border-radius: 8px;
+  background: var(--tm-surface);
+  padding: 5px;
+  box-shadow: var(--tm-shadow-lg);
+
+  button {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 7px;
+    min-height: 36px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    padding: 5px 8px;
+    color: var(--tm-text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+
+    > i:first-child {
+      color: var(--tm-muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    &::after {
+      content: '';
+    }
+
+    &:hover {
+      background: var(--tm-bg);
+    }
+
+    &.active {
+      background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+      color: var(--tm-primary-text);
+
+      &::after {
+        content: '\F633';
+        font-family: 'bootstrap-icons';
+        color: var(--tm-primary);
+      }
+    }
+  }
 }
 
 .hood-indicator:hover {
@@ -795,67 +898,61 @@
   }
 }
 
-/* ── Tag-chip strip (feed category switcher, below the search row) ──── */
-/* Row 2 of the same grid, pinned to the SAME column as `.topbar-center` —
-   that's what centers it under the search bar instead of the full header
-   width (the left/actions columns aren't equal width, so "centered on the
-   header" and "centered on the search bar" are different points). */
-
-.topbar-tag-strip {
+/* ── Local / advertisements mode switch below the search row ───── */
+.topbar-service-strip {
   grid-column: 3;
   grid-row: 2;
-  min-height: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 4px 0;
-  scrollbar-width: none;
+  justify-content: flex-end;
+  justify-self: center;
+  gap: 9px;
+  width: min(100%, 660px);
+  min-height: 28px;
+  padding: 3px 0 5px;
+}
 
-  &::-webkit-scrollbar {
-    display: none;
+.service-mode-question {
+  color: var(--tm-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.service-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 20px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-text) 22%, transparent);
+  padding: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &.on {
+    background: var(--tm-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--tm-primary) 65%, transparent);
+    outline-offset: 2px;
   }
 }
 
-.tag-chip {
-  position: relative;
-  flex: 0 0 auto;
-  min-height: 22px;
-  padding: 0 12px;
-  border: 1px solid var(--tm-border);
-  border-radius: 999px;
-  background: var(--tm-bg);
-  color: var(--tm-muted);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
+.service-mode-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: transform 0.15s ease;
+}
 
-  /* Extends the tap target beyond the visible pill without growing it —
-     keeps the strip compact (important on mobile) while staying tappable. */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -5px;
-  }
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--tm-primary) 40%, var(--tm-border));
-    color: var(--tm-text);
-  }
-
-  &.active {
-    border-color: var(--tm-primary);
-    background: var(--tm-primary);
-    color: #fff;
-  }
+.service-mode-toggle.on .service-mode-knob {
+  transform: translateX(14px);
 }
 
 /* ── Hood search results ──────────────────────────────────── */
@@ -1253,8 +1350,10 @@
   /* Row 1 uses named areas here (3 columns instead of 4, since .topbar-nav
      is hidden) — "column 3" no longer means the search column, so the strip
      needs its own mobile override to stay under column 2 (center/search). */
-  .topbar-tag-strip {
+  .topbar-service-strip {
     grid-column: 2;
+    width: 100%;
+    justify-self: stretch;
   }
 
   /* Messages icon lives in the mobile bottom nav — hide the topbar duplicate. */
@@ -1306,15 +1405,35 @@
     display: inline;
   }
 
-  .topbar-tag-strip {
-    gap: 5px;
-    padding: 4px 0;
+  .available-category-trigger {
+    flex: 0 0 27px;
+    width: 27px;
+    min-height: 24px;
+    padding: 0;
+    justify-content: center;
+
+    span,
+    .available-category-caret {
+      display: none;
+    }
   }
 
-  .tag-chip {
-    min-height: 18px;
-    padding: 0 10px;
+  .available-category-menu {
+    right: -42px;
+  }
+
+  .topbar-service-strip {
+    gap: 7px;
+    min-height: 27px;
+    padding: 3px 0 4px;
+  }
+
+  .service-mode-question {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
     font-size: 11px;
+    line-height: 1.2;
   }
 
   .topbar-icon-btn {
@@ -1348,6 +1467,10 @@
   }
 
   .topbar-search-row {
+    width: min(100%, 560px);
+  }
+
+  .topbar-service-strip {
     width: min(100%, 560px);
   }
 

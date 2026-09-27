@@ -22,7 +22,7 @@ export const BUSINESS_TAG_CATEGORIES: readonly TagCategory[] = [
   TagCategory.Biz,
 ];
 
-/** Every category EXCEPT hot-now — that tag has its own top-right toggle. */
+/** Personal feed categories; urgent and advertisement modes have separate controls. */
 export const PERSONAL_TAG_CATEGORIES: readonly TagCategory[] = [
   TagCategory.Around,
   TagCategory.Dating,
@@ -31,7 +31,6 @@ export const PERSONAL_TAG_CATEGORIES: readonly TagCategory[] = [
   TagCategory.Notice,
   TagCategory.Alert,
   TagCategory.Poll,
-  TagCategory.Available,
 ];
 
 const TAG_LABELS: Partial<Record<TagCategory, string>> = {

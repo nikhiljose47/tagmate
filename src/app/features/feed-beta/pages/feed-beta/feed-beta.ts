@@ -44,6 +44,10 @@ import { resolveFeedScope } from '../../../../layout/workspace/feed-scope.util';
 import { MAP_PERF_OPTIONS } from '../../../../core/map/map-defaults';
 import { MapStyleService } from '../../../../core/map/map-style.service';
 import { MapInstancePoolService } from '../../../../core/map/map-instance-pool.service';
+import {
+  isAvailablePost,
+  matchesAvailableCategory,
+} from '../../../../shared/constants/available-post-categories';
 
 /** One raster tile of the mini map, pre-offset so the post lands at box centre. */
 interface MapTile {
@@ -200,7 +204,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   );
 
   /**
-   * True while a post still belongs in the normal active feed: not expired
+   * True while a post still belongs in the regular active feed: not expired
    * (`created_at + expires_in` hasn't passed) and not manually ended by its
    * owner (status still 'active'). Expired/ended posts stay in the DB for
    * "My Posts" history — this only hides them from the live feed.
@@ -291,7 +295,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   private readonly scrollScopeToTop = effect(() => {
     const scope = this.workspace.feedBetaScope();
-    const key = scope ? `${scope.areaId}:${scope.category}` : '';
+    const key = scope
+      ? `${scope.areaId}:${scope.category}:${this.workspace.availableMode()}:${this.workspace.availableCategory() ?? ''}`
+      : '';
     if (!key) return;
 
     requestAnimationFrame(() => {
@@ -963,7 +969,11 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   private matchesScope(post: Tag, scope: FeedBetaScope | null): boolean {
     if (!scope) return false;
     if (this.areaIdFor(post) !== scope.areaId) return false;
-    return this.mainCategoryFor(post) === scope.category;
+    if (scope.category === 'hot-now') return this.mainCategoryFor(post) === 'hot-now';
+
+    const available = isAvailablePost(post);
+    if (!this.workspace.availableMode()) return !available;
+    return available && matchesAvailableCategory(post, this.workspace.availableCategory());
   }
 
   private areasFor(posts: readonly Tag[]): readonly FeedBetaArea[] {

@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { AppTopbarComponent } from './app-topbar';
 import { testProviders } from '../../test-providers';
+import { WorkspaceStateService } from '../workspace/workspace-state.service';
+import { TagCategory } from '../../core/enums/tag-category.enum';
 
 describe('AppTopbarComponent', () => {
   beforeEach(async () => {
@@ -35,5 +37,20 @@ describe('AppTopbarComponent', () => {
 
     const info = fixture.nativeElement.querySelector('.hood-indicator-info') as HTMLElement;
     expect(info.textContent).toContain('Karnataka');
+  });
+
+  it('switches to available mode and applies a service category', () => {
+    const fixture = TestBed.createComponent(AppTopbarComponent);
+    const component = fixture.componentInstance as unknown as {
+      toggleAvailableMode(): void;
+      selectAvailableCategory(category: string): void;
+    };
+    const workspace = TestBed.inject(WorkspaceStateService);
+
+    component.toggleAvailableMode();
+    component.selectAvailableCategory(TagCategory.Space);
+
+    expect(workspace.availableMode()).toBeTrue();
+    expect(workspace.availableCategory()).toBe(TagCategory.Space);
   });
 });

@@ -428,9 +428,7 @@
   line-height: 1.4;
 }
 
-/* ── Category chips ─────────────────────── */
-/* Two compact rows that scroll sideways — all categories reachable without eating vertical space. */
-/* ── Step 1: tag picker ──────────────────── */
+/* ── Step 1: local / advertisement choice ────────────────── */
 .step-tag {
   padding: 16px 14px 14px;
 }
@@ -448,42 +446,108 @@
   color: var(--tm-muted);
 }
 
+.post-kind-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid var(--tm-border);
+  border-bottom: 1px solid var(--tm-border);
+}
+
+.post-kind-label {
+  min-width: 0;
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+
+  &.active {
+    color: var(--tm-primary-text);
+  }
+}
+
+.post-kind-toggle {
+  display: inline-flex;
+  align-items: center;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tm-text) 22%, transparent);
+  padding: 3px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  span {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.24);
+    transition: transform 0.15s ease;
+  }
+
+  &.on {
+    background: var(--tm-primary);
+
+    span {
+      transform: translateX(16px);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--tm-primary) 65%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.available-category-field {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+
+  label {
+    color: var(--tm-text);
+    font-size: 12px;
+    font-weight: 750;
+  }
+
+  app-dropdown {
+    display: block;
+  }
+
+  small {
+    color: var(--tm-danger);
+    font-size: 11px;
+  }
+}
+
 .tag-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 16px;
+  margin-top: 14px;
 }
 
 .tag-card {
   display: flex;
+  min-height: 64px;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 14px 6px;
   border: 1.5px solid var(--tm-border);
-  border-radius: 14px;
+  border-radius: 7px;
   background: var(--tm-bg);
+  padding: 10px 5px;
   color: var(--tm-text);
   cursor: pointer;
-  transition:
-    border-color 0.12s,
-    background 0.12s,
-    transform 0.1s;
-  -webkit-tap-highlight-color: transparent;
 
   &:hover {
     border-color: var(--tm-primary);
-  }
-
-  &:active {
-    transform: scale(0.97);
-  }
-
-  &.tag-card--active {
-    border-color: var(--tm-primary);
-    background: var(--tm-primary);
-    color: #fff;
   }
 }
 
@@ -495,11 +559,19 @@
 .tag-card-label {
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.15;
   text-align: center;
 }
 
+.post-kind-continue {
+  justify-content: center;
+  width: 100%;
+  margin-top: 14px;
+  border-radius: 7px;
+}
+
 .hot-now-toggle--step1 {
-  margin-top: 4px;
+  margin-top: 12px;
 }
 
 /* ── Intent chips (business "what are you offering") ─────────── */
@@ -1170,32 +1242,6 @@
   margin-bottom: 18px;
 }
 
-.tag-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 18px;
-  gap: 8px;
-}
-
-.tag-card {
-  flex-direction: row;
-  justify-content: flex-start;
-  min-height: 54px;
-  padding: 10px 12px;
-  border-width: 1px;
-  border-radius: 6px;
-  gap: 10px;
-}
-
-.tag-card:focus-visible {
-  outline: 2px solid var(--tm-primary);
-  outline-offset: 2px;
-}
-
-.tag-card-label {
-  font-size: 12px;
-  text-align: left;
-}
-
 .hot-now-toggle {
   border-radius: 8px;
 }
@@ -1556,14 +1602,6 @@
 
   .step-tag h1 {
     font-size: 20px;
-  }
-
-  .tag-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tag-card {
-    min-height: 50px;
   }
 
   .form-foot {

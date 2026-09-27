@@ -49,10 +49,10 @@ import { BusinessIntegrationService } from '../../../../core/services/business-i
 import { PostPublicationService } from '../../../../core/services/post-publication.service';
 import { IntegrationProvider, IntegrationStatus } from '../../../../core/enums/integration.enum';
 import {
-  BUSINESS_TAG_CATEGORIES,
   PERSONAL_TAG_CATEGORIES,
   tagCategoryLabel,
 } from '../../../../shared/constants/business-tags';
+import { AVAILABLE_POST_CATEGORIES } from '../../../../shared/constants/available-post-categories';
 import { BusinessPostTemplatePickerComponent } from '../../components/business-template-picker/business-template-picker.component';
 import { TemplateFormComponent } from '../../components/template-form/template-form.component';
 import {
@@ -63,7 +63,7 @@ import {
 /**
  * Step flow for the post composer.
  *
- * Personal:  tag → details → preview  (unchanged)
+ * Personal:  local/advertisement → details → preview
  * Business:  template → details → preview
  *
  * Business accounts with a locked `businessCategory` skip straight to the
@@ -286,6 +286,9 @@ export class PostPage implements OnDestroy {
         pollOptions: [...draft.pollOptions],
         backgroundColor: draft.backgroundColor ?? '',
       };
+      this.availablePostMode.set(
+        this.formData.intent === 'available_now' || this.formData.tag === TagCategory.Available,
+      );
       this.mediaItems.set(draft.media);
       this.templateValues.set({ ...(draft.templateValues ?? {}) });
       this.isHighlightManuallyEdited.set(draft.isHighlightManuallyEdited ?? false);
@@ -350,6 +353,7 @@ export class PostPage implements OnDestroy {
    *  personal posts (unlike business) aren't tied to one fixed tag. */
   switchToPersonalMode(): void {
     this.postType.set('personal');
+    this.availablePostMode.set(false);
     this.formData.tag = '';
     this.formData.intent = '';
     this.templateValues.set({});
@@ -416,6 +420,9 @@ export class PostPage implements OnDestroy {
       pollOptions: post.pollOptions?.length ? [...post.pollOptions] : ['', ''],
       backgroundColor: post.backgroundColor ?? '',
     };
+    this.availablePostMode.set(
+      post.intent === 'available_now' || post.tag === TagCategory.Available,
+    );
     // The saved headline is exactly what the author left it as — don't let
     // the next template field edit silently recompute over it.
     this.isHighlightManuallyEdited.set(true);
@@ -471,6 +478,7 @@ export class PostPage implements OnDestroy {
 
   readonly step = signal<PostStep>('tag');
   readonly postType = signal<PostType>('personal');
+  readonly availablePostMode = signal(false);
   /** Values for the current tag's quick-fill template, if it has one. */
   templateValues = signal<Record<string, string>>({});
   /** The active template definition — set when a business category is resolved. */
@@ -500,14 +508,13 @@ export class PostPage implements OnDestroy {
 
   // ── Form data ────────────────────────────────────────────────────────────
   readonly personalTags = PERSONAL_TAG_CATEGORIES;
-  readonly businessTags = BUSINESS_TAG_CATEGORIES;
-  readonly activeTags = computed(() =>
-    this.postType() === 'business' ? this.businessTags : this.personalTags,
+  readonly availableCategoryOptions: DropdownOption[] = AVAILABLE_POST_CATEGORIES.map(
+    (category) => ({ label: category.label, value: category.value }),
   );
   readonly composePrompt = COMPOSE_PROMPTS[Math.floor(Math.random() * COMPOSE_PROMPTS.length)];
 
   /** True once a business account's tag is locked to their registered
-   *  category — that's the normal case; only pre-migration business
+   *  category — that's the usual case; only pre-migration business
    *  accounts without a category set fall back to picking one per post. */
   readonly businessCategoryLocked = computed(
     () => this.postType() === 'business' && !!this.userSession.user()?.businessCategory,
@@ -626,10 +633,38 @@ export class PostPage implements OnDestroy {
     return tagCategoryLabel(tag);
   }
 
-  /** Step 1 → step 2 (personal flow): picking a tag seeds/resets its quick-fill template. */
-  selectTag(tag: string): void {
-    this.formData.tag = tag;
+  toggleAvailablePostMode(): void {
+    const next = !this.availablePostMode();
+    this.availablePostMode.set(next);
+    this.formData.intent = next ? 'available_now' : '';
+    this.formData.tag = '';
     this.tagErrorVisible.set(false);
+  }
+
+  onAvailableCategoryChange(category: string): void {
+    this.formData.tag = category;
+    this.formData.intent = 'available_now';
+    this.tagErrorVisible.set(false);
+  }
+
+  /** Local posts continue as soon as their feed tag is selected. */
+  selectTag(tag: string): void {
+    this.availablePostMode.set(false);
+    this.formData.tag = tag;
+    this.formData.intent = '';
+    this.tagErrorVisible.set(false);
+    this.syncTemplateValues();
+    this.step.set('details');
+  }
+
+  /** Step 1 → details for a categorized advertisement/service post. */
+  continuePostKind(): void {
+    if (!this.availablePostMode()) return;
+    if (!this.formData.tag) {
+      this.tagErrorVisible.set(true);
+      this.toast.show('Choose what is available.', 'warning');
+      return;
+    }
     this.syncTemplateValues();
     this.step.set('details');
   }
@@ -757,6 +792,8 @@ export class PostPage implements OnDestroy {
       this.step.set('tag');
     } else {
       this.postType.set('personal');
+      this.availablePostMode.set(false);
+      this.formData.intent = '';
       this.formData.tag = TagCategory.HotNow;
       this.formData.expiresIn = 120;
       this.tagErrorVisible.set(false);
@@ -1361,7 +1398,10 @@ export class PostPage implements OnDestroy {
         businessPhone: isBusiness ? currentUser.businessPhone || undefined : undefined,
         businessWebsite: isBusiness ? currentUser.businessWebsite || undefined : undefined,
         businessWhatsapp: isBusiness ? currentUser.socialWhatsapp || undefined : undefined,
-        intent: this.postType() === 'business' ? this.formData.intent || 'offer' : undefined,
+        intent:
+          this.postType() === 'business'
+            ? this.formData.intent || 'offer'
+            : this.formData.intent || undefined,
         price: this.postType() === 'business' ? toNumber(this.formData.price) : undefined,
         originalPrice:
           this.postType() === 'business' ? toNumber(this.formData.originalPrice) : undefined,
@@ -1532,6 +1572,7 @@ export class PostPage implements OnDestroy {
       pollOptions: ['', ''],
       backgroundColor: '',
     };
+    this.availablePostMode.set(false);
     this.shared.postDraft.set(null);
     this.showMapHint.set(false);
     this.locationErrorVisible.set(false);
@@ -1566,6 +1607,13 @@ export class PostPage implements OnDestroy {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     if (!areaId) return;
+
+    const available =
+      post.postType === 'business' ||
+      post.intent === 'available_now' ||
+      post.tag === TagCategory.Available;
+    this.workspace.availableMode.set(available);
+    this.workspace.availableCategory.set(available ? post.tag : null);
 
     const tag = post.tag.toLowerCase();
     const category =

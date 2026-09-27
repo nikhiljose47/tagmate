@@ -54,8 +54,8 @@
       <div
         class="hood-search"
         [class.active]="postSearchOpen()"
-        [tmClickOutsideEnabled]="postSearchOpen()"
-        (tmClickOutside)="closePostSearch()"
+        [tmClickOutsideEnabled]="postSearchOpen() || availableCategoryMenuOpen()"
+        (tmClickOutside)="closeSearchPanels()"
       >
         <i class="bi bi-search hood-search-icon" aria-hidden="true"></i>
         <input
@@ -68,7 +68,53 @@
         />
         @if (isPostSearching()) {
         <span class="search-spinner" aria-label="Searching"></span>
-        }
+        } @if (workspace.availableMode()) {
+        <button
+          type="button"
+          class="available-category-trigger"
+          [class.active]="availableCategoryMenuOpen()"
+          [attr.aria-expanded]="availableCategoryMenuOpen()"
+          aria-haspopup="menu"
+          [attr.aria-label]="
+            'Available category: ' + (selectedAvailableCategory()?.label || 'All categories')
+          "
+          (click)="toggleAvailableCategoryMenu()"
+        >
+          <i
+            class="bi"
+            [ngClass]="selectedAvailableCategory()?.icon || 'bi-grid'"
+            aria-hidden="true"
+          ></i>
+          <span>{{ selectedAvailableCategory()?.label || 'Category' }}</span>
+          <i class="bi bi-chevron-down available-category-caret" aria-hidden="true"></i>
+        </button>
+
+        @if (availableCategoryMenuOpen()) {
+        <div class="available-category-menu" role="menu" aria-label="Advertisement categories">
+          <button
+            type="button"
+            role="menuitemradio"
+            [attr.aria-checked]="!workspace.availableCategory()"
+            [class.active]="!workspace.availableCategory()"
+            (click)="selectAvailableCategory(null)"
+          >
+            <i class="bi bi-grid" aria-hidden="true"></i>
+            <span>All advertisements & services</span>
+          </button>
+          @for (option of availableCategories; track option.value) {
+          <button
+            type="button"
+            role="menuitemradio"
+            [attr.aria-checked]="workspace.availableCategory() === option.value"
+            [class.active]="workspace.availableCategory() === option.value"
+            (click)="selectAvailableCategory(option.value)"
+          >
+            <i class="bi" [ngClass]="option.icon" aria-hidden="true"></i>
+            <span>{{ option.label }}</span>
+          </button>
+          }
+        </div>
+        } }
 
         <button
           type="button"
@@ -261,21 +307,22 @@
     </div>
   </div>
 
-  <!-- ── Feed category chips — second row of the topbar itself ── -->
+  <!-- ── Local / advertisements mode — second row of the topbar ── -->
   @if (isFeedBeta()) {
-  <nav class="topbar-tag-strip" aria-label="Feed category">
-    @for (option of tagFilterOptions; track option.key) {
+  <div class="topbar-service-strip">
+    <span class="service-mode-question">Looking for advertisements/services?</span>
     <button
       type="button"
-      class="tag-chip"
-      [class.active]="isActiveTagFilter(option.key)"
-      [attr.aria-pressed]="isActiveTagFilter(option.key)"
-      (click)="selectTagFilter(option.key)"
+      class="service-mode-toggle"
+      role="switch"
+      [attr.aria-checked]="workspace.availableMode()"
+      [class.on]="workspace.availableMode()"
+      (click)="toggleAvailableMode()"
+      aria-label="Show advertisements and services"
     >
-      {{ option.label }}
+      <span class="service-mode-knob"></span>
     </button>
-    }
-  </nav>
+  </div>
   }
 </header>
 

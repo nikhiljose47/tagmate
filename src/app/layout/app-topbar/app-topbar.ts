@@ -25,8 +25,12 @@ import { ToastService } from '../../core/services/toast.service';
 import { Store } from '@ngrx/store';
 import { selectHood } from '../../store/user-preferences/user-preference.selectors';
 import { ClickOutsideDirective } from '../../shared/directives/click-outside.directive';
-import { PERSONAL_TAG_CATEGORIES, tagCategoryLabel } from '../../shared/constants/business-tags';
 import { placeCode } from '../../core/data/state-codes';
+import {
+  AVAILABLE_POST_CATEGORIES,
+  isAvailablePost,
+  matchesAvailableCategory,
+} from '../../shared/constants/available-post-categories';
 
 interface NominatimPlace {
   place_id: number;
@@ -165,19 +169,16 @@ export class AppTopbarComponent implements OnDestroy {
     () => placeCode(this.hoodIndicatorFullLabel()) || '--',
   );
 
-  /** Label of the active feed category chip, or null when none is selected
-   *  (or the active scope is 'hot-now', which has its own toggle and isn't
-   *  one of the tagFilterOptions chips). */
-  protected readonly selectedTagLabel = computed(() => {
-    const category = this.workspace.feedBetaScope()?.category;
-    if (!category || category === 'hot-now') return null;
-    return tagCategoryLabel(category);
-  });
+  protected readonly availableCategories = AVAILABLE_POST_CATEGORIES;
+  protected readonly availableCategoryMenuOpen = signal(false);
+  protected readonly selectedAvailableCategory = computed(() =>
+    AVAILABLE_POST_CATEGORIES.find((option) => option.value === this.workspace.availableCategory()),
+  );
 
-  /** Search input placeholder — mentions the active tag filter when one is set. */
   protected readonly searchPlaceholder = computed(() => {
-    const tag = this.selectedTagLabel();
-    return tag ? `Search or filter posts in ${tag}` : 'Search or filter posts';
+    if (!this.workspace.availableMode()) return 'Search or filter posts';
+    const category = this.selectedAvailableCategory();
+    return category ? `Search ${category.label}` : 'Search advertisements & services';
   });
 
   /**
@@ -221,25 +222,6 @@ export class AppTopbarComponent implements OnDestroy {
   private postSearchTimeout?: ReturnType<typeof setTimeout>;
   private postSearchRequest = 0;
 
-  /** Feed category chips below the search row — every personal tag, same set
-   *  as the post composer offers, regardless of whether it has posts yet in
-   *  this hood (an empty one just falls through to the feed's own "No posts
-   *  in this scope" empty state). */
-  protected readonly tagFilterOptions = PERSONAL_TAG_CATEGORIES.map((category) => ({
-    key: category as string,
-    label: tagCategoryLabel(category),
-  }));
-
-  protected isActiveTagFilter(category: string): boolean {
-    return this.workspace.feedBetaScope()?.category === category;
-  }
-
-  /** Applies the chosen tag as the active feed category, scoped to the current hood. */
-  protected selectTagFilter(category: string): void {
-    const scope = this.workspace.feedBetaScope();
-    if (scope) this.workspace.feedBetaScope.set({ ...scope, category });
-  }
-
   protected readonly userMenuOpen = signal(false);
   @ViewChild('userMenuTrigger') private userMenuTrigger?: ElementRef<HTMLElement>;
   private wasUserMenuOpen = false;
@@ -276,7 +258,7 @@ export class AppTopbarComponent implements OnDestroy {
     void this.restoreUserMenuFocus;
     this.routerEvents = this.router.events.subscribe((event) => {
       if (!(event instanceof NavigationEnd)) return;
-      this.closePostSearch();
+      this.closeSearchPanels();
     });
   }
 
@@ -401,11 +383,37 @@ export class AppTopbarComponent implements OnDestroy {
   }
 
   protected openPostSearch(): void {
+    this.availableCategoryMenuOpen.set(false);
     this.postSearchOpen.set(true);
   }
 
   protected closePostSearch(): void {
     this.postSearchOpen.set(false);
+  }
+
+  protected closeSearchPanels(): void {
+    this.closePostSearch();
+    this.availableCategoryMenuOpen.set(false);
+  }
+
+  protected toggleAvailableMode(): void {
+    const next = !this.workspace.availableMode();
+    if (next && this.workspace.feedBetaScope()?.category === 'hot-now') {
+      this.clearHotNowCategory();
+    }
+    this.workspace.availableMode.set(next);
+    this.workspace.availableCategory.set(null);
+    this.availableCategoryMenuOpen.set(false);
+  }
+
+  protected toggleAvailableCategoryMenu(): void {
+    this.closePostSearch();
+    this.availableCategoryMenuOpen.update((open) => !open);
+  }
+
+  protected selectAvailableCategory(category: string | null): void {
+    this.workspace.availableCategory.set(category);
+    this.availableCategoryMenuOpen.set(false);
   }
 
   protected async goToSearchResult(result: HoodSearchResult): Promise<void> {
@@ -427,10 +435,19 @@ export class AppTopbarComponent implements OnDestroy {
     this.tagRepo.getPaginated(40, 0, query).subscribe({
       next: (posts) => {
         if (request !== this.postSearchRequest) return;
+        const modeMatches = posts.filter((post) => {
+          if (this.workspace.feedBetaScope()?.category === 'hot-now') {
+            return post.tag === 'hot-now';
+          }
+          const available = isAvailablePost(post);
+          return this.workspace.availableMode()
+            ? available && matchesAvailableCategory(post, this.workspace.availableCategory())
+            : !available;
+        });
         const inScope = scopeLabel
-          ? posts.filter((post) => (post.state ?? '').trim().toLowerCase() === scopeLabel)
-          : posts;
-        const list = (inScope.length ? inScope : posts)
+          ? modeMatches.filter((post) => (post.state ?? '').trim().toLowerCase() === scopeLabel)
+          : modeMatches;
+        const list = (inScope.length ? inScope : modeMatches)
           .slice(0, 8)
           .map((post) => this.toHoodSearchResult(post));
         this.postSearchResults.set(list);
@@ -524,6 +541,9 @@ export class AppTopbarComponent implements OnDestroy {
       this.showHotNowInfo();
       return;
     }
+    this.workspace.availableMode.set(false);
+    this.workspace.availableCategory.set(null);
+    this.availableCategoryMenuOpen.set(false);
     this.openHomeHoodFeed();
   }
 

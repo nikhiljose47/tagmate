@@ -121,4 +121,51 @@ describe('PostPage', () => {
   it('uses the owner directory required by the storage policy', () => {
     expect(mediaStoragePath('user-123', 'jpg')).toMatch(/^user-123\/tags\/[^/]+\.jpg$/);
   });
+
+  it('continues a local post only after its tag is clicked', () => {
+    const fixture = TestBed.createComponent(PostPage);
+    const component = fixture.componentInstance as unknown as {
+      formData: { tag: string; intent: string };
+      step(): string;
+      selectTag(tag: string): void;
+    };
+
+    expect(component.step()).toBe('tag');
+    expect(component.formData.tag).toBe('');
+
+    component.selectTag(TagCategory.Around);
+
+    expect(component.formData.tag).toBe(TagCategory.Around);
+    expect(component.formData.intent).toBe('');
+    expect(component.step()).toBe('details');
+  });
+
+  it('does not offer the legacy Available tag for local posts', () => {
+    const fixture = TestBed.createComponent(PostPage);
+
+    expect(fixture.componentInstance.personalTags).not.toContain(TagCategory.Available);
+  });
+
+  it('requires and preserves a category for available posts', () => {
+    const fixture = TestBed.createComponent(PostPage);
+    const component = fixture.componentInstance as unknown as {
+      formData: { tag: string; intent: string };
+      step(): string;
+      toggleAvailablePostMode(): void;
+      onAvailableCategoryChange(category: string): void;
+      continuePostKind(): void;
+    };
+
+    component.toggleAvailablePostMode();
+    component.continuePostKind();
+    expect(component.step()).toBe('tag');
+    expect(toastSpy.show).toHaveBeenCalledWith('Choose what is available.', 'warning');
+
+    component.onAvailableCategoryChange(TagCategory.Space);
+    component.continuePostKind();
+
+    expect(component.formData.tag).toBe(TagCategory.Space);
+    expect(component.formData.intent).toBe('available_now');
+    expect(component.step()).toBe('details');
+  });
 });
