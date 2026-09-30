@@ -93,6 +93,10 @@ export class AppTopbarComponent implements OnDestroy {
   );
 
   protected readonly isFeedBeta = computed(() => this.currentUrl().split('?')[0] === '/feed-beta');
+  protected readonly isLoggedIn = computed(() => {
+    const u = this.session.user();
+    return !!u && !u.isGuest;
+  });
 
   protected readonly nominatimResults = signal<NominatimPlace[]>([]);
   protected readonly isNominatimLoading = signal(false);

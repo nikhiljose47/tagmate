@@ -1,24 +1,11 @@
 import { CanActivateFn, Router, Routes } from '@angular/router';
 import { inject } from '@angular/core';
-import { take, map } from 'rxjs';
 import { adminGuard, authGuard } from './core/guards/auth.guard';
 import { businessPhotosGuard } from './core/guards/business-photos.guard';
-import { AuthService } from './core/services/auth.service';
 
 export const rootRedirectGuard: CanActivateFn = () => {
-  const auth = inject(AuthService);
   const router = inject(Router);
-
-  return auth.session$.pipe(
-    take(1),
-    map((session) => {
-      if (session) {
-        return router.createUrlTree(['/feed-beta']);
-      } else {
-        return router.createUrlTree(['/login']);
-      }
-    }),
-  );
+  return router.createUrlTree(['/feed-beta']);
 };
 
 export const routes: Routes = [
@@ -33,7 +20,6 @@ export const routes: Routes = [
   },
   {
     path: 'feed-beta',
-    canActivate: [authGuard, businessPhotosGuard],
     loadChildren: () =>
       import('./features/feed-beta/feed-beta.routes').then((m) => m.FEED_BETA_ROUTES),
   },

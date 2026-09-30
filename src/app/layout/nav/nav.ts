@@ -16,6 +16,7 @@ interface NavItem {
   mobile?: boolean;
   adminOnly?: boolean;
   businessOnly?: boolean;
+  authRequired?: boolean;
   featureFlag?: keyof AppFeatureFlags;
 }
 
@@ -40,6 +41,10 @@ export class NavComponent {
   readonly isBusinessAccount = computed(
     () => this.sessionService.user()?.accountType === 'business',
   );
+  readonly isLoggedIn = computed(() => {
+    const u = this.sessionService.user();
+    return !!u && !u.isGuest;
+  });
 
   onHomeClick(): void {
     const scope = this.workspace.feedBetaScope();
@@ -64,6 +69,7 @@ export class NavComponent {
       activeIcon: 'bi-house-fill',
       label: 'Home',
       mobile: true,
+      authRequired: true,
     },
     // Island is intentionally hidden for now.
     {
@@ -72,6 +78,7 @@ export class NavComponent {
       activeIcon: 'bi-plus-square-fill',
       label: 'Post',
       mobile: true,
+      authRequired: true,
     },
     {
       route: '/messages',
@@ -79,6 +86,7 @@ export class NavComponent {
       activeIcon: 'bi-chat-left-dots-fill',
       label: 'Messages',
       mobile: true,
+      authRequired: true,
     },
     {
       route: '/whatsapp',
@@ -105,6 +113,7 @@ export class NavComponent {
 
   readonly visibleNavItems = computed(() =>
     this.navItems.filter((item) => {
+      if (item.authRequired && !this.isLoggedIn()) return false;
       if (item.adminOnly && !this.isAdmin()) return false;
       if (item.businessOnly && !this.isBusinessAccount()) return false;
       if (item.featureFlag === 'enableHoodIsland' && !this.featureFlags.enableHoodIsland())

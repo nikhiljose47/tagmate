@@ -1300,3 +1300,85 @@
     animation: none;
   }
 }
+
+/* ── Login gate overlay ─────────────────────────────────────── */
+
+.fb-login-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.0) 100%);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  pointer-events: none;
+}
+
+.fb-login-gate-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 32px 24px 40px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.fb-login-gate-icon {
+  display: block;
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.fb-login-gate-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.fb-login-gate-sub {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.fb-login-gate-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.fb-login-gate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 11px 24px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+
+  &--primary {
+    background: var(--tm-primary, #3b82f6);
+    color: #fff;
+
+    &:hover {
+      background: var(--tm-primary-hover, #2563eb);
+    }
+  }
+
+  &--secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(4px);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}

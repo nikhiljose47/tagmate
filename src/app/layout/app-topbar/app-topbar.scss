@@ -1068,6 +1068,30 @@
   flex-shrink: 0;
 }
 
+.topbar-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--tm-primary, #3b82f6);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--tm-primary-hover, #2563eb);
+  }
+
+  i {
+    font-size: 16px;
+  }
+}
+
 .topbar-icon-btn {
   position: relative;
   display: grid;

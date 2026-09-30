@@ -49,7 +49,8 @@
     </a>
     } }
 
-    <!-- Mobile "Notifications" button -->
+    <!-- Mobile "Notifications" button — only for logged-in users -->
+    @if (isLoggedIn()) {
     <button
       class="nav-item mobile-primary nav-item--notifications"
       type="button"
@@ -64,5 +65,11 @@
       </span>
       <span class="nav-label">Alerts</span>
     </button>
+    } @else {
+    <a class="nav-item mobile-primary" routerLink="/login" aria-label="Log in">
+      <span class="nav-icon"><i class="bi bi-person-circle"></i></span>
+      <span class="nav-label">Log in</span>
+    </a>
+    }
   </div>
 </nav>

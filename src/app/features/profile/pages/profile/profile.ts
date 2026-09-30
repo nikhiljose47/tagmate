@@ -56,6 +56,23 @@ import {
 
 type ProfileTab = 'posts' | 'saved' | 'settings';
 
+export const PROFILE_PHOTO_MAX_INPUT_BYTES = 5 * 1024 * 1024;
+export const PROFILE_PHOTO_MAX_OUTPUT_BYTES = 500 * 1024;
+
+const PROFILE_PHOTO_COMPRESSION = {
+  maxDimension: 768,
+  quality: 0.8,
+  mimeType: 'image/webp' as const,
+  skipUnderBytes: 0,
+};
+
+const PROFILE_PHOTO_FALLBACK_COMPRESSION = {
+  maxDimension: 512,
+  quality: 0.7,
+  mimeType: 'image/webp' as const,
+  skipUnderBytes: 0,
+};
+
 interface ProfileSettings {
   locationSuggestions: boolean;
   postActivityNotifications: boolean;
@@ -498,10 +515,27 @@ export class ProfilePage implements OnInit {
     input.value = '';
     const uid = this.sessionService.user()?.uid;
     if (!file || !uid || !file.type.startsWith('image/')) return;
+    if (file.size > PROFILE_PHOTO_MAX_INPUT_BYTES) {
+      this.toast.show('Profile photo must be 5 MB or smaller.', 'warning');
+      return;
+    }
 
     this.uploadingBusinessLogo.set(true);
     try {
-      const { file: compressed } = await this.mediaCompression.compress(file);
+      let { file: compressed } = await this.mediaCompression.compress(
+        file,
+        PROFILE_PHOTO_COMPRESSION,
+      );
+      if (compressed.size > PROFILE_PHOTO_MAX_OUTPUT_BYTES) {
+        ({ file: compressed } = await this.mediaCompression.compress(
+          compressed,
+          PROFILE_PHOTO_FALLBACK_COMPRESSION,
+        ));
+      }
+      if (compressed.size > PROFILE_PHOTO_MAX_OUTPUT_BYTES) {
+        this.toast.show('Choose a smaller photo. The final image must be under 500 KB.', 'warning');
+        return;
+      }
       const ext = compressed.name.split('.').pop() ?? 'jpg';
       const path = `avatars/${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const url = await this.media.uploadFile(path, compressed);

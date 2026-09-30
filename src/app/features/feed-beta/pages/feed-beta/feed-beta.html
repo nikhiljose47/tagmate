@@ -321,6 +321,20 @@
   }
 </div>
 
+@if (showLoginGate()) {
+<div class="fb-login-gate" role="dialog" aria-modal="true" aria-label="Log in to continue">
+  <div class="fb-login-gate-card">
+    <span class="fb-login-gate-icon">🏘️</span>
+    <h2 class="fb-login-gate-title">See what's happening in your neighborhood</h2>
+    <p class="fb-login-gate-sub">Log in or sign up to read the full feed, comment, and post.</p>
+    <div class="fb-login-gate-actions">
+      <a class="fb-login-gate-btn fb-login-gate-btn--primary" routerLink="/login">Log in</a>
+      <a class="fb-login-gate-btn fb-login-gate-btn--secondary" routerLink="/login/signup">Sign up</a>
+    </div>
+  </div>
+</div>
+}
+
 @if (mapSlide(); as mapped) {
 <button
   class="fb-map-backdrop"

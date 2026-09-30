@@ -25,6 +25,7 @@ import { TAG_REPOSITORY } from '../../../../core/repositories/repository.tokens'
 import { LoggerService } from '../../../../core/services/logger.service';
 import { SocialInteractionsService } from '../../../../core/services/social-interactions.service';
 import { SocialPlatformService } from '../../../../core/services/social-platform.service';
+import { UserSessionService } from '../../../../core/services/user-session.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
@@ -88,6 +89,9 @@ const TILE_PX = 256;
  */
 const EAGER_SLIDES = 3;
 
+/** Number of posts a guest can view before the login gate appears. */
+const GUEST_GATE_THRESHOLD = 5;
+
 @Component({
   selector: 'app-feed-beta',
   standalone: true,
@@ -121,6 +125,26 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   protected readonly workspace = inject(WorkspaceStateService);
   private readonly store = inject(Store);
   private readonly hood = this.store.selectSignal(selectHood);
+  private readonly sessionService = inject(UserSessionService);
+
+  protected readonly isLoggedIn = computed(() => {
+    const u = this.sessionService.user();
+    return !!u && !u.isGuest;
+  });
+
+  protected readonly showLoginGate = computed(() => {
+    if (this.isLoggedIn()) return false;
+    const key = this.activeKey();
+    const index = this.slides().findIndex((s) => s.key === key);
+    return index >= GUEST_GATE_THRESHOLD;
+  });
+
+  /** Freezes the scroller element when the login gate is active. */
+  private readonly scrollLock = effect(() => {
+    const el = this.scroller?.nativeElement;
+    if (!el) return;
+    el.style.overflowY = this.showLoginGate() ? 'hidden' : '';
+  });
 
   protected readonly posts = signal<Tag[]>([]);
   protected readonly isLoading = signal(true);
@@ -330,6 +354,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     void this.syncFeedScope;
     void this.scopedReload;
     void this.scrollScopeToTop;
+    void this.scrollLock;
   }
 
   ngOnInit(): void {
@@ -414,6 +439,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.scroller) {
       const el = this.scroller.nativeElement;
+      el.style.overflowY = '';
       if (this.touchMoveListener) el.removeEventListener('touchmove', this.touchMoveListener);
       if (this.touchEndListener) {
         el.removeEventListener('touchend', this.touchEndListener);

@@ -135,16 +135,6 @@
           </button>
         </div>
 
-        <div class="divider">OR</div>
-
-        <button class="guest-btn" type="button" [disabled]="loading()" (click)="loginGuest()">
-          @if (!loading()) {
-          <i class="bi bi-incognito"></i>
-          Continue as Guest } @else {
-          <span class="spinner spinner--dark" aria-hidden="true"></span>
-          Please wait… }
-        </button>
-
         @if (error()) {
         <div class="error-msg" role="alert">
           <i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ error() }}
