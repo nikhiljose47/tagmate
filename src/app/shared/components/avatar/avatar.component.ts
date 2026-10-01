@@ -25,10 +25,12 @@ import { avatarBg, avatarInitials } from '../../utils/color.utils';
         place-items: center;
         border-radius: 50%;
         color: #fff;
-        font-weight: 700;
+        font-weight: var(--tm-fw-semibold, 600);
         flex-shrink: 0;
         user-select: none;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.03em;
+        box-shadow: 0 0 0 1.5px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.1);
+        line-height: 1;
       }
     `,
   ],

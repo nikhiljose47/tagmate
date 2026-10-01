@@ -188,33 +188,54 @@
 .mode-tabs button,
 .category-strip button {
   flex: 0 0 auto;
-  min-height: 38px;
+  height: var(--tm-control-h-md, 38px);
   border: 1px solid var(--tm-border);
-  border-radius: 999px;
+  border-radius: var(--tm-radius-full, 999px);
   background: var(--tm-surface);
   padding: 0 14px;
   color: var(--tm-text-secondary);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: var(--tm-fw-medium, 500);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+
+  &:hover:not(.active) {
+    border-color: var(--tm-border-strong);
+    background: var(--tm-surface-hover);
+    color: var(--tm-text);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--tm-focus-ring);
+  }
 }
 
 .mode-tabs button.active,
 .category-strip button.active {
   border-color: var(--tm-primary);
-  background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+  background: var(--tm-surface-selected);
   color: var(--tm-primary-text);
+  font-weight: var(--tm-fw-semibold, 600);
 }
 
 .feed-search {
-  min-height: 42px;
+  height: var(--tm-control-h-lg, 44px);
   display: flex;
   align-items: center;
   gap: 10px;
   border: 1px solid var(--tm-border);
-  border-radius: var(--tm-radius);
-  background: var(--tm-surface);
+  border-radius: var(--tm-radius-md);
+  background: var(--tm-surface-secondary);
   padding: 0 12px;
   color: var(--tm-muted);
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: var(--tm-border-focus);
+    box-shadow: var(--tm-focus-ring);
+    background: var(--tm-surface);
+  }
 }
 
 .feed-search input {
@@ -222,6 +243,7 @@
   min-width: 0;
   border: 0;
   outline: 0;
+  background: transparent;
   color: var(--tm-text);
   font: inherit;
   font-size: 14px;
@@ -273,8 +295,8 @@
 
 .post-card {
   overflow: hidden;
-  border: 1px solid var(--tm-border);
-  border-radius: var(--tm-radius);
+  border: 1px solid var(--tm-border-subtle);
+  border-radius: var(--tm-radius-lg, 12px);
   background: var(--tm-surface);
   box-shadow: var(--tm-shadow-sm);
   cursor: pointer;
@@ -309,7 +331,7 @@
 .post-author a:first-child {
   color: var(--tm-text);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: var(--tm-fw-bold, 700);
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -355,11 +377,16 @@
   width: 38px;
   height: 38px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--tm-radius-md, 8px);
   background: transparent;
   color: var(--tm-text);
   font-size: 21px;
   text-decoration: none;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--tm-surface-hover);
+  }
 }
 
 .post-action-row button.active {
@@ -643,15 +670,33 @@
   }
 }
 
-/* Skeletons Visual Upgrades */
+/* ── Skeleton system ── */
+
+@keyframes feed-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--tm-muted) 14%, transparent) 25%,
+    color-mix(in srgb, var(--tm-muted) 26%, transparent) 37%,
+    color-mix(in srgb, var(--tm-muted) 14%, transparent) 63%
+  );
+  background-size: 400% 100%;
+  animation: feed-shimmer 1.4s ease-in-out infinite;
+}
+
 .skeleton-card {
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 14px;
   gap: 12px;
   background: var(--tm-surface);
-  border: 1px solid var(--tm-border);
-  border-radius: var(--tm-radius);
+  border: 1px solid var(--tm-border-subtle);
+  border-radius: var(--tm-radius-lg, 12px);
+  box-shadow: var(--tm-shadow-sm);
 }
 
 .skeleton-header {
@@ -661,10 +706,10 @@
 }
 
 .skeleton-avatar {
-  width: 42px;
-  height: 42px;
+  width: var(--tm-avatar-md, 36px);
+  height: var(--tm-avatar-md, 36px);
+  flex-shrink: 0;
   border-radius: 50%;
-  background: var(--tm-border);
 }
 
 .skeleton-text-group {
@@ -676,18 +721,17 @@
 
 .skeleton-line {
   height: 12px;
-  border-radius: 4px;
-  background: var(--tm-border);
+  border-radius: var(--tm-radius-xs, 4px);
   width: 100%;
 }
 
 .skeleton-line.title {
-  width: 120px;
+  width: 140px;
   height: 14px;
 }
 
 .skeleton-line.sub {
-  width: 80px;
+  width: 90px;
   height: 10px;
 }
 
@@ -698,8 +742,7 @@
 .skeleton-media {
   width: 100%;
   aspect-ratio: 4 / 3;
-  border-radius: 8px;
-  background: var(--tm-border);
+  border-radius: var(--tm-radius-md, 8px);
 }
 
 .skeleton-body {
@@ -709,14 +752,23 @@
   padding-top: 4px;
 }
 
+.skeleton-card .skeleton-avatar,
+.skeleton-card .skeleton-line,
+.skeleton-card .skeleton-media {
+  @extend .skeleton-shimmer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+    background: color-mix(in srgb, var(--tm-muted) 14%, transparent);
+  }
+}
+
+/* Legacy — kept for backward compat */
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.3;
-  }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
 }
 
 .skeleton-pulse {

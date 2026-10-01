@@ -21,6 +21,7 @@ import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confi
 import { NotificationDrawerComponent } from './shared/components/notification-drawer/notification-drawer.component';
 import { TelemetryService } from './core/services/telemetry.service';
 import { AppUpdateService } from './core/services/app-update.service';
+import { UserSessionService } from './core/services/user-session.service';
 
 /** Minimum time the static splash (#tm-splash in index.html) stays visible. */
 const SPLASH_SHOW_MS = 1800;
@@ -50,6 +51,12 @@ export class App {
   private readonly preload = inject(PreloadService);
   private readonly router = inject(Router);
   private readonly telemetry = inject(TelemetryService);
+  private readonly session = inject(UserSessionService);
+
+  private readonly isLoggedIn = computed(() => {
+    const u = this.session.user();
+    return !!u && !u.isGuest;
+  });
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -60,9 +67,13 @@ export class App {
     { initialValue: this.router.url },
   );
 
-  protected readonly showNav = computed(() => !this.currentUrl().startsWith('/login'));
-  protected readonly showTopbar = computed(
-    () => this.showNav() && !this.currentUrl().startsWith('/island'),
+  protected readonly showTopbar = computed(() => {
+    const url = this.currentUrl();
+    return !url.startsWith('/login') && !url.startsWith('/island');
+  });
+
+  protected readonly showNav = computed(
+    () => this.showTopbar() && this.isLoggedIn(),
   );
 
   protected toastIcon(tone: ToastTone): string {

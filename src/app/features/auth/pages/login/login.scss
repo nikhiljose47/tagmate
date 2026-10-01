@@ -81,11 +81,11 @@
 
 .hero-headline {
   margin: 0;
-  font-size: clamp(26px, 2.6vw, 36px);
-  font-weight: 900;
+  font-size: clamp(26px, 2.6vw, 34px);
+  font-weight: 700;
   color: #fff;
-  line-height: 1.18;
-  letter-spacing: -0.025em;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
 }
 
 .hero-sub {
@@ -193,11 +193,11 @@
 
 .form-title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 900;
+  font-size: var(--tm-text-page-title);
+  font-weight: 700;
   color: var(--tm-text);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
 }
 
 /* ── Field layout ─────────────────────────────────────── */
@@ -337,66 +337,9 @@
   flex-shrink: 0;
 }
 
-.spinner--dark {
-  border-color: var(--tm-border);
-  border-top-color: var(--tm-text);
-}
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-/* ── Divider ────────────────────────────────────────────── */
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--tm-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 0;
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--tm-border);
-}
-
-/* ── Guest button ───────────────────────────────────────── */
-
-.guest-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: var(--tm-radius);
-  border: 1.5px solid var(--tm-border);
-  background: var(--tm-bg);
-  color: var(--tm-text);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.15s;
-
-  &:hover:not(:disabled) {
-    background: var(--tm-surface);
-    border-color: var(--tm-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
   }
 }
 

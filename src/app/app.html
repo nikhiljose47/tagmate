@@ -10,7 +10,7 @@
 <app-nav />
 }
 
-<div class="main-container" [class.with-nav]="showNav()">
+<div class="main-container" [class.with-topbar]="showTopbar()" [class.with-nav]="showNav()">
   <main class="workspace-router" [class.authenticated]="showNav()">
     <router-outlet></router-outlet>
   </main>

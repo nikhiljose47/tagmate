@@ -38,14 +38,14 @@
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  min-height: 44px;
+  min-height: var(--tm-control-h-lg, 44px);
   padding: 10px 16px;
   border: 1px solid var(--tm-border);
-  border-radius: 999px;
+  border-radius: var(--tm-radius-md, 8px);
   background: var(--tm-surface);
   color: var(--tm-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--tm-fw-semibold, 600);
   text-align: left;
   cursor: pointer;
   box-shadow: var(--tm-shadow-sm);
@@ -54,12 +54,19 @@
     box-shadow 0.15s ease;
 
   &:hover:not(:disabled) {
-    border-color: var(--tm-primary);
+    border-color: var(--tm-border-strong);
+    background: var(--tm-surface-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--tm-border-focus);
+    box-shadow: var(--tm-focus-ring);
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: var(--tm-disabled-opacity, 0.45);
   }
 }
 
@@ -100,9 +107,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 6px;
-  border: 1px solid var(--tm-primary);
-  border-radius: 16px;
-  background: var(--tm-surface);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--tm-radius-lg, 12px);
+  background: var(--tm-surface-raised);
   box-shadow: var(--tm-shadow-lg);
   animation: tm-dropdown-pop 0.12s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -115,31 +122,36 @@
 .tm-dropdown-option {
   display: block;
   width: 100%;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--tm-radius-sm, 6px);
   background: transparent;
   color: var(--tm-text);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--tm-fw-medium, 500);
   text-align: left;
   cursor: pointer;
   transition: background 0.12s;
 
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--tm-text) 8%, transparent);
+    background: var(--tm-surface-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--tm-focus-ring);
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: var(--tm-disabled-opacity, 0.45);
   }
 }
 
 .tm-dropdown-option--selected {
-  background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
+  background: var(--tm-surface-selected);
   color: var(--tm-primary-text);
-  font-weight: 700;
+  font-weight: var(--tm-fw-semibold, 600);
 }
 
 @keyframes tm-dropdown-pop {

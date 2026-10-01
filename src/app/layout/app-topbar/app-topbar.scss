@@ -20,15 +20,13 @@
   z-index: 9000;
   display: grid;
   grid-template-columns: minmax(176px, auto) auto minmax(320px, 1fr) auto;
-  grid-template-rows: 35px auto;
+  grid-template-rows: var(--tm-topbar-h, 52px) auto;
   align-items: center;
   column-gap: 16px;
-  padding: 6px 18px 0;
-  border-bottom: 1px solid var(--tm-border);
-  background: color-mix(in srgb, var(--tm-surface) 94%, transparent);
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--tm-border-subtle);
+  background: var(--tm-surface);
+  box-shadow: var(--tm-shadow-sm);
 }
 
 /* ── Brand + hood/place chip (left) ───────────────────────── */
@@ -83,24 +81,24 @@
 .topbar-nav-btn {
   display: grid;
   place-items: center;
-  width: 35px;
-  height: 35px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--tm-radius-md);
   color: var(--tm-muted);
   text-decoration: none;
-  font-size: 17px;
+  font-size: 18px;
   transition:
     background 0.15s,
     color 0.15s;
 
   &:hover {
-    background: var(--tm-bg);
+    background: var(--tm-surface-hover);
     color: var(--tm-text);
   }
 
   &.active {
     color: var(--tm-primary-text);
-    background: color-mix(in srgb, var(--tm-primary) 10%, transparent);
+    background: var(--tm-primary-subtle);
   }
 }
 
@@ -134,7 +132,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
-  min-height: 32px;
+  min-height: 35px;
   padding: 0 7px;
   border: 1px solid color-mix(in srgb, #dc2626 35%, transparent);
   border-radius: 8px;
@@ -195,7 +193,7 @@
   background: #dc2626;
   color: #fff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
   box-shadow: 0 0 0 2px var(--tm-surface);
   animation: hotNowBadgePulse 1.6s ease-in-out infinite;
@@ -606,12 +604,12 @@
 
 .hood-modal-cancel,
 .hood-modal-submit {
-  min-height: 34px;
-  border-radius: 8px;
+  height: var(--tm-control-h-md, 38px);
+  border-radius: var(--tm-radius-md, 8px);
   padding: 0 16px;
   font: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--tm-fw-semibold, 600);
   cursor: pointer;
 }
 
@@ -649,16 +647,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 30px;
+  height: 38px;
   border: 1px solid var(--tm-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--tm-bg) 78%, var(--tm-surface));
-  padding: 0 11px;
+  border-radius: var(--tm-radius-md);
+  background: var(--tm-surface-secondary);
+  padding: 0 12px;
   color: var(--tm-muted);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .hood-search.active {
-  border-color: color-mix(in srgb, var(--tm-primary) 50%, var(--tm-border));
+  border-color: var(--tm-border-focus);
+  box-shadow: var(--tm-focus-ring);
 }
 
 .hood-search-icon {
@@ -1090,36 +1090,37 @@
   i {
     font-size: 16px;
   }
+
+  @media (max-width: 480px) {
+    padding: 5px 10px;
+    font-size: 12px;
+    gap: 4px;
+
+    i {
+      font-size: 14px;
+    }
+  }
 }
 
 .topbar-icon-btn {
   position: relative;
   display: grid;
   place-items: center;
-  width: 33px;
-  height: 33px;
+  width: 38px;
+  height: 38px;
   border: 0;
-  border-radius: 50%;
-  background: var(--tm-bg);
-  color: var(--tm-text);
+  border-radius: var(--tm-radius-md);
+  background: transparent;
+  color: var(--tm-muted);
   text-decoration: none;
-  font-size: 15px;
+  font-size: 17px;
   cursor: pointer;
-  transition: background 0.15s;
-
-  /* Keeps the visible circle compact but extends the actual tap target
-     toward the 44x44 minimum — nothing here clips overflow, so this works
-     (unlike the thumbnail remove buttons, which sit inside an
-     overflow:hidden tile and can't use this trick). */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-  }
+  transition: background 0.15s, color 0.15s;
 }
 
 .topbar-icon-btn:hover {
-  background: color-mix(in srgb, var(--tm-text) 10%, var(--tm-bg));
+  background: var(--tm-surface-hover);
+  color: var(--tm-text);
 }
 
 /* Notifications now live in the mobile bottom nav — hide the topbar duplicate there. */
@@ -1142,7 +1143,7 @@
   background: var(--tm-danger);
   color: #fff;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -1174,18 +1175,20 @@
 .user-avatar {
   display: grid;
   place-items: center;
-  width: 31px;
-  height: 31px;
+  width: var(--tm-avatar-sm, 28px);
+  height: var(--tm-avatar-sm, 28px);
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--tm-primary), var(--tm-primary-hover));
+  background: var(--tm-primary);
   color: #fff;
-  font-size: 12px;
-  font-weight: 850;
+  font-size: 11px;
+  font-weight: var(--tm-fw-semibold);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .user-avatar--lg {
-  width: 36px;
-  height: 36px;
+  width: var(--tm-avatar-md, 36px);
+  height: var(--tm-avatar-md, 36px);
   font-size: 13px;
 }
 
@@ -1365,10 +1368,10 @@
 @media (max-width: 760px) {
   .app-topbar {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: 30px auto;
+    grid-template-rows: 48px auto;
     grid-template-areas: 'left center actions';
     column-gap: 8px;
-    padding: 6px 10px 0;
+    padding: 0 12px;
   }
 
   /* Row 1 uses named areas here (3 columns instead of 4, since .topbar-nav
@@ -1430,11 +1433,13 @@
   }
 
   .available-category-trigger {
-    flex: 0 0 27px;
-    width: 27px;
-    min-height: 24px;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    min-height: unset;
     padding: 0;
     justify-content: center;
+    border-radius: var(--tm-radius-sm, 6px);
 
     span,
     .available-category-caret {
@@ -1461,9 +1466,9 @@
   }
 
   .topbar-icon-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 14px;
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
   }
 
   .user-avatar {

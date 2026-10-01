@@ -14,13 +14,13 @@
 }
 
 /* Topbar is fixed (out-of-flow) — push content below it with padding-top */
-.main-container.with-nav {
-  padding-top: 42px;
-  min-height: calc(100dvh - 42px);
+.main-container.with-topbar {
+  padding-top: var(--tm-topbar-h, 52px);
+  min-height: calc(100dvh - var(--tm-topbar-h, 52px));
 }
 
 .workspace-router.authenticated {
-  min-height: calc(100dvh - 42px);
+  min-height: calc(100dvh - var(--tm-topbar-h, 52px));
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -131,22 +131,22 @@
 }
 
 @media (max-width: 760px) {
-  .main-container.with-nav {
-    padding-top: 37px;
+  .main-container.with-topbar {
+    padding-top: 48px;
   }
 
   .workspace-router.authenticated {
-    min-height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 48px - 64px - env(safe-area-inset-bottom));
   }
 }
 
 @media (min-width: 761px) and (max-width: 1023px) {
-  .main-container.with-nav {
-    padding-top: 42px;
+  .main-container.with-topbar {
+    padding-top: var(--tm-topbar-h, 52px);
   }
 
   .workspace-router.authenticated {
-    min-height: calc(100dvh - 42px);
+    min-height: calc(100dvh - var(--tm-topbar-h, 52px));
   }
 }
 
@@ -155,7 +155,7 @@
 ───────────────────────────────────────────────────────────── */
 .app-toast {
   position: fixed;
-  top: calc(42px + 12px);
+  top: calc(var(--tm-topbar-h, 52px) + 12px);
   right: 18px;
   z-index: 10000;
   display: grid;

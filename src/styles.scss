@@ -156,57 +156,206 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand */
   --color-tm-primary: var(--tm-primary);
   --color-tm-primary-hover: var(--tm-primary-hover);
+  --color-tm-primary-active: var(--tm-primary-active);
   --color-tm-primary-text: var(--tm-primary-text);
+  --color-tm-primary-subtle: var(--tm-primary-subtle);
+
+  /* Semantic */
   --color-tm-success: var(--tm-success);
+  --color-tm-success-subtle: var(--tm-success-subtle);
   --color-tm-warning: var(--tm-warning);
+  --color-tm-warning-subtle: var(--tm-warning-subtle);
   --color-tm-danger: var(--tm-danger);
+  --color-tm-danger-subtle: var(--tm-danger-subtle);
+  --color-tm-info: var(--tm-info);
+  --color-tm-info-subtle: var(--tm-info-subtle);
+
+  /* Surface hierarchy */
   --color-tm-bg: var(--tm-bg);
   --color-tm-surface: var(--tm-surface);
+  --color-tm-surface-secondary: var(--tm-surface-secondary);
+  --color-tm-surface-raised: var(--tm-surface-raised);
+  --color-tm-surface-overlay: var(--tm-surface-overlay);
+  --color-tm-surface-hover: var(--tm-surface-hover);
+  --color-tm-surface-active: var(--tm-surface-active);
+  --color-tm-surface-selected: var(--tm-surface-selected);
+
+  /* Text */
   --color-tm-text: var(--tm-text);
-  --color-tm-muted: var(--tm-text-secondary);
+  --color-tm-text-secondary: var(--tm-text-secondary);
+  --color-tm-muted: var(--tm-muted);
+  --color-tm-text-disabled: var(--tm-text-disabled);
+  --color-tm-text-inverse: var(--tm-text-inverse);
+  --color-tm-text-link: var(--tm-text-link);
+
+  /* Borders */
+  --color-tm-border-subtle: var(--tm-border-subtle);
+  --color-tm-border: var(--tm-border);
+  --color-tm-border-strong: var(--tm-border-strong);
+  --color-tm-border-focus: var(--tm-border-focus);
+
+  /* Radius */
   --radius-tm: var(--tm-radius);
+  --radius-tm-xs: var(--tm-radius-xs);
+  --radius-tm-sm: var(--tm-radius-sm);
+  --radius-tm-md: var(--tm-radius-md);
+  --radius-tm-lg: var(--tm-radius-lg);
+  --radius-tm-xl: var(--tm-radius-xl);
+  --radius-tm-full: var(--tm-radius-full);
+
+  /* Shadows */
   --shadow-tm-sm: var(--tm-shadow-sm);
   --shadow-tm-md: var(--tm-shadow-md);
   --shadow-tm-lg: var(--tm-shadow-lg);
+  --shadow-tm-xl: var(--tm-shadow-xl);
 }
 
 :root {
+  /* ── Brand ─────────────────────────────────────────────────── */
   --tm-primary: #6366f1;
   --tm-primary-hover: #4f46e5;
+  --tm-primary-active: #4338ca;
   --tm-primary-text: #4f46e5;
+  --tm-primary-subtle: color-mix(in srgb, #6366f1 10%, transparent);
+
+  /* ── Semantic colors ────────────────────────────────────────── */
   --tm-success: #16a34a;
-  --tm-warning: #f59e0b;
+  --tm-success-subtle: color-mix(in srgb, #16a34a 10%, transparent);
+  --tm-warning: #d97706;
+  --tm-warning-subtle: color-mix(in srgb, #d97706 10%, transparent);
   --tm-danger: #dc2626;
-  --tm-bg: #f8fafc;
+  --tm-danger-subtle: color-mix(in srgb, #dc2626 10%, transparent);
+  --tm-info: #0284c7;
+  --tm-info-subtle: color-mix(in srgb, #0284c7 10%, transparent);
+
+  /* ── Surface hierarchy ──────────────────────────────────────── */
+  --tm-bg: #f1f5f9;
   --tm-surface: #ffffff;
+  --tm-surface-secondary: #f8fafc;
+  --tm-surface-raised: #ffffff;
+  --tm-surface-overlay: #ffffff;
+  --tm-surface-hover: color-mix(in srgb, #0f172a 4%, transparent);
+  --tm-surface-active: color-mix(in srgb, #6366f1 8%, transparent);
+  --tm-surface-selected: color-mix(in srgb, #6366f1 10%, transparent);
+
+  /* ── Text ───────────────────────────────────────────────────── */
   --tm-text: #0f172a;
-  --tm-text-secondary: #64748b;
+  --tm-text-secondary: #475569;
   --tm-muted: #64748b;
+  --tm-text-disabled: #94a3b8;
+  --tm-text-inverse: #ffffff;
+  --tm-text-link: #4f46e5;
+
+  /* ── Borders ────────────────────────────────────────────────── */
+  --tm-border-subtle: #e8edf3;
   --tm-border: #e2e8f0;
-  --tm-glass-bg: rgba(255, 255, 255, 0.88);
+  --tm-border-strong: #cbd5e1;
+  --tm-border-focus: #6366f1;
+
+  /* ── Legacy glass (used by tm-panel, tm-glass) ──────────────── */
+  --tm-glass-bg: rgba(255, 255, 255, 0.92);
   --tm-glass-border: rgba(255, 255, 255, 0.64);
-  --tm-radius: 12px;
-  --tm-shadow-sm: 0 4px 15px rgba(15, 23, 42, 0.08);
-  --tm-shadow-md: 0 8px 25px rgba(15, 23, 42, 0.12);
-  --tm-shadow-lg: 0 14px 36px rgba(15, 23, 42, 0.16);
+
+  /* ── Interaction ────────────────────────────────────────────── */
+  --tm-focus-ring: 0 0 0 3px color-mix(in srgb, #6366f1 22%, transparent);
+  --tm-overlay-backdrop: rgba(15, 23, 42, 0.42);
+  --tm-disabled-opacity: 0.45;
+
+  /* ── Elevation / shadow ─────────────────────────────────────── */
+  --tm-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --tm-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --tm-shadow-lg: 0 10px 28px rgba(15, 23, 42, 0.12), 0 4px 8px rgba(15, 23, 42, 0.06);
+  --tm-shadow-xl: 0 20px 48px rgba(15, 23, 42, 0.16), 0 8px 16px rgba(15, 23, 42, 0.08);
+
+  /* ── Spacing scale ──────────────────────────────────────────── */
+  --tm-space-1: 4px;
+  --tm-space-2: 8px;
+  --tm-space-3: 12px;
+  --tm-space-4: 16px;
+  --tm-space-5: 20px;
+  --tm-space-6: 24px;
+  --tm-space-8: 32px;
+  --tm-space-10: 40px;
+  --tm-space-12: 48px;
+  --tm-space-16: 64px;
+
+  /* ── Type scale ─────────────────────────────────────────────── */
+  --tm-text-display: 32px;
+  --tm-text-page-title: 24px;
+  --tm-text-section: 18px;
+  --tm-text-card-heading: 15px;
+  --tm-text-body: 14px;
+  --tm-text-support: 13px;
+  --tm-text-meta: 12px;
+  --tm-text-utility: 11px;
+
+  /* ── Font weights ───────────────────────────────────────────── */
+  --tm-fw-normal: 400;
+  --tm-fw-medium: 500;
+  --tm-fw-semibold: 600;
+  --tm-fw-bold: 700;
+
+  /* ── Radius system ──────────────────────────────────────────── */
+  --tm-radius-xs: 4px;
+  --tm-radius-sm: 6px;
+  --tm-radius-md: 8px;
+  --tm-radius-lg: 12px;
+  --tm-radius-xl: 16px;
+  --tm-radius-full: 999px;
+  --tm-radius: 8px;
+
+  /* ── Control heights ────────────────────────────────────────── */
+  --tm-control-h-sm: 32px;
+  --tm-control-h-md: 38px;
+  --tm-control-h-lg: 44px;
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  --tm-topbar-h: 52px;
+  --tm-feed-width: 680px;
+  --tm-content-width: 860px;
+  --tm-page-gutter: 16px;
+
+  /* ── Icon sizes ─────────────────────────────────────────────── */
+  --tm-icon-sm: 14px;
+  --tm-icon-md: 16px;
+  --tm-icon-lg: 20px;
+
+  /* ── Avatar sizes ───────────────────────────────────────────── */
+  --tm-avatar-sm: 28px;
+  --tm-avatar-md: 36px;
+  --tm-avatar-lg: 44px;
 }
 
 .dark {
   color-scheme: dark;
   --tm-bg: #0f172a;
   --tm-surface: #1e293b;
-  --tm-text: #f8fafc;
+  --tm-surface-secondary: #162032;
+  --tm-surface-raised: #243048;
+  --tm-surface-overlay: #1e293b;
+  --tm-surface-hover: color-mix(in srgb, #f8fafc 5%, transparent);
+  --tm-surface-active: color-mix(in srgb, #6366f1 12%, transparent);
+  --tm-surface-selected: color-mix(in srgb, #6366f1 14%, transparent);
+  --tm-text: #f1f5f9;
   --tm-text-secondary: #94a3b8;
-  --tm-muted: #94a3b8;
+  --tm-muted: #64748b;
+  --tm-text-disabled: #475569;
   --tm-primary-text: #818cf8;
-  --tm-border: #334155;
-  --tm-glass-bg: rgba(30, 41, 59, 0.88);
-  --tm-glass-border: rgba(255, 255, 255, 0.1);
-  --tm-shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.4);
-  --tm-shadow-md: 0 8px 25px rgba(0, 0, 0, 0.5);
-  --tm-shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.6);
+  --tm-primary-subtle: color-mix(in srgb, #818cf8 12%, transparent);
+  --tm-border-subtle: #1e2d42;
+  --tm-border: #2d3e55;
+  --tm-border-strong: #3d526e;
+  --tm-glass-bg: rgba(30, 41, 59, 0.92);
+  --tm-glass-border: rgba(255, 255, 255, 0.08);
+  --tm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --tm-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --tm-shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --tm-shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4);
+  --tm-overlay-backdrop: rgba(0, 0, 0, 0.6);
 }
 
 .midnight {
@@ -351,6 +500,27 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Global interaction states ──────────────────────────────────
+   Consistent focus ring across all interactive elements.
+   Components can narrow this with :focus-visible overrides.
+───────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--tm-border-focus, #6366f1);
+  outline-offset: 2px;
+}
+
+/* Disable the default outline — we handle focus-visible ourselves */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Pressed state for buttons / links */
+button:active:not(:disabled),
+a:active {
+  opacity: 0.85;
+}
+
 body,
 button,
 input,
@@ -379,21 +549,24 @@ textarea {
 }
 
 @keyframes skeleton-pulse {
-  0% {
-    background-color: rgba(200, 200, 200, 0.4);
+  0%, 100% {
+    background-color: color-mix(in srgb, var(--tm-muted) 18%, transparent);
   }
   50% {
-    background-color: rgba(200, 200, 200, 0.1);
-  }
-  100% {
-    background-color: rgba(200, 200, 200, 0.4);
+    background-color: color-mix(in srgb, var(--tm-muted) 8%, transparent);
   }
 }
 
 .skeleton-box {
-  background-color: var(--tm-border);
-  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--tm-muted) 14%, transparent);
+  border-radius: var(--tm-radius-xs, 4px);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-box {
+    animation: none;
+  }
 }
 
 .tm-glass {
@@ -412,40 +585,63 @@ textarea {
   }
 
   .tm-btn {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-tm border border-[var(--tm-border)] bg-tm-surface px-3 py-2 text-sm font-semibold leading-tight text-tm-text shadow-sm transition;
+    @apply inline-flex items-center justify-center gap-2 rounded-tm border border-[var(--tm-border)] bg-tm-surface px-3 py-2 text-sm font-semibold leading-tight text-tm-text shadow-sm transition;
+    min-height: var(--tm-control-h-md, 38px);
   }
 
-  .tm-btn:hover {
-    @apply border-indigo-200 bg-indigo-50/10 text-tm-primary;
+  .tm-btn:hover:not(:disabled) {
+    border-color: var(--tm-border-strong);
+    background: var(--tm-surface-hover);
+    color: var(--tm-primary-text);
+  }
+
+  .tm-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--tm-focus-ring);
   }
 
   .tm-btn:disabled,
   .tm-icon-btn:disabled {
-    @apply cursor-not-allowed opacity-50;
+    cursor: not-allowed;
+    opacity: var(--tm-disabled-opacity, 0.45);
   }
 
   .tm-btn-primary {
     @apply border-tm-primary bg-tm-primary text-white;
   }
 
-  .tm-btn-primary:hover {
-    @apply border-tm-primary-hover bg-tm-primary-hover text-white;
+  .tm-btn-primary:hover:not(:disabled) {
+    border-color: var(--tm-primary-hover);
+    background: var(--tm-primary-hover);
+    color: #fff;
   }
 
   .tm-btn-danger {
-    @apply border-red-200 bg-tm-surface text-tm-danger;
+    border-color: var(--tm-danger);
+    background: var(--tm-surface);
+    color: var(--tm-danger);
   }
 
-  .tm-btn-danger:hover {
-    @apply border-red-200 bg-red-50/10 text-tm-danger;
+  .tm-btn-danger:hover:not(:disabled) {
+    background: var(--tm-danger-subtle);
   }
 
   .tm-icon-btn {
-    @apply inline-grid size-10 place-items-center rounded-full border border-[var(--tm-border)] bg-tm-surface text-tm-muted shadow-sm transition;
+    @apply inline-grid place-items-center border border-[var(--tm-border)] bg-tm-surface text-tm-muted shadow-sm transition;
+    width: var(--tm-control-h-md, 38px);
+    height: var(--tm-control-h-md, 38px);
+    border-radius: var(--tm-radius-md, 8px);
   }
 
-  .tm-icon-btn:hover {
-    @apply border-indigo-200 bg-indigo-50/10 text-tm-primary;
+  .tm-icon-btn:hover:not(:disabled) {
+    border-color: var(--tm-border-strong);
+    background: var(--tm-surface-hover);
+    color: var(--tm-primary-text);
+  }
+
+  .tm-icon-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--tm-focus-ring);
   }
 
   .tm-input,
