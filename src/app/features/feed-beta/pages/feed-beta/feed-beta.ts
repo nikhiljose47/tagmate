@@ -322,7 +322,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     const key = scope
       ? `${scope.areaId}:${scope.category}:${this.workspace.availableMode()}:${this.workspace.availableCategory() ?? ''}`
       : '';
-    if (!key) return;
+    if (!key || typeof requestAnimationFrame === 'undefined') return;
 
     requestAnimationFrame(() => {
       this.scroller?.nativeElement.scrollTo({ top: 0, behavior: 'auto' });
@@ -522,7 +522,9 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.locationDrawerTrigger =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.mapSlide.set(slide);
-    requestAnimationFrame(() => void this.renderDrawerMap(slide));
+    if (typeof requestAnimationFrame !== 'undefined') {
+      requestAnimationFrame(() => void this.renderDrawerMap(slide));
+    }
   }
 
   protected hasCoordinates(post: Tag): boolean {
@@ -764,6 +766,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
 
   private queueActiveSlideUpdate(): void {
     if (this.activeRafPending) return;
+    if (typeof requestAnimationFrame === 'undefined') return;
     this.activeRafPending = true;
     requestAnimationFrame(() => {
       this.activeRafPending = false;
