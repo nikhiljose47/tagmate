@@ -1,4 +1,6 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, Observable, of, from } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { toObservable } from '@angular/core/rxjs-interop';
@@ -11,6 +13,19 @@ import { SupabaseService } from './supabase.service';
 import { toAppError } from '../models/app-error.model';
 import { setUserPreference } from '../../store/user-preferences/user-preference.actions';
 import { isEmailAddress, isValidUsername, normalizeUsername } from '../utils/auth-identifier.utils';
+import {
+  deviceStorageKey,
+  readLocalStorage,
+  removeLocalStorage,
+} from '../utils/local-storage.util';
+
+/** Shape of the Cloudflare edge-geo response from /api/geo/location. */
+interface IpGeoResponse {
+  state: string | null;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+}
 
 export interface HomeHoodInput {
   state: string;
@@ -25,8 +40,18 @@ export interface HomeHoodInput {
 export class UserSessionService {
   private supabase = inject(SupabaseService);
   private store = inject(Store);
+  private http = inject(HttpClient);
+  private platformId = inject(PLATFORM_ID);
 
   user = signal<AppUser | null>(null);
+
+  /**
+   * True when a guest has no home hood on file and silent IP-based detection
+   * (see `autoDetectHoodIfNeeded`) couldn't resolve one either — e.g. running
+   * outside Cloudflare's network, where `request.cf` isn't populated. The
+   * topbar shows a minimal one-field prompt while this is true.
+   */
+  readonly needsLocationPrompt = signal(false);
 
   // Backward compatibility user$ observable for legacy components
   readonly user$: Observable<UserModel> = toObservable(this.user).pipe(
@@ -168,8 +193,66 @@ export class UserSessionService {
         this.user.set(appUser);
         if (appUser?.hood) {
           this.store.dispatch(setUserPreference({ pref: { hood: appUser.hood } }));
+        } else if (!appUser) {
+          void this.autoDetectHoodIfNeeded();
         }
       });
+  }
+
+  /**
+   * Silently fills in a guest's home state from Cloudflare's edge geo-IP data
+   * — no permission dialog, no precise location, just the state — so the
+   * feed doesn't default to whichever placeholder happens to be cached (or
+   * the Hood model's hardcoded Bangalore default). Only runs when nothing is
+   * cached yet; a previously detected/picked/logged-in hood is left alone.
+   */
+  private async autoDetectHoodIfNeeded(): Promise<void> {
+    // SSR has no real "guest browsing session" to personalize, there's no
+    // Cloudflare edge-geo data behind the SSR dev server's own HTTP client,
+    // and a hydrating client repeats this anyway — so skip it server-side.
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (readLocalStorage<Partial<Hood> | null>(deviceStorageKey('hood'), null)) return;
+
+    const geo = await firstValueFrom(
+      this.http.get<IpGeoResponse>('/api/geo/location').pipe(catchError(() => of(null))),
+    );
+
+    if (geo?.state) {
+      this.store.dispatch(
+        setUserPreference({
+          pref: {
+            hood: new Hood({
+              state: geo.state,
+              country: geo.country || 'India',
+              district: '',
+              place: '',
+              name: geo.state,
+              coords: { lat: geo.lat ?? 0, lng: geo.lng ?? 0 },
+            }),
+          },
+        }),
+      );
+      return;
+    }
+
+    // Edge geo data isn't available (e.g. local dev) — ask the user once
+    // instead of silently defaulting to a hardcoded placeholder city.
+    this.needsLocationPrompt.set(true);
+  }
+
+  /** Applies the state the guest picked from the minimal location prompt. */
+  setGuestHoodState(state: string): void {
+    this.needsLocationPrompt.set(false);
+    this.store.dispatch(
+      setUserPreference({
+        pref: { hood: new Hood({ state, country: 'India', district: '', place: '', name: state }) },
+      }),
+    );
+  }
+
+  /** Dismisses the minimal location prompt without setting a hood. */
+  dismissLocationPrompt(): void {
+    this.needsLocationPrompt.set(false);
   }
 
   /**
@@ -424,6 +507,13 @@ export class UserSessionService {
 
   logout() {
     this.user.set(null);
+    // The cached home hood belongs to the account that just signed out —
+    // leaving it in place would show their location to the next guest (or
+    // the next account) to use this browser. Clearing it and re-running
+    // detection (rather than dispatching a hardcoded placeholder) lets the
+    // guest who follows land on their own state instead.
+    removeLocalStorage(deviceStorageKey('hood'));
+    void this.autoDetectHoodIfNeeded();
     return firstValueFrom(this.supabase.signOut());
   }
 

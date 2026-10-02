@@ -130,6 +130,139 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Minimal location prompt — guest fallback when IP geo can't
+   resolve a state (e.g. local dev, outside Cloudflare's edge)
+───────────────────────────────────────────────────────────── */
+.hood-prompt {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 10002;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto 28px;
+  align-items: center;
+  gap: 10px;
+  width: min(480px, calc(100vw - 24px));
+  min-height: 58px;
+  border: 1px solid var(--tm-border, rgba(15, 23, 42, 0.1));
+  border-radius: 8px;
+  background: var(--tm-surface, #ffffff);
+  padding: 10px 10px 10px 12px;
+  color: var(--tm-text, #111827);
+  box-shadow: var(--tm-shadow-lg, 0 16px 34px rgba(15, 23, 42, 0.16));
+  animation: updateNoticeIn 0.22s ease-out;
+}
+
+.hood-prompt-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tm-primary) 12%, transparent);
+  color: var(--tm-primary-text);
+  font-size: 15px;
+}
+
+.hood-prompt-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.hood-prompt-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hood-prompt-copy span {
+  color: var(--tm-text-muted, #64748b);
+}
+
+.hood-prompt-select {
+  min-height: 34px;
+  border: 1px solid var(--tm-border);
+  border-radius: 7px;
+  background: var(--tm-bg);
+  padding: 0 8px;
+  color: var(--tm-text);
+  font-size: 12px;
+  max-width: 130px;
+}
+
+.hood-prompt-action {
+  min-height: 34px;
+  border: 1px solid var(--tm-primary);
+  border-radius: 7px;
+  background: var(--tm-primary);
+  padding: 6px 13px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hood-prompt-action:hover:not(:disabled) {
+  background: var(--tm-primary-hover);
+}
+
+.hood-prompt-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.hood-prompt-dismiss {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--tm-text, #111827);
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.hood-prompt-dismiss:hover {
+  background: rgba(125, 125, 125, 0.12);
+  opacity: 1;
+}
+
+.hood-prompt-action:focus-visible,
+.hood-prompt-dismiss:focus-visible {
+  outline: 2px solid var(--tm-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .hood-prompt {
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    grid-template-columns: 30px minmax(0, 1fr) auto 26px;
+    gap: 8px;
+    width: auto;
+    min-height: 54px;
+    padding: 8px;
+  }
+
+  .hood-prompt.with-nav {
+    bottom: calc(64px + env(safe-area-inset-bottom) + 10px);
+  }
+
+  .hood-prompt-copy span {
+    display: none;
+  }
+
+  .hood-prompt-select {
+    max-width: 92px;
+  }
+}
+
 @media (max-width: 760px) {
   .main-container.with-topbar {
     padding-top: 48px;

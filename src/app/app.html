@@ -48,6 +48,48 @@
     <i class="bi bi-x-lg" aria-hidden="true"></i>
   </button>
 </aside>
+} @if (session.needsLocationPrompt()) {
+<aside
+  class="hood-prompt"
+  [class.with-nav]="showNav()"
+  role="status"
+  aria-label="Choose your state to personalize the feed"
+>
+  <span class="hood-prompt-icon" aria-hidden="true">
+    <i class="bi bi-geo-alt-fill"></i>
+  </span>
+  <span class="hood-prompt-copy">
+    <strong>Which state are you in?</strong>
+    <span>We couldn't detect it automatically — pick one to see local posts.</span>
+  </span>
+  <select
+    class="hood-prompt-select"
+    aria-label="Select your state"
+    [value]="locationPromptValue()"
+    (change)="locationPromptValue.set($any($event.target).value)"
+  >
+    <option value="" disabled selected>Select state</option>
+    @for (state of indianStates; track state) {
+    <option [value]="state">{{ state }}</option>
+    }
+  </select>
+  <button
+    type="button"
+    class="hood-prompt-action"
+    [disabled]="!locationPromptValue()"
+    (click)="submitLocationPrompt()"
+  >
+    Set
+  </button>
+  <button
+    type="button"
+    class="hood-prompt-dismiss"
+    aria-label="Dismiss"
+    (click)="session.dismissLocationPrompt()"
+  >
+    <i class="bi bi-x-lg" aria-hidden="true"></i>
+  </button>
+</aside>
 } @if (toast.message(); as message) {
 <div class="app-toast" role="status" aria-live="polite">
   <span class="app-toast-icon" aria-hidden="true">

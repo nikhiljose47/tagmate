@@ -51,7 +51,48 @@ export class App {
   private readonly preload = inject(PreloadService);
   private readonly router = inject(Router);
   private readonly telemetry = inject(TelemetryService);
-  private readonly session = inject(UserSessionService);
+  protected readonly session = inject(UserSessionService);
+
+  /** Minimal state picker shown only when IP-based hood detection fails. */
+  protected readonly indianStates = [
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal',
+    'Delhi',
+  ];
+  protected readonly locationPromptValue = signal('');
+
+  protected submitLocationPrompt(): void {
+    const state = this.locationPromptValue();
+    if (!state) return;
+    this.session.setGuestHoodState(state);
+    this.locationPromptValue.set('');
+  }
 
   private readonly isLoggedIn = computed(() => {
     const u = this.session.user();

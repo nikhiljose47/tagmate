@@ -25,15 +25,21 @@ export const userPrefReducer = createReducer(
   on(setUserPreference, (state, { pref }) => ({ ...state, ...pref })),
 );
 
-/** Meta-reducer: writes hood to localStorage whenever it changes. */
+/**
+ * Meta-reducer: writes hood to localStorage whenever a `setUserPreference`
+ * actually changes it. Keying off the action type (rather than comparing
+ * before/after hood references) matters here: NgRx's own init action also
+ * produces a "new" hood reference the first time the reducer runs — keying
+ * off reference identity would persist the hardcoded placeholder default to
+ * localStorage on every app boot, before anything had a chance to detect or
+ * ask for the user's real location.
+ */
 export function hoodPersistMetaReducer(reducer: ActionReducer<AppState>): ActionReducer<AppState> {
   return (state, action) => {
     const next = reducer(state, action);
-    const prevHood = state?.userPref?.hood;
+    if (action.type !== setUserPreference.type) return next;
     const nextHood = next?.userPref?.hood;
-    if (nextHood && nextHood !== prevHood) {
-      writeLocalStorage(HOOD_KEY, nextHood);
-    }
+    if (nextHood) writeLocalStorage(HOOD_KEY, nextHood);
     return next;
   };
 }
