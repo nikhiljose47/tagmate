@@ -1,5 +1,48 @@
-<?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg width="800px" height="800px" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M15 1H1V7H3.38197L4.88196 4L7.11803 4L10 9.76393L11.382 7H15V1Z" fill="#000000"/>
-<path d="M15 9H12.618L11.118 12L8.88197 12L6 6.23607L4.61803 9H1V15H15V9Z" fill="#000000"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="1024" height="1024">
+  <defs>
+    <linearGradient id="tbBlue" x1="36" y1="28" x2="220" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#27C2FF"/>
+      <stop offset="48%" stop-color="#1688FF"/>
+      <stop offset="100%" stop-color="#1747E8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent background -->
+
+  <!-- lowercase t -->
+  <path
+    d="M88 34 V132
+       C88 149 98 158 114 158
+       H119"
+    fill="none"
+    stroke="url(#tbBlue)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <path
+    d="M53 72 H116"
+    fill="none"
+    stroke="url(#tbBlue)"
+    stroke-width="26"
+    stroke-linecap="round"/>
+
+  <!-- lowercase b -->
+  <path
+    d="M154 34 V156"
+    fill="none"
+    stroke="url(#tbBlue)"
+    stroke-width="26"
+    stroke-linecap="round"/>
+
+  <path
+    d="M154 91 H181
+       C205 91 219 105 219 124
+       C219 145 204 159 181 159
+       H154"
+    fill="none"
+    stroke="url(#tbBlue)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
 </svg>
