@@ -27,6 +27,11 @@ interface IpGeoResponse {
   lng: number | null;
 }
 
+/** Shape of a Nominatim `reverse` response (only the fields we read). */
+interface NominatimReverseResponse {
+  address?: { state?: string; country?: string };
+}
+
 export interface HomeHoodInput {
   state: string;
   country: string;
@@ -200,11 +205,15 @@ export class UserSessionService {
   }
 
   /**
-   * Silently fills in a guest's home state from Cloudflare's edge geo-IP data
-   * — no permission dialog, no precise location, just the state — so the
-   * feed doesn't default to whichever placeholder happens to be cached (or
-   * the Hood model's hardcoded Bangalore default). Only runs when nothing is
-   * cached yet; a previously detected/picked/logged-in hood is left alone.
+   * Fills in a guest's home state so the feed doesn't default to whichever
+   * placeholder happens to be cached (or the Hood model's hardcoded
+   * Bangalore default). Only runs when nothing is cached yet; a previously
+   * detected/picked/logged-in hood is left alone. Three tiers, each only
+   * tried if the previous one couldn't resolve a state:
+   *   1. Cloudflare's edge geo-IP data — silent, no permission dialog.
+   *   2. The browser's coarse (non-precise) Geolocation API, reverse-geocoded
+   *      to a state — asks for location permission.
+   *   3. A one-field manual prompt (`needsLocationPrompt`) — last resort.
    */
   private async autoDetectHoodIfNeeded(): Promise<void> {
     // SSR has no real "guest browsing session" to personalize, there's no
@@ -213,41 +222,78 @@ export class UserSessionService {
     if (!isPlatformBrowser(this.platformId)) return;
     if (readLocalStorage<Partial<Hood> | null>(deviceStorageKey('hood'), null)) return;
 
-    const geo = await firstValueFrom(
+    const ipGeo = await firstValueFrom(
       this.http.get<IpGeoResponse>('/api/geo/location').pipe(catchError(() => of(null))),
     );
-
-    if (geo?.state) {
-      this.store.dispatch(
-        setUserPreference({
-          pref: {
-            hood: new Hood({
-              state: geo.state,
-              country: geo.country || 'India',
-              district: '',
-              place: '',
-              name: geo.state,
-              coords: { lat: geo.lat ?? 0, lng: geo.lng ?? 0 },
-            }),
-          },
-        }),
-      );
+    if (ipGeo?.state) {
+      this.applyDetectedHood(ipGeo.state, ipGeo.country, ipGeo.lat, ipGeo.lng);
       return;
     }
 
-    // Edge geo data isn't available (e.g. local dev) — ask the user once
-    // instead of silently defaulting to a hardcoded placeholder city.
+    const coords = await this.getCoarseBrowserCoords();
+    if (coords) {
+      const reverse = await firstValueFrom(
+        this.http
+          .get<NominatimReverseResponse>(
+            `/api/nominatim/reverse?lat=${coords.lat}&lon=${coords.lng}`,
+          )
+          .pipe(catchError(() => of(null))),
+      );
+      if (reverse?.address?.state) {
+        this.applyDetectedHood(
+          reverse.address.state,
+          reverse.address.country ?? null,
+          coords.lat,
+          coords.lng,
+        );
+        return;
+      }
+    }
+
+    // Neither silent method resolved a state (geo-IP unavailable, location
+    // permission denied, or reverse-geocoding failed) — ask once instead of
+    // silently defaulting to a hardcoded placeholder city.
     this.needsLocationPrompt.set(true);
+  }
+
+  /** Wraps the browser's low-accuracy Geolocation API in a promise; null on denial/timeout/unsupported. */
+  private getCoarseBrowserCoords(): Promise<{ lat: number; lng: number } | null> {
+    if (!navigator.geolocation) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 },
+      );
+    });
+  }
+
+  private applyDetectedHood(
+    state: string,
+    country: string | null,
+    lat: number | null,
+    lng: number | null,
+  ): void {
+    this.store.dispatch(
+      setUserPreference({
+        pref: {
+          hood: new Hood({
+            state,
+            country: country || 'India',
+            district: '',
+            place: '',
+            name: state,
+            coords: { lat: lat ?? 0, lng: lng ?? 0 },
+          }),
+        },
+      }),
+    );
   }
 
   /** Applies the state the guest picked from the minimal location prompt. */
   setGuestHoodState(state: string): void {
     this.needsLocationPrompt.set(false);
-    this.store.dispatch(
-      setUserPreference({
-        pref: { hood: new Hood({ state, country: 'India', district: '', place: '', name: state }) },
-      }),
-    );
+    this.applyDetectedHood(state, 'India', null, null);
   }
 
   /** Dismisses the minimal location prompt without setting a hood. */

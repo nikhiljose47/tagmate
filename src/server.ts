@@ -74,9 +74,22 @@ function applySecurityHeaders(res: Response, nonce?: string): Response {
   // "Connect" button (functions/api/integrations/whatsapp/*) — see
   // docs/WHATSAPP_INTEGRATION_SETUP.md. No other Meta call happens from the
   // browser; all Graph API requests are server-side.
+  //
+  // The event-dispatch-contract hash below allowlists one specific inline
+  // script: Angular's event-replay bootstrap (`withEventReplay()` in
+  // app.config.ts), which `@angular/build` splices directly into index.html
+  // at BUILD time (see add-event-dispatch-contract.js) — before any
+  // request, and therefore before any per-request nonce exists. A nonce
+  // can never reach it, so CSP's hash-source is the only mechanism that can
+  // allow it. The hash is of `@angular/core/event-dispatch-contract.min.js`'s
+  // exact contents, so it must be recomputed (`sha256sum` or Node's `crypto`)
+  // whenever an Angular upgrade changes that file — a stale hash just makes
+  // this one script fail CSP again (and `window.__jsaction_bootstrap is not
+  // a function` show up in the console), it doesn't affect anything else.
+  const EVENT_DISPATCH_CONTRACT_HASH = "'sha256-VM2mZqyEQZoLzoTrp5EigFvzQ0+f1wSeBuoOn95WHCg='";
   const scriptSrc = nonce
-    ? `'self' 'nonce-${nonce}' https://*.supabase.co https://*.maptiler.com https://connect.facebook.net`
-    : `'self' https://*.supabase.co https://*.maptiler.com https://connect.facebook.net`;
+    ? `'self' 'nonce-${nonce}' ${EVENT_DISPATCH_CONTRACT_HASH} https://*.supabase.co https://*.maptiler.com https://connect.facebook.net`
+    : `'self' ${EVENT_DISPATCH_CONTRACT_HASH} https://*.supabase.co https://*.maptiler.com https://connect.facebook.net`;
 
   const csp = [
     "default-src 'self'",
