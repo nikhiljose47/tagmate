@@ -96,7 +96,7 @@ function applySecurityHeaders(res: Response, nonce?: string): Response {
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
-    "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://*.maptiler.com https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://*.facebook.com https://*.facebook.net",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://*.maptiler.com https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://*.facebook.com https://*.facebook.net https://fonts.googleapis.com https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.supabase.co https://*.maptiler.com https://tiles.openfreemap.org",
     "child-src 'self' blob: https://*.facebook.com",
     "frame-src 'self' https://*.facebook.com",
