@@ -37,4 +37,41 @@ describe('DmInboxComponent', () => {
     const component = fixture.componentInstance;
     expect(component.isLoading()).toBeTrue();
   });
+
+  it('filters threads by post preview and displays post preview on the thread card', () => {
+    const fixture = TestBed.createComponent(DmInboxComponent);
+    const component = fixture.componentInstance;
+    component.isLoading.set(false);
+    component.threads.set([
+      {
+        threadId: 't1',
+        postId: 'p1',
+        otherUid: 'u2',
+        otherName: 'Alice',
+        lastMessage: 'Interested in this item',
+        lastMessageDate: new Date().toISOString(),
+        unread: false,
+        postPreview: 'Vintage Bicycle',
+      },
+      {
+        threadId: 't2',
+        postId: 'p2',
+        otherUid: 'u3',
+        otherName: 'Bob',
+        lastMessage: 'Hey there',
+        lastMessageDate: new Date().toISOString(),
+        unread: false,
+      },
+    ]);
+
+    component.searchText.set('Bicycle');
+    fixture.detectChanges();
+
+    expect(component.filteredThreads().length).toBe(1);
+    expect(component.filteredThreads()[0]?.threadId).toBe('t1');
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const postBadge = compiled.querySelector('.thread-post-ref');
+    expect(postBadge?.textContent).toContain('Vintage Bicycle');
+  });
 });

@@ -59,8 +59,17 @@ export class LoginPage implements OnInit {
     this.unconfirmedEmail.set(false);
     this.resendSent.set(false);
     const em = this.email().trim();
+    const pw = this.password().trim();
+    if (!em && !pw) {
+      this.error.set('Please enter your email address/username and password to log in.');
+      return;
+    }
     if (!em) {
       this.error.set('Please enter your email address or username to log in.');
+      return;
+    }
+    if (!pw) {
+      this.error.set('Please enter your password to log in.');
       return;
     }
     this.loading.set(true);

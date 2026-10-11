@@ -15,7 +15,7 @@ export const DEFAULT_MVP_FLAGS: AppFeatureFlags = {
   enableGroupChatrooms: false,
   enableBulletinBoard: false,
   enableCivicQuests: false,
-  enableExtraThemes: false,
+  enableExtraThemes: true,
   enableAnalytics: false,
   enableHoodIsland: false,
 };

@@ -41,6 +41,12 @@
             <span class="thread-name">{{ thread.otherName }}</span>
             <span class="thread-time">{{ thread.lastMessageDate | timeAgo }}</span>
           </div>
+          @if (thread.postPreview) {
+          <div class="thread-post-ref" [title]="thread.postPreview">
+            <i class="bi bi-pin-angle" aria-hidden="true"></i>
+            <span>{{ thread.postPreview }}</span>
+          </div>
+          }
           <p class="thread-preview">{{ thread.lastMessage }}</p>
         </div>
         @if (thread.unread) {

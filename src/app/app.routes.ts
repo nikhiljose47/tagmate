@@ -41,7 +41,6 @@ export const routes: Routes = [
   },
   {
     path: 'posts/:id',
-    canActivate: [authGuard, businessPhotosGuard],
     loadComponent: () =>
       import('./features/post/pages/post-detail/post-detail').then((m) => m.PostDetailPage),
   },

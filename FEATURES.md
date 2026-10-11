@@ -126,6 +126,20 @@ To prevent channel fragmentation and ensure maximum activity around core locatio
   - **Offer Post "Message" CTA Routing (TM-012)**: Updated `business-post-content.component.ts` and `.html` to route `message` CTAs to `['/messages']` with `queryParams: { user: post.userId, name: post.businessName || post.username }`, directly initiating direct message conversations with the business.
   - **Preserved Custom Post Background with Attachments (TM-013)**: Extended custom `backgroundColor` and `contrastText` bindings to `.fb-caption` in `feed-beta.html` and styled `.fb-caption--custom-bg` in `feed-beta.scss` so selected background colors display accurately when photos/media are attached.
   - **Authentication Layout Verification (TM-014)**: Verified resolution of Forgot Password UI layout in commit `cb2b465` (`.signup-split` design), ensuring uniform centered card structure matching Login and Signup screens.
+- **Bug Report #5 Comprehensive Remediations (Milestone 2 TM-001 to TM-013)**:
+  - **Comment Update Payload Fix (TM-001)**: Omitted nonexistent `updated_at` column from `updateRow` and `softDelete` in `comment.service.ts` to prevent PostgREST `PGRST204` (400 Bad Request) error when saving edited comments.
+  - **Brand Splash Screen Logo Alignment (TM-002)**: Verified splash logo update to Todbook branding in `src/index.html` and secured root-relative paths (`/assets/brand/todbook-logo.svg`, `/assets/brand/todbook_text_logo.svg`) to prevent broken asset loading on deep route direct visits.
+  - **Feed Map Drawer Zoneless Rendering (TM-003)**: Added synchronous `cdr.detectChanges()` call in `openLocation()` and a resilient `waitForDrawerElement()` retry loop in `renderDrawerMap()`, fixing the blank map drawer issue caused by MapLibre initializing before Angular zoneless change detection mounted the `#drawerMap` element.
+  - **Post Author Display Name Synchronization (TM-004)**: Added `updatePostAuthorName(uid, name)` in `RelationshipService` and wired it into `SocialPlatformService.updateOwnProfile()`, updating `tags.username` in the database and updating local post signals in `ProfilePage` so existing posts reflect the user's updated display name immediately.
+  - **Empty Login Validation Clarity (TM-005)**: Added checks in `login.ts` for empty email/username and empty password, presenting a clear prompt (`Please enter your email address/username and password to log in.`) when both fields are empty and prompting for password when email is provided.
+  - **Unified Sign Out Copy Standardization (TM-006)**: Standardized "Logout" button label in `profile.html` to "Sign Out", maintaining consistent terminology across the topbar user menu, profile view, and authentication prompts.
+  - **Post Detail Author Name Caption Spacing (TM-007)**: Added `detail-author` styling with `margin-right: 6px` and spacing classes between the author name anchor and post body in `post-detail.html` and `.scss`, preventing author name and highlight caption concatenation (`AmyPet food shops...`).
+  - **Post Detail Viewport Scrolling Restoration (TM-008)**: Applied viewport height constraints (`height: calc(100dvh - 42px)` desktop, mobile nav offset) and `overflow-y: auto` to `.detail-page` in `post-detail.scss`, matching the profile and inbox layout containers and restoring vertical scrolling to long posts and comment threads.
+  - **Appearance Theme Availability (TM-009)**: Enabled `enableExtraThemes: true` in `feature-flags.service.ts` by default, ensuring all 5 themes (`light`, `dark`, `midnight`, `forest`, `sepia`) specified in `AGENTS.md` can be selected from Profile settings without falling back to dark mode.
+  - **Topbar Location Indicator Modal Activation (TM-010)**: Replaced the transient info toast on the topbar `.hood-indicator` pill with a direct call to `openHoodModal()`, enabling users to click their current neighborhood tag to search and switch locations directly.
+  - **Public Post Preview Route Accessibility (TM-011)**: Removed `authGuard` and `businessPhotosGuard` from `/posts/:id` in `app.routes.ts`, allowing unauthenticated and guest users opening shared links to view post details, photos, and public comments with graceful sign-in prompts for interaction.
+  - **Advertisement Post Filter Resolution (TM-012)**: Added missing `available: 'around'` mapping to `FEED_SCOPE_BY_TAG` in `feed-scope.util.ts` and enhanced `isAvailablePost()` in `available-post-categories.ts` to recognize commercial advertisement posts with price, CTA, business name, and post subtype, ensuring advertisement posts appear when the Available toggle is turned ON and are excluded when turned OFF.
+  - **Direct Message Thread Post Reference Visibility (TM-013)**: Rendered `.thread-post-ref` with pinned post preview titles on conversation cards in `dm-inbox.html` and `.scss`, eliminating user confusion when inbox search matches threads by their associated post context.
 
 ### Production Optimizations & Telemetry
 
@@ -263,3 +277,45 @@ Before deploying changes:
 20. **Offer Post Message CTA (TM-012)**:
     - On an offer or business post in the feed with CTA "Message", click "Message".
     - Confirm the application opens `/messages` with query parameters pointing to the business owner, opening or staging a direct conversation thread.
+21. **Comment Edit Persistence (Milestone 2 TM-001)**:
+    - Log in and view any post detail page with an existing comment authored by your user.
+    - Click Edit on the comment, update the comment body, and save.
+    - Confirm the update completes without a 400 Bad Request error and the updated text persists.
+22. **Brand Splash Screen Asset Integrity (Milestone 2 TM-002)**:
+    - Navigate directly to deep routes (e.g. `/posts/abc`, `/profile`) and perform a hard page reload.
+    - Confirm the splash screen logo renders crisp Todbook brand assets without broken image icons.
+23. **Feed Map Drawer Interactive Map Rendering (Milestone 2 TM-003)**:
+    - On Feed Beta, locate a post slide with geographic coordinates and click "View Map".
+    - Confirm the map drawer slides up and the MapLibre canvas immediately initializes and centers on the marker without remaining blank.
+24. **Profile Display Name Propagation (Milestone 2 TM-004)**:
+    - Update your user display name under Profile > Edit Profile and save.
+    - Confirm your profile post list and community feed posts immediately reflect the new display name.
+25. **Empty Login Form Validation (Milestone 2 TM-005)**:
+    - Open the Login page, leave both email/username and password empty, and click Log In.
+    - Confirm the alert informs the user that both fields are required (`Please enter your email address/username and password to log in.`).
+    - Enter an email without a password; confirm it prompts specifically for the password.
+26. **Unified Sign Out Label Copy (Milestone 2 TM-006)**:
+    - Open Profile view and inspect the authentication action button.
+    - Confirm the button copy displays "Sign Out", matching the topbar dropdown menu copy.
+27. **Post Detail Author Name Caption Spacing (Milestone 2 TM-007)**:
+    - Open any post detail page in the desktop and mobile viewport.
+    - Verify that the author's handle and highlight text are separated by clean whitespace (`Amy Pet food shops...` rather than `AmyPet food shops...`).
+28. **Post Detail Page Scrolling (Milestone 2 TM-008)**:
+    - Open a long post detail page with multiple comments and replies.
+    - Confirm the page scrolls down smoothly to reveal all comments, reactions, and the comment form without clipping or locked scrolling.
+29. **Extended Appearance Theme Switching (Milestone 2 TM-009)**:
+    - Navigate to Profile settings and select `Midnight (OLED Black)`, `Forest`, or `Sepia`.
+    - Confirm the selected theme applies to the entire application shell, cards, and text tokens without reverting to standard dark mode.
+30. **Topbar Location Tag Interactive Selection (Milestone 2 TM-010)**:
+    - Click the neighborhood pill tag in the application topbar.
+    - Confirm the neighborhood selection modal dialog opens directly, allowing area searches and changes.
+31. **Public Post Shared Link Preview (Milestone 2 TM-011)**:
+    - In an unauthenticated incognito browser window, navigate directly to `/posts/<id>`.
+    - Confirm the post detail card, photos, and public comment list render cleanly without forcing an immediate redirect to `/login`.
+32. **Available / Advertisement Feed Toggle (Milestone 2 TM-012)**:
+    - In Feed Beta, flip the "Available" (Ads) toggle ON in the topbar.
+    - Confirm advertisement and commercial posts appear in the feed.
+    - Flip the toggle OFF; confirm regular community posts return and advertisement posts are excluded.
+33. **Direct Message Thread Post Reference Visibility (Milestone 2 TM-013)**:
+    - Open Messages inbox and search for a term matching a linked post title.
+    - Confirm matching thread cards display a pinned post reference badge displaying the post title, explaining why the thread matched.

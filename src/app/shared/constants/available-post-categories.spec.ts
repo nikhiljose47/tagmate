@@ -38,4 +38,11 @@ describe('available post classification', () => {
     expect(isAvailablePost(post)).toBeTrue();
     expect(matchesAvailableCategory(post, TagCategory.Service)).toBeTrue();
   });
+
+  it('recognizes commercial fields as advertisement posts', () => {
+    expect(isAvailablePost({ tag: TagCategory.Help, price: 50 })).toBeTrue();
+    expect(isAvailablePost({ tag: TagCategory.Help, cta: 'call' })).toBeTrue();
+    expect(isAvailablePost({ tag: TagCategory.Help, businessName: 'Local Cleaners' })).toBeTrue();
+    expect(isAvailablePost({ tag: TagCategory.Available })).toBeTrue();
+  });
 });

@@ -28,6 +28,10 @@ export class RelationshipService {
     return this.supabase.updateRowsWhere('users', { uid }, { name, bio });
   }
 
+  updatePostAuthorName(uid: string, name: string) {
+    return this.supabase.updateRowsWhere('tags', { user_id: uid }, { username: name });
+  }
+
   setFollow(
     table: 'user_follows' | 'user_followed_hoods' | 'user_followed_topics',
     row: Record<string, unknown>,

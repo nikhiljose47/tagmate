@@ -21,12 +21,12 @@ describe('AppTopbarComponent', () => {
   it('should list available themes', () => {
     const fixture = TestBed.createComponent(AppTopbarComponent);
     const component = fixture.componentInstance;
-    // In Lean MVP mode, theme list is restricted to Light and Dark
-    expect((component as unknown as { themes: { length: number } }).themes.length).toBe(2);
+    expect((component as unknown as { themes: { length: number } }).themes.length).toBe(5);
   });
 
-  it('renders a compact place code and reveals the full place name on tap', () => {
+  it('renders a compact place code and opens hood modal on tap', () => {
     const fixture = TestBed.createComponent(AppTopbarComponent);
+    const component = fixture.componentInstance as unknown as { hoodModalOpen(): boolean };
     fixture.detectChanges();
 
     const indicator = fixture.nativeElement.querySelector('.hood-indicator') as HTMLButtonElement;
@@ -35,8 +35,7 @@ describe('AppTopbarComponent', () => {
     indicator.click();
     fixture.detectChanges();
 
-    const info = fixture.nativeElement.querySelector('.hood-indicator-info') as HTMLElement;
-    expect(info.textContent).toContain('Karnataka');
+    expect(component.hoodModalOpen()).toBeTrue();
   });
 
   it('switches to available mode and applies a service category', () => {

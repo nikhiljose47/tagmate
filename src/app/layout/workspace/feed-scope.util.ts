@@ -37,6 +37,7 @@ export const FEED_SCOPE_BY_TAG: Readonly<Record<string, FeedBetaMainCategory>> =
   space: 'around',
   travel: 'around',
   event: 'around',
+  available: 'around',
 };
 
 /**

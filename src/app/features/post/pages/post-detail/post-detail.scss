@@ -1,7 +1,18 @@
 .detail-page {
   width: min(100%, 760px);
+  height: calc(100dvh - 42px);
   margin: 0 auto;
-  padding: 16px 12px 20px;
+  padding: 16px 12px 40px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 760px) {
+  .detail-page {
+    height: calc(100dvh - 37px - 64px - env(safe-area-inset-bottom));
+  }
 }
 
 .back-link {
@@ -256,6 +267,17 @@
   margin: 0 0 10px;
   line-height: 1.45;
   overflow-wrap: anywhere;
+
+  .detail-author,
+  a {
+    margin-right: 6px;
+    text-decoration: none;
+    color: inherit;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 /* Author's body text: preserve the line breaks & spacing they typed. */

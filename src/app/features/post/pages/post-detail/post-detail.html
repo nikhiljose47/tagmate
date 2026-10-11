@@ -186,6 +186,7 @@
           [style.color]="post.backgroundColor | contrastText"
         >
           <a
+            class="detail-author font-semibold mr-1.5"
             [routerLink]="
                 post.userId === platform.myUid() ? ['/profile'] : ['/users', post.userId]
               "

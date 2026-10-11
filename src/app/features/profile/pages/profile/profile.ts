@@ -821,6 +821,16 @@ export class ProfilePage implements OnInit {
     }
     this.profileSaving.set(false);
     if (saved) {
+      const newName = this.editName().trim();
+      const currentUid = this.sessionService.user()?.uid;
+      if (currentUid && newName) {
+        this.myTags.update((tags) =>
+          tags.map((t) => (t.userId === currentUid ? { ...t, username: newName } : t)),
+        );
+        this.allTags.update((tags) =>
+          tags.map((t) => (t.userId === currentUid ? { ...t, username: newName } : t)),
+        );
+      }
       this.editMode.set(false);
       this.toast.show('Profile saved.', 'success');
     }

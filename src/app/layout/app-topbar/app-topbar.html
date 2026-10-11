@@ -121,10 +121,10 @@
         <button
           type="button"
           class="hood-indicator"
-          [attr.title]="hoodIndicatorFullLabel()"
-          [attr.aria-label]="'Location: ' + hoodIndicatorFullLabel() + '. Show full place name'"
-          [attr.aria-expanded]="hoodInfoOpen()"
-          (click)="showHoodInfo()"
+          [attr.title]="hoodIndicatorFullLabel() + ' — Click to change location'"
+          [attr.aria-label]="'Location: ' + hoodIndicatorFullLabel() + '. Change neighborhood location'"
+          [attr.aria-expanded]="hoodModalOpen()"
+          (click)="openHoodModal()"
         >
           <i class="bi bi-geo-alt-fill hood-indicator-icon" aria-hidden="true"></i>
           <span class="hood-indicator-label hood-indicator-label--full"
@@ -133,12 +133,6 @@
           <span class="hood-indicator-label hood-indicator-label--code" aria-hidden="true"
             >{{ hoodIndicatorCode() }}</span
           >
-          @if (hoodInfoOpen()) {
-          <span class="hood-indicator-info" role="status">
-            <i class="bi bi-info-circle" aria-hidden="true"></i>
-            {{ hoodIndicatorFullLabel() }}
-          </span>
-          }
         </button>
 
         @if (postSearchOpen()) {

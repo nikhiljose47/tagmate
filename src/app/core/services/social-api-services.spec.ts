@@ -48,8 +48,13 @@ describe('focused social API services', () => {
     expect(supabase.updateRow).toHaveBeenCalledWith(
       'post_comments',
       'comment-1',
-      jasmine.objectContaining({ text: '', deleted_at: '2026-07-15T00:00:00.000Z' }),
+      { text: '', deleted_at: '2026-07-15T00:00:00.000Z' },
     );
+
+    service.update('comment-1', 'Updated text');
+    expect(supabase.updateRow).toHaveBeenCalledWith('post_comments', 'comment-1', {
+      text: 'Updated text',
+    });
   });
 
   it('writes direct messages and thread read state through the messaging boundary', () => {
@@ -85,8 +90,15 @@ describe('focused social API services', () => {
 
   it('uses focused relationship and post-trust boundaries', () => {
     TestBed.inject(RelationshipService).reportUser('user-2', 'user-1', 'spam');
+    TestBed.inject(RelationshipService).updatePostAuthorName('user-1', 'New Author');
     TestBed.inject(PostTrustService).setConfirmation('post-1', 'user-1', true);
     TestBed.inject(PostTrustService).addStatus('post-1', 'user-1', 'resolved', null);
+
+    expect(supabase.updateRowsWhere).toHaveBeenCalledWith(
+      'tags',
+      { user_id: 'user-1' },
+      { username: 'New Author' },
+    );
 
     expect(supabase.addRow).toHaveBeenCalledWith(
       'user_reports',

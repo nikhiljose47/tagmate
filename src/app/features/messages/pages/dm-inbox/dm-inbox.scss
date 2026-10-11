@@ -135,6 +135,28 @@
   flex-shrink: 0;
 }
 
+.thread-post-ref {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--tm-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  i {
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .thread-preview {
   margin: 0;
   font-size: 12px;

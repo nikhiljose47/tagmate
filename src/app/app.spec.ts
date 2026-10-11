@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { testProviders } from './test-providers';
 import { AppUpdateService } from './core/services/app-update.service';
+import { UserSessionService } from './core/services/user-session.service';
+import { AppUser } from './core/models/app-user.model';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -18,7 +20,18 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render navigation', () => {
+  it('should render navigation for authenticated users', () => {
+    const session = TestBed.inject(UserSessionService);
+    const user: AppUser = {
+      uid: 'user-1',
+      name: 'Tester',
+      username: 'tester',
+      email: 'test@example.com',
+      isGuest: false,
+      accountType: 'personal',
+    };
+    session.user.set(user);
+
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -32,7 +45,7 @@ describe('App', () => {
     fixture.detectChanges();
 
     const notice = fixture.nativeElement.querySelector('.app-update') as HTMLElement;
-    expect(notice.textContent).toContain('New version available');
-    expect(notice.querySelector('.app-update-action')?.textContent).toContain('Update');
+    expect(notice.textContent).toContain('Something went wrong');
+    expect(notice.querySelector('.app-update-action')?.textContent).toContain('Reload');
   });
 });

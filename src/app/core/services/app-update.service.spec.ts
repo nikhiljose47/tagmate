@@ -27,8 +27,9 @@ describe('AppUpdateService', () => {
     });
   });
 
-  it('shows the notice when a downloaded version is ready', () => {
+  it('hard-reloads when a downloaded version is ready', () => {
     const service = TestBed.inject(AppUpdateService);
+    const reloadSpy = spyOn(service as unknown as { hardReload: () => void }, 'hardReload').and.stub();
 
     versionUpdates.next({
       type: 'VERSION_READY',
@@ -36,19 +37,15 @@ describe('AppUpdateService', () => {
       latestVersion: { hash: 'new' },
     });
 
-    expect(service.updateReady()).toBeTrue();
+    expect(reloadSpy).toHaveBeenCalled();
   });
 
   it('allows the notice to be dismissed', () => {
     const service = TestBed.inject(AppUpdateService);
-    versionUpdates.next({
-      type: 'VERSION_READY',
-      currentVersion: { hash: 'old' },
-      latestVersion: { hash: 'new' },
-    });
+    unrecoverable.next({ type: 'UNRECOVERABLE_STATE', reason: 'Missing cached asset' });
 
+    expect(service.updateReady()).toBeTrue();
     service.dismiss();
-
     expect(service.updateReady()).toBeFalse();
   });
 

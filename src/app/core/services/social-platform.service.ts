@@ -229,6 +229,11 @@ export class SocialPlatformService implements OnDestroy {
     if (!uid || !cleanName || cleanName.length > 40 || cleanBio.length > 280) return false;
     try {
       await firstValueFrom(this.relationshipsApi.updateProfile(uid, cleanName, cleanBio));
+      try {
+        await firstValueFrom(this.relationshipsApi.updatePostAuthorName(uid, cleanName));
+      } catch (postErr) {
+        this.logger.warn('Could not update author name on past posts', postErr);
+      }
       const current = this.session.user();
       if (current)
         this.session.user.set({

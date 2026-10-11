@@ -1,4 +1,4 @@
-﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LoginPage } from './login';
 import { testProviders } from '../../../../test-providers';
 import { UserSessionService } from '../../../../core/services/user-session.service';
@@ -76,6 +76,35 @@ describe('LoginPage', () => {
       expect(toggleBtn?.tabIndex).toBe(0);
       expect(toggleBtn?.hasAttribute('disabled')).toBeFalse();
       expect(toggleBtn?.getAttribute('aria-hidden')).toBeNull();
+    });
+  });
+
+  describe('Form validation', () => {
+    it('shows error when both email and password are empty', async () => {
+      component.email.set('');
+      component.password.set('');
+      await component.login();
+
+      expect(component.error()).toBe('Please enter your email address/username and password to log in.');
+      expect(sessionSpy.login).not.toHaveBeenCalled();
+    });
+
+    it('shows error when password is empty but email is provided', async () => {
+      component.email.set('user@example.com');
+      component.password.set('');
+      await component.login();
+
+      expect(component.error()).toBe('Please enter your password to log in.');
+      expect(sessionSpy.login).not.toHaveBeenCalled();
+    });
+
+    it('shows error when email is empty but password is provided', async () => {
+      component.email.set('');
+      component.password.set('secret');
+      await component.login();
+
+      expect(component.error()).toBe('Please enter your email address or username to log in.');
+      expect(sessionSpy.login).not.toHaveBeenCalled();
     });
   });
 });

@@ -29,13 +29,20 @@ const LEGACY_AVAILABLE_TEXT = /\b(available now|available today|slot open|for sa
 
 /** Supports new two-mode posts plus existing business and legacy Available posts. */
 export function isAvailablePost(
-  post: Pick<Tag, 'tag' | 'intent' | 'postType'> & { highlight?: string },
+  post: Partial<Pick<Tag, 'tag' | 'intent' | 'postType' | 'price' | 'cta' | 'businessName'>> & {
+    highlight?: string;
+    postSubtype?: string | null;
+  },
 ): boolean {
   const tag = post.tag?.trim().toLowerCase();
   return (
     post.postType === 'business' ||
     tag === TagCategory.Available ||
     (!!post.intent && AVAILABLE_INTENTS.has(post.intent)) ||
+    (post.price !== undefined && post.price !== null) ||
+    !!post.cta ||
+    !!post.businessName ||
+    post.postSubtype === 'job' ||
     LEGACY_AVAILABLE_TEXT.test(post.highlight ?? '')
   );
 }

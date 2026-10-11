@@ -20,15 +20,14 @@ export class CommentService {
     return this.supabase.addRow<PostCommentRow>('post_comments', { ...input });
   }
 
-  update(commentId: string, text: string, updatedAt: string) {
-    return this.supabase.updateRow('post_comments', commentId, { text, updated_at: updatedAt });
+  update(commentId: string, text: string, _updatedAt?: string) {
+    return this.supabase.updateRow('post_comments', commentId, { text });
   }
 
   softDelete(commentId: string, deletedAt: string) {
     return this.supabase.updateRow('post_comments', commentId, {
       text: '',
       deleted_at: deletedAt,
-      updated_at: deletedAt,
     });
   }
 

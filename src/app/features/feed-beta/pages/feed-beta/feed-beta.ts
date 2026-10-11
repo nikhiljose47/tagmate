@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
@@ -117,6 +118,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly tagRepo = inject(TAG_REPOSITORY);
   private readonly logger = inject(LoggerService);
   private readonly ngZone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly mapStyle = inject(MapStyleService);
   private readonly mapPool = inject(MapInstancePoolService);
   protected readonly social = inject(SocialInteractionsService);
@@ -522,9 +524,22 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
     this.locationDrawerTrigger =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.mapSlide.set(slide);
+    this.cdr.detectChanges();
     if (typeof requestAnimationFrame !== 'undefined') {
       requestAnimationFrame(() => void this.renderDrawerMap(slide));
     }
+  }
+
+  private async waitForDrawerElement(maxAttempts = 15): Promise<HTMLDivElement | null> {
+    for (let i = 0; i < maxAttempts; i++) {
+      if (this.destroy$.closed || !this.mapSlide()) return null;
+      if (this.drawerMapElement?.nativeElement) {
+        return this.drawerMapElement.nativeElement;
+      }
+      this.cdr.detectChanges();
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    return this.drawerMapElement?.nativeElement ?? null;
   }
 
   protected hasCoordinates(post: Tag): boolean {
@@ -571,13 +586,14 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async renderDrawerMap(slide: BetaSlide): Promise<void> {
-    const container = this.drawerMapElement?.nativeElement;
+    const container = await this.waitForDrawerElement();
     const { lat, lng } = slide.post;
     if (!container || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     if (this.drawerMap) {
       this.drawerMap.easeTo({ center: [lng, lat], zoom: 15, duration: 350 });
       this.drawerMarker?.setLngLat([lng, lat]);
+      this.drawerMap.resize();
       return;
     }
 
@@ -641,6 +657,7 @@ export class FeedBetaPage implements OnInit, AfterViewInit, OnDestroy {
           .addTo(this.drawerMap!);
         this.drawerResizeObserver = new ResizeObserver(() => this.drawerMap?.resize());
         this.drawerResizeObserver.observe(container);
+        setTimeout(() => this.drawerMap?.resize(), 100);
       });
     } catch (error) {
       this.logger.error('Failed to open beta feed location map', error);
